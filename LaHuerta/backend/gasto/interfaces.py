@@ -10,7 +10,4 @@ class IGastoRepository(ABC):
     def get_all_expenses(self):
         pass
 
-    @abstractmethod
-    def get_all_expenses(self):
-        pass
     
