@@ -7,3 +7,7 @@ class GastoRepository(IGastoRepository):
     
     def get_all_expenses(self):
         return Gasto.objects.all()
+    
+    def create_expense(self, data):
+        expense = Gasto(**data)
+        expense.save()

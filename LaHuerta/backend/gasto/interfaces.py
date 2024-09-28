@@ -10,4 +10,6 @@ class IGastoRepository(ABC):
     def get_all_expenses(self):
         pass
 
-    
+    @abstractmethod
+    def create_expense(self, data):
+        pass

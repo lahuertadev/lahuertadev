@@ -1,3 +1,23 @@
-from django.shortcuts import render
+from typing import Any
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import TipoGastoSerializer
+from .repositories import TipoGastoRepository
 
-# Create your views here.
+class CreateTypeExpenseAPIView(APIView):
+    '''
+    Crea un nuevo tipo de gasto
+    '''
+    def __init__(self, type_expense_repository=None):
+        self.type_expense_repository = type_expense_repository or TipoGastoRepository()
+
+    def post(self, request):
+        serializer = TipoGastoSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                self.type_expense_repository.create_type_expense(serializer.validated_data)
+                return Response(status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'error':str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

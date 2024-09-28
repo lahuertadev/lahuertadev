@@ -2,7 +2,6 @@ from rest_framework.views import APIView #! Esto es para realizar una API.
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Gasto
-#from tipo_gasto.models import TipoGasto
 from .serializers import GastoSerializer, GastoCreateSerializer
 from .repositories import GastoRepository
 
@@ -33,14 +32,19 @@ class ExpensesByExpenseTypeIdAPIView(APIView):
         serializer = GastoSerializer(gastos, many=True)
         return Response(serializer.data)
     
-
 class CreateExpensesAPIView(APIView):
     '''
     Crea un nuevo gasto
     '''
+    def __init__(self, gasto_repository=None):
+        self.gasto_repository = gasto_repository or GastoRepository()
+
     def post(self, request):
         serializer = GastoCreateSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                self.gasto_repository.create_expense(serializer.validated_data)
+                return Response(status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

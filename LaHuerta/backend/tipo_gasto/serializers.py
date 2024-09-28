@@ -9,3 +9,12 @@ class TipoGastoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TipoGasto
         fields = ['id', 'descripcion']
+
+class TipoGastoCreateSerializer(serializers.ModelSerializer):
+    '''
+    Utilizado para método POST
+    '''
+
+    class Meta:
+        model = TipoGasto
+        fields = ['descripcion']

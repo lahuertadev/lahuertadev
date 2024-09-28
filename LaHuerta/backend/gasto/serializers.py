@@ -24,6 +24,3 @@ class GastoCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gasto
         fields = ['fecha', 'importe', 'tipo_gasto']  # Estos campos son necesarios para crear un gasto (POST)
-
-    def create(self, validated_data):
-        return Gasto.objects.create(**validated_data)
