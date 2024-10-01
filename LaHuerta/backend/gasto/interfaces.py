@@ -17,3 +17,7 @@ class IExpenseRepository(ABC):
     @abstractmethod
     def modify_expense(self, id, data):
         pass
+
+    @abstractmethod
+    def delete_expense(self, id):
+        pass

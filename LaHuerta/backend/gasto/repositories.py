@@ -24,6 +24,12 @@ class ExpenseRepository(IExpenseRepository):
         # for key, value in data.items():
         #     setattr(expense, key, value)
         expense.save()
+
+    def delete_expense(self, id):
+        expense = self.find_expense_by_id(id)
+        if not expense:
+            raise Gasto.DoesNotExist()
+        expense.delete()
             
     def find_expense_by_id(self, expense_id):
         return Gasto.objects.filter(id=expense_id).first()

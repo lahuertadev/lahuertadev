@@ -68,3 +68,21 @@ class ModifyExpenseAPIView(APIView):
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class DeleteExpenseAPIView(APIView):
+    '''
+    Elimina un gasto
+    '''
+
+    def __init__(self, expense_repository=None):
+        self.expense_repository = expense_repository or ExpenseRepository()
+
+    def delete(self, request, *args, **kwargs):
+        expense_id = kwargs.get('id')
+        try:
+            self.expense_repository.delete_expense(expense_id)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Gasto.DoesNotExist:
+            return Response({'error':'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
