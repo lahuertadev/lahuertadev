@@ -28,7 +28,7 @@ class ExpenseCreateSerializer(serializers.ModelSerializer):
 
 class ExpenseEditSerializer(serializers.ModelSerializer):
     '''
-    Se utiliza para la edición y eliminación de gastos. 
+    Se utiliza para la edición. 
     '''
     tipo_gasto = serializers.PrimaryKeyRelatedField(queryset=TipoGasto.objects.all(), 
                                                     error_messages={
