@@ -2,8 +2,8 @@ from rest_framework.views import APIView #! Esto es para realizar una API.
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Gasto
-from .serializers import GastoSerializer, GastoCreateSerializer
-from .repositories import GastoRepository
+from .serializers import ExpenseSerializer, ExpenseCreateSerializer, ExpenseEditSerializer
+from .repositories import ExpenseRepository
 
 
 class ExpensesListAPIView(APIView):
@@ -11,40 +11,60 @@ class ExpensesListAPIView(APIView):
     Obtiene la lista de los gastos.
     '''
     #! Constructor
-    def __init__(self, gasto_repository=None):
-        self.gasto_repository = gasto_repository or GastoRepository()
+    def __init__(self, expense_repository=None):
+        self.expense_repository = expense_repository or ExpenseRepository()
 
     #! Método
     def get(self, request):
-        expenses = self.gasto_repository.get_all_expenses()
-        serializer = GastoSerializer(expenses, many=True)
+        expenses = self.expense_repository.get_all_expenses()
+        serializer = ExpenseSerializer(expenses, many=True)
         return Response(serializer.data)
     
 class ExpensesByExpenseTypeIdAPIView(APIView):
     '''
     Obtiene los gastos por el Id de tipo gasto usando la interfaz IGastoRepository
     '''
-    def __init__(self, gasto_repository=None):
-        self.gasto_repository = gasto_repository or GastoRepository()
+    def __init__(self, expense_repository=None):
+        self.expense_repository = expense_repository or ExpenseRepository()
 
     def get(self, request, tipo_gasto_id):
-        gastos = self.gasto_repository.get_expenses_by_type_expenses_id(tipo_gasto_id)
-        serializer = GastoSerializer(gastos, many=True)
+        gastos = self.expense_repository.get_expenses_by_type_expenses_id(tipo_gasto_id)
+        serializer = ExpenseSerializer(gastos, many=True)
         return Response(serializer.data)
     
 class CreateExpensesAPIView(APIView):
     '''
     Crea un nuevo gasto
     '''
-    def __init__(self, gasto_repository=None):
-        self.gasto_repository = gasto_repository or GastoRepository()
+    def __init__(self, expense_repository=None):
+        self.expense_repository = expense_repository or ExpenseRepository()
 
     def post(self, request):
-        serializer = GastoCreateSerializer(data=request.data)
+        serializer = ExpenseCreateSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                self.gasto_repository.create_expense(serializer.validated_data)
+                self.expense_repository.create_expense(serializer.validated_data)
                 return Response(status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ModifyExpenseAPIView(APIView):
+    '''
+    Modifica un gasto
+    '''
+    def __init__(self, expense_repository=None):
+        self.expense_repository = expense_repository or ExpenseRepository()
+
+    def put(self, request, *args, **kwargs):
+        expense_id = kwargs.get('id') #* Así se obtiene un parámetro desde la URL
+        serializer = ExpenseEditSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                self.expense_repository.modify_expense(expense_id, serializer.validated_data)
+                return Response(status=status.HTTP_200_OK)
+            except Gasto.DoesNotExist:
+                return Response({'error': 'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
             except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

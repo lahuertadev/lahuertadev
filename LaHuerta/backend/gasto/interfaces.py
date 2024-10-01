@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from .models import Gasto
 
-class IGastoRepository(ABC):
+class IExpenseRepository(ABC):
     @abstractmethod
     def get_expenses_by_type_expenses_id(self, tipo_gasto_id):
         pass
@@ -12,4 +12,8 @@ class IGastoRepository(ABC):
 
     @abstractmethod
     def create_expense(self, data):
+        pass
+
+    @abstractmethod
+    def modify_expense(self, id, data):
         pass
