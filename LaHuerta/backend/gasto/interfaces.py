@@ -21,3 +21,11 @@ class IExpenseRepository(ABC):
     @abstractmethod
     def delete_expense(self, id):
         pass
+
+    @abstractmethod
+    def find_expense_by_id(self, expense_id):
+        pass
+
+    @abstractmethod
+    def get_expenses_filtered_by_date(self, start_date, end_date):
+        pass

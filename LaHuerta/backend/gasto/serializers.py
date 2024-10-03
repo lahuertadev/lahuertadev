@@ -39,3 +39,4 @@ class ExpenseEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gasto
         fields = ['id', 'fecha', 'importe', 'tipo_gasto']
+

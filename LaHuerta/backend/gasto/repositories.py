@@ -30,6 +30,9 @@ class ExpenseRepository(IExpenseRepository):
         if not expense:
             raise Gasto.DoesNotExist()
         expense.delete()
-            
+
+    def get_expenses_filtered_by_date(self, start_date, end_date):
+        return Gasto.objects.filter(fecha__range=[start_date, end_date])
+         
     def find_expense_by_id(self, expense_id):
         return Gasto.objects.filter(id=expense_id).first()

@@ -1,8 +1,13 @@
+from datetime import datetime
 from rest_framework.views import APIView #! Esto es para realizar una API. 
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Gasto
-from .serializers import ExpenseSerializer, ExpenseCreateSerializer, ExpenseEditSerializer
+from .serializers import (
+    ExpenseSerializer, 
+    ExpenseCreateSerializer, 
+    ExpenseEditSerializer, 
+)
 from .repositories import ExpenseRepository
 
 
@@ -27,10 +32,14 @@ class ExpensesByExpenseTypeIdAPIView(APIView):
     def __init__(self, expense_repository=None):
         self.expense_repository = expense_repository or ExpenseRepository()
 
-    def get(self, request, tipo_gasto_id):
-        gastos = self.expense_repository.get_expenses_by_type_expenses_id(tipo_gasto_id)
-        serializer = ExpenseSerializer(gastos, many=True)
-        return Response(serializer.data)
+    def get(self, request, *args, **kwargs):
+        type_expense_id = kwargs.get('type_expense_id')
+        try:
+            gastos = self.expense_repository.get_expenses_by_type_expenses_id(type_expense_id)
+            serializer = ExpenseSerializer(gastos, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
 class CreateExpensesAPIView(APIView):
     '''
@@ -86,3 +95,22 @@ class DeleteExpenseAPIView(APIView):
             return Response({'error':'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class GetExpensesByDateAPIView(APIView):
+    '''
+    Obtiene los gastos entre las fechas especificadas
+    '''
+    def __init__(self, expense_repository=None):
+        self.expense_repository = expense_repository or ExpenseRepository()
+
+    def get(self, request, *args, **kwargs):
+        start_date = kwargs.get('start_date').strip()
+        end_date = kwargs.get('end_date').strip()
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        try:
+            expenses = self.expense_repository.get_expenses_filtered_by_date(start_date, end_date)
+            serializer = ExpenseSerializer(expenses, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
