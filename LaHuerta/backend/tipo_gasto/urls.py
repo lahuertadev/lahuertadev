@@ -1,6 +1,10 @@
 from django.urls import path
-from .views import CreateTypeExpenseAPIView
+from .views import (
+    CreateTypeExpenseAPIView,
+    GetTypeExpensesAPIView
+)
 
 urlpatterns = [
-    path('tipo_gasto/create/', CreateTypeExpenseAPIView.as_view(), name='tipo-gasto-create'),
+    path('type_expense/create/', CreateTypeExpenseAPIView.as_view(), name='create-type-expense'),
+    path('type_expense/', GetTypeExpensesAPIView.as_view(), name='get-type-expense'),
 ]
