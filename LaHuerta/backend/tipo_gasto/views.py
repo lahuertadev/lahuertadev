@@ -10,7 +10,7 @@ class CreateTypeExpenseAPIView(APIView):
     Crea un nuevo tipo de gasto
     '''
     def __init__(self, type_expense_repository=None):
-        self.type_expense_repository = type_expense_repository or ITipoGastoRepository()
+        self.type_expense_repository = type_expense_repository or TipoGastoRepository()
 
     def post(self, request):
         serializer = TipoGastoSerializer(data=request.data)

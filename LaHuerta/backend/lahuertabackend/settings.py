@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'gasto',
-    'tipo_gasto'
+    'tipo_gasto',
+    'tipo_facturacion'
 ]
 
 MIDDLEWARE = [
