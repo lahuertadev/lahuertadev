@@ -14,8 +14,8 @@ class GetTypeFacturationAPIView(APIView):
 
     def get(self, request):
         try:
-            type_expenses = self.type_facturation_repository.get_all_facturation_types()
-            serializer = TipoFacturacionSerializer(type_expenses, many=True)
+            types_facturation = self.type_facturation_repository.get_all_facturation_types()
+            serializer = TipoFacturacionSerializer(types_facturation, many=True)
             return Response(serializer.data)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -16,10 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from tipo_condicion_iva.urls import GetTypesIvaConditionAPIView 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('gasto.urls')),
     path('', include('tipo_gasto.urls')),
-    path('', include('tipo_facturacion.urls'))
+    path('', include('tipo_facturacion.urls')),
+    path('', include('tipo_condicion_iva.urls'))
 ]

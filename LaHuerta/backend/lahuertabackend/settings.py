@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'gasto',
     'tipo_gasto',
-    'tipo_facturacion'
+    'tipo_facturacion',
+    'tipo_condicion_iva'
 ]
 
 MIDDLEWARE = [
