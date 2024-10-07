@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'tipo_condicion_iva',
     'dia_entrega',
     'tipo_factura',
-    'categoria'
+    'categoria',
+    'tipo_contenedor'
 ]
 
 MIDDLEWARE = [
