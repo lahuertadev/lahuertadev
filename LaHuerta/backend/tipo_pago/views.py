@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from .repositories import PaymentTypeRepository
 from .serializers import PaymentTypeSerializer
 
-class GetAllUnitTypes(APIView):
+class GetAllPaymentTypes(APIView):
     '''
     Lista todos los tipos de pagos
     '''

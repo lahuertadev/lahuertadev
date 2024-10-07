@@ -1,8 +1,8 @@
 from django.urls import path
 from .views import (
-    GetAllUnitTypes
+    GetAllPaymentTypes
 )
 
 urlpatterns = [
-    path('payment_type/', GetAllUnitTypes.as_view(), name='get-all-payment-types'),
+    path('payment_type/', GetAllPaymentTypes.as_view(), name='get-all-payment-types'),
 ]

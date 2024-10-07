@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'categoria',
     'tipo_contenedor',
     'tipo_unidad',
-    'tipo_pago'
+    'tipo_pago',
+    'mercado',
 ]
 
 MIDDLEWARE = [
