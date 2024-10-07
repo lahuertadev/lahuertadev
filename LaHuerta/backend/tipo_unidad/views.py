@@ -7,7 +7,7 @@ from .serializers import UnitTypeSerializer
 
 class GetAllUnitTypes(APIView):
     '''
-    Lista todos las categorías
+    Lista todos los tipos de unidad
     '''
     def __init__(self, type_container_repository = None):
         self.type_container_repository = type_container_repository or UnitTypeRepository()
