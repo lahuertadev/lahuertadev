@@ -26,5 +26,6 @@ urlpatterns = [
     path('', include('dia_entrega.urls')),
     path('', include('tipo_factura.urls')),
     path('', include('categoria.urls')),
-    path('', include('tipo_contenedor.urls'))
+    path('', include('tipo_contenedor.urls')),
+    path('', include('tipo_unidad.urls'))
 ]
