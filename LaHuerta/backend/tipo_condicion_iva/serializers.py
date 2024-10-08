@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import TipoCondicionIva
 
-class TypeConditionIvaSerializer(serializers.ModelSerializer):
+class ConditionIvaTypeSerializer(serializers.ModelSerializer):
     '''
     DTO
     '''
