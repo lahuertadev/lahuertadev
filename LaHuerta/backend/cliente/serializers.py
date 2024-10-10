@@ -3,6 +3,7 @@ from .models import Cliente
 from localidad.serializers import TownSerializer
 from tipo_facturacion.serializers import FacturationTypeSerializer
 from tipo_condicion_iva.serializers import ConditionIvaTypeSerializer
+from dia_entrega.serializers import DeliveryDaysSerializer
 
 class ClientSerializer(serializers.ModelSerializer):
     '''
@@ -11,6 +12,7 @@ class ClientSerializer(serializers.ModelSerializer):
     localidad = TownSerializer()
     tipo_facturacion = FacturationTypeSerializer()
     condicion_IVA = ConditionIvaTypeSerializer()
+    dias_entrega = DeliveryDaysSerializer(many=True)
 
     class Meta:
         model = Cliente
@@ -25,5 +27,6 @@ class ClientSerializer(serializers.ModelSerializer):
             'condicion_IVA',
             'telefono',
             'fecha_inicio_ventas',
-            'nombre_fantasia'
+            'nombre_fantasia',
+            'dias_entrega'
         ]
