@@ -52,7 +52,8 @@ INSTALLED_APPS = [
     'mercado',
     'banco',
     'localidad',
-    'cliente'
+    'cliente',
+    'factura'
 ]
 
 MIDDLEWARE = [
