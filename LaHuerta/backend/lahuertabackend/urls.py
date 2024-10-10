@@ -35,5 +35,5 @@ urlpatterns = [
     path('', include('cliente.urls')),
     path('', include('factura.urls')),
     path('', include('producto.urls')),
-
+    path('', include('lista_precios.urls')),
 ]
