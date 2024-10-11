@@ -37,4 +37,5 @@ urlpatterns = [
     path('', include('producto.urls')),
     path('', include('lista_precios.urls')),
     path('', include('proveedor.urls')),
+    path('', include('compra.urls')),
 ]
