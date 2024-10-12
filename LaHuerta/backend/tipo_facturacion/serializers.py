@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import TipoFacturacion
 
-class TipoFacturacionSerializer(serializers.ModelSerializer):
+class FacturationTypeSerializer(serializers.ModelSerializer):
     '''
     DTO
     '''

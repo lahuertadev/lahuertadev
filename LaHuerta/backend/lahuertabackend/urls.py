@@ -28,5 +28,15 @@ urlpatterns = [
     path('', include('categoria.urls')),
     path('', include('tipo_contenedor.urls')),
     path('', include('tipo_unidad.urls')),
-    path('', include('tipo_pago.urls'))
+    path('', include('tipo_pago.urls')),
+    path('', include('mercado.urls')),
+    path('', include('banco.urls')),
+    path('', include('localidad.urls')),
+    path('', include('cliente.urls')),
+    path('', include('factura.urls')),
+    path('', include('producto.urls')),
+    path('', include('lista_precios.urls')),
+    path('', include('proveedor.urls')),
+    path('', include('compra.urls')),
+    path('', include('pago.urls')),
 ]
