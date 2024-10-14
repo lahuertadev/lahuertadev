@@ -3,7 +3,7 @@ from cliente.models import Cliente
 from tipo_pago.models import TipoPago
 
 class Pago(models.Model):
-    fecha_pago = models.DateTimeField()
+    fecha_pago = models.DateField()
     importe = models.DecimalField(max_digits=10, decimal_places=2)
     observaciones = models.CharField(max_length=200)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
