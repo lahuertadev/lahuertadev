@@ -58,7 +58,9 @@ INSTALLED_APPS = [
     'lista_precios',
     'proveedor',
     'compra',
-    'pago'
+    'pago',
+    'cheque',
+    'pago_factura'
 ]
 
 MIDDLEWARE = [
