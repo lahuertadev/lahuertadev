@@ -1,0 +1,15 @@
+# Ignorar bases de datos SQLite
+*.sqlite3
+*.db
+
+# Ignorar archivos de configuración de MySQL (si son archivos específicos)
+*.sql
+
+# Ignorar carpetas de entorno virtual
+venv/
+.env/
+.env.*
+
+# Ignorar archivos de caché y compilados de Python
+**/__pycache__/
+**/*.pyc
