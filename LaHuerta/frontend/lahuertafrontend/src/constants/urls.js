@@ -1,0 +1,1 @@
+export const deleteUrl = 'http://localhost:8000/expense';
