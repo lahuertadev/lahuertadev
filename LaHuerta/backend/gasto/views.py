@@ -114,3 +114,19 @@ class GetExpensesByDateAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class GetExpenseByIdAPIView(APIView):
+    '''
+    Obtiene el gasto por el id
+    '''
+    def __init__(self, expense_repository=None):
+        self.expense_repository = expense_repository or ExpenseRepository()
+
+    def get(self, request, *args, **kwargs):
+        id = kwargs.get('id')
+        try:
+            expense = self.expense_repository.get_expense_by_id(id)
+            serializer = ExpenseSerializer(expense)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

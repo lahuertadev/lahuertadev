@@ -11,6 +11,10 @@ class IExpenseRepository(ABC):
         pass
 
     @abstractmethod
+    def get_expense_by_id(self):
+        pass
+
+    @abstractmethod
     def create_expense(self, data):
         pass
 
@@ -23,7 +27,7 @@ class IExpenseRepository(ABC):
         pass
 
     @abstractmethod
-    def find_expense_by_id(self, expense_id):
+    def get_expense_by_id(self, expense_id):
         pass
 
     @abstractmethod

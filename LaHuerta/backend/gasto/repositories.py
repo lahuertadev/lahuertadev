@@ -13,7 +13,7 @@ class ExpenseRepository(IExpenseRepository):
         expense.save()
 
     def modify_expense(self, id, data):
-        expense = self.find_expense_by_id(id)
+        expense = self.get_expense_by_id(id)
         if not expense:
             raise Gasto.DoesNotExist()
         expense.fecha = data.get('fecha', expense.fecha)
@@ -26,7 +26,7 @@ class ExpenseRepository(IExpenseRepository):
         expense.save()
 
     def delete_expense(self, id):
-        expense = self.find_expense_by_id(id)
+        expense = self.get_expense_by_id(id)
         if not expense:
             raise Gasto.DoesNotExist()
         expense.delete()
@@ -34,5 +34,5 @@ class ExpenseRepository(IExpenseRepository):
     def get_expenses_filtered_by_date(self, start_date, end_date):
         return Gasto.objects.filter(fecha__range=[start_date, end_date])
          
-    def find_expense_by_id(self, expense_id):
+    def get_expense_by_id(self, expense_id):
         return Gasto.objects.filter(id=expense_id).first()
