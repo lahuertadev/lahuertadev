@@ -1,0 +1,58 @@
+/* Estilos generales para la grilla, siguiendo el estilo del formulario */
+.custom-table {
+    width: 90%;
+    margin: 0 auto;    
+    padding: 20px;     
+    background-color: #f9f9f9; 
+    border-radius: 10px;  
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+  }
+
+  .custom-container {
+    display: flex;
+    flex-direction: column;
+    width: 80%;           
+    margin: 0 auto;       
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .custom-table .MuiDataGrid-root {
+    flex-grow: 1; /* Asegura que la tabla crezca dentro del contenedor */
+  }
+  
+  table {
+    width: 100%;  /* Ocupa todo el ancho del contenedor */
+    border-collapse: collapse;  /* Quita el espacio entre bordes */
+    margin-bottom: 20px;  /* Espacio debajo de la tabla */
+  }
+  
+  table th, table td {
+    padding: 10px;  /* Espaciado interno */
+    text-align: left;  /* Alineación del texto a la izquierda */
+    border-bottom: 1px solid #ccc;  /* Línea divisoria entre filas */
+  }
+  
+  table th {
+    background-color: #f0f0f0;  /* Fondo claro para el encabezado */
+    font-weight: bold;  /* Texto en negrita */
+  }
+  
+  table tr:nth-child(even) {
+    background-color: #f9f9f9;  /* Color de fondo alterno para las filas */
+  }
+  
+  .custom-button {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  /* Estilo para las celdas y encabezados en dispositivos pequeños */
+  @media (max-width: 768px) {
+    table th, table td {
+      font-size: 14px;  /* Tamaño de fuente reducido en pantallas pequeñas */
+    }
+  }

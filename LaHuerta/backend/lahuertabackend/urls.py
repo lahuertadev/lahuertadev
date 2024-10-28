@@ -19,5 +19,26 @@ from django.urls import include, path
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('gasto.urls'))
+    path('', include('gasto.urls')),
+    path('', include('tipo_gasto.urls')),
+    path('', include('tipo_facturacion.urls')),
+    path('', include('tipo_condicion_iva.urls')),
+    path('', include('dia_entrega.urls')),
+    path('', include('tipo_factura.urls')),
+    path('', include('categoria.urls')),
+    path('', include('tipo_contenedor.urls')),
+    path('', include('tipo_unidad.urls')),
+    path('', include('tipo_pago.urls')),
+    path('', include('mercado.urls')),
+    path('', include('banco.urls')),
+    path('', include('localidad.urls')),
+    path('', include('cliente.urls')),
+    path('', include('factura.urls')),
+    path('', include('producto.urls')),
+    path('', include('lista_precios.urls')),
+    path('', include('proveedor.urls')),
+    path('', include('compra.urls')),
+    path('', include('pago.urls')),
+    path('', include('cheque.urls')),
+    path('', include('pago_factura.urls')),
 ]

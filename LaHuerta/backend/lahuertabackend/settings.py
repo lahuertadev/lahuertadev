@@ -40,10 +40,31 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'gasto',
-    'tipo_gasto'
+    'tipo_gasto',
+    'tipo_facturacion',
+    'tipo_condicion_iva',
+    'dia_entrega',
+    'tipo_factura',
+    'categoria',
+    'tipo_contenedor',
+    'tipo_unidad',
+    'tipo_pago',
+    'mercado',
+    'banco',
+    'localidad',
+    'cliente',
+    'factura',
+    'producto',
+    'lista_precios',
+    'proveedor',
+    'compra',
+    'pago',
+    'cheque',
+    'pago_factura'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', #! Esto es del CORS para poder realizar solicitudes desde React, tiene que estar al principio.
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -51,7 +72,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware', #! Esto es del CORS para poder realizar solicitudes desde React
 ]
 
 ROOT_URLCONF = 'lahuertabackend.urls'
@@ -71,7 +91,13 @@ TEMPLATES = [
         },
     },
 ]
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
 
+CORS_ALLOW_HEADERS = [
+    'content-type',
+]
 CORS_ALLOW_ALL_ORIGINS = True
 
 WSGI_APPLICATION = 'lahuertabackend.wsgi.application'

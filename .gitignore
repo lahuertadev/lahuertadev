@@ -7,9 +7,6 @@
 
 # Ignorar carpetas de entorno virtual
 venv/
-.env/
-.env.*
-
-# Ignorar archivos de caché y compilados de Python
-**/__pycache__/
-**/*.pyc
+__pycache__/
+*.pyc
+*.py[cod]

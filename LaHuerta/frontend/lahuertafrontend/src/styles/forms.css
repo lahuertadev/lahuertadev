@@ -1,0 +1,60 @@
+/* Estilos generales para todos los formularios */
+
+.custom-form {
+    max-width: 600px;  /* Tamaño máximo del formulario */
+    margin: 0 auto;    /* Centrado en la página */
+    padding: 20px;     /* Espaciado interno */
+    background-color: #f9f9f9;  /* Fondo claro */
+    border-radius: 10px;  /* Bordes redondeados */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  /* Sombra suave */
+  }
+
+.custom-button {
+    display: flex;  
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* Estilos para los inputs */
+input, select, textarea {
+width: 100%;  /* Ocupa todo el ancho del contenedor */
+padding: 10px;  /* Espaciado interno */
+margin-bottom: 20px;  /* Espacio entre campos */
+border: 1px solid #ccc;  /* Borde gris */
+border-radius: 5px;  /* Bordes redondeados */
+font-size: 16px;  /* Tamaño de fuente */
+}
+
+/* Estilo para etiquetas */
+label {
+display: block;  /* Cada etiqueta en su propia línea */
+margin-bottom: 5px;  /* Espacio entre la etiqueta y el input */
+font-weight: bold;  /* Etiqueta en negrita */
+}
+
+/* Estilo para mensajes de error */
+.error {
+color: red;  /* Texto rojo */
+font-size: 14px;  /* Tamaño de fuente más pequeño */
+margin-bottom: 10px;  /* Espacio entre el error y el siguiente elemento */
+}
+
+
+button:hover {
+background-color: #45a049;  /* Cambia el color al hacer hover */
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+form {
+    padding: 15px;
+}
+
+input, select, textarea {
+    font-size: 14px;
+}
+
+button {
+    font-size: 14px;
+}
+}
