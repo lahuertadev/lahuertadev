@@ -1,0 +1,1 @@
+export const headerOptions = ['Inicio', 'Clientes', 'Facturación', 'Gastos'];

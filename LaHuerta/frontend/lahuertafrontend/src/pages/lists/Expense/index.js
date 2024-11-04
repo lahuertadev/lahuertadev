@@ -1,13 +1,13 @@
 // routes/Expense/ExpenseList.js
 import React, { useEffect, useState } from 'react';
-import DataGridDemo from '../../components/Grid';
+import DataGridDemo from '../../../components/Grid';
 import axios from 'axios';
-import '../../styles/grids.css'
+import '../../../styles/grids.css'
 import { useNavigate } from 'react-router-dom'; // Para utilizar la redirección en el edit
-import AlertDialog from '../../components/DialogAlert'
-import { formatDate } from '../../utils/date'
-import { formatCurrency } from '../../utils/currency'
-import { deleteUrl } from '../../constants/urls'
+import AlertDialog from '../../../components/DialogAlert'
+import { formatDate } from '../../../utils/date'
+import { formatCurrency } from '../../../utils/currency'
+import { deleteUrl } from '../../../constants/urls'
 
 const ExpenseList = () => {
   const [rows, setRows] = useState([]);

@@ -2,16 +2,20 @@ import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
-import Root from "./routes/root"; // Importa el componente Root
-import ExpenseForm from "./routes/forms/ExpenseForm";
-import ExpenseList from "./routes/lists/ExpenseList";
+import App from "./App"; 
+import Home from './pages/home';
+import ExpenseForm from "./pages/forms/ExpenseForm";
+import ExpenseList from "./pages/lists/Expense";
 
-// Definir las rutas
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Root />, 
+    element: <App />, 
     children:[
+      {
+        path: '/',
+        element: <Home />
+      },
       {
         path: '/expense/create',
         element: <ExpenseForm />
@@ -21,7 +25,7 @@ const router = createBrowserRouter([
         element: <ExpenseList />
       },
       {
-        path: '/expense/edit/:id',  // Ruta dinámica para editar un gasto
+        path: '/expense/edit/:id',
         element: <ExpenseForm />
       }
     ],
