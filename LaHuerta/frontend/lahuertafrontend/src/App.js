@@ -1,5 +1,5 @@
 import React from 'react';
-import Header from './components/Header';
+import MiniDrawer from './components/Header';
 import Footer from './components/Footer';
 import { Outlet } from 'react-router-dom';
 import { headerOptions } from './constants/headerOptions';
@@ -10,7 +10,7 @@ function App() {
   
   return (
     <div className="App min-h-[100svh] flex flex-col justify-between bg-gradient-to-r from-green-lahuerta to-brown-lahuerta">
-      <Header
+      <MiniDrawer
         title='La Huerta'
         menuOptions={headerOptions}
       />
