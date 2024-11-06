@@ -88,6 +88,7 @@ class DeleteExpenseAPIView(APIView):
 
     def delete(self, request, *args, **kwargs):
         expense_id = kwargs.get('id')
+        print('recibi estos ids: ', expense_id)
         try:
             self.expense_repository.delete_expense(expense_id)
             return Response(status=status.HTTP_204_NO_CONTENT)

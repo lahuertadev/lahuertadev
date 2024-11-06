@@ -7,6 +7,11 @@ import '../../styles/grids.css'
 
 export default function DataGridDemo({ rows, columns, onSelectionChange, onDelete, onEdit }) {
   const [filters, setFilters] = useState({});
+  const [selectedIds, setSelectedIds ] = useState([]);
+
+  const handleSelectionChange = (newSelection) => {
+    setSelectedIds(newSelection);
+  }
 
   // Función para manejar el cambio de filtro
   const handleFilterChange = (field, value) => {

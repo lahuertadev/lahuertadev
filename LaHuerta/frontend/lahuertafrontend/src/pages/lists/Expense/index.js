@@ -69,23 +69,23 @@ const ExpenseList = () => {
 
   //* Función para eliminar el registro de la tabla
   const handleDeleteConfirm = async () => {
-    console.log('Entre en la función a eliminar')
+    console.log('IDs a eliminar: ', isMultipleDelete ? selectedExpenseIds : expenseToDelete);
     try {
-        if (expenseToDelete !== null) { // Si hay un gasto específico a eliminar
-          console.log('Hay un sólo registro')
-          await axios.delete(`${deleteUrl}/${expenseToDelete}/delete/`);
-        } else if (selectedExpenseIds.length > 0) { // Si hay múltiples gastos seleccionados
-            console.log('Hay múltiples registros')
-            await Promise.all(selectedExpenseIds.map(id => axios.delete(`${deleteUrl}/${id}/delete/`)));
-        }
-        fetchExpenses(); // Refrescar la lista después de eliminar
+      if (isMultipleDelete) {
+        console.log('Entre en multiples y es este: ', selectedExpenseIds)
+        await Promise.all(selectedExpenseIds.map(id => axios.delete(`${deleteUrl}/${id}/delete/`)));
+      } else if (expenseToDelete !== null) {
+        console.log('Entre en simple y es este: ', expenseToDelete)
+        await axios.delete(`${deleteUrl}/${expenseToDelete}/delete/`);
+      }
+      fetchExpenses(); // Refrescar la lista después de eliminar
     } catch (error) {
         console.error("Error deleting expense:", error);
     } finally {
         setOpenConfirmDialog(false);
         setExpenseToDelete(null); // Reiniciar estado
-        setSelectedExpenseIds([]);
-        setIsMultipleDelete(false);
+        setSelectedExpenseIds([]); // Limpiar la selección
+        setIsMultipleDelete(false); // Reiniciar la bandera de eliminación múltiple
     }
   };
 
