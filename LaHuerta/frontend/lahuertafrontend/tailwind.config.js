@@ -7,10 +7,13 @@ module.exports = {
   theme: {
     extend: {
       colors:{
-        'green-lahuerta':'#7DB131',
+        'green-lahuerta':'#536271',
         'orange-lahuerta':'#FF8800',
         'yellow-lahuerta':'#F7E354',
-        'brown-lahuerta':'#8D6E63'
+        'brown-lahuerta':'#8D6E63',
+        'blue-lahuerta':'#5d89c8',
+        'little-blue-lahuerta':'#AFB9D4'
+
       }
     },
   },

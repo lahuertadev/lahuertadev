@@ -9,7 +9,7 @@ import { FaLinkedin } from 'react-icons/fa';
 function App() {
   
   return (
-    <div className="App min-h-[100svh] flex flex-col justify-between bg-gradient-to-r from-green-lahuerta to-brown-lahuerta">
+    <div className="App min-h-[100svh] flex flex-col justify-between bg-gradient-to-r from-blue-lahuerta to-little-blue-lahuerta">
       <MiniDrawer
         title='La Huerta'
         menuOptions={headerOptions}

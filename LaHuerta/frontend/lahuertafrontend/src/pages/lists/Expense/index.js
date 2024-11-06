@@ -3,21 +3,25 @@ import React, { useEffect, useState } from 'react';
 import DataGridDemo from '../../../components/Grid';
 import axios from 'axios';
 import '../../../styles/grids.css'
-import { useNavigate } from 'react-router-dom'; // Para utilizar la redirección en el edit
-import AlertDialog from '../../../components/DialogAlert'
-import { formatDate } from '../../../utils/date'
-import { formatCurrency } from '../../../utils/currency'
-import { deleteUrl } from '../../../constants/urls'
+import { useNavigate } from 'react-router-dom';
+import AlertDialog from '../../../components/DialogAlert';
+import IconLabelButtons from '../../../components/Button';
+import { formatDate } from '../../../utils/date';
+import { formatCurrency } from '../../../utils/currency';
+import { deleteUrl } from '../../../constants/urls';
+import { columns } from '../../../constants/grid/Expense';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import DeleteIcon from '@mui/icons-material/Delete'; 
 
 const ExpenseList = () => {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState([]);
   const [isMultipleDelete, setIsMultipleDelete] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const navigate = useNavigate();
 
   //* Función que carga la grilla.
   const fetchExpenses = async () => {
@@ -41,6 +45,10 @@ const ExpenseList = () => {
     }
   };
   
+  const handleAddExpense = () => {
+    navigate('/expense/create');
+  };
+
   useEffect(() => {
     fetchExpenses();
   }, []);
@@ -87,36 +95,44 @@ const ExpenseList = () => {
     setSelectedExpenseIds(selection);
   };
 
-
   const handleEdit = async (id) => {
     const expenseToEdit = rows.find(expense => expense.id === id);
     navigate(`/expense/edit/${id}`, { state: { expense: expenseToEdit } }) // Redirección + gasto seleccionado
   }
 
-  
-
-  const columns = [
-    { field: 'id', headerName: 'ID', width: 90 },
-    { field: 'date', headerName: 'Fecha', width: 150 },
-    { field: 'amount', headerName: 'Importe', width: 150 },
-    { field: 'expenseTypeDescription', headerName: 'Tipo de Gasto', width: 150 },
-
-  ];
-
-  if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className="custom-table">
-        <DataGridDemo 
-        rows={rows} 
-        columns={columns} 
-        onDelete={(id) => handleOpenConfirmDialog(false, id)}
-        onEdit={handleEdit}
-        onSelectionChange={handleSelectionChange}
-        />
-        
-
+    <div className='container mx-auto h-full items-center flex flex-col'>
+        <h1 className='text-black font-bold text-3xl mb-8 mt-2'>Lista de gastos</h1>
+        {loading && <div class="flex items-center justify-center h-screen">
+        <div class="w-16 h-16 border-8 border-t-8 border-gray-200 rounded-full animate-spin border-t-gray-900"></div>
+        </div>}
+        <div className="w-4/5 mx-auto bg-white p-5 rounded-lg shadow-md">
+          <IconLabelButtons
+            label='Agregar un nuevo gasto'
+            icon = {<AddCircleOutlineIcon/>}
+            onClick={handleAddExpense}
+          />
+          <DataGridDemo 
+          rows={rows} 
+          columns={columns} 
+          onDelete={(id) => handleOpenConfirmDialog(false, id)}
+          onEdit={handleEdit}
+          onSelectionChange={handleSelectionChange}
+          />
+          <br></br>
+          <div className='flex justify-center'>
+          {selectedExpenseIds.length > 0 && (
+          <IconLabelButtons
+            label="Eliminar Seleccionados"
+            icon={<DeleteIcon />}
+            onClick={() => handleOpenConfirmDialog(true)}
+            className="mt-4 hover:bg-red-500 hover:text-white"
+          />
+          )}
+          </div>
+        </div>
         <AlertDialog
         open={openConfirmDialog}
         title={isMultipleDelete ? "Confirmar eliminación múltiple" : "Confirmar eliminación"}
@@ -124,14 +140,7 @@ const ExpenseList = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={handleCloseConfirmDialog}
       />
-
-      {selectedExpenseIds.length > 0 && (
-        <button onClick={() => handleOpenConfirmDialog(true)}>
-          Eliminar Seleccionados
-        </button>
-      )}
     </div>
-    
   );
 };
 
