@@ -87,10 +87,9 @@ class DeleteExpenseAPIView(APIView):
         self.expense_repository = expense_repository or ExpenseRepository()
 
     def delete(self, request, *args, **kwargs):
-        expense_id = kwargs.get('id')
-        print('recibi estos ids: ', expense_id)
+        expense_ids = request.data.get('ids', [])
         try:
-            self.expense_repository.delete_expense(expense_id)
+            self.expense_repository.delete_expense(expense_ids)
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Gasto.DoesNotExist:
             return Response({'error':'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)

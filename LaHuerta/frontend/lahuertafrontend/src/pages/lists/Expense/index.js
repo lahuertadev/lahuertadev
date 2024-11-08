@@ -1,4 +1,3 @@
-// routes/Expense/ExpenseList.js
 import React, { useEffect, useState } from 'react';
 import DataGridDemo from '../../../components/Grid';
 import axios from 'axios';
@@ -8,7 +7,7 @@ import AlertDialog from '../../../components/DialogAlert';
 import IconLabelButtons from '../../../components/Button';
 import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
-import { deleteUrl } from '../../../constants/urls';
+import { expenseDeleteUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Expense';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete'; 
@@ -69,23 +68,20 @@ const ExpenseList = () => {
 
   //* Función para eliminar el registro de la tabla
   const handleDeleteConfirm = async () => {
-    console.log('IDs a eliminar: ', isMultipleDelete ? selectedExpenseIds : expenseToDelete);
+    console.log('Estos son los ids a eliminar: ', selectedExpenseIds, ' o ' , expenseToDelete)
     try {
-      if (isMultipleDelete) {
-        console.log('Entre en multiples y es este: ', selectedExpenseIds)
-        await Promise.all(selectedExpenseIds.map(id => axios.delete(`${deleteUrl}/${id}/delete/`)));
-      } else if (expenseToDelete !== null) {
-        console.log('Entre en simple y es este: ', expenseToDelete)
-        await axios.delete(`${deleteUrl}/${expenseToDelete}/delete/`);
-      }
-      fetchExpenses(); // Refrescar la lista después de eliminar
+      const idsToDelete = isMultipleDelete ? selectedExpenseIds : [expenseToDelete];
+      await axios.delete(expenseDeleteUrl, { 
+        data: { ids: idsToDelete } 
+      });
+      fetchExpenses();
     } catch (error) {
-        console.error("Error deleting expense:", error);
+      console.error("Error deleting expense:", error);
     } finally {
-        setOpenConfirmDialog(false);
-        setExpenseToDelete(null); // Reiniciar estado
-        setSelectedExpenseIds([]); // Limpiar la selección
-        setIsMultipleDelete(false); // Reiniciar la bandera de eliminación múltiple
+      setOpenConfirmDialog(false);
+      setExpenseToDelete(null); // Reiniciar estado
+      setSelectedExpenseIds([]); // Limpiar la selección
+      setIsMultipleDelete(false); // Reiniciar la bandera de eliminación múltiple
     }
   };
 
