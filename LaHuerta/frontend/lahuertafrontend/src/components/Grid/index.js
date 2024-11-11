@@ -85,7 +85,7 @@ export default function DataGridDemo({ rows, columns, onSelectionChange, onDelet
 
 
   return (
-    <Box className="w-4/5 mx-auto bg-white p-5 rounded-lg shadow-md">
+    // <Box className="w-4/5 mx-auto bg-white p-5 rounded-lg shadow-md">
       <DataGrid
         rows={filteredRows}
         columns={updatedColumns}
@@ -143,6 +143,6 @@ export default function DataGridDemo({ rows, columns, onSelectionChange, onDelet
           },
         }}
       />
-    </Box>
+    // </Box>
   );
 }

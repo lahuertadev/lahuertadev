@@ -7,10 +7,11 @@ import AlertDialog from '../../../components/DialogAlert';
 import IconLabelButtons from '../../../components/Button';
 import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
-import { expenseDeleteUrl } from '../../../constants/urls';
+import { expenseDeleteUrl, expenseUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Expense';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete'; 
+import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 
 const ExpenseList = () => {
   const [rows, setRows] = useState([]);
@@ -26,7 +27,7 @@ const ExpenseList = () => {
   const fetchExpenses = async () => {
     setLoading(true);
     try{
-      const response = await axios.get('http://localhost:8000/expense/');
+      const response = await axios.get(expenseUrl);
 
       //* Mapeo de datos
       const mappedRows = response.data.map(expense => ({
@@ -68,7 +69,6 @@ const ExpenseList = () => {
 
   //* Función para eliminar el registro de la tabla
   const handleDeleteConfirm = async () => {
-    console.log('Estos son los ids a eliminar: ', selectedExpenseIds, ' o ' , expenseToDelete)
     try {
       const idsToDelete = isMultipleDelete ? selectedExpenseIds : [expenseToDelete];
       await axios.delete(expenseDeleteUrl, { 
@@ -99,24 +99,36 @@ const ExpenseList = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div className='container mx-auto h-full items-center flex flex-col'>
-        <h1 className='text-black font-bold text-3xl mb-8 mt-2'>Lista de gastos</h1>
+    <div className='container mx-auto h-full items-center flex flex-col bg-white rounded'>
+        <div className="w-full">
+          <h1 className="text-black font-bold text-3xl mt-2 ml-4 inline-block">Gastos</h1>
+          <hr className="border-t border-gray-300 mt-2 mb-4" />
+        </div>
         {loading && <div class="flex items-center justify-center h-screen">
         <div class="w-16 h-16 border-8 border-t-8 border-gray-200 rounded-full animate-spin border-t-gray-900"></div>
         </div>}
-        <div className="w-4/5 mx-auto bg-white p-5 rounded-lg shadow-md">
-          <IconLabelButtons
-            label='Agregar un nuevo gasto'
-            icon = {<AddCircleOutlineIcon/>}
-            onClick={handleAddExpense}
-          />
-          <DataGridDemo 
-          rows={rows} 
-          columns={columns} 
-          onDelete={(id) => handleOpenConfirmDialog(false, id)}
-          onEdit={handleEdit}
-          onSelectionChange={handleSelectionChange}
-          />
+        <div className="mx-auto w-full p-2 rounded-lg shadow-md bg-white">
+          <div className="flex items-start justify-between mb-4">
+            <div className="mr-4">
+              <IconLabelButtons
+                label="Nuevo Gasto"
+                icon={<AddCircleOutlineIcon />}
+                onClick={handleAddExpense}
+              />
+              <IconLabelButtons
+                label="Filtros"
+                icon={<FilterAltOutlinedIcon />}
+                // onClick={toggleFilters}
+              />
+            </div>
+              <DataGridDemo 
+              rows={rows} 
+              columns={columns} 
+              onDelete={(id) => handleOpenConfirmDialog(false, id)}
+              onEdit={handleEdit}
+              onSelectionChange={handleSelectionChange}
+              />
+          </div>
           <br></br>
           <div className='flex justify-center'>
           {selectedExpenseIds.length > 0 && (

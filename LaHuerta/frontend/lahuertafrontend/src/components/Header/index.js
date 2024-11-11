@@ -112,11 +112,11 @@ export default function MiniDrawer({title, menuOptions}) {
 
   const handleMenuClick = (option) => {
     if (option === 'Gastos') {
-      navigate('/expense/list');
+      navigate('/expense/');
     } else if (option === 'Inicio') {
       navigate('/');
     } else if (option === 'Clientes') {
-      navigate('/');
+      navigate('/clients/');
     }
   };
 

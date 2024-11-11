@@ -21,7 +21,7 @@ const router = createBrowserRouter([
         element: <ExpenseForm />
       },
       {
-        path: '/expense/list', 
+        path: '/expense/', 
         element: <ExpenseList />
       },
       {

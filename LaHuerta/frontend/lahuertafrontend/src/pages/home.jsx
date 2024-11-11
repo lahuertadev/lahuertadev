@@ -1,11 +1,9 @@
 import React from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import ActionAreaCard from '../components/Card';
 import { cardOptions } from '../constants/cardOptions';
 
 const Home = () => {
-  // const location = useLocation();
-  // const hideButtons = ['/expenses/create', '/expenses/list'];
 
   return (
     <div className='container mx-auto h-full items-center justify-center flex flex-col'>
