@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 dayjs.extend(customParseFormat);
-export default function BasicDatePicker({label, name, required, value, onChange, error}) {
+export default function BasicDatePicker({label, name, required, value, onChange, error, width, height}) {
 
   const handleDateChange = (newValue) => {
     const formattedDate = newValue ? dayjs(newValue).format('YYYY-MM-DD') : null; // Formato ISO para guardar
@@ -26,6 +26,10 @@ export default function BasicDatePicker({label, name, required, value, onChange,
           format='DD-MM-YYYY'
           error={Boolean(error)}
           helperText={error || ''}
+          sx={{
+            width: width || 'auto',  
+            height: height || 'auto',
+          }}
           
         />
       </DemoContainer>

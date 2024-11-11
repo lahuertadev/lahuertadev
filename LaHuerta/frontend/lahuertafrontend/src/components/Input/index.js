@@ -11,7 +11,10 @@ const CustomInput = ({
   maxLength = 255,     
   required = false,    
   helperText = '',     
-  error = null,        
+  error = null,  
+  width,
+  height, 
+  className = '',      
   ...props             
 }) => {
   return (
@@ -27,7 +30,14 @@ const CustomInput = ({
       required={required}        
       error={error || helperText}     
       helperText={error || helperText} 
-      fullWidth                 
+      className={`${className}`}
+      fullWidth     
+      InputProps={{
+        sx: {
+          width: width || 'auto',
+          height: height || 'auto', 
+        },
+      }}            
       {...props}                 
     />
   );

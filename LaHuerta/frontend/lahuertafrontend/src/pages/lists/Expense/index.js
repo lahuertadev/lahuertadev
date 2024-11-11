@@ -9,9 +9,12 @@ import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
 import { expenseDeleteUrl, expenseUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Expense';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete'; 
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
+import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import CustomInput from '../../../components/Input';
+import DatePicker from '../../../components/DatePicker';
 
 const ExpenseList = () => {
   const [rows, setRows] = useState([]);
@@ -21,13 +24,22 @@ const ExpenseList = () => {
   const [selectedExpenseIds, setSelectedExpenseIds] = useState([]);
   const [isMultipleDelete, setIsMultipleDelete] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({ amount: '', date: '' });
   const navigate = useNavigate();
 
   //* Función que carga la grilla.
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (filters = {}) => {
     setLoading(true);
     try{
-      const response = await axios.get(expenseUrl);
+      const queryParams = new URLSearchParams();
+
+      if (filters.amount) queryParams.append('amount', filters.amount);
+      if (filters.date) queryParams.append('date', filters.date);
+      if (filters.expense_type) queryParams.append('expense_type', filters.expense_type);
+
+      const urlWithParams = `${expenseUrl}?${queryParams.toString()}`;
+      const response = await axios.get(urlWithParams);
 
       //* Mapeo de datos
       const mappedRows = response.data.map(expense => ({
@@ -53,6 +65,23 @@ const ExpenseList = () => {
     fetchExpenses();
   }, []);
 
+  // --------------------------- ⬇⬇ FILTROS ⬇⬇ ---------------------------------------
+  //* Función que maneja el muestreo de los filtros
+  const toggleFilters = () => {
+    setShowFilters(prev => !prev);
+  };
+
+  //* Función que guarda el valor ingresado en el filtro
+  const handleFilterChange = (e) => {
+    setFilterValues({ ...filterValues, [e.target.name]: e.target.value });
+  };
+
+  //* Función que se ejecuta al aplicar el filtro
+  const applyFilters = () => {
+    fetchExpenses(filterValues);
+  };
+  // --------------------------- ⬆⬆ FILTROS ⬆⬆ ---------------------------------------
+  
   //* Función que abre el diálogo de confirmación
   const handleOpenConfirmDialog = (isMultiple, id) => {
     setIsMultipleDelete(isMultiple);
@@ -118,8 +147,52 @@ const ExpenseList = () => {
               <IconLabelButtons
                 label="Filtros"
                 icon={<FilterAltOutlinedIcon />}
-                // onClick={toggleFilters}
+                onClick={toggleFilters}
               />
+              {showFilters && (
+              <div className="flex flex-col mt-4 ml-8">
+                <label className="text-black font-bold text-sm">Fecha</label>
+                <DatePicker
+                  name="date"
+                  required={false}
+                  value={filterValues.date}
+                  onChange={(newValue) => setFilterValues({ ...filterValues, date: newValue })}
+                  sx={{
+                    width: '150px',
+                    height: '30px',  // Solo para este CustomInput
+                  }}
+                />
+                <label className="text-black font-bold text-sm mt-3">Importe</label>
+                <CustomInput
+                  name='amount'
+                  type='number'
+                  variant='outlined'
+                  required
+                  value={filterValues.amount}
+                  onChange={handleFilterChange}
+                  width='150px' 
+                  height='30px'
+                />
+                <label className="text-black font-bold text-sm mt-3">Tipo de Gasto</label>
+                <CustomInput
+                  name='expense_type'
+                  variant='outlined'
+                  required
+                  value={filterValues.expense_type}
+                  onChange={handleFilterChange}
+                  width='150px' 
+                  height='30px'
+                />
+                <div className='flex justify-center mt-3'>
+                  <IconLabelButtons
+                  label="Aplicar filtro"
+                  icon={<SendOutlinedIcon />}
+                  onClick={applyFilters}
+                  />
+                </div>
+                
+                 </div>
+              )}
             </div>
               <DataGridDemo 
               rows={rows} 
