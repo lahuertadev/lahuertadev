@@ -116,7 +116,6 @@ const ExpenseList = () => {
 
   // Actualiza los IDs seleccionados en el estado
   const handleSelectionChange = (selection) => {
-    console.log('Este es el selection: ', selection)
     setSelectedExpenseIds(selection);
   };
 
@@ -140,7 +139,7 @@ const ExpenseList = () => {
           <div className="flex items-start justify-between mb-4">
             <div className="mr-4">
               <IconLabelButtons
-                label="Nuevo Gasto"
+                label="Nuevo gasto"
                 icon={<AddCircleOutlineIcon />}
                 onClick={handleAddExpense}
               />
@@ -157,10 +156,6 @@ const ExpenseList = () => {
                   required={false}
                   value={filterValues.date}
                   onChange={(newValue) => setFilterValues({ ...filterValues, date: newValue })}
-                  sx={{
-                    width: '150px',
-                    height: '30px',  // Solo para este CustomInput
-                  }}
                 />
                 <label className="text-black font-bold text-sm mt-3">Importe</label>
                 <CustomInput
@@ -170,18 +165,14 @@ const ExpenseList = () => {
                   required
                   value={filterValues.amount}
                   onChange={handleFilterChange}
-                  width='150px' 
-                  height='30px'
                 />
-                <label className="text-black font-bold text-sm mt-3">Tipo de Gasto</label>
+                <label className="text-black font-bold text-sm mt-3">Tipo de gasto</label>
                 <CustomInput
                   name='expense_type'
                   variant='outlined'
                   required
                   value={filterValues.expense_type}
                   onChange={handleFilterChange}
-                  width='150px' 
-                  height='30px'
                 />
                 <div className='flex justify-center mt-3'>
                   <IconLabelButtons
@@ -206,7 +197,7 @@ const ExpenseList = () => {
           <div className='flex justify-center'>
           {selectedExpenseIds.length > 0 && (
           <IconLabelButtons
-            label="Eliminar Seleccionados"
+            label="Eliminar seleccionados"
             icon={<DeleteIcon />}
             onClick={() => handleOpenConfirmDialog(true)}
             className="mt-4 hover:bg-red-500 hover:text-white"

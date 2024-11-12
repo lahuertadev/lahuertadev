@@ -7,7 +7,7 @@ class IExpenseRepository(ABC):
         pass
 
     @abstractmethod
-    def get_all_expenses(self):
+    def get_all_expenses(self, amount=None, date=None, expense_type=None):
         pass
 
     @abstractmethod

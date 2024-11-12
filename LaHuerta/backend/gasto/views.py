@@ -7,6 +7,7 @@ from .serializers import (
     ExpenseSerializer, 
     ExpenseCreateSerializer, 
     ExpenseEditSerializer, 
+    ExpenseQueryParamsSerializer
 )
 from .repositories import ExpenseRepository
 
@@ -20,10 +21,19 @@ class ExpensesListAPIView(APIView):
         self.expense_repository = expense_repository or ExpenseRepository()
 
     #! Método
-    def get(self, request):
-        expenses = self.expense_repository.get_all_expenses()
-        serializer = ExpenseSerializer(expenses, many=True)
-        return Response(serializer.data)
+    def get(self, request, *args, **kwargs):
+        serializer = ExpenseQueryParamsSerializer(data=request.query_params)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        print('Este es el data del controller: ', serializer.validated_data)
+        amount = serializer.validated_data.get('amount', None)
+        date = serializer.validated_data.get('date', None)
+        expense_type = serializer.validated_data.get('expense_type', None)
+
+        expenses = self.expense_repository.get_all_expenses(amount=amount, date=date, expense_type=expense_type)
+        expense_serializer = ExpenseSerializer(expenses, many=True)
+        return Response(expense_serializer.data)
     
 class ExpensesByExpenseTypeIdAPIView(APIView):
     '''

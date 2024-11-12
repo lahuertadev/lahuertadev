@@ -60,8 +60,11 @@ const ExpenseForm = () => {
 
   //* Envío del formulario (edición y creación)
   const handleSubmit = (values) => {
+    console.log('Fecha seleccionada:', values.date);
     // Formateo de fecha
-    const formattedDate = values.date instanceof Date ? values.date.toISOString().split('T')[0] : values.date;
+    const formattedDate = values.date instanceof Date 
+    ? values.date.toISOString().split('T')[0]
+    : values.date;
 
     // Mapeo
     const formattedValues = {
@@ -74,7 +77,7 @@ const ExpenseForm = () => {
       axios.put(`http://localhost:8000/expense/${expenseToEdit.id}/modify/`, formattedValues)
         .then(response => {
           console.log('Gasto editado correctamente: ', response.data);
-          navigate('/expense/list'); // Redirigir a la lista después de editar
+          navigate('/expense/'); // Redirigir a la lista después de editar
         })
         .catch(error => {
           console.error('Error al editar el formulario:', error);
@@ -83,7 +86,7 @@ const ExpenseForm = () => {
       axios.post('http://localhost:8000/expense/create/', formattedValues)
       .then(response => {
         console.log('Gasto creado exitosamente:', response.data);
-        navigate('/expense/list');
+        navigate('/expense/');
       })
       .catch(error => {
         console.error('Error al enviar el formulario:', error);
