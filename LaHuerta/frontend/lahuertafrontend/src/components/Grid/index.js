@@ -44,18 +44,43 @@ export default function DataGridDemo({ rows, columns, onSelectionChange, onDelet
     ),
   };
 
-  const updatedColumns = columns.map(column => ({
-    ...column,
-    minWidth: column.field === 'Tipo de Gasto' ? 200 : 100,
-    flex: 1, 
-    headerClassName: 'custom-header',
-    headerAlign: 'center',
-  })).concat([editColumn, deleteColumn]);
+  // const updatedColumns = columns.map(column => ({
+  //   ...column,
+  //   minWidth: 100,
+  //   flex: column.field === 'adress' ? 3 : 1,
+  //   headerClassName: 'custom-header',
+  //   headerAlign: 'center',
+  // })).concat([editColumn, deleteColumn]);
+
+  function calculateColumnWidths(rows, columns) {
+    return columns.map((column) => {
+      const titleLength = column.headerName ? column.headerName.length : 0;
+  
+      // Encuentra la longitud máxima entre las celdas de la columna
+      const maxContentLength = Math.max(
+        ...rows.map((row) => (row[column.field] ? row[column.field].toString().length : 0))
+      );
+  
+      // Calcula el ancho basado en el texto más largo entre el título y el contenido
+      const maxLength = Math.max(titleLength, maxContentLength);
+      const charWidth = 8; // Ancho promedio por carácter
+      const padding = 32; // Espaciado adicional
+      const calculatedWidth = maxLength * charWidth + padding;
+  
+      return {
+        ...column,
+        width: calculatedWidth, // Ancho dinámico calculado
+        minWidth: titleLength * charWidth + padding, // Ancho mínimo basado en el título
+      };
+    });
+  }
+  
+  const adjustedColumns = calculateColumnWidths(rows, columns).concat([editColumn, deleteColumn]);
 
   return (
     <DataGrid
       rows={rows}
-      columns={updatedColumns}
+      columns={adjustedColumns}
       initialState={{
         pagination: {
           paginationModel: {
@@ -72,6 +97,7 @@ export default function DataGridDemo({ rows, columns, onSelectionChange, onDelet
       sx={{
         width: '100%',
         height: '631px',
+        overflowX: 'auto',
         '.MuiDataGrid-columnHeader': {
           height: 'auto', 
           minHeight: '56px', 
@@ -85,9 +111,11 @@ export default function DataGridDemo({ rows, columns, onSelectionChange, onDelet
           fontSize: '16px', 
           fontWeight: 'bold',
           textAlign: 'center',
-          whiteSpace: 'normal', 
+          whiteSpace: 'nowrap',
           wordWrap: 'break-word', 
           padding: '4px 0', 
+          overflow: 'visible',  // Permite que el texto se muestre completamente si cabe
+          textOverflow: 'clip', // No trunca el texto con "..."
         },
         '.MuiDataGrid-columnHeaderTitleContainerContent': {
           display: 'flex',

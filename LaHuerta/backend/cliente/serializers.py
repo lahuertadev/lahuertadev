@@ -30,3 +30,12 @@ class ClientSerializer(serializers.ModelSerializer):
             'nombre_fantasia',
             'dias_entrega'
         ]
+
+class ClientQueryParamsSerializer(serializers.Serializer):
+    cuit = serializers.CharField(required=False, max_length=11, allow_blank=True, error_messages={
+        'max_length': 'El cuit debe tener 11 números, sin caracteres especiales.',
+        'invalid': 'El cuit debe tener 11 números, sin caracteres especiales.'
+    })
+    searchQuery = serializers.CharField(required=False, allow_blank=True)
+    address = serializers.CharField(required=False, allow_blank=True)
+

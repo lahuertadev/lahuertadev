@@ -6,6 +6,7 @@ import App from "./App";
 import Home from './pages/home';
 import ExpenseForm from "./pages/forms/ExpenseForm";
 import ExpenseList from "./pages/lists/Expense";
+import ClientsList from "./pages/lists/Client";
 
 const router = createBrowserRouter([
   {
@@ -27,7 +28,11 @@ const router = createBrowserRouter([
       {
         path: '/expense/edit/:id',
         element: <ExpenseForm />
-      }
+      },
+      {
+        path: '/client/', 
+        element: <ClientsList />
+      },
     ],
   },
 ]);
