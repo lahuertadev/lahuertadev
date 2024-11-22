@@ -1,6 +1,5 @@
 export const columns = [
-    // { field: 'id', headerName: 'ID', width: 90, flex: 1, align: 'center',headerAlign:'center', alignItems: 'center', height: '52px' },
-    { field: 'date', headerName: 'Fecha', width: 150,}, //flex: 1, align: 'center',headerAlign:'center', alignItems: 'center', height: '52px' },
-    { field: 'amount', headerName: 'Importe', width: 150, flex: 1, align: 'center',headerAlign:'center', alignItems: 'center', height: '52px' },
-    { field: 'expenseTypeDescription', headerName: 'Tipo de gasto', width: 150, flex: 1, align: 'center',headerAlign:'center', alignItems: 'center', height: '52px' },
+    { field: 'date', headerName: 'Fecha', flex: 1},
+    { field: 'amount', headerName: 'Importe',flex: 1 },
+    { field: 'expenseTypeDescription', headerName: 'Tipo de gasto',flex: 1 },
   ];

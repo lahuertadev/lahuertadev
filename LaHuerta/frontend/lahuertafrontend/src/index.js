@@ -22,7 +22,7 @@ const router = createBrowserRouter([
         element: <ExpenseForm />
       },
       {
-        path: '/expense/', 
+        path: '/expense', 
         element: <ExpenseList />
       },
       {
@@ -30,7 +30,7 @@ const router = createBrowserRouter([
         element: <ExpenseForm />
       },
       {
-        path: '/client/', 
+        path: '/client', 
         element: <ClientsList />
       },
     ],

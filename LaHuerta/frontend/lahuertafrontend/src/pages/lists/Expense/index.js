@@ -231,17 +231,17 @@ const mapExpenseData = (data) => {
     id: expense.id,
     date: formatDate(expense.fecha),
     amount: formatCurrency(expense.importe),
-    expenseTypeDescription: expense.tipo_gasto.descripcion
+    expenseTypeDescription: expense.tipo_gasto.descripcion,
+    expenseTypeId: expense.tipo_gasto.id
   }));
 };
 
 const data = {
   title: 'Gastos',
   fetchUrl: {
-    listUrl : expenseUrl,
+    baseUrl : expenseUrl,
     createUrl : '/expense/create',
     editUrl: '/expense/edit',
-    deleteUrl : expenseDeleteUrl,
   },
   columns: columns,
   mapData: mapExpenseData,

@@ -36,14 +36,20 @@ class ExpenseRepository(IExpenseRepository):
         #     setattr(expense, key, value)
         expense.save()
 
-    def delete_expense(self, ids):
+    def delete_expense (self, pk):
+        expense = Gasto.objects.get(id=pk)
+        if not expense:
+            raise Gasto.DoesNotExist()
+        expense.delete()
+
+    def bulk_delete_expenses(self, ids):
         expenses = Gasto.objects.filter(id__in=ids)
         if not expenses.exists():
             raise Gasto.DoesNotExist()
-        expenses.delete()
-
-    def get_expenses_filtered_by_date(self, start_date, end_date):
-        return Gasto.objects.filter(fecha__range=[start_date, end_date])
+        
+        delete_count, _ = expenses.delete()
+        if delete_count == 0:
+            raise Gasto.DoesNotExist()
          
     def get_expense_by_id(self, expense_id):
         return Gasto.objects.filter(id=expense_id).first()

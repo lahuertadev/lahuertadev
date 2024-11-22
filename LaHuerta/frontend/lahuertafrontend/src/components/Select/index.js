@@ -6,7 +6,6 @@ import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
 export default function BasicSelect({label, name, handleChange, value, options}) {
-
   return (
     <Box sx={{ minWidth: 120 }}>
       <FormControl fullWidth>

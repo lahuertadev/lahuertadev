@@ -30,7 +30,7 @@ const GenericList = ({ data, onAdd }) => {
   const fetchItems = async (filters) => {
     setLoading(true);
     try {
-      let urlWithParams = fetchUrl.listUrl;
+      let urlWithParams = fetchUrl.baseUrl;
 
       if (filters && Object.keys(filters).length > 0) {
         const queryParams = new URLSearchParams();
@@ -42,7 +42,7 @@ const GenericList = ({ data, onAdd }) => {
           }
         });
   
-        urlWithParams = `${fetchUrl.listUrl}?${queryParams.toString()}`;
+        urlWithParams = `${fetchUrl.baseUrl}?${queryParams.toString()}`;
       }
   
       const response = await axios.get(urlWithParams);
@@ -89,8 +89,19 @@ const GenericList = ({ data, onAdd }) => {
 
   const handleDeleteConfirm = async () => {
     try {
-      const idsToDelete = isMultipleDelete ? selectedIds : [itemToDelete];
-      await axios.delete(fetchUrl.deleteUrl, { data: { ids: idsToDelete } });
+      if (itemToDelete){
+        await axios.delete(`${fetchUrl.baseUrl}${itemToDelete}/`)
+      }
+      else if (selectedIds){
+        if(selectedIds.length === 1){
+          await axios.delete(`${fetchUrl.baseUrl}${selectedIds[0]}/`)
+        }
+        else{
+          await axios.delete(`${fetchUrl.baseUrl}bulk_delete/`, {
+          data: { ids: selectedIds },
+          });
+        }
+      }
       fetchItems();
     } catch (error) {
       console.error("Error deleting item:", error);
@@ -105,6 +116,7 @@ const GenericList = ({ data, onAdd }) => {
 
   const handleEdit = (id) => {
     const itemToEdit = rows.find(item => item.id === id);
+    console.log('Datos de la fila seleccionada para editar:', itemToEdit);
     navigate(`${fetchUrl.editUrl}/${id}`, { state: { item: itemToEdit } });
   };
 

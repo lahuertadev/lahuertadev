@@ -1,175 +1,116 @@
 import React, { useEffect, useState } from 'react';
-import { Formik, Form, Field } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
-import BasicSelect from '../../components/Select';
-import CustomInput from '../../components/Input';
-import DatePicker from '../../components/DatePicker';
-import Button from '../../components/Button';
-import { TextField } from '@mui/material';
-import '../../styles/forms.css'
-import { useParams, useNavigate } from 'react-router-dom'; // UseParams para obtener el id de la URL
+import GenericForm from '../../components/Form';
+import { expenseCreateUrl, expenseUrl } from '../../constants/urls';
+import { useLocation, useParams } from 'react-router-dom';
 
 const ExpenseForm = () => {
-  const [expenseOptions, setExpenseOptions] = useState([]);
-  const [expenseToEdit, setExpenseToEdit] = useState(null);
-  const [loading, setLoading] = useState(false); //* Controla la carga
-  const { id } = useParams(); //* Obtiene el id de la URL. 
-  const navigate = useNavigate(); //* Para redirigir después de guardar
-
-  //* Carga los tipos de gasto
-  useEffect(() => {
-    axios.get('http://localhost:8000/type_expense/')
-      .then(response => {
-        const formattedOptions = response.data.map(item => ({
-          name: item.descripcion,
-          value: item.id
-        }));
-        setExpenseOptions(formattedOptions);
-      })
-      .catch(error => console.error('Error loading expense types:', error));
-  }, []);
-
-  //* Obtiene la información del gasto (en caso de ser edición)
-  useEffect(() => {
-    if (id){
-      setLoading(true);
-      axios.get(`http://localhost:8000/expense/${id}`).then(response => {
-        setExpenseToEdit(response.data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error('Error al cargar el gasto: ', error);
-        setLoading(false);
-      });
-    }
-  }, [id]);
-
-  //* Validaciones con Yup
-  const validationSchema = Yup.object().shape({
-    amount: Yup.number().required('Requerido')
-      .test(
-        'is-decimal',
-        'El importe debe tener hasta 2 decimales',
-        value => /^\d+(\.\d{1,2})?$/.test(value) // Validación de hasta dos decimales
-      ),
-    expenseType: Yup.string().required('Requerido'),
-    date: Yup.date().required('Requerido')
+  const [selectOptions, setSelectOptions] = useState({});
+  const [initialValues, setInitialValues] = useState({
+    amount: '',
+    date: null,
+    expenseType: '',
   });
+  const { state } = useLocation();
+  const { id } = useParams();
 
+  //* Función para cargar opciones de select
+  const fetchSelectOptions = async () => {
+    try {
+      // URLs asociadas a cada campo select
+      const fetchConfig = {
+        expenseType: 'http://localhost:8000/type_expense/',
+      };
 
-  //* Envío del formulario (edición y creación)
-  const handleSubmit = (values) => {
-    console.log('Fecha seleccionada:', values.date);
-    // Formateo de fecha
-    const formattedDate = values.date instanceof Date 
-    ? values.date.toISOString().split('T')[0]
-    : values.date;
-
-    // Mapeo
-    const formattedValues = {
-      fecha: formattedDate,         
-      importe: values.amount,    
-      tipo_gasto: values.expenseType 
-    };
-
-    if (expenseToEdit){
-      axios.put(`http://localhost:8000/expense/${expenseToEdit.id}/modify/`, formattedValues)
-        .then(response => {
-          console.log('Gasto editado correctamente: ', response.data);
-          navigate('/expense/'); // Redirigir a la lista después de editar
-        })
-        .catch(error => {
-          console.error('Error al editar el formulario:', error);
-        });
-    } else{
-      axios.post('http://localhost:8000/expense/create/', formattedValues)
-      .then(response => {
-        console.log('Gasto creado exitosamente:', response.data);
-        navigate('/expense/');
-      })
-      .catch(error => {
-        console.error('Error al enviar el formulario:', error);
-      });
+      // Carga las opciones de cada URL y las almacena
+      const newOptions = {};
+      for (const [fieldName, url] of Object.entries(fetchConfig)) {
+        const response = await axios.get(url);
+        newOptions[fieldName] = response.data.map((item) => ({
+          name: item.descripcion,
+          value: item.id,
+        }));
+      }
+      setSelectOptions(newOptions);
+    } catch (error) {
+      console.error('Error loading select options:', error);
     }
   };
 
-  if (loading){
-    return <div>Cargando...</div>
-  }
+  //* Función para traer la información para editar un gasto
+  const fetchItemToEdit = async () => {
+    if (id) {
+      try {
+        const response = await axios.get(`${expenseUrl}${id}`);
+        const data = response.data;
+
+        setInitialValues({
+          amount: data.importe,
+          date: data.fecha,
+          expenseType: data.tipo_gasto.id,
+        });
+      } catch (error) {
+        console.error('Error loading item to edit:', error);
+      }
+    } else {
+      setInitialValues({
+        amount: '',
+        date: null,
+        expenseType: '',
+      });
+    }
+  };
+  useEffect(() => {
+    fetchSelectOptions();
+    fetchItemToEdit()
+  }, [id]);
+
+  //* Función para mapear los datos ingresados con lo que espera el back
+  const mapFormDataToBackend = (values) => {
+    return {
+      fecha: values.date, 
+      importe: values.amount,
+      tipo_gasto: values.expenseType,
+    };
+  };
+
+  //* Configuración de los campos del formulario
+  const fields = [
+    { name: 'amount', label: 'Importe', type: 'number', required: true},
+    { name: 'date', label: 'Fecha', type: 'date',required: true},
+    { name: 'expenseType', label: 'Tipo de gasto', type: 'select', required: true},
+  ];
+
+  //* Esquema de validación con Yup
+  const validationSchema = Yup.object().shape({
+    amount: Yup.number()
+      .required('Requerido')
+      .test(
+        'is-decimal',
+        'El importe debe tener hasta 2 decimales',
+        (value) => /^\d+(\.\d{1,2})?$/.test(value)
+      ),
+    date: Yup.date().required('Requerido'),
+    expenseType: Yup.string().required('Requerido'),
+  });
+
+  //* URLs para creación y edición
+  const urls = {
+    baseUrl: expenseUrl,
+    list: '/expense/'
+  };
+
   return (
-    <Formik
-      initialValues={{ 
-        expenseType: expenseToEdit ? expenseToEdit.tipo_gasto.id : '',
-        amount: expenseToEdit ? expenseToEdit.importe : '',
-        date: expenseToEdit ? expenseToEdit.fecha : null
-      }}
-      validationSchema={validationSchema}
-      enableReinitialize={true} // Reinicia el formulario cuando expenseToEdit cambia.
-      onSubmit={handleSubmit}
-    >
-      {({ values, handleChange, errors, touched, setFieldValue, isValid, dirty }) => (
-        <Form className="custom-form">
-          <CustomInput
-            label= 'Importe'
-            name= 'amount'
-            type='number'
-            required
-            onChange={handleChange}
-            value={values.amount}
-            helperText={touched.amount && errors.amount ? errors.amount : ''}
-          />
-          <br></br>
-          <br></br>
-
-          <DatePicker
-            label='Fecha'
-            value={values.date}
-            onChange={(value) => setFieldValue('date', value)} // Usa setFieldValue para cambiar el valor
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                name="date"
-                required
-                error={Boolean(touched.date && errors.date)}
-                helperText={touched.date && errors.date ? errors.date : ''}
-              />
-            )}
-          />
-
-          <br></br>
-          <br></br>
-
-          <BasicSelect
-            label="Tipo de Gasto"
-            name="expenseType"
-            handleChange={(e) => {
-              handleChange(e);
-              setFieldValue('expenseType', e.target.value);
-            }}
-            value={values.expenseType}
-            options={expenseOptions}
-          />
-          {touched.expenseType && errors.expenseType ? (
-            <div className="error">{errors.expenseType}</div>
-          ) : null}
-
-          <br></br>
-          <br></br>
-
-          <div className= 'custom-button'>
-            <Button
-              label='Enviar'
-              color='primary'
-              variant='contained'
-              size='large' 
-              disabled={!isValid || !dirty} // Verifica si se lleno el formulario correctamente.
-            />
-          </div>
-          
-        </Form>
-      )}
-    </Formik>
+    <GenericForm
+      fields={fields} // Campos a renderizar
+      initialValues={initialValues} // Valores iniciales por si es una edición
+      validationSchema={validationSchema} // Validaciones para los campos
+      selectOptions={selectOptions} // Opciones del select
+      urls={urls} // Urls necesarias
+      mapFormDataToBackend={mapFormDataToBackend} // Mapeo de datos para el endpoint del back
+      onSubmitCallback={() => console.log('Formulario enviado con éxito')} // Mensaje de envio exitoso
+    />
   );
 };
 

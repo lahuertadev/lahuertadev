@@ -31,5 +31,5 @@ class IExpenseRepository(ABC):
         pass
 
     @abstractmethod
-    def get_expenses_filtered_by_date(self, start_date, end_date):
+    def bulk_delete_expenses(self, ids):
         pass

@@ -6,11 +6,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import '../../styles/grids.css' 
 
 export default function DataGridDemo({ rows, columns, onSelectionChange, onDelete, onEdit }) {
-  const [selectedIds, setSelectedIds ] = useState([]);
-
-  // const handleSelectionChange = (newSelection) => {
-  //   setSelectedIds(newSelection);
-  // }
+  const [selectedRows, setSelectedRows] = useState([]);
 
   //* Acción de edición
   const editColumn = {
@@ -44,14 +40,6 @@ export default function DataGridDemo({ rows, columns, onSelectionChange, onDelet
     ),
   };
 
-  // const updatedColumns = columns.map(column => ({
-  //   ...column,
-  //   minWidth: 100,
-  //   flex: column.field === 'adress' ? 3 : 1,
-  //   headerClassName: 'custom-header',
-  //   headerAlign: 'center',
-  // })).concat([editColumn, deleteColumn]);
-
   function calculateColumnWidths(rows, columns) {
     return columns.map((column) => {
       const titleLength = column.headerName ? column.headerName.length : 0;
@@ -77,6 +65,7 @@ export default function DataGridDemo({ rows, columns, onSelectionChange, onDelet
   
   const adjustedColumns = calculateColumnWidths(rows, columns).concat([editColumn, deleteColumn]);
 
+  
   return (
     <DataGrid
       rows={rows}
