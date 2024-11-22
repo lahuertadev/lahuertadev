@@ -2,7 +2,8 @@ from django.db import models
 
 class ListaPrecios(models.Model):
     nombre = models.CharField(max_length=30, unique=True)
-    fecha_actualizacion = models.DateTimeField()
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
     descripcion = models.CharField(max_length=200)
     
 
@@ -11,11 +12,3 @@ class ListaPrecios(models.Model):
 
     class Meta:
         db_table = 'lista_precios' 
-
-# #! ------ ⬇⬇ Tabla intermedia ⬇⬇ ------
-# class ClienteDiaEntrega(models.Model):
-#     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
-#     dia_entrega = models.ForeignKey(DiaEntrega, on_delete=models.CASCADE)
-
-#     class Meta:
-#         db_table = 'cliente_dias_entrega'
