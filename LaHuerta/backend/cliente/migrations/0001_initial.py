@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('localidad', '0001_initial'),
+        #('localidad', '0001_initial'),
         ('tipo_condicion_iva', '0001_initial'),
         ('tipo_facturacion', '0001_initial'),
     ]
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
                 ('nombre_fantasia', models.CharField(blank=True, max_length=100, null=True)),
                 ('estado', models.BooleanField(default=True)),
                 ('condicion_IVA', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tipo_condicion_iva.tipocondicioniva')),
-                ('localidad', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='localidad.localidad')),
+                #('localidad', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='localidad.localidad')),
                 ('tipo_facturacion', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tipo_facturacion.tipofacturacion')),
             ],
             options={

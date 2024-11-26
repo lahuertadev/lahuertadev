@@ -116,7 +116,7 @@ export default function MiniDrawer({title, menuOptions}) {
     } else if (option === 'Inicio') {
       navigate('/');
     } else if (option === 'Clientes') {
-      navigate('/clients/');
+      navigate('/client/');
     }
   };
 

@@ -1,4 +1,4 @@
-import { clientUrl, clientDeleteUrl } from '../../../constants/urls';
+import { clientUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Client';
 import { formatCuit } from '../../../utils/cuit';
 import { formatCurrency } from '../../../utils/currency';
@@ -24,10 +24,9 @@ const mapClientData = (data) => {
 const data = {
   title: 'Clientes',
   fetchUrl: {
-    listUrl : clientUrl,
+    baseUrl : clientUrl,
     createUrl : '/client/create',
     editUrl: '/client/edit',
-    deleteUrl : clientDeleteUrl,
   },
   columns: columns,
   mapData: mapClientData,
