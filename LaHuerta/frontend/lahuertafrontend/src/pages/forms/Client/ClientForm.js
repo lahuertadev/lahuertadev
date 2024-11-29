@@ -1,54 +1,96 @@
 import React, { useEffect, useState } from 'react';
 import * as Yup from 'yup';
 import axios from 'axios';
-import GenericForm from '../../components/Form';
-import { clientUrl } from '../../../constants/urls';
+import GenericForm from '../../../components/Form';
+import { clientUrl, billingTypeUrl, ivaConditionUrl, provincesUrl } from '../../../constants/urls';
 import { useLocation, useParams } from 'react-router-dom';
 
 
 const ClientForm = () => {
-  const [selectOptions, setSelectOptions] = useState({});
+  const [selectOptions, setSelectOptions] = useState({
+    billingType: [],
+    ivaCondition: [],
+    provinces: [],
+    cities: [],
+    districts: []
+  });
   const [initialValues, setInitialValues] = useState({
     cuit: '',
     businessName: '',
     checkingAccount: '',
-    province: '', // Provincia
-    city: '', // Municipio
-    district: '', // Barrio
+    provinces: '', 
+    cities: '', 
+    districts: '',
     address: '',
     billingType: '',
     ivaCondition: '',
     phone: '',
-    salesStartDate: '',
+    salesStartDate: null,
     fantasyName: '',
     state: '',
   });
-  const { state } = useLocation();
+  const location = useLocation();
   const { id } = useParams();
 
-  //* Función para cargar opciones de select
-  const fetchSelectOptions = async () => {
+  //* Función que carga las opciones para los selects. 
+  const loadOptions = async (url, mapper) => {
     try {
-      // URLs asociadas a cada campo select
-      const fetchConfig = {
-        billingType: 'http://localhost:8000/type_facturation/',
-        ivaCondition: 'http://localhost:8000/type_condition_iva/',
-      };
-
-      // Carga las opciones de cada URL y las almacena
-      const newOptions = {};
-      for (const [fieldName, url] of Object.entries(fetchConfig)) {
-        const response = await axios.get(url);
-        newOptions[fieldName] = response.data.map((item) => ({
-          name: item.descripcion,
-          value: item.id,
-        }));
-      }
-      setSelectOptions(newOptions);
-    } catch (error) {
-      console.error('Error loading select options:', error);
+      const response = await axios.get(url);
+      return mapper(response.data);
+    } catch (error){
+      console.error(`Error al obtener los datos de ${url}: `, error);
+      return [];
     }
+  }
+
+  //* Carga los valores iniciales
+  const loadInitialOptions = async () => {
+
+    const billingType = await loadOptions(billingTypeUrl, (data) =>
+      data.map((item) => ({ name : item.descripcion, value: item.id}))
+    );
+
+    const ivaCondition = await loadOptions(ivaConditionUrl, (data) =>
+      data.map((item) => ({ name: item.descripcion, value: item.id }))
+    );
+
+    const provinces = await loadOptions(provincesUrl, (data) =>
+      [...data.provincias]
+        .map((item) => ({ name: item.nombre, value: item.id }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+    setSelectOptions({ billingType, ivaCondition, provinces, cities: [], districts: [] });
   };
+
+
+  //* Función para cargar los municipios filtrados por provincia
+  const loadCitiesByProvinceId = async (provinceId) => {
+    const citiesUrl = `https://apis.datos.gob.ar/georef/api/municipios?provincia=${provinceId}&campos=id,nombre&max=150`;
+
+    const cities = await loadOptions(citiesUrl, (data) =>
+      [...data.municipios]
+        .map((item) => ({ name: item.nombre, value: item.id }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+
+    setSelectOptions((prev) => ({...prev, cities, districts: [] }));
+    setInitialValues((prev) => ({ ...prev, city: '', district: '' }));
+  };
+  
+  //* Función para cargar las localidades filtradas por municipio
+  const loadDistrictsByCityId = async (cityId) => {
+    const districtsUrl = `https://apis.datos.gob.ar/georef/api/localidades?municipio=${cityId}&campos=id,nombre&max=50`;
+
+    const districts = await loadOptions(districtsUrl, (data) =>
+      [...data.localidades]
+        .map((item) => ({ name: item.nombre, value: item.id }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+
+    setSelectOptions((prev) => ({...prev, districts }));
+    setInitialValues((prev) => ({ ...prev, district: '' }));
+  };
+
 
   //* Función para traer la información para editar un gasto
   const fetchItemToEdit = async () => {
@@ -58,72 +100,115 @@ const ClientForm = () => {
         const data = response.data;
 
         setInitialValues({
-            cuit: data.cuit,
-            businessName: data.razon_social,
-            checkingAccount: data.cuenta_corriente,
-            province: '', // Provincia
-            city: '', // Municipio
-            district: '', // Barrio
-            address: '',
-            billingType: '',
-            ivaCondition: '',
-            phone: '',
-            salesStartDate: '',
-            fantasyName: '',
-            state: '',
-          amount: data.importe,
-          date: data.fecha,
-          expenseType: data.tipo_gasto.id,
-        });
+          cuit: data.cuit,
+          businessName: data.razon_social,
+          checkingAccount: data.cuenta_corriente,
+          province: '', // Provincia
+          city: '', // Municipio
+          district: '', // Localidad
+          address: data.domicilio,
+          billingType: data.tipo_facturacion.descripcion,
+          ivaCondition: data.condicion_iva.descripcion,
+          phone: data.telefono,
+          salesStartDate: data.fecha_inicio_ventas,
+          fantasyName: data.nombre_fantasia,
+          state: data.estado,
+      });
       } catch (error) {
-        console.error('Error loading item to edit:', error);
+        console.error('Error al cargar el cliente para la edición: ', error);
       }
     } else {
       setInitialValues({
-        amount: '',
-        date: null,
-        expenseType: '',
+        cuit: '',
+        businessName: '',
+        checkingAccount: '',
+        province: '', // Provincia
+        city: '', // Municipio
+        district: '', // Barrio
+        address: '',
+        billingType: '',
+        ivaCondition: '',
+        phone: '',
+        salesStartDate: null,
+        fantasyName: '',
+        state: '',
       });
     }
   };
-  useEffect(() => {
-    fetchSelectOptions();
-    fetchItemToEdit()
-  }, [id]);
 
   //* Función para mapear los datos ingresados con lo que espera el back
   const mapFormDataToBackend = (values) => {
     return {
-      fecha: values.date, 
-      importe: values.amount,
-      tipo_gasto: values.expenseType,
+      cuit: values.cuit,
+      razon_social: values.businessName,
+      cuenta_corriente: values.checkingAccount,
+      // provincia: values.province,
+      // municipio: values.city,
+      // localidad: values.district,
+      direccion: values.address,
+      tipo_facturacion: values.billingType,
+      condicion_iva: values.ivaCondition,
+      telefono: values.phone,
+      fecha_inicio: values.salesStartDate,
+      nombre_fantasia: values.fantasyName,
+      estado: values.state,
     };
   };
 
   //* Configuración de los campos del formulario
   const fields = [
-    { name: 'amount', label: 'Importe', type: 'number', required: true},
-    { name: 'date', label: 'Fecha', type: 'date',required: true},
-    { name: 'expenseType', label: 'Tipo de gasto', type: 'select', required: true},
+    { name: 'cuit', label: 'CUIT', type: 'text', required: true },
+    { name: 'businessName', label: 'Razón Social', type: 'text', required: true },
+    { name: 'checkingAccount', label: 'Cuenta Corriente', type: 'text' },
+    { 
+      name: 'provinces', 
+      label: 'Provincia', 
+      type: 'select',
+      onChange: (e) => {
+        const provinceId = e.target.value; 
+        loadCitiesByProvinceId(provinceId); 
+      }
+    },
+    { 
+      name: 'cities', 
+      label: 'Municipio', 
+      type: 'select',
+      onChange: (e) => {
+        const cityId = e.target.value; 
+        loadDistrictsByCityId(cityId); 
+      }
+    },
+    { 
+      name: 'districts', 
+      label: 'Localidad', 
+      type: 'select',
+    },
+    { name: 'address', label: 'Dirección', type: 'text' },
+    { name: 'billingType', label: 'Tipo de Facturación', type: 'select' },
+    { name: 'ivaCondition', label: 'Condición de IVA', type: 'select' },
+    { name: 'phone', label: 'Teléfono', type: 'text' },
+    { name: 'salesStartDate', label: 'Fecha de Inicio de Ventas', type: 'date' },
+    { name: 'fantasyName', label: 'Nombre de Fantasía', type: 'text' },
+    { name: 'state', label: 'Estado', type: 'text' },
   ];
 
   //* Esquema de validación con Yup
   const validationSchema = Yup.object().shape({
-    amount: Yup.number()
-      .required('Requerido')
-      .test(
-        'is-decimal',
-        'El importe debe tener hasta 2 decimales',
-        (value) => /^\d+(\.\d{1,2})?$/.test(value)
-      ),
-    date: Yup.date().required('Requerido'),
-    expenseType: Yup.string().required('Requerido'),
+    cuit: Yup.string().required('Requerido').length(11, 'Debe tener 11 dígitos'),
+    businessName: Yup.string().required('Requerido'),
+    province: Yup.string().required('Requerido'),
+    city: Yup.string().required('Requerido'),
   });
+
+  useEffect(() => {
+    loadInitialOptions();
+    fetchItemToEdit()
+  }, [id]);
 
   //* URLs para creación y edición
   const urls = {
     baseUrl: clientUrl,
-    list: '/expense/'
+    list: '/client'
   };
 
   return (
@@ -135,6 +220,7 @@ const ClientForm = () => {
       urls={urls} // Urls necesarias
       mapFormDataToBackend={mapFormDataToBackend} // Mapeo de datos para el endpoint del back
       onSubmitCallback={() => console.log('Formulario enviado con éxito')} // Mensaje de envio exitoso
+      columns={3}
     />
   );
 };

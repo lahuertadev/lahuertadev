@@ -5,7 +5,7 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 
-export default function BasicSelect({label, name, handleChange, value, options}) {
+export default function BasicSelect({label, name, onChange, value, options}) {
   return (
     <Box sx={{ minWidth: 120 }}>
       <FormControl fullWidth>
@@ -16,7 +16,7 @@ export default function BasicSelect({label, name, handleChange, value, options})
           name={name}
           value={value || ''}
           label={label}
-          onChange={handleChange}
+          onChange={onChange}
         >
           <MenuItem value={-1}>Seleccioná una opción</MenuItem>
           {options.map(({value, name}) => {

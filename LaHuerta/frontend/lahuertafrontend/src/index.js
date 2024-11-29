@@ -5,6 +5,7 @@ import "./index.css";
 import App from "./App"; 
 import Home from './pages/home';
 import ExpenseForm from "./pages/forms/ExpenseForm";
+import ClientForm from "./pages/forms/Client/ClientForm";
 import ExpenseList from "./pages/lists/Expense";
 import ClientsList from "./pages/lists/Client";
 
@@ -32,6 +33,10 @@ const router = createBrowserRouter([
       {
         path: '/client', 
         element: <ClientsList />
+      },
+      {
+        path: '/client/create', 
+        element: <ClientForm />
       },
     ],
   },
