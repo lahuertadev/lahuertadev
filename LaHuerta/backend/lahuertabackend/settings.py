@@ -64,6 +64,9 @@ INSTALLED_APPS = [
     'factura_producto',
     'lista_precios_producto',
     'pago_compra',
+    'provincia',
+    'municipio',
+    'localidad'
 ]
 
 MIDDLEWARE = [

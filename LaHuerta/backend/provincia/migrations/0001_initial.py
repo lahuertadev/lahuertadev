@@ -12,13 +12,13 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Banco',
+            name='Provincia',
             fields=[
-                ('id', models.SmallAutoField(primary_key=True, serialize=False)),
-                ('descripcion', models.CharField(max_length=50, unique=True)),
+                ('id', models.CharField(max_length=2, primary_key=True, serialize=False)),
+                ('nombre', models.CharField(max_length=100)),
             ],
             options={
-                'db_table': 'banco',
+                'db_table': 'provincia',
             },
         ),
     ]
