@@ -31,7 +31,6 @@ urlpatterns = [
     path('', include('tipo_pago.urls')),
     path('', include('mercado.urls')),
     path('', include('banco.urls')),
-    #path('', include('localidad.urls')),
     path('', include('cliente.urls')),
     path('', include('factura.urls')),
     path('', include('producto.urls')),
@@ -41,4 +40,7 @@ urlpatterns = [
     path('', include('pago.urls')),
     path('', include('cheque.urls')),
     path('', include('pago_factura.urls')),
+    path('', include('localidad.urls')),
+    path('', include('provincia.urls')),
+    path('', include('municipio.urls')),
 ]
