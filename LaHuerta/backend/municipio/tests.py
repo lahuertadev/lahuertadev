@@ -19,7 +19,7 @@ class CityViewSetTests(APITestCase):
             'nombre':'TestProvince'
         }
         data = {
-            'id':'02',
+            'id':'234567',
             'nombre':'Test2',
             'provincia':province
         }
@@ -27,7 +27,7 @@ class CityViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['message'], 'Municipio creado exitosamente')
         self.assertTrue(Provincia.objects.filter(id='02').exists())
-        self.assertTrue(Municipio.objects.filter(id='02').exists())
+        self.assertTrue(Municipio.objects.filter(id='234567').exists())
 
     def test_given_existing_province_id_and_new_city_should_create_city_only(self):
         province = {
@@ -35,14 +35,14 @@ class CityViewSetTests(APITestCase):
             'nombre':'TestProvince'
         }
         data = {
-            'id': '02',
+            'id': '234567',
             'nombre': 'Test2',
             'provincia':province
         }
         response = self.client.post(self.url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['message'], 'Municipio creado exitosamente')
-        self.assertTrue(Municipio.objects.filter(id='02').exists())
+        self.assertTrue(Municipio.objects.filter(id='234567').exists())
 
     def test_given_existing_city_should_returns_city_already_exists(self):
         province = {

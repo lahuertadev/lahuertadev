@@ -7,5 +7,9 @@ class IDistrictRepository(ABC):
         pass
 
     @abstractmethod
-    def create_if_not_exists(self, district_id, district_name, city_id):
+    def get_district_by_id(self, id):
+        pass
+
+    @abstractmethod
+    def create_district(self, data):
         pass
