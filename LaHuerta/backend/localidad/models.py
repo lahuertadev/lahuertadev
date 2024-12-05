@@ -7,7 +7,7 @@ class Localidad(models.Model):
     municipio = models.ForeignKey(Municipio, on_delete=models.CASCADE, related_name="localidades")
 
     def __str__(self):
-        return f'{self.nombre}'
+        return f'{self.id}'
     
     class Meta:
         db_table = 'localidad' 

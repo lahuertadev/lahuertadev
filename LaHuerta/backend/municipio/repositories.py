@@ -5,10 +5,13 @@ class CityRepository(ICityRepository):
     def get_all_cities(self):
         return Municipio.objects.all()
     
-    def create_if_not_exists(self, city_id, city_name, province_id):
-        city, created = Municipio.objects.get_or_create(
-            id=city_id,
-            nombre=city_name,
-            province_id=province_id
+    def get_city_by_id(self, city_id):
+        return Municipio.objects.filter(id=city_id).first()
+    
+    def create_city(self, data):
+        city = Municipio.objects.create(
+            id=data['id'],
+            nombre=data['nombre'],
+            provincia= data['provincia']
         )
-        return city, created
+        return city

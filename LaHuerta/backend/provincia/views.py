@@ -30,6 +30,5 @@ class ProvinceViewSet(viewsets.ModelViewSet):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        self.province_repository.create_province(province_id, province_name)
+        province = self.province_repository.create_province(province_id, province_name)
         return Response({'message':'Provincia creada exitosamente'}, status=status.HTTP_201_CREATED)
-        

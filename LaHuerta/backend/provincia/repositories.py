@@ -10,8 +10,8 @@ class ProvinceRepository(IProvinceRepository):
         return Provincia.objects.filter(id=province_id).first()
     
     def create_province(self, province_id, province_name):
-        Provincia.objects.create(
+        province = Provincia.objects.create(
             id=province_id,
             nombre=province_name
         )
-        
+        return province
