@@ -141,7 +141,7 @@ class DistrictViewSetTests(APITestCase):
         }
 
         city = {
-            'id':'012345',
+            'id':'01234567',
             'nombre': 'TestCity',
             'provincia':province
         }

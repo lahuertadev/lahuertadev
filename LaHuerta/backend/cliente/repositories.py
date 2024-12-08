@@ -23,3 +23,11 @@ class ClientRepository(IClientRepository):
             )
 
         return queryset
+    
+    def get_client_by_cuit(self, cuit):
+        return Cliente.objects.filter(cuit=cuit).first()
+
+    def create_client(self, data):
+        client = Cliente(**data)
+        client.save()
+        return client

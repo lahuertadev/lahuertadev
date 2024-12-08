@@ -1,17 +1,21 @@
 from rest_framework import viewsets
-# from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import ClientSerializer, ClientQueryParamsSerializer
+from .serializers import (
+    ClientQueryParamsSerializer, 
+    ClientCreateUpdateSerializer,
+    ClientResponseSerializer
+)
 from .repositories import ClientRepository
+from localidad.services import DistrictService
 
 class ClientViewSet(viewsets.ModelViewSet):
     '''
     Gestión de clientes
     '''
-
     client_repository = ClientRepository()
-    serializer_class = ClientSerializer
+    serializer_class = ClientCreateUpdateSerializer
+    district_service = DistrictService()
 
     def get_queryset(self):
         """
@@ -33,22 +37,44 @@ class ClientViewSet(viewsets.ModelViewSet):
         address = serializer.validated_data.get('address', None)
 
         clients = self.client_repository.get_all_clients(cuit=cuit, searchQuery=searchQuery, address=address)
-        clients_serialized = ClientSerializer(clients, many=True)
+        clients_serialized = ClientResponseSerializer(clients, many=True)
         return Response(clients_serialized.data)
 
     def create (self, request):
         '''
-        Crea un nuevo gasto.
+        Crea un nuevo cliente y su respectiva localidad en caso de no existir.
         '''
-        serializer = ExpenseCreateSerializer(data=request.data)
+        try:
 
-        if serializer.is_valid():
-            try:
-                self.expense_repository.create_expense(serializer.validated_data)
-                return Response(status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            distric_data = request.data.get('localidad')
+
+            if distric_data:
+                district = self.district_service.create_or_get_district(distric_data)
+                request.data['localidad'] = district.get('district').id
+
+            cuit = request.data.get('cuit')
+            if cuit:
+                existing_client = self.client_repository.get_client_by_cuit(cuit)
+                if existing_client:
+                    response_serializer = ClientResponseSerializer(existing_client)
+                    return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+            serializer = ClientCreateUpdateSerializer(data=request.data)
+
+            if serializer.is_valid():
+                client = self.client_repository.create_client(serializer.validated_data)
+                client.localidad = district['district']
+                response_serializer = ClientResponseSerializer(client)
+                return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except KeyError as e:
+            return Response({'error': f'Missing key: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
     # def update (self, request, pk=None):
     #     '''

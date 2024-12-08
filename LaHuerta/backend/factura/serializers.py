@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from .models import Factura
-from cliente.serializers import ClientSerializer
+from cliente.serializers import ClientCreateUpdateSerializer
 from tipo_factura.serializers import BillTypeSerializer
 
 class BillSerializer(serializers.ModelSerializer):
     '''
     DTO
     '''
-    cliente = ClientSerializer()
+    cliente = ClientCreateUpdateSerializer()
     tipo_factura = BillTypeSerializer()
 
     class Meta:

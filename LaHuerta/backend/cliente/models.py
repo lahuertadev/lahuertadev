@@ -17,8 +17,8 @@ class Cliente(models.Model):
     nombre_fantasia = models.CharField(max_length=100, blank=True, null=True)
     estado = models.BooleanField(default=True)
 
-    def __str__(self):
-        return f'{self.razon_social} (CUIT: {self.cuit})'
+    # def __str__(self):
+    #     return f'{self.razon_social} (CUIT: {self.cuit})'
 
     class Meta:
         db_table = 'cliente' 
