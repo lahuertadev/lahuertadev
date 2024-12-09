@@ -38,7 +38,11 @@ const CustomInput = ({
   return (
     <TextField
       id={`${name}-input`}
-      label={label}
+      label={
+        <span>
+          {label} {required && <span style={{ color: 'red' }}>*</span>}
+        </span>
+      }
       name={name}
       type={type}
       value={value}

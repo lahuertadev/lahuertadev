@@ -14,21 +14,19 @@ export default function BasicSelect({label, name, onChange, value, options}) {
           labelId="demo-simple-select-label"
           id={name}
           name={name}
-          value={value || ''}
+          value={value?.value || ''}
           label={label}
-          onChange={onChange}
+          onChange={(e) => {
+            const selectedOption = options.find(option => option.value === e.target.value);
+            onChange({ target: { name, value: selectedOption } });
+          }}
         >
           <MenuItem value={-1}>Seleccioná una opción</MenuItem>
-          {options.map(({value, name}) => {
-              return (
-                <MenuItem 
-                  key={value}
-                  value={value}>
-                  {name}
-                </MenuItem>
-              )
-            }
-          )}
+          {options.map(({ value, name }) => (
+            <MenuItem key={value} value={value}>
+              {name}
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
     </Box>

@@ -4,6 +4,7 @@ import CustomInput from '../Input';
 import DatePicker from '../DatePicker';
 import BasicSelect from '../Select';
 import Button from '../Button';
+import CheckboxLabels from '../Checkbox';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../../styles/forms.css';
 import { Grid } from '@mui/material';
@@ -81,7 +82,8 @@ const GenericForm = ({
         enableReinitialize
         onSubmit={handleSubmit}
       >
-        {({ values, setFieldValue, handleChange, errors, touched, isValid, dirty }) => (
+        {({ values, setFieldValue, handleChange, errors, touched, isValid, dirty }) => {
+          return (
           <Form
             className="custom-form"
             style={{
@@ -92,7 +94,7 @@ const GenericForm = ({
           >
             <Grid container spacing={3} justifyContent="center" sx={{ width: '100%' }}>
               {fields.map((field) => {
-                const { name, label, type } = field;
+                const { name, label, type, validation } = field;
                 return (
                   <Grid item xs={12} sm={getColumnSize()} md={getColumnSize()} key={name}>
                     {/* Renderizar el componente según el tipo */}
@@ -104,6 +106,8 @@ const GenericForm = ({
                         value={values[name]}
                         onChange={handleChange}
                         helperText={touched[name] && errors[name]}
+                        regex={validation?.regex}
+                        regexErrorText={validation?.errorMessage}
                       />
                     ) : type === 'select' ? (
                       <BasicSelect
@@ -125,6 +129,13 @@ const GenericForm = ({
                         onChange={(date) => setFieldValue(name, date)}
                         helperText={touched[name] && errors[name]}
                       />
+                    ) : type === 'checkbox' ? (
+                      <CheckboxLabels
+                        label={label}
+                        name={name}
+                        value={values[name]} 
+                        onChange={setFieldValue}
+                      />
                     ) : null}
                   </Grid>
                 );
@@ -141,7 +152,8 @@ const GenericForm = ({
               />
             </div>
           </Form>
-        )}
+          );
+        }}
       </Formik>
     </div>
   );

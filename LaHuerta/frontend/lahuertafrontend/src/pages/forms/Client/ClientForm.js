@@ -27,9 +27,9 @@ const ClientForm = () => {
     phone: '',
     salesStartDate: null,
     fantasyName: '',
-    state: '',
+    state: true,
   });
-  const location = useLocation();
+  // const location = useLocation();
   const { id } = useParams();
 
   //* Función que carga las opciones para los selects. 
@@ -62,10 +62,9 @@ const ClientForm = () => {
     setSelectOptions({ billingType, ivaCondition, provinces, cities: [], districts: [] });
   };
 
-
   //* Función para cargar los municipios filtrados por provincia
-  const loadCitiesByProvinceId = async (provinceId) => {
-    const citiesUrl = `https://apis.datos.gob.ar/georef/api/municipios?provincia=${provinceId}&campos=id,nombre&max=150`;
+  const loadCitiesByProvinceId = async (province) => {
+    const citiesUrl = `https://apis.datos.gob.ar/georef/api/municipios?provincia=${province.value}&campos=id,nombre&max=150`;
 
     const cities = await loadOptions(citiesUrl, (data) =>
       [...data.municipios]
@@ -78,8 +77,8 @@ const ClientForm = () => {
   };
   
   //* Función para cargar las localidades filtradas por municipio
-  const loadDistrictsByCityId = async (cityId) => {
-    const districtsUrl = `https://apis.datos.gob.ar/georef/api/localidades?municipio=${cityId}&campos=id,nombre&max=50`;
+  const loadDistrictsByCityId = async (city) => {
+    const districtsUrl = `https://apis.datos.gob.ar/georef/api/localidades?municipio=${city.value}&campos=id,nombre&max=50`;
 
     const districts = await loadOptions(districtsUrl, (data) =>
       [...data.localidades]
@@ -90,7 +89,6 @@ const ClientForm = () => {
     setSelectOptions((prev) => ({...prev, districts }));
     setInitialValues((prev) => ({ ...prev, district: '' }));
   };
-
 
   //* Función para traer la información para editar un gasto
   const fetchItemToEdit = async () => {
@@ -131,35 +129,74 @@ const ClientForm = () => {
         phone: '',
         salesStartDate: null,
         fantasyName: '',
-        state: '',
+        state: true,
       });
     }
   };
 
   //* Función para mapear los datos ingresados con lo que espera el back
   const mapFormDataToBackend = (values) => {
-    return {
+    const mappedData = {
       cuit: values.cuit,
       razon_social: values.businessName,
-      cuenta_corriente: values.checkingAccount,
-      // provincia: values.province,
-      // municipio: values.city,
-      // localidad: values.district,
-      direccion: values.address,
-      tipo_facturacion: values.billingType,
-      condicion_iva: values.ivaCondition,
+      cuenta_corriente: 0.00,
+      localidad: {
+        'id': values.districts.value,
+        'nombre': values.districts.name,
+        'municipio': {
+          'id': values.cities.value,
+          'nombre': values.cities.name,
+          'provincia': {
+            'id': values.provinces.value,
+            'nombre': values.provinces.name
+          }
+        }
+      },
+      domicilio: values.address,
+      tipo_facturacion: values.billingType.value,
+      condicion_IVA: values.ivaCondition.value,
       telefono: values.phone,
-      fecha_inicio: values.salesStartDate,
+      fecha_inicio_ventas: values.salesStartDate,
       nombre_fantasia: values.fantasyName,
       estado: values.state,
     };
+    console.log('Asi es como se van a enviar los datos: ', mappedData)
+
+
+    return mappedData
   };
 
   //* Configuración de los campos del formulario
   const fields = [
-    { name: 'cuit', label: 'CUIT', type: 'text', required: true },
-    { name: 'businessName', label: 'Razón Social', type: 'text', required: true },
-    { name: 'checkingAccount', label: 'Cuenta Corriente', type: 'text' },
+    { 
+      name: 'cuit', 
+      label: 'CUIT', type: 
+      'text', 
+      validation: {
+        regex: /^\d{1,11}$/, 
+        errorMessage: 'El CUIT debe ser un número de hasta 11 dígitos sin caracteres especiales',
+      },
+      required: true,
+    },
+    { 
+      name: 'businessName', 
+      label: 'Razón Social', 
+      type: 'text',
+      validation: {
+        regex: /^[a-zA-Z0-9\s\-.]{1,70}$/,
+        errorMessage: 'La razón social no puede contener caracteres especiales o excederse de los 70 caracteres',
+      },
+      required: true
+    },
+    // { 
+    //   name: 'checkingAccount', 
+    //   label: 'Cuenta Corriente', 
+    //   type: 'number',
+    //   validation: {
+    //     regex: /^\d+(\.\d+)?$/,
+    //     errorMessage: 'La cuenta corriente no puede tener valores negativos',
+    //   },
+    // },
     { 
       name: 'provinces', 
       label: 'Provincia', 
@@ -183,21 +220,55 @@ const ClientForm = () => {
       label: 'Localidad', 
       type: 'select',
     },
-    { name: 'address', label: 'Dirección', type: 'text' },
+    { 
+      name: 'address', 
+      label: 'Dirección', 
+      type: 'text',
+      required: true,
+      validation: {
+        regex: /^[a-zA-Z0-9\s\-.]{1,200}$/,
+        errorMessage: 'La dirección no puede contener caracteres especiales o excederse de los 200 caracteres ',
+      }
+    },
     { name: 'billingType', label: 'Tipo de Facturación', type: 'select' },
     { name: 'ivaCondition', label: 'Condición de IVA', type: 'select' },
     { name: 'phone', label: 'Teléfono', type: 'text' },
     { name: 'salesStartDate', label: 'Fecha de Inicio de Ventas', type: 'date' },
-    { name: 'fantasyName', label: 'Nombre de Fantasía', type: 'text' },
-    { name: 'state', label: 'Estado', type: 'text' },
+    { 
+      name: 'fantasyName', 
+      label: 'Nombre de Fantasía', 
+      type: 'text',
+      validation: {
+        regex: /^[a-zA-Z0-9\s\-.&*(),]{1,100}$/,
+        errorMessage: 'El nombre de fantasía no puede exceder los 100 caracteres ni usar "@, #, /, \, %" ',
+      } 
+    },
+    { name: 'state', label: 'Estado cliente', type: 'checkbox' },
   ];
 
   //* Esquema de validación con Yup
   const validationSchema = Yup.object().shape({
-    cuit: Yup.string().required('Requerido').length(11, 'Debe tener 11 dígitos'),
-    businessName: Yup.string().required('Requerido'),
-    province: Yup.string().required('Requerido'),
-    city: Yup.string().required('Requerido'),
+    cuit:  Yup.string()
+      .matches(/^\d{11}$/, 'El CUIT debe ser un número de exactamente 11 dígitos sin caracteres especiales')
+      .required('Requerido'),
+    // businessName: Yup.string().required('Requerido'),
+    // provinces: Yup.string()
+    //   .required('La provincia es requerida')
+    //   .oneOf(selectOptions.provinces.map(option => option.value), 'Seleccione una provincia válida'),
+    // cities: Yup.string()
+    //   .required('El municipio es requerido')
+    //   .oneOf(selectOptions.cities.map(option => option.value), 'Seleccioná una opción'),
+    // districts:Yup.string()
+    //   .required('La localidad es requerida')
+    //   .oneOf(selectOptions.districts.map(option => option.value), 'Seleccioná una opción'),
+    // address: Yup.string().required('Requerido'),
+    // billingType: Yup.number()
+    //   .required('El tipo de facturación es requerido')
+    //   .oneOf(selectOptions.billingType.map(option => option.value), 'Seleccioná una opción'),
+    // ivaCondition: Yup.number()
+    //   .required('La condición de IVA es requerida')
+    //   .oneOf(selectOptions.ivaCondition.map(option => option.value), 'Seleccioná una opción'),
+    // phone: Yup.string().required('Requerido')
   });
 
   useEffect(() => {
@@ -213,13 +284,13 @@ const ClientForm = () => {
 
   return (
     <GenericForm
-      fields={fields} // Campos a renderizar
-      initialValues={initialValues} // Valores iniciales por si es una edición
-      validationSchema={validationSchema} // Validaciones para los campos
-      selectOptions={selectOptions} // Opciones del select
-      urls={urls} // Urls necesarias
-      mapFormDataToBackend={mapFormDataToBackend} // Mapeo de datos para el endpoint del back
-      onSubmitCallback={() => console.log('Formulario enviado con éxito')} // Mensaje de envio exitoso
+      fields={fields}
+      initialValues={initialValues}
+      validationSchema={validationSchema} 
+      selectOptions={selectOptions}
+      urls={urls}
+      mapFormDataToBackend={mapFormDataToBackend} 
+      onSubmitCallback={() => console.log('Formulario enviado con éxito')}
       columns={3}
     />
   );
