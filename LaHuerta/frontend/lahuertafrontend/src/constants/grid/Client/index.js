@@ -8,4 +8,5 @@ export const columns = [
     { field: 'phone', headerName: 'Teléfono' },
     { field: 'salesStartDate', headerName: 'Inicio de ventas' },
     { field: 'fantasyName', headerName: 'Nombre fantasía' },
+    { field: 'state', headerName: 'Estado' },
   ];

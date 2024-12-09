@@ -45,13 +45,9 @@ class ClientViewSet(viewsets.ModelViewSet):
         Crea un nuevo cliente y su respectiva localidad en caso de no existir.
         '''
         try:
-            print('Hola')
-            print('Esta es la información qu eme llegó: ', request.data)
             distric_data = request.data.get('localidad')
-            print('Este es el district: ', distric_data)
             if distric_data:
                 district = self.district_service.create_or_get_district(distric_data)
-                print('Este es el district 2: ', district)
                 request.data['localidad'] = district.get('district').id
 
             cuit = request.data.get('cuit')
