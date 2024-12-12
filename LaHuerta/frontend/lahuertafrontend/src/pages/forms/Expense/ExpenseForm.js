@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import * as Yup from 'yup';
 import axios from 'axios';
-import GenericForm from '../../components/Form';
-import { expenseCreateUrl, expenseUrl } from '../../constants/urls';
+import GenericForm from '../../../components/Form';
+import { expenseUrl } from '../../../constants/urls';
 import { useLocation, useParams } from 'react-router-dom';
+import { loadOptions } from '../../../utils/selectOptions';
+import { expenseTypeUrl } from '../../../constants/urls';
 
 const ExpenseForm = () => {
   const [selectOptions, setSelectOptions] = useState({});
@@ -16,26 +18,12 @@ const ExpenseForm = () => {
   const { id } = useParams();
 
   //* Función para cargar opciones de select
-  const fetchSelectOptions = async () => {
-    try {
-      // URLs asociadas a cada campo select
-      const fetchConfig = {
-        expenseType: 'http://localhost:8000/type_expense/',
-      };
+  const loadInitialOptions = async () => {
 
-      // Carga las opciones de cada URL y las almacena
-      const newOptions = {};
-      for (const [fieldName, url] of Object.entries(fetchConfig)) {
-        const response = await axios.get(url);
-        newOptions[fieldName] = response.data.map((item) => ({
-          name: item.descripcion,
-          value: item.id,
-        }));
-      }
-      setSelectOptions(newOptions);
-    } catch (error) {
-      console.error('Error loading select options:', error);
-    }
+    const expenseType = await loadOptions(expenseTypeUrl, (data) =>
+      data.map((item) => ({ name : item.descripcion, value: item.id}))
+    );
+    setSelectOptions({ expenseType });
   };
 
   //* Función para traer la información para editar un gasto
@@ -48,7 +36,7 @@ const ExpenseForm = () => {
         setInitialValues({
           amount: data.importe,
           date: data.fecha,
-          expenseType: data.tipo_gasto.id,
+          expenseType: { name: data.tipo_gasto.descripcion, value: data.tipo_gasto.id },
         });
       } catch (error) {
         console.error('Error loading item to edit:', error);
@@ -61,8 +49,9 @@ const ExpenseForm = () => {
       });
     }
   };
+
   useEffect(() => {
-    fetchSelectOptions();
+    loadInitialOptions()
     fetchItemToEdit()
   }, [id]);
 
@@ -71,7 +60,7 @@ const ExpenseForm = () => {
     return {
       fecha: values.date, 
       importe: values.amount,
-      tipo_gasto: values.expenseType,
+      tipo_gasto: values.expenseType.value,
     };
   };
 
@@ -92,7 +81,13 @@ const ExpenseForm = () => {
         (value) => /^\d+(\.\d{1,2})?$/.test(value)
       ),
     date: Yup.date().required('Requerido'),
-    expenseType: Yup.string().required('Requerido'),
+    expenseType: Yup.mixed()
+      .required('Requerido')
+      .test(
+        'is-valid-option',
+        'Seleccione una opción válida',
+        (value) => value !== null && value !== undefined && value !== ''
+      ),
   });
 
   //* URLs para creación y edición
@@ -103,13 +98,13 @@ const ExpenseForm = () => {
 
   return (
     <GenericForm
-      fields={fields} // Campos a renderizar
-      initialValues={initialValues} // Valores iniciales por si es una edición
-      validationSchema={validationSchema} // Validaciones para los campos
-      selectOptions={selectOptions} // Opciones del select
-      urls={urls} // Urls necesarias
-      mapFormDataToBackend={mapFormDataToBackend} // Mapeo de datos para el endpoint del back
-      onSubmitCallback={() => console.log('Formulario enviado con éxito')} // Mensaje de envio exitoso
+      fields={fields} 
+      initialValues={initialValues} 
+      validationSchema={validationSchema} 
+      selectOptions={selectOptions} 
+      urls={urls} 
+      mapFormDataToBackend={mapFormDataToBackend} 
+      onSubmitCallback={() => console.log('Formulario enviado con éxito')} 
     />
   );
 };

@@ -14,7 +14,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     Gestión de clientes
     '''
     client_repository = ClientRepository()
-    serializer_class = ClientCreateUpdateSerializer
+    serializer_class = ClientResponseSerializer
     district_service = DistrictService()
 
     def get_queryset(self):
@@ -28,7 +28,6 @@ class ClientViewSet(viewsets.ModelViewSet):
         Obtiene todos los clientes y si hay filtros, obtiene con ellos.
         '''
         serializer = ClientQueryParamsSerializer(data=request.query_params)
-
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
@@ -45,9 +44,9 @@ class ClientViewSet(viewsets.ModelViewSet):
         Crea un nuevo cliente y su respectiva localidad en caso de no existir.
         '''
         try:
-            distric_data = request.data.get('localidad')
-            if distric_data:
-                district = self.district_service.create_or_get_district(distric_data)
+            district_data = request.data.get('localidad')
+            if district_data:
+                district = self.district_service.create_or_get_district(district_data)
                 request.data['localidad'] = district.get('district').id
 
             cuit = request.data.get('cuit')
@@ -74,29 +73,31 @@ class ClientViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
-    # def update (self, request, pk=None):
-    #     '''
-    #     Actualiza un gasto
-    #     '''
-    #     serializer = ExpenseEditSerializer(data=request.data)
-    #     if serializer.is_valid():
-    #         try:
-    #             self.expense_repository.modify_expense(pk, serializer.validated_data)
-    #             return Response(status=status.HTTP_200_OK)
-    #         except Gasto.DoesNotExist:
-    #             return Response({'error': 'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def update (self, request, pk=None):
+        '''
+        Actualiza un cliente
+        '''
+        try:
+            district_data = request.data.get('localidad')
+            if district_data:
+                district = self.district_service.create_or_get_district(district_data)
+                request.data['localidad'] = district.get('district').id
 
-    # def destroy(self, request, pk=None):
-    #     '''
-    #     Elimina un gasto por su ID.
-    #     '''
-    #     try:
-    #         self.expense_repository.delete_expense(pk)
+            serializer = ClientCreateUpdateSerializer(data=request.data)
+            
+            if serializer.is_valid():
+                client = self.client_repository.modify_client(pk, serializer.validated_data)
+                client.localidad = district['district']
+                response_serializer = ClientResponseSerializer(client)
+                return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-    #         return Response({'message': 'Gasto eliminado exitosamente'}, status=status.HTTP_204_NO_CONTENT)
-    #     except Gasto.DoesNotExist:
-    #         return Response({'error': 'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-    
-    # @action(detail=False, methods=['delete'], url_path='bulk_delete')
-    # def bulk_delete(self, request):
+        except Exception as e:
+            pass
+        # serializer = ExpenseEditSerializer(data=request.data)
+        # if serializer.is_valid():
+        #     try:
+        #         self.expense_repository.modify_expense(pk, serializer.validated_data)
+        #         return Response(status=status.HTTP_200_OK)
+        #     except Gasto.DoesNotExist:
+        #         return Response({'error': 'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

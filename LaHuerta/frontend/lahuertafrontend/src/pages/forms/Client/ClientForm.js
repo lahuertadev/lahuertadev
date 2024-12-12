@@ -3,7 +3,8 @@ import * as Yup from 'yup';
 import axios from 'axios';
 import GenericForm from '../../../components/Form';
 import { clientUrl, billingTypeUrl, ivaConditionUrl, provincesUrl } from '../../../constants/urls';
-import { useLocation, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { loadOptions } from '../../../utils/selectOptions';
 
 
 const ClientForm = () => {
@@ -31,17 +32,6 @@ const ClientForm = () => {
   });
   // const location = useLocation();
   const { id } = useParams();
-
-  //* Función que carga las opciones para los selects. 
-  const loadOptions = async (url, mapper) => {
-    try {
-      const response = await axios.get(url);
-      return mapper(response.data);
-    } catch (error){
-      console.error(`Error al obtener los datos de ${url}: `, error);
-      return [];
-    }
-  }
 
   //* Carga los valores iniciales
   const loadInitialOptions = async () => {
@@ -94,24 +84,43 @@ const ClientForm = () => {
   const fetchItemToEdit = async () => {
     if (id) {
       try {
+        
         const response = await axios.get(`${clientUrl}${id}`);
         const data = response.data;
 
+        const provinces = await loadOptions(provincesUrl, (data) =>
+          [...data.provincias]
+              .map((item) => ({ name: item.nombre, value: item.id }))
+              .sort((a, b) => a.name.localeCompare(b.name))
+        );
+        setSelectOptions((prev) => ({ ...prev, provinces }));
+        console.log('Estas son las opciones cargadas: ', selectOptions)
+
+        const province = { name: data.localidad.municipio.provincia.nombre, value: data.localidad.municipio.provincia.id };
+        const city = { name: data.localidad.municipio.nombre, value: data.localidad.municipio.id };
+        const district = { name: data.localidad.nombre, value: data.localidad.id };
+
+        await loadCitiesByProvinceId(province);
+        await loadDistrictsByCityId(city);
+        
         setInitialValues({
           cuit: data.cuit,
           businessName: data.razon_social,
           checkingAccount: data.cuenta_corriente,
-          province: '', // Provincia
-          city: '', // Municipio
-          district: '', // Localidad
+          province: province, 
+          city: city,
+          district: district,
           address: data.domicilio,
-          billingType: data.tipo_facturacion.descripcion,
-          ivaCondition: data.condicion_iva.descripcion,
+          billingType: {name: data.tipo_facturacion.descripcion, value: data.tipo_facturacion.id },
+          ivaCondition: {name: data.condicion_IVA.descripcion, value: data.condicion_IVA.id},
           phone: data.telefono,
           salesStartDate: data.fecha_inicio_ventas,
           fantasyName: data.nombre_fantasia,
           state: data.estado,
       });
+      console.log('Asi quedan los valores iniciales: ', initialValues)
+        
+      
       } catch (error) {
         console.error('Error al cargar el cliente para la edición: ', error);
       }
@@ -120,9 +129,9 @@ const ClientForm = () => {
         cuit: '',
         businessName: '',
         checkingAccount: '',
-        province: '', // Provincia
-        city: '', // Municipio
-        district: '', // Barrio
+        province: '', 
+        city: '', 
+        district: '',
         address: '',
         billingType: '',
         ivaCondition: '',
@@ -274,6 +283,7 @@ const ClientForm = () => {
   useEffect(() => {
     loadInitialOptions();
     fetchItemToEdit()
+    console.log('Estos son los valores iniciales 2: ', initialValues)
   }, [id]);
 
   //* URLs para creación y edición

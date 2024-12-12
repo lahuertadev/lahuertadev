@@ -4,7 +4,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
 import App from "./App"; 
 import Home from './pages/home';
-import ExpenseForm from "./pages/forms/ExpenseForm";
+import ExpenseForm from "./pages/forms/Expense/ExpenseForm";
 import ClientForm from "./pages/forms/Client/ClientForm";
 import ExpenseList from "./pages/lists/Expense";
 import ClientsList from "./pages/lists/Client";
@@ -19,12 +19,12 @@ const router = createBrowserRouter([
         element: <Home />
       },
       {
-        path: '/expense/create',
-        element: <ExpenseForm />
-      },
-      {
         path: '/expense', 
         element: <ExpenseList />
+      },
+      {
+        path: '/expense/create',
+        element: <ExpenseForm />
       },
       {
         path: '/expense/edit/:id',
@@ -36,6 +36,10 @@ const router = createBrowserRouter([
       },
       {
         path: '/client/create', 
+        element: <ClientForm />
+      },
+      {
+        path: '/client/edit/:id', 
         element: <ClientForm />
       },
     ],

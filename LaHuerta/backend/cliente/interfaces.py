@@ -12,3 +12,7 @@ class IClientRepository(ABC):
     @abstractmethod
     def create_client(self, data):
         pass
+
+    @abstractmethod
+    def modify_client(self, pk, data):
+        pass
