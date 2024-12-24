@@ -23,3 +23,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'cantidad_por_bulto',
             'peso_aproximado'
         ]
+
+class ProductQueryParamsSerializer(serializers.Serializer):
+    description = serializers.CharField(required=False)
+    category = serializers.CharField(required=False)
+    container_type = serializers.CharField(required=False)
