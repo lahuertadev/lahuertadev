@@ -21,7 +21,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def list (self, request):
         '''
-        Obtiene todos los gastos y si hay filtros, obtiene con ellos.
+        Obtiene todas las categorías.
         '''
         categories = self.category_repository.get_all_categories()
 

@@ -18,3 +18,7 @@ class ProductRepository(IProductRepository):
     def verify_products_with_category_id(self, category_id):
         flag = Producto.objects.filter(categoria=category_id).exists()
         return flag
+    
+    def verify_products_with_container_type_id(self, container_id):
+        exists = Producto.objects.filter(tipo_contenedor=container_id).exists()
+        return exists
