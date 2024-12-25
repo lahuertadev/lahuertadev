@@ -93,11 +93,3 @@ class ClientViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             pass
-        # serializer = ExpenseEditSerializer(data=request.data)
-        # if serializer.is_valid():
-        #     try:
-        #         self.expense_repository.modify_expense(pk, serializer.validated_data)
-        #         return Response(status=status.HTTP_200_OK)
-        #     except Gasto.DoesNotExist:
-        #         return Response({'error': 'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

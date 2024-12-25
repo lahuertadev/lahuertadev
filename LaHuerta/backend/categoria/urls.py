@@ -1,8 +1,10 @@
-from django.urls import path
-from .views import (
-    GetAllCategories
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CategoryViewSet
+
+router = DefaultRouter()
+router.register(r'category', CategoryViewSet, basename='category')
 
 urlpatterns = [
-    path('category/', GetAllCategories.as_view(), name='get-all-categories'),
+    path('', include(router.urls)),
 ]

@@ -70,7 +70,6 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         '''
         try:
             self.expense_repository.delete_expense(pk)
-
             return Response({'message': 'Gasto eliminado exitosamente'}, status=status.HTTP_204_NO_CONTENT)
         except Gasto.DoesNotExist:
             return Response({'error': 'Gasto no encontrado'}, status=status.HTTP_404_NOT_FOUND)
