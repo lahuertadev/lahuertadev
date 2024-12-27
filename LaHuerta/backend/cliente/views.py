@@ -4,10 +4,16 @@ from rest_framework import status
 from .serializers import (
     ClientQueryParamsSerializer, 
     ClientCreateUpdateSerializer,
-    ClientResponseSerializer
+    ClientResponseSerializer,
+    ClientUpdateSerializer
 )
 from .repositories import ClientRepository
 from localidad.services import DistrictService
+from .exceptions import (
+    ClientNotFoundException,
+    CuitAlreadyExistsException,
+    BusinessNameAlreadyExistsException
+)
 
 class ClientViewSet(viewsets.ModelViewSet):
     '''
@@ -83,7 +89,10 @@ class ClientViewSet(viewsets.ModelViewSet):
                 district = self.district_service.create_or_get_district(district_data)
                 request.data['localidad'] = district.get('district').id
 
-            serializer = ClientCreateUpdateSerializer(data=request.data)
+            client = self.client_repository.get_client_by_id(pk)
+            if not client:
+                raise ClientNotFoundException('Cliente no encontrado')
+            serializer = ClientUpdateSerializer(client, data=request.data)
             
             if serializer.is_valid():
                 client = self.client_repository.modify_client(pk, serializer.validated_data)
@@ -91,5 +100,18 @@ class ClientViewSet(viewsets.ModelViewSet):
                 response_serializer = ClientResponseSerializer(client)
                 return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
+        except CuitAlreadyExistsException as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except BusinessNameAlreadyExistsException as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except ClientNotFoundException as e:
+            return Response({"detail": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        
         except Exception as e:
-            pass
+            return Response(
+                {"detail": "Ocurrió un error al actualizar el cliente."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+    

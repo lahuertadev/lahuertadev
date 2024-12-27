@@ -42,6 +42,8 @@ class ClientRepository(IClientRepository):
             raise ValueError(f'No se encontró el cliente con el id {pk}')
         
         allowed_fields_to_edit = {
+            'cuit',
+            'razon_social',
             'cuenta_corriente', 
             'domicilio', 
             'localidad', 
@@ -54,3 +56,4 @@ class ClientRepository(IClientRepository):
         for key, value in data.items():
             setattr(client, key, value)
         client.save()
+        return client

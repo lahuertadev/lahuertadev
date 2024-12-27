@@ -369,7 +369,7 @@ const ClientForm = () => {
         businessName: '',
         checkingAccount: '',
         province: '', 
-        city: '', 
+        city: {name: '', value: ''}, 
         district: '',
         address: '',
         billingType: '',
@@ -417,9 +417,9 @@ const ClientForm = () => {
         .map((item) => ({ name: item.nombre, value: item.id }))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
-
+    console.log(cities)
     setSelectOptions((prev) => ({...prev, cities, districts: [] }));
-    setInitialValues((prev) => ({ ...prev, city: '', district: '' }));
+    //setInitialValues((prev) => ({ ...prev, city: '', : '' }));
   };
   
   //* Función para cargar las localidades filtradas por municipio
@@ -431,28 +431,40 @@ const ClientForm = () => {
         .map((item) => ({ name: item.nombre, value: item.id }))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
-
     setSelectOptions((prev) => ({...prev, districts }));
-    setInitialValues((prev) => ({ ...prev, district: '' }));
+    // setInitialValues((prev) => ({ ...prev, district: '' }));
   };
 
   //* Función para traer la información para editar un gasto
   const fetchItemToEdit = async () => {
+    console.log('Entre en el fetchItemToEdit')
     try {
       const response = await axios.get(`${clientUrl}${id}`);
       const data = response.data;
-
-      setProvince({name: data.localidad.municipio.provincia.nombre, value: data.localidad.municipio.provincia.id});
-      setCity({name: data.localidad.municipio.nombre, value: data.localidad.municipio.id});
-      setDistrict({name: data.localidad.nombre, value: data.localidad.id})
       
+      const province = {
+        name: data.localidad.municipio.provincia.nombre,
+        value: data.localidad.municipio.provincia.id,
+      };
+      const city = {
+        name: data.localidad.municipio.nombre,
+        value: data.localidad.municipio.id,
+      };
+      const district = {
+        name: data.localidad.nombre,
+        value: data.localidad.id,
+      };
+      setProvince(province)
+      setCity(city)
+      setDistrict(district)
+
       setInitialValues({
         cuit: data.cuit,
         businessName: data.razon_social,
         checkingAccount: data.cuenta_corriente,
-        province: province, 
-        city: city,
-        district: district,
+        province, 
+        city,
+        district,
         address: data.domicilio,
         billingType: {name: data.tipo_facturacion.descripcion, value: data.tipo_facturacion.id },
         ivaCondition: {name: data.condicion_IVA.descripcion, value: data.condicion_IVA.id},
@@ -509,8 +521,11 @@ const ClientForm = () => {
     const mappedValues = mapFormDataToBackend(values);
     try {
       if (itemToEdit && id) {
+        console.log('Esta es la informacion que voy a mandar en el edit: ', mappedValues)
+        console.log('entre en el if de submit')
         await axios.put(`${clientUrl}${id}/`, mappedValues);
       } else if (clientUrl) {
+        console.log('entre en el else de submit')
         await axios.post(clientUrl, mappedValues);
       }
       navigate('/client');
@@ -523,17 +538,16 @@ const ClientForm = () => {
   useEffect(() => {
     const loadFormOptions = async () => {
       await loadInitialOptions();
-      if (id) {
+      if (id){
         await fetchItemToEdit();
       }
     };
     loadFormOptions();
-  }, [province]);
+  }, [id]);
 
   useEffect(() => {
     if (province){
       loadCitiesByProvinceId(province)
-      console.log('Entre en el useEffect')
     }
     }, [province])
     
@@ -618,7 +632,6 @@ const ClientForm = () => {
                     setFieldValue('city', selectedCity);
                   }}
                 />
-  
                 {/* Localidad (ancho de 2 columnas) */}
                 <BasicSelect
                   label="Localidad"
