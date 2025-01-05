@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Producto
 from categoria.serializers import CategorySerializer
 from tipo_contenedor.serializers import ContainerTypeSerializer
-from tipo_unidad.serializers import UnitTypeSerializer
+from tipo_unidad.serializers import UnitTypeSerializerResponse
 
 class ProductSerializer(serializers.ModelSerializer):
     '''
@@ -10,7 +10,7 @@ class ProductSerializer(serializers.ModelSerializer):
     '''
     categoria = CategorySerializer()
     tipo_contenedor = ContainerTypeSerializer()
-    tipo_unidad = UnitTypeSerializer()
+    tipo_unidad = UnitTypeSerializerResponse()
 
     class Meta:
         model = Producto

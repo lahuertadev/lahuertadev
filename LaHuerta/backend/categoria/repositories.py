@@ -31,22 +31,12 @@ class CategoryRepository(ICategoryRepository):
         Modifica una categoría.
         '''
         category = self.get_category_by_id(id)
-        if not category:
-            raise CategoryNotFoundException('Categoría no encontrada.')
-        
         category.descripcion = data.get('descripcion', category.descripcion)
         category.save()
 
-    def destroy_category(self, id):
+    def destroy_category(self, id):        
         '''
-        Elimina una categoría si no tiene asociado un producto
+        Elimina una categoría
         '''
-        product_repository = ProductRepository()
-        exists = product_repository.verify_products_with_category_id(id)
-        if exists:
-            raise CategoryHasProductsException('No se puede eliminar la categoría, ya que tiene productos asociados.')
-        try:
-            category = Categoria.objects.get(id=id)
-            category.delete()
-        except Categoria.DoesNotExist:
-            raise CategoryNotFoundException('Categoría no encontrada.')
+        category = self.get_category_by_id(id)
+        category.delete()

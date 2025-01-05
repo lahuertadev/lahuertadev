@@ -15,7 +15,8 @@ class ContainerTypeRepository(IContainerTypeRepository):
         '''
         Obtiene el contenedor por su id.
         '''
-        return TipoContenedor.objects.filter(id=id).first()
+        container = TipoContenedor.objects.filter(id=id).first()
+        return container
     
     def create_container_type(self, data):
         '''
@@ -38,14 +39,7 @@ class ContainerTypeRepository(IContainerTypeRepository):
 
     def destroy_container_type(self, id):
         '''
-        Elimina un tipo de contenedor si no tiene un producto asociado.
+        Elimina un tipo de contenedor.
         '''
-        product_repository = ProductRepository()
-        exists = product_repository.verify_products_with_container_type_id(id)
-        if exists:
-            raise ContainerHasProductsException('No se puede eliminar el contenedor, ya que tiene productos asociados.')
-        try:
-            container = TipoContenedor.objects.get(id=id)
-            container.delete()
-        except TipoContenedor.DoesNotExist:
-            raise ContainerNotFoundException('Tipo de contenedor no encontrado.')
+        container = self.get_container_by_id(id)
+        container.delete()

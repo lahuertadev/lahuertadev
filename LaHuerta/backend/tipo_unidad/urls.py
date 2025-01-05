@@ -1,8 +1,10 @@
-from django.urls import path
-from .views import (
-    GetAllUnitTypes
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import UnitTypeViewSet
+
+router = DefaultRouter()
+router.register(r'unit_type', UnitTypeViewSet, basename='unit_type')
 
 urlpatterns = [
-    path('unit_type/', GetAllUnitTypes.as_view(), name='get-all-unit-types'),
+    path('', include(router.urls)),
 ]

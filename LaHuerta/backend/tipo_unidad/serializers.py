@@ -1,7 +1,12 @@
 from rest_framework import serializers
 from .models import TipoUnidad
+from .exceptions import (
+    UnitTypeAlreadyExistsException,
+    UnitTypeHasProductsException,
+    UnitTypeNotFoundException
+)
 
-class UnitTypeSerializer(serializers.ModelSerializer):
+class UnitTypeSerializerResponse(serializers.ModelSerializer):
     '''
     DTO
     '''

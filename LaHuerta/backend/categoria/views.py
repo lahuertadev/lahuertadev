@@ -4,6 +4,7 @@ from rest_framework import status
 from .serializers import CategorySerializer
 from .repositories import CategoryRepository
 from .exceptions import CategoryHasProductsException, CategoryNotFoundException
+from producto.repositories import ProductRepository
 
 class CategoryViewSet(viewsets.ModelViewSet):
     '''
@@ -47,24 +48,46 @@ class CategoryViewSet(viewsets.ModelViewSet):
         '''
         Actualiza una categoría
         '''
-        serializer = self.get_serializer(data=request.data)
+        try:
+            category = self.category_repository.get_category_by_id(pk)
 
-        if serializer.is_valid():
-            try:
+            if not category:
+                raise CategoryNotFoundException('La categoría seleccionada no existe')
+            
+            serializer = self.get_serializer(data=request.data)
+
+            if serializer.is_valid():
                 self.category_repository.modify_category(pk, serializer.validated_data)
                 return Response({'message': 'Categoría modificada exitosamente'},status=status.HTTP_200_OK)
-            except CategoryNotFoundException as e:
-                return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        except CategoryNotFoundException as e:
+            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def destroy(self, request, pk=None):
-            '''
-            Elimina una categoría.
-            '''
-            try:
-                self.category_repository.destroy_category(pk)
-                return Response({'message': 'Categoría eliminada exitosamente'}, status=status.HTTP_204_NO_CONTENT)
-            except CategoryHasProductsException as e:
-                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            except CategoryNotFoundException as e:
-                return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        '''
+        Elimina una categoría.
+        '''
+        try:
+            category = self.category_repository.get_category_by_id(pk)
+
+            if not category:
+                raise CategoryNotFoundException('La categoría seleccionada no existe')
+            
+            product_repository = ProductRepository()
+            related_products = product_repository.verify_products_with_category_id(pk)
+
+            if related_products:
+                raise CategoryHasProductsException('La categoría seleccionada tiene productos asociados')
+            
+            self.category_repository.destroy_category(pk)
+            return Response({'message': 'La categoría fue eliminada exitosamente'}, status=status.HTTP_204_NO_CONTENT)
+        
+        except CategoryHasProductsException as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except CategoryNotFoundException as e:
+            return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

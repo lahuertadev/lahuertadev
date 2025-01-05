@@ -20,5 +20,11 @@ class ProductRepository(IProductRepository):
         return flag
     
     def verify_products_with_container_type_id(self, container_id):
+
         exists = Producto.objects.filter(tipo_contenedor=container_id).exists()
+        print('Este es el exists: ', exists)
+        return exists
+    
+    def verify_products_with_unit_type_id(self, unit_id):
+        exists = Producto.objects.filter(tipo_unidad=unit_id).exists()
         return exists
