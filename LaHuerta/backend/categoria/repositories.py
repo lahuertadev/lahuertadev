@@ -33,6 +33,7 @@ class CategoryRepository(ICategoryRepository):
         category = self.get_category_by_id(id)
         category.descripcion = data.get('descripcion', category.descripcion)
         category.save()
+        return category
 
     def destroy_category(self, id):        
         '''

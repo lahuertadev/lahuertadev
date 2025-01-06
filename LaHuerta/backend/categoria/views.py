@@ -57,8 +57,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=request.data)
 
             if serializer.is_valid():
-                self.category_repository.modify_category(pk, serializer.validated_data)
-                return Response({'message': 'Categoría modificada exitosamente'},status=status.HTTP_200_OK)
+                category = self.category_repository.modify_category(pk, serializer.validated_data)
+                category_serialized = self.get_serializer(category)
+                return Response(category_serialized.data,status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         except CategoryNotFoundException as e:
