@@ -62,8 +62,9 @@ class UnitTypeViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=request.data)
 
             if serializer.is_valid():
-                self.unit_type_repository.modify_unit_type(pk, serializer.validated_data)
-                return Response({'message': 'Tipo de unidad modificado exitosamente'},status=status.HTTP_200_OK)
+                unit_type = self.unit_type_repository.modify_unit_type(pk, serializer.validated_data)
+                unit_type_serialized = self.get_serializer(unit_type)
+                return Response(unit_type_serialized.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
         except UnitTypeNotFoundException as e:

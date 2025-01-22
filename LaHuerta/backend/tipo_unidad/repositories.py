@@ -31,6 +31,7 @@ class UnitTypeRepository(IUnitTypeRepository):
         unit_type = self.get_unit_type_by_id(id)
         unit_type.descripcion = data.get('descripcion', unit_type.descripcion)
         unit_type.save()
+        return unit_type
 
     def destroy_unit_type(self, id):
         '''

@@ -13,3 +13,6 @@ __pycache__/
 
 # Archivos generados por Mac
 .DS_Store
+
+# Excluir .env
+.env
