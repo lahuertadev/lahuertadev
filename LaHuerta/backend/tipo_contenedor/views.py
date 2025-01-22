@@ -51,8 +51,9 @@ class ContainerTypeViewSet(viewsets.ModelViewSet):
 
         if serializer.is_valid():
             try:
-                self.container_type_repository.modify_container_type(pk, serializer.validated_data)
-                return Response({'message': 'Tipo de contenedor modificado exitosamente'},status=status.HTTP_200_OK)
+                container_type = self.container_type_repository.modify_container_type(pk, serializer.validated_data)
+                container_type_serialized = self.get_serializer(container_type)
+                return Response(container_type_serialized.data,status=status.HTTP_200_OK)
             except ContainerNotFoundException as e:
                 return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

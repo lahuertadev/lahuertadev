@@ -36,6 +36,7 @@ class ContainerTypeRepository(IContainerTypeRepository):
         
         container.descripcion = data.get('descripcion', container.descripcion)
         container.save()
+        return container
 
     def destroy_container_type(self, id):
         '''
