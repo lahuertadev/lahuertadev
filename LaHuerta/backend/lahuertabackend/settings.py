@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'cliente_dia_entrega',
     'factura_producto',
     'lista_precios_producto',
+    'compra_producto',
     'pago_compra',
     'provincia',
     'municipio',
