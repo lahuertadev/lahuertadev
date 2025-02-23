@@ -1,12 +1,23 @@
 from .models import Gasto
 from .interfaces import IExpenseRepository
+from django.db.models import CharField
+from django.db.models.functions import Cast
 
 class ExpenseRepository(IExpenseRepository):
     def get_expenses_by_type_expenses_id(self, tipo_gasto_id):
         return Gasto.objects.filter(tipo_gasto_id=tipo_gasto_id)
     
-    def get_all_expenses(self):
-        return Gasto.objects.all()
+    def get_all_expenses(self, amount=None, date=None, expense_type=None):
+        expenses = Gasto.objects.all() #* En caso de que no se pase ningún dato, trae todo
+
+        if amount is not None:
+            expenses = expenses.filter(importe=amount)
+        if date is not None:
+            expenses = expenses.filter(fecha=date)
+        if expense_type is not None:
+            expenses = expenses.filter(tipo_gasto__descripcion__icontains=expense_type)
+            
+        return expenses
     
     def create_expense(self, data):
         expense = Gasto(**data)
@@ -25,14 +36,20 @@ class ExpenseRepository(IExpenseRepository):
         #     setattr(expense, key, value)
         expense.save()
 
-    def delete_expense(self, id):
-        expense = self.get_expense_by_id(id)
+    def delete_expense (self, pk):
+        expense = Gasto.objects.get(id=pk)
         if not expense:
             raise Gasto.DoesNotExist()
         expense.delete()
 
-    def get_expenses_filtered_by_date(self, start_date, end_date):
-        return Gasto.objects.filter(fecha__range=[start_date, end_date])
+    def bulk_delete_expenses(self, ids):
+        expenses = Gasto.objects.filter(id__in=ids)
+        if not expenses.exists():
+            raise Gasto.DoesNotExist()
+        
+        delete_count, _ = expenses.delete()
+        if delete_count == 0:
+            raise Gasto.DoesNotExist()
          
     def get_expense_by_id(self, expense_id):
         return Gasto.objects.filter(id=expense_id).first()

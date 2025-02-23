@@ -1,7 +1,7 @@
 from django.db import models
 
 class TipoUnidad(models.Model):
-    descripcion = models.CharField(max_length=20, unique=True)
+    descripcion = models.CharField(unique=True, max_length=20)
 
     def __str__(self):
         return self.descripcion

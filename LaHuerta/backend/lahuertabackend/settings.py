@@ -51,7 +51,6 @@ INSTALLED_APPS = [
     'tipo_pago',
     'mercado',
     'banco',
-    'localidad',
     'cliente',
     'factura',
     'producto',
@@ -60,7 +59,15 @@ INSTALLED_APPS = [
     'compra',
     'pago',
     'cheque',
-    'pago_factura'
+    'pago_factura',
+    'cliente_dia_entrega',
+    'factura_producto',
+    'lista_precios_producto',
+    'compra_producto',
+    'pago_compra',
+    'provincia',
+    'municipio',
+    'localidad'
 ]
 
 MIDDLEWARE = [
@@ -111,7 +118,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'LaHuerta',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': 'lampard8#',
         'HOST': 'localhost',
         'PORT': '3306',
     }
@@ -142,7 +149,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Argentina/Buenos_Aires'
 
 USE_I18N = True
 

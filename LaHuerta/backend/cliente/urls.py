@@ -1,8 +1,11 @@
-from django.urls import path
-from .views import (
-    GetAllClients
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ClientViewSet
+
+
+router = DefaultRouter()
+router.register(r'client', ClientViewSet, basename='client')
 
 urlpatterns = [
-    path('client/', GetAllClients.as_view(), name='get-all-clients'),
+    path('', include(router.urls)),
 ]

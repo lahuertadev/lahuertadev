@@ -5,7 +5,7 @@ from tipo_unidad.models import TipoUnidad
 
 class Producto(models.Model):
     descripcion = models.CharField(max_length=30, unique=True, blank=False)
-    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
+    categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, blank=False, null=False)
     tipo_contenedor = models.ForeignKey(TipoContenedor, on_delete=models.CASCADE)
     tipo_unidad = models.ForeignKey(TipoUnidad, on_delete=models.CASCADE)
     cantidad_por_bulto = models.SmallIntegerField()

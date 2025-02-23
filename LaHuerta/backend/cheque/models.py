@@ -6,13 +6,13 @@ class Cheque(models.Model):
     numero = models.IntegerField(primary_key=True)
     importe = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_emision = models.DateField()
-    fecha_deposito = models.DateField()
-    check_deposito = models.BooleanField(default=False)
+    fecha_deposito = models.DateField(blank=True, null=True)
+    check_deposito = models.BooleanField(blank=True, null=True)
     acreditado = models.BooleanField(default=False)
-    fecha_deposito_pago = models.DateField()
+    fecha_deposito_pago = models.DateField(blank=True, null=True)
     check_pago_proveedor = models.BooleanField(default=False)
     banco = models.ForeignKey(Banco, on_delete=models.CASCADE)
-    pago = models.ForeignKey(Pago, on_delete=models.CASCADE)
+    pago = models.ForeignKey(Pago, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return f'Cheque N°{self.numero} ({self.banco.descripcion})'
