@@ -1,3 +1,6 @@
+# Ignorar archivos del sistema de macOS
+.DS_Store
+
 # Ignorar bases de datos SQLite
 *.sqlite3
 *.db
@@ -10,3 +13,4 @@ venv/
 __pycache__/
 *.pyc
 *.py[cod]
+
