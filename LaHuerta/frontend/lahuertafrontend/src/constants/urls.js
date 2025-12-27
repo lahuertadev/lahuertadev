@@ -1,17 +1,19 @@
+const API_BASE = '';
+
 //! Expense
-export const expenseUrl = 'http://localhost:8000/expense/';
+export const expenseUrl = `${API_BASE}/expense/`;
 
 //! Client
-export const clientUrl = 'http://localhost:8000/client/'
+export const clientUrl = `${API_BASE}/client/`;
 
 //! Iva Condition
-export const ivaConditionUrl = 'http://localhost:8000/type_condition_iva/'
+export const ivaConditionUrl = `${API_BASE}/type_condition_iva/`;
 
 //! Facturation Type
-export const billingTypeUrl = 'http://localhost:8000/type_facturation/'
+export const billingTypeUrl = `${API_BASE}/type_facturation/`;
 
 //! Expense Type
-export const expenseTypeUrl = 'http://localhost:8000/type_expense/'
+export const expenseTypeUrl = `${API_BASE}/type_expense/`;
 
 //! External Services 
 //? Provinces

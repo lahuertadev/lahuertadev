@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.0
+    volumes:
+      - mysql_data:/var/lib/mysql
+    env_file:
+      - .env
+    networks:
+      - lahuerta_network
+
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py collectstatic --noinput &&
+      gunicorn lahuertabackend.wsgi:application --bind 0.0.0.0:8000
+      "
+    networks:
+      - lahuerta_network
+
+  frontend:
+    build:
+      context: ./frontend/lahuertafrontend
+    networks:
+      - lahuerta_network
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./backend/staticfiles:/app/staticfiles
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - lahuerta_network
+
+volumes:
+  mysql_data:
+
+networks:
+  lahuerta_network:
+    driver: bridge
