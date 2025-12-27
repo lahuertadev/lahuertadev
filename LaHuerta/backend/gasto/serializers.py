@@ -40,3 +40,14 @@ class ExpenseEditSerializer(serializers.ModelSerializer):
         model = Gasto
         fields = ['id', 'fecha', 'importe', 'tipo_gasto']
 
+class ExpenseQueryParamsSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2, error_messages={
+        'min_value': 'El importe debe ser un valor positivo mayor a 0',
+        'invalid': 'El importe debe ser un número válido'
+    })
+
+    date = serializers.DateField(required=False, input_formats=['%Y-%m-%d'], error_messages ={
+        'invalid': 'La fecha debe tener el formato "YYYY-MM-DD"'
+    })
+    
+    expense_type = serializers.CharField(required=False)

@@ -1,21 +1,27 @@
-from rest_framework import status
-from typing import Any
-from rest_framework.views import APIView
+from rest_framework.decorators import action
+from rest_framework import status, viewsets
 from rest_framework.response import Response
-from .repositories import TownRepository
-from .serializers import TownSerializer
+from .serializers import DistrictCreateUpdateSerializer, DistrictResponseSerializer
+from .services import DistrictService 
+from .repositories import DistrictRepository
 
-class GetAllTowns(APIView):
-    '''
-    Lista todas las localidades
-    '''
-    def __init__(self, town_repository = None):
-        self.town_repository = town_repository or TownRepository()
+class DistrictViewSet(viewsets.ModelViewSet):
+    serializer_class = DistrictCreateUpdateSerializer
+    district_service = DistrictService() 
 
-    def get(self, request):
-        try:
-            days = self.town_repository.get_all_towns()
-            serializer = TownSerializer(days, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        return DistrictRepository().get_all_districts()
+
+    @action(detail=False, methods=['post'])
+    def create_if_not_exists(self, request):
+        """
+        Crear un distrito si no existe, utilizando el servicio.
+        """
+
+        district_data = request.data
+        result = self.district_service.create_or_get_district(district_data)
+        http_status = result.pop('http_status')
+        district = result.get('district')
+        if district:
+            result['district'] = DistrictResponseSerializer(district).data
+        return Response(result, status=http_status)

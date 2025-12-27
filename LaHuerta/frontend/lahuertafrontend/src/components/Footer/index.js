@@ -1,18 +1,18 @@
-// src/components/Footer.js
 import React from 'react';
-import { AppBar, Toolbar, Typography, Box } from '@mui/material';
 
-const Footer = () => {
+const Footer = ({ linkedinUrl, title, icon }) => {
   return (
-    <AppBar position="static" color="primary" sx={{ top: 'auto', bottom: 0 }}>
-      <Toolbar>
-        <Box sx={{ flexGrow: 1, textAlign: 'center' }}>
-          <Typography variant="body1">
-            &copy; {new Date().getFullYear()} La Huerta. Todos los derechos reservados.
-          </Typography>
-        </Box>
-      </Toolbar>
-    </AppBar>
+    <footer className="p-5 text-center w-full bottom-0 text-white">
+      <a 
+        href={linkedinUrl} 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="flex items-center justify-center space-x-2"
+      >
+        {icon}
+      </a>
+      <p>{title}</p>
+    </footer>
   );
 };
 

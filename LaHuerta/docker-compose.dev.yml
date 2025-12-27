@@ -1,0 +1,53 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: lahuerta_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: lahuerta_db
+      MYSQL_USER: lahuerta_user
+      MYSQL_PASSWORD: lahuerta_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - lahuerta_network
+
+  backend:
+    build:
+      context: ./backend
+    container_name: lahuerta_backend
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - lahuerta_network
+    command: python manage.py runserver 0.0.0.0:8080
+
+  frontend:
+    build:
+      context: ./frontend/lahuertafrontend
+      dockerfile: Dockerfile.dev
+    container_name: lahuerta_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/lahuertafrontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - lahuerta_network
+
+volumes:
+  mysql_data:
+
+networks:
+  lahuerta_network:
+    driver: bridge

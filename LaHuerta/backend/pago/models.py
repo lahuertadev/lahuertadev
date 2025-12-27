@@ -5,7 +5,7 @@ from tipo_pago.models import TipoPago
 class Pago(models.Model):
     fecha_pago = models.DateField()
     importe = models.DecimalField(max_digits=10, decimal_places=2)
-    observaciones = models.CharField(max_length=200)
+    observaciones = models.CharField(max_length=200, blank=True, null=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
     tipo_pago = models.ForeignKey(TipoPago, on_delete=models.CASCADE)
 
