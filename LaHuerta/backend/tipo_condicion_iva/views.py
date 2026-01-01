@@ -1,21 +1,24 @@
 from rest_framework import status
-from typing import Any
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from .repositories import TypeConditionIvaRepository
+from .repositories import ConditionIvaTypeRepository
 from .serializers import ConditionIvaTypeSerializer
+from .interfaces import IConditionIvaTypeRepository
+from rest_framework.viewsets import ViewSet
 
-class GetTypesIvaConditionAPIView(APIView):
-    '''
-    Lista todos los tipos de condicion IVA
-    '''
-    def __init__(self, type_condition_iva_repository = None):
-        self.type_condition_iva_repository = type_condition_iva_repository or TypeConditionIvaRepository()
+class ConditionIvaTypeViewSet(ViewSet):
 
-    def get(self, request):
-        try:
-            types_condition_iva = self.type_condition_iva_repository.get_all_type_condition_iva()
-            serializer = ConditionIvaTypeSerializer(types_condition_iva, many=True)
-            return Response(serializer.data)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    def __init__(self, repository: IConditionIvaTypeRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or ConditionIvaTypeRepository()
+
+    def list(self, request):
+        items = self.repository.get_all()
+        serializer = ConditionIvaTypeSerializer(items, many=True)
+        return Response(serializer.data)
+
+    def create(self, request):
+        serializer = ConditionIvaTypeSerializer(data=request.data)
+        if serializer.is_valid():
+            self.repository.create(serializer.validated_data)
+            return Response(status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

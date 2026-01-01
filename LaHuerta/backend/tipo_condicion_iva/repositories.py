@@ -1,14 +1,12 @@
 from .models import TipoCondicionIva
-from .interfaces import ITypeConditionIvaRepository
+from .interfaces import IConditionIvaTypeRepository
 
-class TypeConditionIvaRepository(ITypeConditionIvaRepository):
+class ConditionIvaTypeRepository(IConditionIvaTypeRepository):
     
-    def get_all_type_condition_iva(self):
+    def get_all(self):
         return TipoCondicionIva.objects.all()
+
+    def create(self, data):
+        return TipoCondicionIva.objects.create(**data)
     
-    # def create_facturation_type(self, data):
-    #     description = data.get('description')
-    #     if not TipoFacturacion.objects.filter(descripcion = description).exists():
-    #         type_expense = TipoFacturacion(**data)
-    #         type_expense.save()
         
