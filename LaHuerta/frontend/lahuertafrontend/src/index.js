@@ -8,6 +8,8 @@ import ExpenseForm from "./pages/forms/Expense/ExpenseForm";
 import ClientForm from "./pages/forms/Client/ClientForm";
 import ExpenseList from "./pages/lists/Expense";
 import ClientsList from "./pages/lists/Client";
+import ConditionIvaTypeForm from "./pages/forms/TipoCondicionIVA";
+import ConditionIvaTypeList from "./pages/lists/TipoCondicionIVA";
 
 const router = createBrowserRouter([
   {
@@ -42,6 +44,19 @@ const router = createBrowserRouter([
         path: '/client/edit/:id', 
         element: <ClientForm />
       },
+      {
+        path: 'condition-iva-type/create', 
+        element: <ConditionIvaTypeForm />
+      },
+      {
+        path: 'condition-iva-type/edit/:id',
+        element: <ConditionIvaTypeForm />
+      },
+      {
+        path: 'condition-iva-type',
+        element: <ConditionIvaTypeList />
+      },
+      
     ],
   },
 ]);

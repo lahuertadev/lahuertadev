@@ -352,7 +352,7 @@ import BasicDatePicker from '../../../components/DatePicker';
 import IconLabelButtons from '../../../components/Button';
 import CheckboxLabels from '../../../components/Checkbox';
 import { loadOptions } from '../../../utils/selectOptions';
-import { clientUrl, billingTypeUrl, ivaConditionUrl, provincesUrl } from '../../../constants/urls';
+import { clientUrl, billingTypeUrl, ConditionIvaTypeUrl, provincesUrl } from '../../../constants/urls';
 
 
 const ClientForm = () => {
@@ -395,7 +395,7 @@ const ClientForm = () => {
       data.map((item) => ({ name: item.descripcion, value: item.id }))
     );
 
-    const ivaCondition = await loadOptions(ivaConditionUrl, (data) =>
+    const ivaCondition = await loadOptions(ConditionIvaTypeUrl, (data) =>
       data.map((item) => ({ name: item.descripcion, value: item.id }))
     );
 
