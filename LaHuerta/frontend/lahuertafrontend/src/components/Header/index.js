@@ -117,6 +117,8 @@ export default function MiniDrawer({title, menuOptions}) {
       navigate('/');
     } else if (option === 'Clientes') {
       navigate('/client/');
+    } else if (option === 'Condiciones de IVA') {
+      navigate('/condition-iva-type');
     }
   };
 
