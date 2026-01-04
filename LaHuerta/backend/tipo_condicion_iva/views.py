@@ -4,6 +4,7 @@ from .repositories import ConditionIvaTypeRepository
 from .serializers import ConditionIvaTypeSerializer
 from .interfaces import IConditionIvaTypeRepository
 from rest_framework.viewsets import ViewSet
+from django.core.exceptions import ObjectDoesNotExist
 
 class ConditionIvaTypeViewSet(ViewSet):
 
@@ -12,13 +13,93 @@ class ConditionIvaTypeViewSet(ViewSet):
         self.repository = repository or ConditionIvaTypeRepository()
 
     def list(self, request):
-        items = self.repository.get_all()
-        serializer = ConditionIvaTypeSerializer(items, many=True)
-        return Response(serializer.data)
+        try:
+            items = self.repository.get_all()
+            serializer = ConditionIvaTypeSerializer(items, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception:
+            return Response(
+                {'detail':'Error al obtener las condiciones de IVA'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def retrieve(self, request, pk=None):
+        try:
+            item = self.repository.get_by_id(pk)
+            serializer = ConditionIvaTypeSerializer(item)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except ObjectDoesNotExist:
+            return Response(
+                {'detail':'Tipo Condición IVA no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        except Exception:
+            return Response(
+                {'detail':'Error al obtener la condición de IVA'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def create(self, request):
         serializer = ConditionIvaTypeSerializer(data=request.data)
+
         if serializer.is_valid():
-            self.repository.create(serializer.validated_data)
-            return Response(status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                self.repository.create(serializer.validated_data)
+                return Response(
+                    serializer.validated_data, 
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception:
+                return Response(
+                    {'detail':'Error al crear un Tipo Condición IVA'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def update(self, request, pk=None):
+        serializer = ConditionIvaTypeSerializer(data=request.data)
+
+        if serializer.is_valid():
+            try:
+                self.repository.update(pk, serializer.validated_data)
+                return Response(status=status.HTTP_200_OK)
+            except ObjectDoesNotExist:
+                return Response(
+                    {'detail':'Tipo de Condición IVA no encontado.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            except Exception:
+                return Response(
+                    {'detail':'Error al actualizar el tipo de Condición IVA'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def destroy(self, request, pk=None):
+        try:
+            self.repository.delete(pk)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
+        except ObjectDoesNotExist:
+            return Response(
+                {'detail':'Tipo de Condición IVA no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+        except Exception:
+            return Response(
+                {'detail':'Error al eliminar un Tipo de Condición IVA'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
