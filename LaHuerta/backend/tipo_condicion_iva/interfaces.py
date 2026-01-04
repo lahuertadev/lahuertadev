@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 
-class ITypeConditionIvaRepository(ABC):
+class IConditionIvaTypeRepository(ABC):
+
     @abstractmethod
-    def get_all_type_condition_iva(self):
+    def get_all(self):
         pass
 
-    # @abstractmethod
-    # def create_type_condition_iva(self, data):
-    #     pass
+    def create(self, data):
+        pass
 
 

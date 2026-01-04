@@ -16,3 +16,18 @@ __pycache__/
 
 # Excluir .env
 .env
+backend/.env
+
+*.log
+
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos estáticos generados por Django collectstatic
+staticfiles/
+
+# Archivos de anotaciones
+*.txt
+

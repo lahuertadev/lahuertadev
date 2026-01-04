@@ -7,7 +7,9 @@ import GenericList from '../../../components/List';
 import { useNavigate } from 'react-router-dom';
 
 const mapClientData = (data) => {
-  return data.map(client => ({
+  const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+  
+  return list.map(client => ({
       id: client.id,
       cuit: formatCuit(client.cuit),
       businessName: client.razon_social,

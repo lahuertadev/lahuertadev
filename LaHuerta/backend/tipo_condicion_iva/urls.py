@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import (
-    GetTypesIvaConditionAPIView
-)
 
-urlpatterns = [
-    path('type_condition_iva/', GetTypesIvaConditionAPIView.as_view(), name='get-types-condition-iva'),
-]
+from rest_framework.routers import DefaultRouter
+from .views import ConditionIvaTypeViewSet
+
+router = DefaultRouter()
+router.register(r'type_condition_iva', ConditionIvaTypeViewSet, basename='type_condition_iva')
+
+urlpatterns = router.urls
