@@ -33,10 +33,10 @@ services:
       - DB_HOST=db
       - DB_PORT=3306
     ports:
-      - "8000:8000"
+      - "8080:8080"
     volumes:
       - ./backend:/app
-      - ./backend/staticfiles:/app/staticfiles  # <--- CAMBIA ESTO (antes decía static_volume)
+      - ./backend/staticfiles:/app/staticfiles
     depends_on:
       - db
     networks:
@@ -44,7 +44,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
+             python manage.py runserver 0.0.0.0:8080"
 
   # Frontend React
   frontend:
