@@ -66,7 +66,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware', #! Si no coincide la cookie y token, bloquea la solicitud. No llega ni al view. 
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -92,15 +92,29 @@ TEMPLATES = [
     },
 ]
 
+#* Define que origenes externos pueden enviar requests con cookies. 
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://localhost:8080',
+]
+
+#* Permite que el navegador pueda leer el cookie de CSRF. Necesario para React, Axios y Fetch.
+CSRF_COOKIE_HTTPONLY = False
+
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 
+#* Permite al navegador enviar cookies con el request. 
+CORS_ALLOW_CREDENTIALS = True 
+
 CORS_ALLOW_HEADERS = [
     'content-type',
+    'x-csrftoken',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
+#* Impide que JS acceda a sessionid y protege contra XSS. 
+SESSION_COOKIE_HTTPONLY = True
 
 WSGI_APPLICATION = 'lahuertabackend.wsgi.application'
 
