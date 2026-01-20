@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-import re
 from .models import Usuario
+from .utils import validate_password_strength
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
@@ -38,24 +38,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        errors = []
-    
-        if len(value) < 8:
-            errors.append("La contraseña debe tener al menos 8 caracteres.")
-        
-        if not re.search(r'[A-Z]', value):
-            errors.append("La contraseña debe contener al menos una letra mayúscula.")
-        
-        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
-            errors.append("La contraseña debe contener al menos un carácter especial (!@#$%^&*(),.?\":{}|<>)")
-    
-        if not re.search(r'[0-9]', value):
-            errors.append("La contraseña debe contener al menos un número.")
-        
-        if errors:
-            raise serializers.ValidationError(errors)
-        
-        return value
+        return validate_password_strength(value)
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
@@ -65,7 +48,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
 class UserLoginSerializer(serializers.Serializer):
     """
-    Serializer para el login de usuarios
+    DTO para el login de usuarios
     """
     email = serializers.EmailField(required=True)
     password = serializers.CharField(
@@ -93,9 +76,71 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserResponseSerializer(serializers.ModelSerializer):
     """
-    Serializer para mostrar información del usuario (sin password)
+    DTO para mostrar información del usuario (sin password)
     """
     class Meta:
         model = Usuario
         fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_active', 'date_joined']
         read_only_fields = ['id', 'date_joined']
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    """
+    DTO para solicitar reset de contraseña
+    """
+    email = serializers.EmailField(required=True)
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    DTO para confirmar reset de contraseña con token
+    """
+    uid = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+
+    def validate_new_password(self, value):
+        return validate_password_strength(value)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({"new_password": "Las contraseñas no coinciden."})
+        return attrs
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """
+    DTO para cambiar contraseña (usuario autenticado)
+    """
+    old_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+    new_password_confirm = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'}
+    )
+
+    def validate_new_password(self, value):
+        return validate_password_strength(value)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password_confirm']:
+            raise serializers.ValidationError({"new_password": "Las contraseñas no coinciden."})
+        return attrs
