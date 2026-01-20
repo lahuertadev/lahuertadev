@@ -5,8 +5,15 @@ from .serializers import ConditionIvaTypeSerializer
 from .interfaces import IConditionIvaTypeRepository
 from rest_framework.viewsets import ViewSet
 from django.core.exceptions import ObjectDoesNotExist
+from autenticacion.permissions import IsAdministratorOrReadOnly
 
 class ConditionIvaTypeViewSet(ViewSet):
+    """
+    ViewSet para gestionar Tipos de Condición IVA.
+    Solo administradores y superusuarios pueden crear/editar/eliminar.
+    Todos los usuarios autenticados pueden ver.
+    """
+    permission_classes = [IsAdministratorOrReadOnly]  
 
     def __init__(self, repository: IConditionIvaTypeRepository = None, **kwargs):
         super().__init__(**kwargs)
