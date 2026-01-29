@@ -16,6 +16,7 @@ const CustomInput = ({
   width,
   height,
   className = '',
+  autoComplete,
   ...props
 }) => {
   const [error, setError] = useState('');
@@ -38,11 +39,7 @@ const CustomInput = ({
   return (
     <TextField
       id={`${name}-input`}
-      label={
-        <span>
-          {label} {required && <span style={{ color: 'red' }}>*</span>}
-        </span>
-      }
+      label={label}
       name={name}
       type={type}
       value={value}
@@ -50,12 +47,17 @@ const CustomInput = ({
       variant={variant}
       inputProps={{
         maxLength,
+        ...(autoComplete && { autoComplete }),
       }}
       required={required}
       error={Boolean(error)} 
       helperText={error || helperText} 
       className={`${className}`}
       fullWidth
+      autoComplete={autoComplete}
+      InputLabelProps={{
+        shrink: true,
+      }}
       InputProps={{
         sx: {
           width: width || 'auto',

@@ -12,11 +12,19 @@ import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import AccountCircle from '@mui/icons-material/AccountCircle';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { authLogoutUrl } from '../../constants/urls';
+import { useCsrfToken } from '../../hooks/useCsrfToken';
 
 const drawerWidth = 240;
 
@@ -100,6 +108,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
 export default function MiniDrawer({title, menuOptions}) {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const csrfToken = useCsrfToken();
   const navigate = useNavigate();
 
   const handleDrawerOpen = () => {
@@ -111,6 +121,9 @@ export default function MiniDrawer({title, menuOptions}) {
   };
 
   const handleMenuClick = (option) => {
+    // Cerrar el drawer al seleccionar una opción
+    handleDrawerClose();
+    
     if (option === 'Gastos') {
       navigate('/expense/');
     } else if (option === 'Inicio') {
@@ -119,6 +132,42 @@ export default function MiniDrawer({title, menuOptions}) {
       navigate('/client/');
     } else if (option === 'Condiciones de IVA') {
       navigate('/condition-iva-type');
+    }
+  };
+
+  // Manejo del menú de usuario
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfileClick = () => {
+    handleUserMenuClose();
+    // TODO: Navegar a la página de perfil cuando esté implementada
+    // navigate('/profile');
+    alert('Página de perfil próximamente');
+  };
+
+  const handleLogout = async () => {
+    handleUserMenuClose();
+    try {
+      await axios.post(
+        authLogoutUrl,
+        {},
+        {
+          withCredentials: true,
+          headers: {
+            'X-CSRFToken': csrfToken,
+          },
+        }
+      );
+      navigate('/login');
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+      navigate('/login');
     }
   };
 
@@ -141,9 +190,48 @@ export default function MiniDrawer({title, menuOptions}) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {title}
           </Typography>
+          {/* Ícono de usuario con menú desplegable */}
+          <IconButton
+            size="large"
+            edge="end"
+            aria-label="account of current user"
+            aria-controls="user-menu"
+            aria-haspopup="true"
+            onClick={handleUserMenuOpen}
+            color="inherit"
+          >
+            <AccountCircle />
+          </IconButton>
+          <Menu
+            id="user-menu"
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleUserMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            <MenuItem onClick={handleProfileClick}>
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              Perfil
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              Cerrar Sesión
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>

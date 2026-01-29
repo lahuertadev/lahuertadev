@@ -6,18 +6,22 @@ export default function IconLabelButtons({ label, color, variant, size, onClick,
   return (
     <Stack direction="row" spacing={2}>
       <Button 
-        className={`bg-blue-lahuerta text-black !font-bold hover:bg-blue-lahuerta hover:text-white  ${className}`}
-        variant={variant} 
-        color={color}
+        className={`
+          bg-blue-lahuerta 
+          text-white !font-bold 
+          hover:bg-blue-lahuerta 
+          hover:text-white ${className}`
+        }
+        variant={variant}
         size={size}
         endIcon={icon}
         onClick={onClick}
         disabled={disabled}
-        type='submit'
+        type="submit"
         sx={{
           textTransform: 'none',
-          color: 'inherit'
-        }}>
+        }}
+      >
         {label}
       </Button>
     </Stack>
