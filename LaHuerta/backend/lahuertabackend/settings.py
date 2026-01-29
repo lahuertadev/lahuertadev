@@ -101,6 +101,8 @@ CSRF_TRUSTED_ORIGINS = [
 #* Permite que el navegador pueda leer el cookie de CSRF. Necesario para React, Axios y Fetch.
 CSRF_COOKIE_HTTPONLY = False
 
+#* Configuración CORS - IMPORTANTE: No usar wildcard (*) cuando CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False  # Deshabilitar wildcard explícitamente
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
@@ -111,6 +113,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'content-type',
     'x-csrftoken',
+    'authorization',
 ]
 
 #* Impide que JS acceda a sessionid y protege contra XSS. 
