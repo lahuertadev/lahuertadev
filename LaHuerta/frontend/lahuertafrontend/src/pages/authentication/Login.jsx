@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import CustomInput from '../../components/Input';
 import Button from '../../components/Button';
@@ -9,7 +9,9 @@ import { useCsrfToken } from '../../hooks/useCsrfToken';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const csrfToken = useCsrfToken();
+  const from = location.state?.from?.pathname || '/';
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -43,7 +45,7 @@ const Login = () => {
         }
       );
 
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err) {
       if (err.response && err.response.data) {
         const data = err.response.data;

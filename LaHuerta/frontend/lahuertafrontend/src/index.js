@@ -2,6 +2,8 @@ import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import "./index.css";
+import "./api/axiosConfig"; // withCredentials + CSRF header en todas las peticiones
+import { AuthProvider } from "./context/AuthContext";
 import App from "./App";
 import Home from './pages/home';
 import ExpenseForm from "./pages/forms/Expense/ExpenseForm";
@@ -14,6 +16,7 @@ import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
 import PasswordResetConfirm from "./pages/authentication/PasswordResetConfirm";
+import RequireAuth from "./components/RequireAuth";
 
 const router = createBrowserRouter([
   //! Sin header - Rutas de autenticación
@@ -33,10 +36,14 @@ const router = createBrowserRouter([
     path: '/reset-password',
     element: <PasswordResetConfirm />,
   },
-  //! Con header
+  //! Con header (requiere sesión; si no hay sesión redirige a /login)
   {
     path: '/',
-    element: <App />,
+    element: (
+      <RequireAuth>
+        <App />
+      </RequireAuth>
+    ),
     children: [
       {
         path: '/',
@@ -83,8 +90,11 @@ const router = createBrowserRouter([
 ]);
 
 // Renderizar el RouterProvider con las rutas definidas
+// AuthProvider guarda el estado de autenticación (user) para toda la app
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   </React.StrictMode>
 );

@@ -3,9 +3,12 @@ from unittest.mock import patch, MagicMock
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_str
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework import status
 from autenticacion.models import Usuario
+from autenticacion.utils import create_verification_code_for_user
 
 
 # ==================== FIXTURES ====================
@@ -54,10 +57,9 @@ def test_register_view_success(api_client):
     response = api_client.post('/auth/register/', data)
     
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.data['message'] == 'Usuario registrado exitosamente'
+    assert response.data['message'] == 'Usuario registrado exitosamente. Se ha enviado un código de verificación a tu email.'
     assert Usuario.objects.filter(email=data['email']).exists()
     assert 'user' in response.data
-
 
 @pytest.mark.django_db
 def test_register_view_duplicate_email(api_client, test_user):
@@ -75,7 +77,6 @@ def test_register_view_duplicate_email(api_client, test_user):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'email' in response.data
 
-
 @pytest.mark.django_db
 def test_register_view_duplicate_username(api_client, test_user):
     """Test de registro con username duplicado"""
@@ -91,7 +92,6 @@ def test_register_view_duplicate_username(api_client, test_user):
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'username' in response.data
-
 
 @pytest.mark.django_db
 def test_register_view_weak_password(api_client):
@@ -109,7 +109,6 @@ def test_register_view_weak_password(api_client):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'password' in response.data
 
-
 @pytest.mark.django_db
 def test_register_view_password_mismatch(api_client):
     """Test de registro con contraseñas que no coinciden"""
@@ -125,7 +124,6 @@ def test_register_view_password_mismatch(api_client):
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'password' in response.data
-
 
 @pytest.mark.django_db
 def test_register_view_missing_fields(api_client):
@@ -156,7 +154,6 @@ def test_login_view_success(api_client, test_user):
     assert 'user' in response.data
     assert response.data['user']['email'] == 'testuser@test.com'
 
-
 @pytest.mark.django_db
 def test_login_view_invalid_credentials(api_client, test_user):
     data = {
@@ -169,7 +166,6 @@ def test_login_view_invalid_credentials(api_client, test_user):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'non_field_errors' in response.data
     assert response.data['non_field_errors'][0] == 'Credenciales inválidas.'
-
 
 @pytest.mark.django_db
 def test_login_view_inactive_user(api_client, inactive_user):
@@ -184,7 +180,6 @@ def test_login_view_inactive_user(api_client, inactive_user):
     assert 'non_field_errors' in response.data
     assert response.data['non_field_errors'][0] == 'Credenciales inválidas.'
 
-
 @pytest.mark.django_db
 def test_login_view_nonexistent_email(api_client):
     data = {
@@ -197,7 +192,6 @@ def test_login_view_nonexistent_email(api_client):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'non_field_errors' in response.data
     assert response.data['non_field_errors'][0] == 'Credenciales inválidas.'
-
 
 @pytest.mark.django_db
 def test_login_view_missing_fields(api_client):
@@ -248,6 +242,209 @@ def test_logout_invalidates_session(api_client, test_user):
     response = new_client.post('/auth/logout/')
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
+
+# ==================== CURRENT USER (ME) VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_me_view_success(api_client, test_user):
+    """
+    GET /auth/me/ con usuario autenticado devuelve 200 e id, email, role.
+    No crea sesión, solo la verifica.
+    """
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.get('/auth/me/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['id'] == test_user.id
+    assert response.data['email'] == test_user.email
+    assert response.data['role'] == test_user.role
+
+@pytest.mark.django_db
+def test_me_view_unauthorized(api_client):
+    """
+    GET /auth/me/ sin estar autenticado devuelve 403.
+    """
+    response = api_client.get('/auth/me/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_me_view_returns_only_expected_fields(api_client, test_user):
+    """
+    GET /auth/me/ devuelve únicamente id, email y role.
+    """
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.get('/auth/me/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert set(response.data.keys()) == {'id', 'email', 'role'}
+
+
+# ==================== EMAIL VERIFICATION (VERIFY-EMAIL) VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_verify_email_success(api_client, test_user):
+    """
+    POST /auth/verify-email/ con email y código válidos verifica el email.
+    """
+    code = create_verification_code_for_user(test_user)
+    data = {'email': test_user.email, 'code': code}
+
+    response = api_client.post('/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['message'] == 'Email verificado exitosamente. Tu cuenta está activa.'
+    test_user.refresh_from_db()
+    assert test_user.email_verified is True
+    assert test_user.email_verification_code is None
+
+@pytest.mark.django_db
+def test_verify_email_user_not_found(api_client):
+    """
+    POST /auth/verify-email/ con email que no existe devuelve 404.
+    """
+    data = {'email': 'noexiste@test.com', 'code': '123456'}
+
+    response = api_client.post('/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['detail'] == 'Usuario no encontrado.'
+
+@pytest.mark.django_db
+def test_verify_email_already_verified(api_client, test_user):
+    """
+    POST /auth/verify-email/ cuando el email ya está verificado devuelve 200 y mensaje.
+    """
+    test_user.email_verified = True
+    test_user.save()
+    code = create_verification_code_for_user(test_user)
+    data = {'email': test_user.email, 'code': code}
+
+    response = api_client.post('/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['message'] == 'El email ya está verificado.'
+
+@pytest.mark.django_db
+def test_verify_email_invalid_code(api_client, test_user):
+    """
+    POST /auth/verify-email/ con código incorrecto devuelve 400.
+    """
+    create_verification_code_for_user(test_user)
+    data = {'email': test_user.email, 'code': '000000'}
+
+    response = api_client.post('/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['detail'] == 'Código de verificación inválido.'
+
+@pytest.mark.django_db
+def test_verify_email_expired_code(api_client, test_user):
+    """
+    POST /auth/verify-email/ con código expirado devuelve 400.
+    """
+    create_verification_code_for_user(test_user)
+    test_user.email_verification_code_expires = timezone.now() - timedelta(hours=1)
+    test_user.save()
+    data = {'email': test_user.email, 'code': test_user.email_verification_code}
+
+    response = api_client.post('/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data['detail'] == 'Código de verificación expirado. Solicita uno nuevo.'
+
+@pytest.mark.django_db
+def test_verify_email_invalid_serializer_missing_fields(api_client):
+    """
+    POST /auth/verify-email/ sin email o código devuelve 400.
+    """
+    response = api_client.post('/auth/verify-email/', {})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+@pytest.mark.django_db
+def test_verify_email_invalid_serializer_code_not_numeric(api_client, test_user):
+    """
+    POST /auth/verify-email/ con código no numérico devuelve 400.
+    """
+    data = {'email': test_user.email, 'code': 'abc123'}
+
+    response = api_client.post('/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'code' in response.data
+
+
+# ==================== RESEND VERIFICATION CODE VIEW TESTS ====================
+
+@pytest.mark.django_db
+@patch('autenticacion.views.send_welcome_email_with_verification_code')
+def test_resend_verification_code_success(mock_send_email, api_client, test_user):
+    """
+    POST /auth/resend-verification-code/ con email de usuario no verificado reenvía el código.
+    """
+    data = {'email': test_user.email}
+
+    response = api_client.post('/auth/resend-verification-code/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['message'] == 'Se ha enviado un nuevo código de verificación a tu email.'
+    mock_send_email.assert_called_once()
+
+@pytest.mark.django_db
+@patch('autenticacion.views.send_welcome_email_with_verification_code')
+def test_resend_verification_code_user_not_found(mock_send_email, api_client):
+    """
+    POST /auth/resend-verification-code/ con email que no existe retorna 200 (por seguridad).
+    """
+    data = {'email': 'noexiste@test.com'}
+
+    response = api_client.post('/auth/resend-verification-code/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['message'] == 'Si el email existe y no está verificado, se ha enviado un nuevo código de verificación.'
+    mock_send_email.assert_not_called()
+
+@pytest.mark.django_db
+@patch('autenticacion.views.send_welcome_email_with_verification_code')
+def test_resend_verification_code_already_verified(mock_send_email, api_client, test_user):
+    """
+    POST /auth/resend-verification-code/ cuando el email ya está verificado devuelve 200 y no envía email.
+    """
+    test_user.email_verified = True
+    test_user.save()
+    data = {'email': test_user.email}
+
+    response = api_client.post('/auth/resend-verification-code/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['message'] == 'El email ya está verificado.'
+    mock_send_email.assert_not_called()
+
+@pytest.mark.django_db
+def test_resend_verification_code_invalid_email(api_client):
+    """
+    POST /auth/resend-verification-code/ con email inválido devuelve 400.
+    """
+    data = {'email': 'invalid-email'}
+
+    response = api_client.post('/auth/resend-verification-code/', data)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'email' in response.data
+
+@pytest.mark.django_db
+def test_resend_verification_code_missing_email(api_client):
+    """
+    POST /auth/resend-verification-code/ sin email devuelve 400.
+    """
+    response = api_client.post('/auth/resend-verification-code/', {})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
 # ==================== PASSWORD RESET REQUEST VIEW TESTS ====================
 
 @pytest.mark.django_db
@@ -264,7 +461,6 @@ def test_password_reset_request_success(mock_send_email, api_client, test_user):
     assert 'message' in response.data
     mock_send_email.assert_called_once()
 
-
 @pytest.mark.django_db
 @patch('autenticacion.views.send_password_reset_email')
 def test_password_reset_request_nonexistent_email(mock_send_email, api_client):
@@ -279,7 +475,6 @@ def test_password_reset_request_nonexistent_email(mock_send_email, api_client):
     assert 'message' in response.data
     mock_send_email.assert_not_called()
 
-
 @pytest.mark.django_db
 def test_password_reset_request_invalid_email(api_client):
     """Test de solicitud de reset con email inválido"""
@@ -291,7 +486,6 @@ def test_password_reset_request_invalid_email(api_client):
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'email' in response.data
-
 
 @pytest.mark.django_db
 def test_password_reset_request_missing_email(api_client):
@@ -327,7 +521,6 @@ def test_password_reset_confirm_success(api_client, test_user):
     test_user.refresh_from_db()
     assert test_user.check_password('NewPassword123!')
 
-
 @pytest.mark.django_db
 def test_password_reset_confirm_invalid_token(api_client, test_user):
     """Test de confirmación con token inválido"""
@@ -345,7 +538,6 @@ def test_password_reset_confirm_invalid_token(api_client, test_user):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['detail'] == 'Token inválido o expirado.'
 
-
 @pytest.mark.django_db
 def test_password_reset_confirm_invalid_uid(api_client):
     """Test de confirmación con uid inválido"""
@@ -359,7 +551,6 @@ def test_password_reset_confirm_invalid_uid(api_client):
     response = api_client.post('/auth/password-reset-confirm/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-
 
 @pytest.mark.django_db
 def test_password_reset_confirm_weak_password(api_client, test_user):
@@ -379,7 +570,6 @@ def test_password_reset_confirm_weak_password(api_client, test_user):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
 
-
 @pytest.mark.django_db
 def test_password_reset_confirm_password_mismatch(api_client, test_user):
     """Test de confirmación con contraseñas que no coinciden"""
@@ -397,7 +587,6 @@ def test_password_reset_confirm_password_mismatch(api_client, test_user):
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
-
 
 @pytest.mark.django_db
 def test_password_reset_confirm_missing_fields(api_client):
@@ -432,7 +621,6 @@ def test_password_change_success(api_client, test_user):
     test_user.refresh_from_db()
     assert test_user.check_password('NewPassword123!')
 
-
 @pytest.mark.django_db
 def test_password_change_unauthorized(api_client):
     """Test de cambio de contraseña sin autenticación"""
@@ -445,7 +633,6 @@ def test_password_change_unauthorized(api_client):
     response = api_client.post('/auth/password-change/', data)
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-
 
 @pytest.mark.django_db
 def test_password_change_wrong_old_password(api_client, test_user):
@@ -463,7 +650,6 @@ def test_password_change_wrong_old_password(api_client, test_user):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['detail'] == 'La contraseña actual es incorrecta.'
 
-
 @pytest.mark.django_db
 def test_password_change_weak_new_password(api_client, test_user):
     """Test de cambio de contraseña con contraseña nueva débil"""
@@ -480,7 +666,6 @@ def test_password_change_weak_new_password(api_client, test_user):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
 
-
 @pytest.mark.django_db
 def test_password_change_password_mismatch(api_client, test_user):
     """Test de cambio de contraseña con contraseñas que no coinciden"""
@@ -496,7 +681,6 @@ def test_password_change_password_mismatch(api_client, test_user):
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
-
 
 @pytest.mark.django_db
 def test_password_change_missing_fields(api_client, test_user):

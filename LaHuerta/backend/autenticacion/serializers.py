@@ -3,7 +3,6 @@ from django.contrib.auth import authenticate
 from .models import Usuario
 from .utils import validate_password_strength
 
-
 class UserRegisterSerializer(serializers.ModelSerializer):
     """
     DTO para el registro de nuevos usuarios
@@ -45,7 +44,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"password": "Las contraseñas no coinciden."})
         return attrs
 
-
 class UserLoginSerializer(serializers.Serializer):
     """
     DTO para el login de usuarios
@@ -73,23 +71,20 @@ class UserLoginSerializer(serializers.Serializer):
 
         return attrs
 
-
 class UserResponseSerializer(serializers.ModelSerializer):
     """
     DTO para mostrar información del usuario (sin password)
     """
     class Meta:
         model = Usuario
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_active', 'date_joined']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_active', 'email_verified', 'date_joined']
         read_only_fields = ['id', 'date_joined']
-
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     """
     DTO para solicitar reset de contraseña
     """
     email = serializers.EmailField(required=True)
-
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     """
@@ -115,7 +110,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         if attrs['new_password'] != attrs['new_password_confirm']:
             raise serializers.ValidationError({"new_password": "Las contraseñas no coinciden."})
         return attrs
-
 
 class PasswordChangeSerializer(serializers.Serializer):
     """
@@ -144,3 +138,28 @@ class PasswordChangeSerializer(serializers.Serializer):
         if attrs['new_password'] != attrs['new_password_confirm']:
             raise serializers.ValidationError({"new_password": "Las contraseñas no coinciden."})
         return attrs
+
+class EmailVerificationSerializer(serializers.Serializer):
+    """
+    DTO para verificar código de email
+    """
+    email = serializers.EmailField(required=True)
+    code = serializers.CharField(
+        required=True,
+        max_length=6,
+        min_length=6,
+    )
+    
+    def validate_code(self, value):
+        """
+        Valida que el código sea numérico
+        """
+        if not value.isdigit():
+            raise serializers.ValidationError("El código debe contener solo números.")
+        return value
+
+class ResendVerificationCodeSerializer(serializers.Serializer):
+    """
+    DTO para reenviar código de verificación
+    """
+    email = serializers.EmailField(required=True)

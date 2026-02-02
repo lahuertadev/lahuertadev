@@ -25,6 +25,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { authLogoutUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
+import { useAuth } from '../../context/AuthContext';
 
 const drawerWidth = 240;
 
@@ -111,6 +112,7 @@ export default function MiniDrawer({title, menuOptions}) {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const csrfToken = useCsrfToken();
   const navigate = useNavigate();
+  const { clearUser } = useAuth();
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -164,9 +166,11 @@ export default function MiniDrawer({title, menuOptions}) {
           },
         }
       );
+      clearUser();
       navigate('/login');
     } catch (err) {
       console.error('Error al cerrar sesión:', err);
+      clearUser();
       navigate('/login');
     }
   };
