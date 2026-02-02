@@ -8,8 +8,11 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
 export const authLoginUrl = `${API_BASE}/auth/login/`;
 export const authRegisterUrl = `${API_BASE}/auth/register/`;
 export const authLogoutUrl = `${API_BASE}/auth/logout/`;
+export const authMeUrl = `${API_BASE}/auth/me/`;
 export const authPasswordResetUrl = `${API_BASE}/auth/password-reset/`;
 export const authPasswordResetConfirmUrl = `${API_BASE}/auth/password-reset-confirm/`;
+export const authVerifyEmailUrl = `${API_BASE}/auth/verify-email/`;
+export const authResendVerificationCodeUrl = `${API_BASE}/auth/resend-verification-code/`;
 export const authCsrfUrl = `${API_BASE}/auth/csrf/`;
 
 //! Expense

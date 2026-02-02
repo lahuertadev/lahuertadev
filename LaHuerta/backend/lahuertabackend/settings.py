@@ -101,6 +101,12 @@ CSRF_TRUSTED_ORIGINS = [
 #* Permite que el navegador pueda leer el cookie de CSRF. Necesario para React, Axios y Fetch.
 CSRF_COOKIE_HTTPONLY = False
 
+#* Para que el navegador envíe la cookie CSRF en requests cross-origin (ej. React en :3000 → Django en :8080).
+#  SameSite=None permite enviar la cookie en POST desde otro puerto/origen.
+#  En desarrollo con HTTP usar Secure=False; en producción con HTTPS usar Secure=True.
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+
 #* Configuración CORS - IMPORTANTE: No usar wildcard (*) cuando CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False  # Deshabilitar wildcard explícitamente
 CORS_ALLOWED_ORIGINS = [
