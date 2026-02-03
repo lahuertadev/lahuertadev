@@ -116,6 +116,7 @@ const Login = () => {
                 color="primary"
                 variant="contained"
                 size="large"
+                type="submit"
                 disabled={loading || !formData.email || !formData.password}
                 className="w-full !justify-center"
               />
@@ -135,7 +136,8 @@ const Login = () => {
             <div className="mt-4 flex flex-col items-center space-y-2">
               <button
                 type="button"
-                className="text-sm text-blue-lahuerta hover:underline"
+                className="text-sm hover:underline"
+                style={{ color: '#5d89c8', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={() => navigate('/password-reset')}
               >
                 ¿Olvidaste tu contraseña?
@@ -143,7 +145,8 @@ const Login = () => {
 
               <button
                 type="button"
-                className="text-sm text-blue-lahuerta hover:underline"
+                className="text-sm hover:underline"
+                style={{ color: '#5d89c8', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={() => navigate('/register')}
               >
                 ¿Sos nuevo? Registrate

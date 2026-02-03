@@ -410,6 +410,10 @@ const ClientForm = () => {
 
   //* Función para cargar los municipios filtrados por provincia
   const loadCitiesByProvinceId = async (province) => {
+    if (!province?.value || province.value === -1) {
+      setSelectOptions((prev) => ({ ...prev, cities: [], districts: [] }));
+      return;
+    }
     const citiesUrl = `https://apis.datos.gob.ar/georef/api/municipios?provincia=${province.value}&campos=id,nombre&max=150`;
 
     const cities = await loadOptions(citiesUrl, (data) =>
@@ -424,6 +428,10 @@ const ClientForm = () => {
   
   //* Función para cargar las localidades filtradas por municipio
   const loadDistrictsByCityId = async (city) => {
+    if (!city?.value || city.value === -1) {
+      setSelectOptions((prev) => ({ ...prev, districts: [] }));
+      return;
+    }
     const districtsUrl = `https://apis.datos.gob.ar/georef/api/localidades?municipio=${city.value}&campos=id,nombre&max=50`;
 
     const districts = await loadOptions(districtsUrl, (data) =>

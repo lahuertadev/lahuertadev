@@ -1,8 +1,10 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ThemeProvider } from "@mui/material/styles";
+import theme from "./theme";
 import "./index.css";
-import "./api/axiosConfig"; // withCredentials + CSRF header en todas las peticiones
+import "./api/axiosConfig";
 import { AuthProvider } from "./context/AuthContext";
 import App from "./App";
 import Home from './pages/home';
@@ -10,6 +12,7 @@ import ExpenseForm from "./pages/forms/Expense/ExpenseForm";
 import ClientForm from "./pages/forms/Client/ClientForm";
 import ExpenseList from "./pages/lists/Expense";
 import ClientsList from "./pages/lists/Client";
+import ClientDetail from "./pages/ClientDetail";
 import ConditionIvaTypeForm from "./pages/forms/TipoCondicionIVA";
 import ConditionIvaTypeList from "./pages/lists/TipoCondicionIVA";
 import Login from "./pages/authentication/Login";
@@ -70,8 +73,12 @@ const router = createBrowserRouter([
         element: <ClientForm />
       },
       {
-        path: '/client/edit/:id', 
+        path: '/client/edit/:id',
         element: <ClientForm />
+      },
+      {
+        path: '/client/detail/:id',
+        element: <ClientDetail />
       },
       {
         path: 'condition-iva-type/create', 
@@ -93,8 +100,10 @@ const router = createBrowserRouter([
 // AuthProvider guarda el estado de autenticación (user) para toda la app
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ThemeProvider theme={theme}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );

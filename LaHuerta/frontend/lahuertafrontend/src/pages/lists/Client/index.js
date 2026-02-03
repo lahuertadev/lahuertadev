@@ -27,9 +27,10 @@ const mapClientData = (data) => {
 const data = {
   title: 'Clientes',
   fetchUrl: {
-    baseUrl : clientUrl,
-    createUrl : '/client/create',
+    baseUrl: clientUrl,
+    createUrl: '/client/create',
     editUrl: '/client/edit',
+    detailUrl: '/client/detail',
   },
   columns: columns,
   mapData: mapClientData,

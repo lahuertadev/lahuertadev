@@ -120,6 +120,10 @@ const GenericList = ({ data, onAdd }) => {
     navigate(`${fetchUrl.editUrl}/${id}`, { state: { item: itemToEdit } });
   };
 
+  const handleDetail = fetchUrl.detailUrl
+    ? (id) => navigate(`${fetchUrl.detailUrl}/${id}`)
+    : undefined;
+
   if (error) return <div>Error: {error}</div>;
 
   return (
@@ -183,6 +187,7 @@ const GenericList = ({ data, onAdd }) => {
             columns={columns} 
             onDelete={(id) => handleOpenConfirmDialog(false, id)}
             onEdit={handleEdit}
+            onDetail={handleDetail}
             onSelectionChange={handleSelectionChange}
           />
         </div>
