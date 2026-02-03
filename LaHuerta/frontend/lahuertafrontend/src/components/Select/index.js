@@ -17,8 +17,11 @@ export default function BasicSelect({label, name, onChange, value, options}) {
           value={value?.value || ''}
           label={label}
           onChange={(e) => {
-            const selectedOption = options.find(option => option.value === e.target.value);
-            onChange({ target: { name, value: selectedOption } });
+            const rawValue = e.target.value;
+            const selectedOption = options?.find(option => option.value === rawValue);
+            // Si eligió "Seleccioná una opción" (value -1) no hay opción en la lista; el padre espera siempre { name, value }
+            const value = selectedOption ?? (rawValue === -1 || rawValue === '-1' ? { name: 'Seleccioná una opción', value: -1 } : { name: '', value: rawValue });
+            onChange({ target: { name, value } });
           }}
         >
           <MenuItem value={-1}>Seleccioná una opción</MenuItem>

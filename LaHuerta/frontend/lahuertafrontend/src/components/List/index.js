@@ -120,20 +120,24 @@ const GenericList = ({ data, onAdd }) => {
     navigate(`${fetchUrl.editUrl}/${id}`, { state: { item: itemToEdit } });
   };
 
+  const handleDetail = fetchUrl.detailUrl
+    ? (id) => navigate(`${fetchUrl.detailUrl}/${id}`)
+    : undefined;
+
   if (error) return <div>Error: {error}</div>;
 
   return (
     <div className='container mx-auto h-full items-center flex flex-col bg-white rounded'>
       <div className="w-full">
         <h1 className="text-black font-bold text-3xl mt-2 ml-4 inline-block">{title}</h1>
-        <hr className="border-t border-gray-300 mt-2 mb-4" />
+        <hr className="border-t border-gray-300 mt-2 mb-2" />
       </div>
       {loading && <div className="flex items-center justify-center h-screen">
         <div className="w-16 h-16 border-8 border-t-8 border-gray-200 rounded-full animate-spin border-t-gray-900"></div>
       </div>}
-      <div className="mx-auto w-full p-2 rounded-lg shadow-md bg-white">
-        <div className="flex items-start justify-between mb-4">
-          <div className="mr-4">
+      <div className="mx-auto w-full max-w-6xl px-3 py-2 rounded-lg shadow-md bg-white">
+        <div className="flex items-start gap-4 mb-2">
+          <div className="shrink-0 flex flex-col gap-3">
             <IconLabelButtons
               label={`Nuevo ${newLabelText || ''}`}
               icon={<AddCircleOutlineIcon />}
@@ -145,48 +149,54 @@ const GenericList = ({ data, onAdd }) => {
               onClick={toggleFilters}
             />
             {showFilters && (
-              <div className="flex flex-col mt-4 ml-8">
-                {filtersConfig.map((filter, index) => (
-                  <div key={index}>
-                    <label className="text-black font-bold text-sm mt-3">{filter.label}</label>
-                    {filter.type === 'date' ? (
-                      <DatePicker
-                        name={filter.name}
-                        required={false}
-                        value={filterValues[filter.name]}
-                        onChange={(newValue) => setFilterValues({ ...filterValues, [filter.name]: newValue })}
-                      />
-                    ) : (
-                      <CustomInput
-                        name={filter.name}
-                        variant='outlined'
-                        value={filterValues[filter.name] || ''}
-                        onChange={handleFilterChange}
-                        regex={filter.validation?.regex}
-                        regexErrorText={filter.validation?.errorMessage}
-                      />
-                    )}
+              <div className="mt-1 p-3 rounded-md border border-gray-200 bg-gray-50/80 w-full min-w-[220px]">
+                <p className="text-gray-600 text-sm font-semibold mb-2">Campos de filtrado</p>
+                <div className="flex flex-col gap-2">
+                  {filtersConfig.map((filter, index) => (
+                    <div key={index}>
+                      <label className="text-black font-bold text-sm block mb-0.5">{filter.label}</label>
+                      {filter.type === 'date' ? (
+                        <DatePicker
+                          name={filter.name}
+                          required={false}
+                          value={filterValues[filter.name]}
+                          onChange={(newValue) => setFilterValues({ ...filterValues, [filter.name]: newValue })}
+                        />
+                      ) : (
+                        <CustomInput
+                          name={filter.name}
+                          variant='outlined'
+                          value={filterValues[filter.name] || ''}
+                          onChange={handleFilterChange}
+                          regex={filter.validation?.regex}
+                          regexErrorText={filter.validation?.errorMessage}
+                        />
+                      )}
+                    </div>
+                  ))}
+                  <div className='flex justify-center pt-1'>
+                    <IconLabelButtons
+                      label="Aplicar filtro"
+                      icon={<SendOutlinedIcon />}
+                      onClick={applyFilters}
+                    />
                   </div>
-                ))}
-                <div className='flex justify-center mt-3'>
-                  <IconLabelButtons
-                    label="Aplicar filtro"
-                    icon={<SendOutlinedIcon />}
-                    onClick={applyFilters}
-                  />
                 </div>
               </div>
             )}
           </div>
-          <DataGridDemo 
+          <div className="min-w-0 flex-1">
+            <DataGridDemo 
             rows={rows} 
             columns={columns} 
             onDelete={(id) => handleOpenConfirmDialog(false, id)}
             onEdit={handleEdit}
+            onDetail={handleDetail}
             onSelectionChange={handleSelectionChange}
           />
+          </div>
         </div>
-        <br></br>
+        <br className="my-1" />
         <div className='flex justify-center'>
           {selectedIds.length > 0 && (
             <IconLabelButtons
