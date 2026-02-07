@@ -5,7 +5,7 @@ from tipo_contenedor.models import TipoContenedor
 from tipo_unidad.models import TipoUnidad
 from categoria.serializers import CategorySerializer
 from tipo_contenedor.serializers import ContainerTypeSerializer
-from tipo_unidad.serializers import UnitTypeSerializerResponse
+from tipo_unidad.serializers import UnitTypeSerializer
 
 class ProductSerializer(serializers.ModelSerializer):
     '''
@@ -13,7 +13,7 @@ class ProductSerializer(serializers.ModelSerializer):
     '''
     categoria = CategorySerializer()
     tipo_contenedor = ContainerTypeSerializer()
-    tipo_unidad = UnitTypeSerializerResponse()
+    tipo_unidad = UnitTypeSerializer()
 
     class Meta:
         model = Producto
