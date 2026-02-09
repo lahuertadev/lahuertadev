@@ -18,9 +18,12 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
+import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { authLogoutUrl } from '../../constants/urls';
@@ -110,6 +113,7 @@ export default function MiniDrawer({title, menuOptions}) {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [openGroups, setOpenGroups] = React.useState({});
   const csrfToken = useCsrfToken();
   const navigate = useNavigate();
   const { clearUser } = useAuth();
@@ -122,19 +126,14 @@ export default function MiniDrawer({title, menuOptions}) {
     setOpen(false);
   };
 
-  const handleMenuClick = (option) => {
-    // Cerrar el drawer al seleccionar una opción
+  const handleNavigate = (path) => {
+    if (!path) return;
     handleDrawerClose();
-    
-    if (option === 'Gastos') {
-      navigate('/expense/');
-    } else if (option === 'Inicio') {
-      navigate('/');
-    } else if (option === 'Clientes') {
-      navigate('/client/');
-    } else if (option === 'Condiciones de IVA') {
-      navigate('/condition-iva-type');
-    }
+    navigate(path);
+  };
+
+  const toggleGroup = (groupText) => {
+    setOpenGroups((prev) => ({ ...prev, [groupText]: !prev[groupText] }));
   };
 
   // Manejo del menú de usuario
@@ -246,56 +245,82 @@ export default function MiniDrawer({title, menuOptions}) {
         </DrawerHeader>
         <Divider />
         <List>
-          {menuOptions.map(({ text, icon }) => (
-            <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                onClick={() => handleMenuClick(text)}
-                sx={[
-                  {
-                    minHeight: 50,
-                    px: 2.5,
-                  },
-                  open
-                    ? {
-                        justifyContent: 'initial',
-                      }
-                    : {
-                        justifyContent: 'center',
-                      },
-                ]}
-              >
-                <ListItemIcon
+          {menuOptions.map((item) => {
+            const isGroup = Array.isArray(item.children) && item.children.length > 0;
+            const isGroupOpen = Boolean(openGroups[item.text]);
+
+            if (isGroup) {
+              return (
+                <React.Fragment key={item.text}>
+                  <ListItem disablePadding sx={{ display: 'block' }}>
+                    <ListItemButton
+                      onClick={() => toggleGroup(item.text)}
+                      sx={[
+                        { minHeight: 50, px: 2.5 },
+                        open ? { justifyContent: 'initial' } : { justifyContent: 'center' },
+                      ]}
+                    >
+                      <ListItemIcon
+                        sx={[
+                          { minWidth: 0, justifyContent: 'center' },
+                          open ? { mr: 3 } : { mr: 'auto' },
+                        ]}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+
+                      <ListItemText
+                        primary={item.text}
+                        sx={[open ? { opacity: 1 } : { opacity: 0 }]}
+                      />
+
+                      {open ? (isGroupOpen ? <ExpandLess /> : <ExpandMore />) : null}
+                    </ListItemButton>
+                  </ListItem>
+
+                  <Collapse in={isGroupOpen && open} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                      {item.children.map((child) => (
+                        <ListItem key={child.text} disablePadding sx={{ display: 'block' }}>
+                          <ListItemButton
+                            onClick={() => handleNavigate(child.path)}
+                            sx={{ minHeight: 44, pl: 6, pr: 2.5 }}
+                          >
+                            <ListItemIcon sx={{ minWidth: 0, justifyContent: 'center', mr: 3 }}>
+                              {child.icon}
+                            </ListItemIcon>
+                            <ListItemText primary={child.text} />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Collapse>
+                </React.Fragment>
+              );
+            }
+
+            return (
+              <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
+                <ListItemButton
+                  onClick={() => handleNavigate(item.path)}
                   sx={[
-                    {
-                      minWidth: 0,
-                      justifyContent: 'center',
-                    },
-                    open
-                      ? {
-                          mr: 3,
-                        }
-                      : {
-                          mr: 'auto',
-                        },
+                    { minHeight: 50, px: 2.5 },
+                    open ? { justifyContent: 'initial' } : { justifyContent: 'center' },
                   ]}
                 >
-                  {icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={text}
-                  sx={[
-                    open
-                      ? {
-                          opacity: 1,
-                        }
-                      : {
-                          opacity: 0,
-                        },
-                  ]}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
+                  <ListItemIcon
+                    sx={[
+                      { minWidth: 0, justifyContent: 'center' },
+                      open ? { mr: 3 } : { mr: 'auto' },
+                    ]}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} sx={[open ? { opacity: 1 } : { opacity: 0 }]} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
         </List>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>

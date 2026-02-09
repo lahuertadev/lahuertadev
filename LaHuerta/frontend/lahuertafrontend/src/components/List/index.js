@@ -97,14 +97,27 @@ const GenericList = ({ data, onAdd }) => {
           await axios.delete(`${fetchUrl.baseUrl}${selectedIds[0]}/`)
         }
         else{
-          await axios.delete(`${fetchUrl.baseUrl}bulk_delete/`, {
-          data: { ids: selectedIds },
-          });
+          try {
+            await axios.delete(`${fetchUrl.baseUrl}bulk_delete/`, {
+              data: { ids: selectedIds },
+            });
+          } catch (bulkErr) {
+            // Fallback si el endpoint bulk_delete no existe en el backend
+            await Promise.all(
+              selectedIds.map((id) => axios.delete(`${fetchUrl.baseUrl}${id}/`))
+            );
+          }
         }
       }
       fetchItems();
     } catch (error) {
       console.error("Error deleting item:", error);
+      const backendMessage =
+        error?.response?.data?.error ||
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Error inesperado al eliminar';
+      alert(backendMessage);
     } finally {
       handleCloseConfirmDialog();
     }

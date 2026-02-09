@@ -15,6 +15,8 @@ import ClientsList from "./pages/lists/Client";
 import ClientDetail from "./pages/ClientDetail";
 import ConditionIvaTypeForm from "./pages/forms/TipoCondicionIVA";
 import ConditionIvaTypeList from "./pages/lists/TipoCondicionIVA";
+import CategoryForm from "./pages/forms/Categoria";
+import CategoryList from "./pages/lists/Categoria";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -91,6 +93,18 @@ const router = createBrowserRouter([
       {
         path: 'condition-iva-type',
         element: <ConditionIvaTypeList />
+      },
+      {
+        path: 'category/create',
+        element: <CategoryForm />
+      },
+      {
+        path: 'category/edit/:id',
+        element: <CategoryForm />
+      },
+      {
+        path: 'category',
+        element: <CategoryList />
       }
     ],
   }
