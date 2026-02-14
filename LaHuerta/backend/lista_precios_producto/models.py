@@ -11,3 +11,9 @@ class ListaPreciosProducto(models.Model):
 
     class Meta:
         db_table = 'lista_precios_producto'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['lista_precios', 'producto'],
+                name='unique_lista_producto'
+            )
+        ]
