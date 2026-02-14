@@ -4,7 +4,7 @@ from rest_framework.viewsets import ViewSet
 
 from compra_producto.repositories import BuyProductRepository
 from factura_producto.repositories import BillProductRepository
-from lista_precios_producto.repositorioes import ProductPriceListRepository
+from lista_precios_producto.repositories import ProductPriceListRepository
 
 from .exceptions import ProductDeletionNotAllowedException, ProductNotFoundException
 from .interfaces import IProductRepository
