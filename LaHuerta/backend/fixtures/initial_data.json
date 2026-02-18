@@ -221,6 +221,147 @@
         "cantidad_por_bulto": 30,
         "peso_aproximado": 0.05
       }
-    }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 1,
+      "fields": { "descripcion": "Transporte" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 2,
+      "fields": { "descripcion": "Combustible" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 3,
+      "fields": { "descripcion": "Mantenimiento" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 4,
+      "fields": { "descripcion": "Sueldos" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 5,
+      "fields": { "descripcion": "Servicios" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 6,
+      "fields": { "descripcion": "Alquiler" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 7,
+      "fields": { "descripcion": "Impuestos" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 8,
+      "fields": { "descripcion": "Insumos" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 9,
+      "fields": { "descripcion": "Reparaciones" }
+    },
+    {
+      "model": "tipo_gasto.tipogasto",
+      "pk": 10,
+      "fields": { "descripcion": "Limpieza" }
+    },
+    
+    {
+      "model": "gasto.gasto",
+      "pk": 1,
+      "fields": {
+        "fecha": "2026-01-03",
+        "importe": "18500.00",
+        "tipo_gasto": 1
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 2,
+      "fields": {
+        "fecha": "2026-01-05",
+        "importe": "42000.50",
+        "tipo_gasto": 2
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 3,
+      "fields": {
+        "fecha": "2026-01-07",
+        "importe": "95000.00",
+        "tipo_gasto": 4
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 4,
+      "fields": {
+        "fecha": "2026-01-10",
+        "importe": "18000.75",
+        "tipo_gasto": 5
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 5,
+      "fields": {
+        "fecha": "2026-01-12",
+        "importe": "25000.00",
+        "tipo_gasto": 3
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 6,
+      "fields": {
+        "fecha": "2026-01-15",
+        "importe": "15000.00",
+        "tipo_gasto": 8
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 7,
+      "fields": {
+        "fecha": "2026-01-20",
+        "importe": "48000.00",
+        "tipo_gasto": 6
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 8,
+      "fields": {
+        "fecha": "2026-01-27",
+        "importe": "67000.00",
+        "tipo_gasto": 7
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 9,
+      "fields": {
+        "fecha": "2026-02-01",
+        "importe": "46000.00",
+        "tipo_gasto": 4
+      }
+    },
+    {
+      "model": "gasto.gasto",
+      "pk": 10,
+      "fields": {
+        "fecha": "2026-02-02",
+        "importe": "39000.00",
+        "tipo_gasto": 2
+      }
+    }    
   ]
   

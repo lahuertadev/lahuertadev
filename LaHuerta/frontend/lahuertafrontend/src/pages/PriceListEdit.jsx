@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { priceListUrl, priceListProductUrl, productUrl } from '../constants/urls';
-import { formatDate } from '../utils/date';
-import { formatCurrency } from '../utils/currency';
+
 import {
   Box,
   Paper,
