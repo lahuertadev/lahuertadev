@@ -33,6 +33,9 @@ class ProductPriceListRepository(IProductPriceListRepository):
         if description:
             qs = qs.filter(producto__descripcion__icontains=description)
 
+        # Ordenar por categoría y luego por descripción del producto alfabéticamente
+        qs = qs.order_by('producto__categoria__descripcion', 'producto__descripcion')
+
         return qs
 
     def get_by_id(self, id):

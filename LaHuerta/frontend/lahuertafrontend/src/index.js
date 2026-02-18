@@ -17,6 +17,10 @@ import ConditionIvaTypeForm from "./pages/forms/TipoCondicionIVA";
 import ConditionIvaTypeList from "./pages/lists/TipoCondicionIVA";
 import CategoryForm from "./pages/forms/Categoria";
 import CategoryList from "./pages/lists/Categoria";
+import PriceListList from "./pages/lists/PriceList";
+import PriceListDetail from "./pages/PriceListDetail";
+import PriceListEdit from "./pages/PriceListEdit";
+import PriceListForm from "./pages/forms/PriceList/PriceListForm";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -105,6 +109,22 @@ const router = createBrowserRouter([
       {
         path: 'category',
         element: <CategoryList />
+      },
+      {
+        path: 'price-list',
+        element: <PriceListList />
+      },
+      {
+        path: 'price-list/create',
+        element: <PriceListForm />
+      },
+      {
+        path: 'price-list/detail/:id',
+        element: <PriceListDetail />
+      },
+      {
+        path: 'price-list/edit/:id',
+        element: <PriceListEdit />
       }
     ],
   }

@@ -73,6 +73,7 @@ class PriceListProductViewSet(ViewSet):
 
         try:
             created = self.repository.create(serializer.validated_data)
+            created.lista_precios.save(update_fields=['fecha_actualizacion'])
             response_serializer = PriceListProductSerializer(created)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         except IntegrityError:
@@ -92,6 +93,7 @@ class PriceListProductViewSet(ViewSet):
             serializer = PriceListProductPutSerializer(data=request.data)
             if serializer.is_valid():
                 updated = self.repository.update(item, serializer.validated_data)
+                updated.lista_precios.save(update_fields=['fecha_actualizacion'])
                 response_serializer = PriceListProductSerializer(updated)
                 return Response(response_serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -114,6 +116,7 @@ class PriceListProductViewSet(ViewSet):
             serializer = PriceListProductUpdateSerializer(data=request.data, partial=True)
             if serializer.is_valid():
                 updated = self.repository.update(item, serializer.validated_data)
+                updated.lista_precios.save(update_fields=['fecha_actualizacion'])
                 response_serializer = PriceListProductSerializer(updated)
                 return Response(response_serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -130,7 +133,9 @@ class PriceListProductViewSet(ViewSet):
             if not item:
                 raise PriceListProductNotFoundException("El item de lista de precios no existe")
 
+            lista_precios = item.lista_precios
             self.repository.destroy(item)
+            lista_precios.save(update_fields=['fecha_actualizacion'])
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except PriceListProductNotFoundException as e:

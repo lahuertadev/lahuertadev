@@ -1,0 +1,226 @@
+[
+    {
+      "model": "categoria.categoria",
+      "pk": 1,
+      "fields": { "descripcion": "Frutas" }
+    },
+    {
+      "model": "categoria.categoria",
+      "pk": 2,
+      "fields": { "descripcion": "Verduras" }
+    },
+    {
+      "model": "categoria.categoria",
+      "pk": 3,
+      "fields": { "descripcion": "Procesados" }
+    },
+    {
+      "model": "tipo_unidad.tipounidad",
+      "pk": 1,
+      "fields": { "descripcion": "Kilogramo" }
+    },
+    {
+      "model": "tipo_unidad.tipounidad",
+      "pk": 2,
+      "fields": { "descripcion": "Unidad" }
+    },
+    {
+      "model": "tipo_unidad.tipounidad",
+      "pk": 3,
+      "fields": { "descripcion": "Paquete" }
+    },
+    {
+      "model": "tipo_contenedor.tipocontenedor",
+      "pk": 1,
+      "fields": { "descripcion": "Cajón" }
+    },
+    {
+      "model": "tipo_contenedor.tipocontenedor",
+      "pk": 2,
+      "fields": { "descripcion": "Bolsa" }
+    },
+    {
+      "model": "tipo_contenedor.tipocontenedor",
+      "pk": 3,
+      "fields": { "descripcion": "Jaula" }
+    },
+    {
+      "model": "tipo_contenedor.tipocontenedor",
+      "pk": 4,
+      "fields": { "descripcion": "Bandeja" }
+    },
+    {
+      "model": "tipo_contenedor.tipocontenedor",
+      "pk": 5,
+      "fields": { "descripcion": "Riestra" }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 1,
+      "fields": {
+        "descripcion": "Manzana Roja",
+        "categoria": 1,
+        "tipo_contenedor": 1,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 20,
+        "peso_aproximado": 0.2
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 2,
+      "fields": {
+        "descripcion": "Banana",
+        "categoria": 1,
+        "tipo_contenedor": 1,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 25,
+        "peso_aproximado": 0.15
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 3,
+      "fields": {
+        "descripcion": "Naranja",
+        "categoria": 1,
+        "tipo_contenedor": 1,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 30,
+        "peso_aproximado": 0.25
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 4,
+      "fields": {
+        "descripcion": "Melón",
+        "categoria": 1,
+        "tipo_contenedor": 1,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 10,
+        "peso_aproximado": 1.5
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 5,
+      "fields": {
+        "descripcion": "Sandía",
+        "categoria": 1,
+        "tipo_contenedor": 1,
+        "tipo_unidad": 2,
+        "cantidad_por_bulto": 6,
+        "peso_aproximado": 4.0
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 6,
+      "fields": {
+        "descripcion": "Frutilla",
+        "categoria": 1,
+        "tipo_contenedor": 4,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 12,
+        "peso_aproximado": 0.25
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 7,
+      "fields": {
+        "descripcion": "Palta",
+        "categoria": 1,
+        "tipo_contenedor": 1,
+        "tipo_unidad": 2,
+        "cantidad_por_bulto": 15,
+        "peso_aproximado": 0.3
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 8,
+      "fields": {
+        "descripcion": "Papa",
+        "categoria": 2,
+        "tipo_contenedor": 2,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 50,
+        "peso_aproximado": 0.25
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 9,
+      "fields": {
+        "descripcion": "Cebolla",
+        "categoria": 2,
+        "tipo_contenedor": 2,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 40,
+        "peso_aproximado": 0.2
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 10,
+      "fields": {
+        "descripcion": "Tomate",
+        "categoria": 2,
+        "tipo_contenedor": 1,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 30,
+        "peso_aproximado": 0.18
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 11,
+      "fields": {
+        "descripcion": "Lechuga",
+        "categoria": 2,
+        "tipo_contenedor": 3,
+        "tipo_unidad": 1,
+        "cantidad_por_bulto": 15,
+        "peso_aproximado": 0.5
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 12,
+      "fields": {
+        "descripcion": "Acelga",
+        "categoria": 2,
+        "tipo_contenedor": 3,
+        "tipo_unidad": 3,
+        "cantidad_por_bulto": 10,
+        "peso_aproximado": 0.8
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 13,
+      "fields": {
+        "descripcion": "Rúcula",
+        "categoria": 2,
+        "tipo_contenedor": 4,
+        "tipo_unidad": 3,
+        "cantidad_por_bulto": 20,
+        "peso_aproximado": 0.2
+      }
+    },
+    {
+      "model": "producto.producto",
+      "pk": 14,
+      "fields": {
+        "descripcion": "Ajo",
+        "categoria": 2,
+        "tipo_contenedor": 5,
+        "tipo_unidad": 2,
+        "cantidad_por_bulto": 30,
+        "peso_aproximado": 0.05
+      }
+    }
+  ]
+  
