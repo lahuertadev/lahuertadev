@@ -4,8 +4,16 @@ from lista_precios_producto.models import ListaPreciosProducto
 
 class PricesListRepository(IPricesListRepository):
     
-    def get_all_prices_list(self):
-        return ListaPrecios.objects.all()
+    def get_all_prices_list(self, nombre=None):
+        '''
+        Obtiene todas las listas de precios con filtros opcionales.
+        '''
+        queryset = ListaPrecios.objects.all()
+        
+        if nombre:
+            queryset = queryset.filter(nombre__icontains=nombre)
+        
+        return queryset
 
     def get_prices_list_by_id(self, id):
         return ListaPrecios.objects.filter(id=id).first()
