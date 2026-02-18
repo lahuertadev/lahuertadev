@@ -20,3 +20,11 @@ class IPricesListRepository(ABC):
     @abstractmethod
     def destroy_prices_list(self, prices_list):
         pass
+
+    @abstractmethod
+    def generate_unique_name(self, base_name):
+        pass
+
+    @abstractmethod
+    def duplicate_prices_list(self, original_list):
+        pass

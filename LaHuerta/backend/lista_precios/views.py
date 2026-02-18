@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from django.db import IntegrityError
 from .repositories import PricesListRepository
 from rest_framework.viewsets import ViewSet
@@ -74,8 +75,10 @@ class PricesListViewSet(ViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except PricesListNotFoundException as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response({"error": "Ocurrió un error inesperado"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except (IntegrityError, ValueError) as e:
+            return Response({"error": str(e) if isinstance(e, ValueError) else "Ya existe una lista de precios con ese nombre"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Ocurrió un error inesperado: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, pk=None):
         '''
@@ -95,8 +98,10 @@ class PricesListViewSet(ViewSet):
 
         except PricesListNotFoundException as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
-        except Exception:
-            return Response({"error": "Ocurrió un error inesperado"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except (IntegrityError, ValueError) as e:
+            return Response({"error": str(e) if isinstance(e, ValueError) else "Ya existe una lista de precios con ese nombre"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Ocurrió un error inesperado: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, pk=None):
         try:
@@ -111,3 +116,31 @@ class PricesListViewSet(ViewSet):
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
             return Response({"error": "Ocurrió un error inesperado"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def duplicate(self, request, pk=None):
+        '''
+        Duplica una lista de precios con todos sus productos.
+        '''
+        try:
+            original_list = self.repository.get_prices_list_by_id(pk)
+            if not original_list:
+                raise PricesListNotFoundException("La lista de precios no existe")
+
+            new_list = self.repository.duplicate_prices_list(original_list)
+
+            response_serializer = PricesListSerializer(new_list)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+        except PricesListNotFoundException as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except IntegrityError:
+            return Response(
+                {"error": "Error de integridad al duplicar la lista"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Ocurrió un error inesperado: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
