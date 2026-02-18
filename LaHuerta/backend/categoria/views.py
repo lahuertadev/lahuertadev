@@ -18,9 +18,11 @@ class CategoryViewSet(ViewSet):
 
     def list(self, request):
         '''
-        Obtiene todas las categorías.
+        Obtiene todas las categorías con filtros opcionales.
         '''
-        categories = self.repository.get_all_categories()
+        descripcion = request.query_params.get('descripcion', None)
+        
+        categories = self.repository.get_all_categories(descripcion=descripcion)
         categories_serialized = CategorySerializer(categories, many=True)
         return Response(categories_serialized.data)
 

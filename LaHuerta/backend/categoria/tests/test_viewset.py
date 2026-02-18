@@ -25,8 +25,11 @@ class FakeRepo(ICategoryRepository):
     def __init__(self):
         self._items = {}
 
-    def get_all_categories(self):
-        return list(self._items.values())
+    def get_all_categories(self, descripcion=None):
+        items = list(self._items.values())
+        if descripcion:
+            items = [item for item in items if descripcion.lower() in item.descripcion.lower()]
+        return items
 
     def create_category(self, data):
         new_id = 1 if not self._items else max(self._items.keys()) + 1
@@ -76,6 +79,46 @@ def test_list_with_items(factory, viewset):
 
     assert response.status_code == 200
     assert len(response.data) == 2
+
+
+def test_list_with_filter(factory, viewset):
+    viewset.repository.create_category({"descripcion": "Frutas"})
+    viewset.repository.create_category({"descripcion": "Verduras"})
+    viewset.repository.create_category({"descripcion": "Lacteos"})
+
+    request = factory.get("/category/?descripcion=Frutas")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.list(drf_request)
+
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]["descripcion"] == "Frutas"
+
+
+def test_list_with_partial_filter(factory, viewset):
+    viewset.repository.create_category({"descripcion": "Frutas Tropicales"})
+    viewset.repository.create_category({"descripcion": "Frutas Secas"})
+    viewset.repository.create_category({"descripcion": "Verduras"})
+
+    request = factory.get("/category/?descripcion=Frutas")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.list(drf_request)
+
+    assert response.status_code == 200
+    assert len(response.data) == 2
+    assert all("Frutas" in item["descripcion"] for item in response.data)
+
+
+def test_list_filter_no_results(factory, viewset):
+    viewset.repository.create_category({"descripcion": "Frutas"})
+    viewset.repository.create_category({"descripcion": "Verduras"})
+
+    request = factory.get("/category/?descripcion=Lacteos")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.list(drf_request)
+
+    assert response.status_code == 200
+    assert len(response.data) == 0
 
 
 # ------------------------- RETRIEVE ------------------------
