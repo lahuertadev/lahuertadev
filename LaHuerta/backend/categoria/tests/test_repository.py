@@ -23,6 +23,43 @@ class TestCategoryRepository:
         result = self.repository.get_all_categories()
         assert result.count() == 0
 
+    def test_get_all_categories_with_filter(self):
+        Categoria.objects.create(descripcion="Frutas")
+        Categoria.objects.create(descripcion="Verduras")
+        Categoria.objects.create(descripcion="Lacteos")
+
+        result = self.repository.get_all_categories(descripcion="Frutas")
+
+        assert result.count() == 1
+        assert result.first().descripcion == "Frutas"
+
+    def test_get_all_categories_with_partial_filter(self):
+        Categoria.objects.create(descripcion="Frutas Tropicales")
+        Categoria.objects.create(descripcion="Frutas Secas")
+        Categoria.objects.create(descripcion="Verduras")
+
+        result = self.repository.get_all_categories(descripcion="Frutas")
+
+        assert result.count() == 2
+        assert all("Frutas" in item.descripcion for item in result)
+
+    def test_get_all_categories_filter_case_insensitive(self):
+        Categoria.objects.create(descripcion="Frutas")
+        Categoria.objects.create(descripcion="Verduras")
+
+        result = self.repository.get_all_categories(descripcion="frutas")
+
+        assert result.count() == 1
+        assert result.first().descripcion == "Frutas"
+
+    def test_get_all_categories_filter_no_results(self):
+        Categoria.objects.create(descripcion="Frutas")
+        Categoria.objects.create(descripcion="Verduras")
+
+        result = self.repository.get_all_categories(descripcion="Lacteos")
+
+        assert result.count() == 0
+
     # ------------------------- GET BY ID -----------------------
     def test_get_category_by_id_ok(self):
         item = Categoria.objects.create(descripcion="Lacteos")
