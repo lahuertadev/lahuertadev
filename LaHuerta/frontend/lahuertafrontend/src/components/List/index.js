@@ -156,7 +156,7 @@ const GenericList = ({ data, onAdd }) => {
                 <IconLabelButtons
                   label={`Nueva ${newLabelText || ''}`}
                   icon={<AddCircleOutlineIcon />}
-                  onClick={() => navigate(fetchUrl.createUrl)}
+                  onClick={onAdd || (() => navigate(fetchUrl.createUrl))}
                   className="w-full"
                 />
                 <IconLabelButtons
