@@ -21,10 +21,24 @@ export default function AlertDialog({open, title, message, onConfirm, onCancel})
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} color="primary">
+        <Button 
+        onClick={onCancel} 
+        variant="contained"
+        className="!bg-white !text-gray-700 !border !border-gray-300 hover:!bg-gray-200"
+        >
           Cancelar
         </Button>
-        <Button onClick={onConfirm} color="secondary" autoFocus>
+        <Button 
+          onClick={onConfirm} 
+          color="error" 
+          variant="contained"
+          autoFocus
+          sx={{
+            '&:hover': {
+              backgroundColor: '#d32f2f',
+            }
+          }}
+        >
           Confirmar
         </Button>
       </DialogActions>

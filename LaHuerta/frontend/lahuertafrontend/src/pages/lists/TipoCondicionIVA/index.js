@@ -167,6 +167,7 @@ const ConditionIvaTypeList = () => {
                       color="primary"
                       variant="contained"
                       size="medium"
+                      type="submit"
                     />
                     {editingId && (
                       <MuiButton

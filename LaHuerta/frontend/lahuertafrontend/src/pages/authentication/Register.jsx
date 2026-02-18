@@ -364,7 +364,8 @@ const Register = () => {
             <div className="mt-4 text-center">
               <button
                 type="button"
-                className="text-sm text-blue-lahuerta hover:underline"
+                className="text-sm text-blue-lahuerta hover:underline hover:text-blue-800"
+                style={{ color: '#5d89c8', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={() => navigate('/login')}
               >
                 ¿Ya tenés cuenta? Iniciar sesión
