@@ -1,3 +1,71 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media print {
+    /* Configuración de página: sin márgenes para eliminar headers/footers del navegador */
+    @page {
+      size: auto;
+      margin: 0mm;
+    }
+
+    /* Resetear todo al mínimo */
+    * {
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    html, body {
+      width: 100% !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      overflow: visible !important;
+    }
+  
+    /* Ocultar elementos con clase no-print */
+    .no-print {
+      display: none !important;
+    }
+
+    /* Ocultar header, footer, sidebar */
+    header,
+    footer,
+    .MuiDrawer-root {
+      display: none !important;
+    }
+
+    /* Remover gradientes del App */
+    .App {
+      background: white !important;
+      min-height: auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Contenedor principal con mínimo padding */
+    .container,
+    main {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 10mm 8mm !important;
+      margin: 0 !important;
+    }
+
+    /* Papers sin bordes ni sombras */
+    .MuiPaper-root {
+      box-shadow: none !important;
+      border: none !important;
+      background: white !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* Box container de MUI sin padding */
+    .MuiBox-root {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+  }
