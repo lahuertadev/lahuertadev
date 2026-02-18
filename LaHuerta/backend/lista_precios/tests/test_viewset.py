@@ -25,8 +25,11 @@ class FakeRepo(IPricesListRepository):
     def __init__(self):
         self._items = {}
 
-    def get_all_prices_list(self):
-        return list(self._items.values())
+    def get_all_prices_list(self, nombre=None):
+        items = list(self._items.values())
+        if nombre:
+            items = [item for item in items if nombre.lower() in item.nombre.lower()]
+        return items
 
     def get_prices_list_by_id(self, id):
         return self._items.get(int(id))
@@ -108,6 +111,46 @@ def test_list_with_items(factory, viewset):
 
     assert response.status_code == 200
     assert len(response.data) == 2
+
+
+def test_list_with_filter(factory, viewset):
+    viewset.repository.create_prices_list({"nombre": "Lista Verano", "descripcion": "D1"})
+    viewset.repository.create_prices_list({"nombre": "Lista Invierno", "descripcion": "D2"})
+    viewset.repository.create_prices_list({"nombre": "Precios Especiales", "descripcion": "D3"})
+
+    request = factory.get("/price_list/?nombre=Lista")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.list(drf_request)
+
+    assert response.status_code == 200
+    assert len(response.data) == 2
+    assert all("Lista" in item["nombre"] for item in response.data)
+
+
+def test_list_with_partial_filter(factory, viewset):
+    viewset.repository.create_prices_list({"nombre": "Verano 2024", "descripcion": "D1"})
+    viewset.repository.create_prices_list({"nombre": "Verano 2025", "descripcion": "D2"})
+    viewset.repository.create_prices_list({"nombre": "Invierno 2024", "descripcion": "D3"})
+
+    request = factory.get("/price_list/?nombre=Verano")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.list(drf_request)
+
+    assert response.status_code == 200
+    assert len(response.data) == 2
+    assert all("Verano" in item["nombre"] for item in response.data)
+
+
+def test_list_filter_no_results(factory, viewset):
+    viewset.repository.create_prices_list({"nombre": "Lista A", "descripcion": "D1"})
+    viewset.repository.create_prices_list({"nombre": "Lista B", "descripcion": "D2"})
+
+    request = factory.get("/price_list/?nombre=NoExiste")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.list(drf_request)
+
+    assert response.status_code == 200
+    assert len(response.data) == 0
 
 
 # ------------------------- RETRIEVE ------------------------

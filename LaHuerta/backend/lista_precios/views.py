@@ -23,7 +23,12 @@ class PricesListViewSet(ViewSet):
         self.repository = repository or PricesListRepository()
 
     def list(self, request):
-        prices_list = self.repository.get_all_prices_list()
+        '''
+        Obtiene todas las listas de precios con filtros opcionales.
+        '''
+        nombre = request.query_params.get('nombre', None)
+        
+        prices_list = self.repository.get_all_prices_list(nombre=nombre)
         serializer = PricesListSerializer(prices_list, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
