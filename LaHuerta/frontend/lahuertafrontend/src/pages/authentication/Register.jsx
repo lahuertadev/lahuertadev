@@ -351,6 +351,7 @@ const Register = () => {
 
             <div className="mt-6">
               <Button
+                type="submit"
                 label={loading ? 'Registrando...' : 'Registrarse'}
                 color="primary"
                 variant="contained"
