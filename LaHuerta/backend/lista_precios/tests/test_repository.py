@@ -28,6 +28,42 @@ class TestPricesListRepository:
         result = self.repository.get_all_prices_list()
         assert result.count() == 0
 
+    def test_get_all_prices_list_with_filter(self):
+        ListaPrecios.objects.create(nombre="Lista Verano", descripcion="Desc 1")
+        ListaPrecios.objects.create(nombre="Lista Invierno", descripcion="Desc 2")
+        ListaPrecios.objects.create(nombre="Precios Especiales", descripcion="Desc 3")
+
+        result = self.repository.get_all_prices_list(nombre="Lista")
+
+        assert result.count() == 2
+        assert all("Lista" in item.nombre for item in result)
+
+    def test_get_all_prices_list_with_partial_filter(self):
+        ListaPrecios.objects.create(nombre="Verano 2024", descripcion="Desc 1")
+        ListaPrecios.objects.create(nombre="Verano 2025", descripcion="Desc 2")
+        ListaPrecios.objects.create(nombre="Invierno 2024", descripcion="Desc 3")
+
+        result = self.repository.get_all_prices_list(nombre="Verano")
+
+        assert result.count() == 2
+        assert all("Verano" in item.nombre for item in result)
+
+    def test_get_all_prices_list_filter_case_insensitive(self):
+        ListaPrecios.objects.create(nombre="Lista Especial", descripcion="Desc 1")
+        ListaPrecios.objects.create(nombre="Otra Lista", descripcion="Desc 2")
+
+        result = self.repository.get_all_prices_list(nombre="lista")
+
+        assert result.count() == 2
+
+    def test_get_all_prices_list_filter_no_results(self):
+        ListaPrecios.objects.create(nombre="Lista A", descripcion="Desc 1")
+        ListaPrecios.objects.create(nombre="Lista B", descripcion="Desc 2")
+
+        result = self.repository.get_all_prices_list(nombre="NoExiste")
+
+        assert result.count() == 0
+
     # ------------------------- GET BY ID -----------------------
     def test_get_prices_list_by_id_ok(self):
         item = ListaPrecios.objects.create(nombre="Lista", descripcion="Desc")
