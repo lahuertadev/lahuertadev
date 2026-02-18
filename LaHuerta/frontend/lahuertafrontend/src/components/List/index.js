@@ -150,63 +150,86 @@ const GenericList = ({ data, onAdd }) => {
       </div>}
       <div className="mx-auto w-full max-w-6xl px-3 py-2 rounded-lg shadow-md bg-white">
         <div className="flex items-start gap-4 mb-2">
-          <div className="shrink-0 flex flex-col gap-3">
-            <IconLabelButtons
-              label={`Nuevo ${newLabelText || ''}`}
-              icon={<AddCircleOutlineIcon />}
-              onClick={() => navigate(fetchUrl.createUrl)}
-            />
-            <IconLabelButtons
-              label="Filtros"
-              icon={<FilterAltOutlinedIcon />}
-              onClick={toggleFilters}
-            />
-            {showFilters && (
-              <div className="mt-1 p-3 rounded-md border border-gray-200 bg-gray-50/80 w-full min-w-[220px]">
-                <p className="text-gray-600 text-sm font-semibold mb-2">Campos de filtrado</p>
-                <div className="flex flex-col gap-2">
-                  {filtersConfig.map((filter, index) => (
-                    <div key={index}>
-                      <label className="text-black font-bold text-sm block mb-0.5">{filter.label}</label>
-                      {filter.type === 'date' ? (
-                        <DatePicker
-                          name={filter.name}
-                          required={false}
-                          value={filterValues[filter.name]}
-                          onChange={(newValue) => setFilterValues({ ...filterValues, [filter.name]: newValue })}
-                        />
-                      ) : (
-                        <CustomInput
-                          name={filter.name}
-                          variant='outlined'
-                          value={filterValues[filter.name] || ''}
-                          onChange={handleFilterChange}
-                          regex={filter.validation?.regex}
-                          regexErrorText={filter.validation?.errorMessage}
-                        />
-                      )}
+          <div className="shrink-0 w-[280px]">
+            <div className="p-3 rounded-md border border-gray-300 bg-white">
+              <div className="flex flex-col gap-2">
+                <IconLabelButtons
+                  label={`Nueva ${newLabelText || ''}`}
+                  icon={<AddCircleOutlineIcon />}
+                  onClick={() => navigate(fetchUrl.createUrl)}
+                  className="w-full"
+                />
+                <IconLabelButtons
+                  label="Filtros"
+                  icon={<FilterAltOutlinedIcon />}
+                  onClick={toggleFilters}
+                  variant="outlined"
+                  className="w-full !bg-gray-100 !text-gray-700 !border !border-gray-300 hover:!bg-gray-200"
+                />
+              </div>
+              {showFilters && (
+                <div className="mt-3">
+                  <div className="flex flex-col gap-3">
+                    {filtersConfig.map((filter, index) => (
+                      <div key={index}>
+                        <label className="text-black font-bold text-sm block mb-1">{filter.label}</label>
+                        {filter.type === 'date' ? (
+                          <DatePicker
+                            name={filter.name}
+                            required={false}
+                            value={filterValues[filter.name]}
+                            onChange={(newValue) => setFilterValues({ ...filterValues, [filter.name]: newValue })}
+                          />
+                        ) : (
+                          <CustomInput
+                            name={filter.name}
+                            variant='outlined'
+                            value={filterValues[filter.name] || ''}
+                            onChange={handleFilterChange}
+                            regex={filter.validation?.regex}
+                            regexErrorText={filter.validation?.errorMessage}
+                            placeholder="Buscar..."
+                          />
+                        )}
+                      </div>
+                    ))}
+                    <div className='flex flex-col gap-2'>
+                      <IconLabelButtons
+                        label="Aplicar filtro"
+                        icon={<SendOutlinedIcon />}
+                        onClick={applyFilters}
+                        className="w-full"
+                      />
+                      <button
+                        onClick={() => {
+                          setFilterValues({});
+                          fetchItems({});
+                        }}
+                        className="text-sm hover:underline"
+                        style={{ 
+                          color: '#5d89c8', 
+                          background: 'none', 
+                          border: 'none', 
+                          cursor: 'pointer' 
+                        }}
+                      >
+                        Limpiar
+                      </button>
                     </div>
-                  ))}
-                  <div className='flex justify-center pt-1'>
-                    <IconLabelButtons
-                      label="Aplicar filtro"
-                      icon={<SendOutlinedIcon />}
-                      onClick={applyFilters}
-                    />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <div className="min-w-0 flex-1">
             <DataGridDemo 
-            rows={rows} 
-            columns={columns} 
-            onDelete={(id) => handleOpenConfirmDialog(false, id)}
-            onEdit={handleEdit}
-            onDetail={handleDetail}
-            onSelectionChange={handleSelectionChange}
-          />
+              rows={rows} 
+              columns={columns} 
+              onDelete={(id) => handleOpenConfirmDialog(false, id)}
+              onEdit={handleEdit}
+              onDetail={handleDetail}
+              onSelectionChange={handleSelectionChange}
+            />
           </div>
         </div>
         <br className="my-1" />
