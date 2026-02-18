@@ -33,6 +33,15 @@ export const billingTypeUrl = `${API_BASE}/type_facturation/`;
 //! Expense Type
 export const expenseTypeUrl = `${API_BASE}/type_expense/`;
 
+//! Price List
+export const priceListUrl = `${API_BASE}/price_list/`;
+
+//! Price List Product
+export const priceListProductUrl = `${API_BASE}/price_list_product/`;
+
+//! Product
+export const productUrl = `${API_BASE}/product/`;
+
 //! External Services 
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';
