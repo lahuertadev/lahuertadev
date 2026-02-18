@@ -8,11 +8,16 @@ from .exceptions import (
 
 class CategoryRepository(ICategoryRepository):
     
-    def get_all_categories(self):
+    def get_all_categories(self, descripcion=None):
         '''
-        Obtiene todos los tipos de categorías.
+        Obtiene todos los tipos de categorías con filtros opcionales.
         '''
-        return Categoria.objects.all()
+        queryset = Categoria.objects.all()
+        
+        if descripcion:
+            queryset = queryset.filter(descripcion__icontains=descripcion)
+        
+        return queryset
     
     def create_category(self, data):
         '''
