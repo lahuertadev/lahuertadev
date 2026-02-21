@@ -30,4 +30,5 @@ staticfiles/
 
 # Archivos de anotaciones
 *.txt
+notas.md
 

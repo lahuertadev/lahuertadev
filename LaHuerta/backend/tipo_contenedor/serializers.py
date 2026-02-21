@@ -9,5 +9,6 @@ class ContainerTypeSerializer(serializers.ModelSerializer):
         model = TipoContenedor
         fields = [
             'id', 
-            'descripcion'
+            'descripcion',
+            'abreviacion'
         ]
