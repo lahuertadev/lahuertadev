@@ -17,42 +17,66 @@
     {
       "model": "tipo_unidad.tipounidad",
       "pk": 1,
-      "fields": { "descripcion": "Kilogramo" }
+      "fields": { 
+        "descripcion": "Kilogramo",
+        "abreviacion": "kg"
+      }
     },
     {
       "model": "tipo_unidad.tipounidad",
       "pk": 2,
-      "fields": { "descripcion": "Unidad" }
+      "fields": { 
+        "descripcion": "Unidad",
+        "abreviacion": "u"
+      }
     },
     {
       "model": "tipo_unidad.tipounidad",
       "pk": 3,
-      "fields": { "descripcion": "Paquete" }
+      "fields": { 
+        "descripcion": "Paquete",
+        "abreviacion": "p"
+      }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 1,
-      "fields": { "descripcion": "Cajón" }
+      "fields": { 
+        "descripcion": "Cajón",
+        "abreviacion": "c"
+      }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 2,
-      "fields": { "descripcion": "Bolsa" }
+      "fields": { 
+        "descripcion": "Bolsa",
+        "abreviacion": "b"
+      }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 3,
-      "fields": { "descripcion": "Jaula" }
+      "fields": { 
+        "descripcion": "Jaula",
+        "abreviacion": "j"
+      }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 4,
-      "fields": { "descripcion": "Bandeja" }
+      "fields": { 
+        "descripcion": "Bandeja",
+        "abreviacion": "b"
+      }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 5,
-      "fields": { "descripcion": "Riestra" }
+      "fields": { 
+        "descripcion": "Riestra",
+        "abreviacion": "r"
+      }
     },
     {
       "model": "producto.producto",
