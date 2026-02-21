@@ -412,10 +412,11 @@ const PriceListEdit = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 'bold', width: '35%' }}>Producto</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '15%' }}>Categoría</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Precio Unitario ($)</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '20%' }}>Precio Bulto ($)</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '28%' }}>Producto</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '16%' }}>Categoría</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '18%' }}>Precio Unitario</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '18%' }}>Precio Bulto</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', width: '10%' }}>Peso Aprox.</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
@@ -424,8 +425,8 @@ const PriceListEdit = () => {
                     <TableRow
                       key={item.id}
                       sx={{
-                        bgcolor: hasProductChanged(item.id) ? '#E3F2FD' : 'inherit', // Celeste claro
-                        '&:hover': { bgcolor: hasProductChanged(item.id) ? '#BBDEFB' : 'grey.50' } // Celeste más intenso al hover
+                        bgcolor: hasProductChanged(item.id) ? '#E3F2FD' : 'inherit',
+                        '&:hover': { bgcolor: hasProductChanged(item.id) ? '#BBDEFB' : 'grey.50' }
                       }}
                     >
                       <TableCell>{item.producto?.descripcion || '—'}</TableCell>
@@ -438,6 +439,10 @@ const PriceListEdit = () => {
                           size="small"
                           fullWidth
                           inputProps={{ style: { textAlign: 'right' } }}
+                          InputProps={{
+                            startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
+                            endAdornment: <span style={{ marginLeft: '4px', color: '#666' }}>{item.producto?.tipo_unidad?.abreviacion || ''}</span>
+                          }}
                         />
                       </TableCell>
                       <TableCell>
@@ -448,7 +453,16 @@ const PriceListEdit = () => {
                           size="small"
                           fullWidth
                           inputProps={{ style: { textAlign: 'right' } }}
+                          InputProps={{
+                            startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
+                            endAdornment: <span style={{ marginLeft: '4px', color: '#666' }}>{item.producto?.tipo_contenedor?.abreviacion || ''}</span>
+                          }}
                         />
+                      </TableCell>
+                      <TableCell>
+                        <span style={{ color: '#666' }}>
+                          {item.producto?.cantidad_por_bulto || '—'} {item.producto?.tipo_unidad?.abreviacion || ''}
+                        </span>
                       </TableCell>
                       <TableCell align="center">
                         <IconButton

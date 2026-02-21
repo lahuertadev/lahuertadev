@@ -235,10 +235,11 @@ const PriceListDetail = () => {
               <TableContainer>
                 <Table aria-label="tabla de productos">
                 <colgroup>
-                  <col style={{ width: '45%' }} />
-                  <col style={{ width: '20%' }} />
-                  <col style={{ width: '17.5%' }} />
-                  <col style={{ width: '17.5%' }} />
+                  <col style={{ width: '35%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '11%' }} />
                 </colgroup>
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'grey.50' }}>
@@ -246,6 +247,7 @@ const PriceListDetail = () => {
                     <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Categoría</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Precio Unitario</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Precio Bulto</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Peso Aprox.</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -258,8 +260,17 @@ const PriceListDetail = () => {
                         {item.producto?.descripcion || '—'}
                       </TableCell>
                       <TableCell>{item.producto?.categoria?.descripcion || '—'}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.precio_unitario)}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.precio_bulto)}</TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(item.precio_unitario)} <span style={{ color: '#666', fontSize: '0.9em' }}>{item.producto?.tipo_unidad?.abreviacion || ''}</span>
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(item.precio_bulto)} <span style={{ color: '#666', fontSize: '0.9em' }}>{item.producto?.tipo_contenedor?.abreviacion || ''}</span>
+                      </TableCell>
+                      <TableCell align="right">
+                        <span style={{ color: '#666' }}>
+                          {item.producto?.cantidad_por_bulto || '—'} {item.producto?.tipo_unidad?.abreviacion || ''}
+                        </span>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
