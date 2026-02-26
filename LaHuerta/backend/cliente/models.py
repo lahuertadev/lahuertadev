@@ -2,6 +2,7 @@ from django.db import models
 from localidad.models import Localidad
 from tipo_facturacion.models import TipoFacturacion
 from tipo_condicion_iva.models import TipoCondicionIva
+from lista_precios.models import ListaPrecios
 
 class Cliente(models.Model):
     id = models.SmallAutoField(primary_key=True)
@@ -16,9 +17,7 @@ class Cliente(models.Model):
     fecha_inicio_ventas = models.DateField(blank=True, null=True)
     nombre_fantasia = models.CharField(max_length=100, blank=True, null=True)
     estado = models.BooleanField(default=True)
-
-    # def __str__(self):
-    #     return f'{self.razon_social} (CUIT: {self.cuit})'
+    lista_precios = models.ForeignKey(ListaPrecios, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = 'cliente' 
