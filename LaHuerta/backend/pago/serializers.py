@@ -1,13 +1,13 @@
 from rest_framework import serializers
 from .models import Pago
-from cliente.serializers import ClientCreateUpdateSerializer
+from cliente.serializers import ClientCreateSerializer
 from tipo_pago.serializers import PaymentTypeSerializer
 
 class PaymentSerializer(serializers.ModelSerializer):
     '''
     DTO
     '''
-    cliente = ClientCreateUpdateSerializer()
+    cliente = ClientCreateSerializer()
     tipo_pago = PaymentTypeSerializer()
 
     class Meta:

@@ -79,6 +79,67 @@
       }
     },
     {
+      "model": "tipo_condicion_iva.tipocondicioniva",
+      "pk": 1,
+      "fields": { "descripcion": "Resp. Inscripto" }
+    },
+    {
+      "model": "tipo_condicion_iva.tipocondicioniva",
+      "pk": 2,
+      "fields": { "descripcion": "Monotributo" }
+    },
+    {
+      "model": "tipo_condicion_iva.tipocondicioniva",
+      "pk": 3,
+      "fields": { "descripcion": "Exento" }
+    },
+    {
+      "model": "tipo_condicion_iva.tipocondicioniva",
+      "pk": 4,
+      "fields": { "descripcion": "Cons. Final" }
+    },
+    {
+      "model": "tipo_condicion_iva.tipocondicioniva",
+      "pk": 5,
+      "fields": { "descripcion": "Resp. No Insc." }
+    },
+    {
+      "model": "tipo_condicion_iva.tipocondicioniva",
+      "pk": 6,
+      "fields": { "descripcion": "No Categorizado" }
+    },
+    
+    {
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 1,
+      "fields": { "descripcion": "Manual" }
+    },
+    {
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 2,
+      "fields": { "descripcion": "Automática" }
+    },
+    {
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 3,
+      "fields": { "descripcion": "Electrónica" }
+    },
+    {
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 4,
+      "fields": { "descripcion": "Nota Crédito" }
+    },
+    {
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 5,
+      "fields": { "descripcion": "Nota Débito" }
+    },
+    {
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 6,
+      "fields": { "descripcion": "Presupuesto" }
+    },
+    {
       "model": "producto.producto",
       "pk": 1,
       "fields": {
