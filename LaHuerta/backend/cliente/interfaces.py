@@ -6,7 +6,7 @@ class IClientRepository(ABC):
     @abstractmethod
     def get_all_clients(self, cuit=None, searchQuery=None, address=None):
         pass
-
+      
     @abstractmethod
     def get_client_by_id(self, id):
         pass
