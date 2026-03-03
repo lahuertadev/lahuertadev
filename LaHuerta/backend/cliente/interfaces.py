@@ -26,3 +26,7 @@ class IClientRepository(ABC):
     @abstractmethod
     def delete_client(self, client):
         pass
+
+    @abstractmethod
+    def update_balance(self, client):
+        pass
