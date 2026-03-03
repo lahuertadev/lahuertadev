@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'lista_precios_producto',
     'compra_producto',
     'pago_compra',
+    'tipo_venta',
     'provincia',
     'municipio',
     'localidad'

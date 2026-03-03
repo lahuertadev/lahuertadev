@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import PagoFactura
 from pago.serializers import PaymentSerializer
-from factura.serializers import BillSerializer
+from factura.serializers import BillResponseSerializer as BillSerializer
 
 class BillPaymentSerializer(serializers.ModelSerializer):
     '''

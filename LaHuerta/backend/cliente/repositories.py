@@ -44,3 +44,11 @@ class ClientRepository(IClientRepository):
 
     def delete_client(self, client):
         client.delete()
+
+    def update_balance(self, client):
+        '''
+        Actualiza el balance de la cuenta corriente del cliente.
+        Relacionado con factura y pago, está en sus servicios respectivos.
+        '''
+        client.save(update_fields=['cuenta_corriente'])
+        return client

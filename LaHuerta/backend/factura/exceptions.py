@@ -1,0 +1,2 @@
+class BillNotFoundException(Exception):
+    pass
