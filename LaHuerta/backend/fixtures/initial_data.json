@@ -138,7 +138,78 @@
       "model": "tipo_facturacion.tipofacturacion",
       "pk": 6,
       "fields": { "descripcion": "Presupuesto" }
-    },
+    }
+    ,
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 1,
+  "fields": { "descripcion": "FA" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 2,
+  "fields": { "descripcion": "FB" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 3,
+  "fields": { "descripcion": "FC" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 4,
+  "fields": { "descripcion": "FM" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 5,
+  "fields": { "descripcion": "FE" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 6,
+  "fields": { "descripcion": "NCA" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 7,
+  "fields": { "descripcion": "NCB" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 8,
+  "fields": { "descripcion": "NCC" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 9,
+  "fields": { "descripcion": "NDA" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 10,
+  "fields": { "descripcion": "NDB" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 11,
+  "fields": { "descripcion": "NDC" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 12,
+  "fields": { "descripcion": "RA" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 13,
+  "fields": { "descripcion": "RB" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 14,
+  "fields": { "descripcion": "RC" }
+},
     {
       "model": "producto.producto",
       "pk": 1,
