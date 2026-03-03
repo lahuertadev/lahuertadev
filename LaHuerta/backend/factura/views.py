@@ -1,46 +1,64 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .repositories import BillRepository
+from .interfaces import IBillRepository
+from .service import BillService
 from .serializers import (
     BillResponseSerializer,
     BillCreateSerializer,
     BillUpdateSerializer,
     BillQueryParamsSerializer,
 )
+from .exceptions import BillNotFoundException
+from .factory import build_bill_service
 
-
-class BillViewSet(viewsets.ModelViewSet):
+class BillViewSet(viewsets.ViewSet):
     '''
     Gestión de facturas.
     '''
-    bill_repository = BillRepository()
-    serializer_class = BillResponseSerializer
 
-    def get_queryset(self):
-        return self.bill_repository.get_all_bills()
+    def __init__(self, repository: IBillRepository = None, service = None,**kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or BillRepository()
+        self.service = service or build_bill_service(
+            bill_repository = self.repository
+        )
 
     def list(self, request):
         '''
         Lista todas las facturas. Acepta ?cliente_id= para filtrar por cliente.
         '''
-        params_serializer = BillQueryParamsSerializer(data=request.query_params)
-        if not params_serializer.is_valid():
-            return Response(params_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = BillQueryParamsSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
 
-        cliente_id = params_serializer.validated_data.get('cliente_id')
-        bills = self.bill_repository.get_all_bills(cliente_id=cliente_id)
-        serializer = BillResponseSerializer(bills, many=True)
-        return Response(serializer.data)
+        try:
+            cliente_id = serializer.validated_data.get('cliente_id')
+            bills = self.repository.get_all(cliente_id=cliente_id)
+
+            response_serializer = BillResponseSerializer(bills, many=True)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+        except Exception:
+            return Response({'detail': 'Error al obtener las facturas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, pk=None):
         '''
         Devuelve el detalle de una factura con sus ítems.
         '''
-        bill = self.bill_repository.get_bill_by_id(pk)
-        if not bill:
-            return Response({'detail': 'Factura no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = BillResponseSerializer(bill)
-        return Response(serializer.data)
+        try: 
+            bill = self.repository.get_by_id(pk)
+            
+            if not bill:
+                raise BillNotFoundException('Factura no encontrada.')
+
+            serializer = BillResponseSerializer(bill)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except BillNotFoundException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except Exception:
+            return Response({'detail': 'Error al obtener la factura.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request):
         '''
@@ -48,14 +66,17 @@ class BillViewSet(viewsets.ModelViewSet):
         El importe total se calcula automáticamente a partir de cantidad × precio_unitario de cada ítem.
         '''
         serializer = BillCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+
         try:
-            bill = self.bill_repository.create_bill(dict(serializer.validated_data))
+            bill = self.service.create_bill(serializer.validated_data)
+
             response_serializer = BillResponseSerializer(bill)
+            
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
         '''
@@ -64,30 +85,68 @@ class BillViewSet(viewsets.ModelViewSet):
         La cuenta corriente del cliente se ajusta con la diferencia de importes.
         '''
         serializer = BillUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+
         try:
-            bill = self.bill_repository.update_bill(pk, dict(serializer.validated_data))
+            bill = self.service.update_bill(
+                bill_id=pk,
+                data=serializer.validated_data
+            )
+
             response_serializer = BillResponseSerializer(bill)
+
             return Response(response_serializer.data)
-        except ValueError as e:
+            
+        except BillNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Error al actualizar la factura.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def partial_update(self, request, pk=None):
         '''
         Actualización parcial de una factura (PATCH).
         Solo se modifican los campos enviados.
         '''
+
         serializer = BillUpdateSerializer(data=request.data, partial=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+
         try:
-            bill = self.bill_repository.update_bill(pk, dict(serializer.validated_data))
+            bill = self.service.update_bill(
+                bill_id=pk,
+                data=serializer.validated_data
+            )
+
             response_serializer = BillResponseSerializer(bill)
-            return Response(response_serializer.data)
-        except ValueError as e:
+
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+        except BillNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Error al actualizar la factura.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def destroy(self, request, pk=None):
+        '''
+        Elimina una factura.
+        '''
+        try:
+            self.service.delete_bill(bill_id=pk)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
+        except BillNotFoundException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        
+        except Exception as e:
+            return Response(
+                {'detail': 'Error al eliminar la factura.'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

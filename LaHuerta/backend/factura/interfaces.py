@@ -4,17 +4,21 @@ from abc import ABC, abstractmethod
 class IBillRepository(ABC):
 
     @abstractmethod
-    def get_all_bills(self, cliente_id=None):
+    def get_all(self, cliente_id=None):
         pass
 
     @abstractmethod
-    def get_bill_by_id(self, id):
+    def get_by_id(self, id):
         pass
 
     @abstractmethod
-    def create_bill(self, data):
+    def create(self, client, bill_type, date, amount):
         pass
 
     @abstractmethod
-    def update_bill(self, id, data):
+    def save(self, bill):
+        pass
+
+    @abstractmethod
+    def delete(self, bill):
         pass

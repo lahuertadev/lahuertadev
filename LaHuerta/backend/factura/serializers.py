@@ -44,6 +44,7 @@ class BillUpdateSerializer(serializers.Serializer):
     Al editar los ítems se recalcula el importe y se ajusta la cuenta corriente del cliente.
     '''
     tipo_factura = serializers.PrimaryKeyRelatedField(queryset=TipoFactura.objects.all(), required=False)
+    cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all(), required=False)
     fecha = serializers.DateField(required=False)
     items = BillItemCreateSerializer(many=True, required=False)
 
