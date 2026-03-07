@@ -42,6 +42,12 @@ export const priceListProductUrl = `${API_BASE}/price_list_product/`;
 //! Product
 export const productUrl = `${API_BASE}/product/`;
 
+//! Client Payment
+export const clientPaymentUrl = `${API_BASE}/client-payment/`;
+
+//! Payment Type
+export const paymentTypeUrl = `${API_BASE}/payment_type/`;
+
 //! External Services 
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';

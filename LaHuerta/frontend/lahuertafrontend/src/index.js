@@ -21,6 +21,8 @@ import PriceListList from "./pages/lists/PriceList";
 import PriceListDetail from "./pages/PriceListDetail";
 import PriceListEdit from "./pages/PriceListEdit";
 import PriceListForm from "./pages/forms/PriceList/PriceListForm";
+import ClientPaymentList from "./pages/lists/ClientPayment";
+import ClientPaymentForm from "./pages/forms/ClientPayment/ClientPaymentForm";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -125,6 +127,18 @@ const router = createBrowserRouter([
       {
         path: 'price-list/edit/:id',
         element: <PriceListEdit />
+      },
+      {
+        path: 'client-payment',
+        element: <ClientPaymentList />
+      },
+      {
+        path: 'client-payment/create',
+        element: <ClientPaymentForm />
+      },
+      {
+        path: 'client-payment/edit/:id',
+        element: <ClientPaymentForm />
       }
     ],
   }

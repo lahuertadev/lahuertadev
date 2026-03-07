@@ -9,7 +9,7 @@ from .serializers import (
     BillUpdateSerializer,
     BillQueryParamsSerializer,
 )
-from .exceptions import BillNotFoundException
+from .exceptions import BillNotFoundException, BillHasPaymentsException
 from .factory import build_bill_service
 
 class BillViewSet(viewsets.ViewSet):
@@ -136,17 +136,20 @@ class BillViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         '''
-        Elimina una factura.
+        Elimina una factura. Falla con 409 si tiene pagos imputados asociados.
         '''
         try:
             self.service.delete_bill(bill_id=pk)
             return Response(status=status.HTTP_204_NO_CONTENT)
-            
+
         except BillNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        
+
+        except BillHasPaymentsException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
+
         except Exception as e:
             return Response(
-                {'detail': 'Error al eliminar la factura.'}, 
+                {'detail': 'Error al eliminar la factura.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

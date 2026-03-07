@@ -2,7 +2,7 @@ from django.db import transaction
 from .interfaces import IBillRepository
 from cliente.interfaces import IClientRepository
 from factura_producto.interfaces import IBillProductRepository
-from .exceptions import BillNotFoundException
+from .exceptions import BillNotFoundException, BillHasPaymentsException
 from decimal import Decimal
 
 UNIT_SALE = 'unidad'
@@ -86,6 +86,12 @@ class BillService:
         bill = self.bill_repository.get_by_id(bill_id)
         if not bill:
             raise BillNotFoundException('Factura no encontrada.')
+
+        if bill.pagofactura_set.exists():
+            raise BillHasPaymentsException(
+                'La factura tiene pagos asociados. '
+                'Eliminá las imputaciones antes de continuar.'
+            )
 
         total_amount = bill.importe
         client = bill.cliente
