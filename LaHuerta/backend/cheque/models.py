@@ -1,6 +1,5 @@
 from django.db import models
 from banco.models import Banco
-from pago.models import Pago
 
 class Cheque(models.Model):
     numero = models.IntegerField(primary_key=True)
@@ -12,7 +11,6 @@ class Cheque(models.Model):
     fecha_deposito_pago = models.DateField(blank=True, null=True)
     check_pago_proveedor = models.BooleanField(default=False)
     banco = models.ForeignKey(Banco, on_delete=models.CASCADE)
-    pago = models.ForeignKey(Pago, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return f'Cheque N°{self.numero} ({self.banco.descripcion})'
