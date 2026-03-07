@@ -1,0 +1,29 @@
+import django.db.models.deletion
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        ('cliente', '0001_initial'),
+        ('tipo_pago', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='PagoCliente',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('fecha_pago', models.DateField()),
+                ('importe', models.DecimalField(decimal_places=2, max_digits=10)),
+                ('observaciones', models.CharField(blank=True, max_length=200, null=True)),
+                ('cliente', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='cliente.cliente')),
+                ('tipo_pago', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tipo_pago.tipopago')),
+            ],
+            options={
+                'db_table': 'pago_cliente',
+            },
+        ),
+    ]
