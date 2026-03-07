@@ -10,7 +10,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('compra', '0001_initial'),
-        ('pago', '0001_initial'),
     ]
 
     operations = [
