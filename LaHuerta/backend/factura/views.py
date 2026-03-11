@@ -32,8 +32,15 @@ class BillViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         try:
-            cliente_id = serializer.validated_data.get('cliente_id')
-            bills = self.repository.get_all(cliente_id=cliente_id)
+            bills = self.repository.get_all(
+                cliente_id=serializer.validated_data.get('cliente_id'),
+                cuit=serializer.validated_data.get('cuit'),
+                razon_social=serializer.validated_data.get('razon_social'),
+                importe_min=serializer.validated_data.get('importe_min'),
+                importe_max=serializer.validated_data.get('importe_max'),
+                fecha_desde=serializer.validated_data.get('fecha_desde'),
+                fecha_hasta=serializer.validated_data.get('fecha_hasta'),
+            )
 
             response_serializer = BillResponseSerializer(bills, many=True)
             return Response(response_serializer.data, status=status.HTTP_200_OK)

@@ -48,6 +48,15 @@ export const clientPaymentUrl = `${API_BASE}/client-payment/`;
 //! Payment Type
 export const paymentTypeUrl = `${API_BASE}/payment_type/`;
 
+//! Bill (Factura / Remito)
+export const billUrl = `${API_BASE}/bill/`;
+
+//! Bill Type (Tipo Factura)
+export const billTypeUrl = `${API_BASE}/bill_types/`;
+
+//! Sale Type (Tipo Venta: unidad / bulto)
+export const saleTypeUrl = `${API_BASE}/sale_types/`;
+
 //! External Services 
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';

@@ -42,6 +42,7 @@ urlpatterns = [
     path('', include('cheque.urls')),
     path('', include('pago_cliente.urls')),
     path('', include('pago_factura.urls')),
+    path('', include('tipo_venta.urls')),
     path('', include('localidad.urls')),
     path('', include('provincia.urls')),
     path('', include('municipio.urls')),
