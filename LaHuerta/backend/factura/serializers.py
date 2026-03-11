@@ -55,4 +55,10 @@ class BillUpdateSerializer(serializers.Serializer):
 
 
 class BillQueryParamsSerializer(serializers.Serializer):
-    cliente_id = serializers.IntegerField(required=False)
+    cliente_id    = serializers.IntegerField(required=False)
+    cuit          = serializers.CharField(required=False)
+    razon_social  = serializers.CharField(required=False)
+    importe_min   = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    importe_max   = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    fecha_desde   = serializers.DateField(required=False)
+    fecha_hasta   = serializers.DateField(required=False)

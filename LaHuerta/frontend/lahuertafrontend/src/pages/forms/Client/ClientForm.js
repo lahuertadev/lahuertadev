@@ -11,7 +11,7 @@ import BasicDatePicker from '../../../components/DatePicker';
 import IconLabelButtons from '../../../components/Button';
 import CheckboxLabels from '../../../components/Checkbox';
 import { loadOptions } from '../../../utils/selectOptions';
-import { clientUrl, billingTypeUrl, ConditionIvaTypeUrl, provincesUrl } from '../../../constants/urls';
+import { clientUrl, billingTypeUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
 
 
 const ClientForm = () => {
@@ -21,7 +21,8 @@ const ClientForm = () => {
         ivaCondition: [],
         provinces: [],
         cities: [],
-        districts: []
+        districts: [],
+        priceLists: [],
       });
   const [initialValues, setInitialValues] = useState({
         cuit: '',
@@ -33,6 +34,7 @@ const ClientForm = () => {
         address: '',
         billingType: '',
         ivaCondition: '',
+        priceList: '',
         phone: '',
         salesStartDate: null,
         fantasyName: '',
@@ -59,8 +61,12 @@ const ClientForm = () => {
         .map((item) => ({ name: item.nombre, value: item.id }))
         .sort((a, b) => a.name.localeCompare(b.name))
     );
+
+    const priceLists = await loadOptions(priceListUrl, (data) =>
+      data.map((item) => ({ name: item.nombre, value: item.id }))
+    );
   
-    setSelectOptions({ billingType, ivaCondition, provinces, cities: [], districts: [] });
+    setSelectOptions({ billingType, ivaCondition, provinces, cities: [], districts: [], priceLists });
   };
 
   //* Función para cargar los municipios filtrados por provincia
@@ -129,6 +135,9 @@ const ClientForm = () => {
         address: data.domicilio,
         billingType: { name: data.tipo_facturacion.descripcion, value: data.tipo_facturacion.id },
         ivaCondition: { name: data.condicion_IVA.descripcion, value: data.condicion_IVA.id },
+        priceList: data.lista_precios
+          ? { name: data.lista_precios.nombre, value: data.lista_precios.id }
+          : '',
         phone: data.telefono,
         salesStartDate: data.fecha_inicio_ventas,
         fantasyName: data.nombre_fantasia,
@@ -169,6 +178,7 @@ const ClientForm = () => {
       domicilio: values.address,
       tipo_facturacion: values.billingType.value,
       condicion_IVA: values.ivaCondition.value,
+      lista_precios: values.priceList?.value || null,
       telefono: values.phone,
       fecha_inicio_ventas: values.salesStartDate,
       nombre_fantasia: values.fantasyName,
@@ -318,6 +328,15 @@ const ClientForm = () => {
                   value={values.ivaCondition}
                   options={selectOptions.ivaCondition}
                   className="col-span-2"
+                  onChange={handleChange}
+                />
+                {/* Lista de precios */}
+                <BasicSelect
+                  label="Lista de precios"
+                  name="priceList"
+                  value={values.priceList}
+                  options={selectOptions.priceLists}
+                  className="col-span-3"
                   onChange={handleChange}
                 />
               </div>

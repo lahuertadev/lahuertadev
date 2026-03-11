@@ -67,6 +67,7 @@ const ClientDetail = () => {
     { label: 'Teléfono', value: client.telefono || '—' },
     { label: 'Tipo de facturación', value: client.tipo_facturacion?.descripcion || '—' },
     { label: 'Condición IVA', value: client.condicion_IVA?.descripcion || '—' },
+    { label: 'Lista de precios', value: client.lista_precios?.nombre || '—' },
     { label: 'Fecha inicio de ventas', value: formatDate(client.fecha_inicio_ventas) || '—' },
     { label: 'Estado', value: client.estado ? 'Activo' : 'Inactivo' },
   ];

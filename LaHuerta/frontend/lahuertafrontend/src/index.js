@@ -23,6 +23,9 @@ import PriceListEdit from "./pages/PriceListEdit";
 import PriceListForm from "./pages/forms/PriceList/PriceListForm";
 import ClientPaymentList from "./pages/lists/ClientPayment";
 import ClientPaymentForm from "./pages/forms/ClientPayment/ClientPaymentForm";
+import BillList from "./pages/lists/Factura";
+import FacturaForm from "./pages/forms/Factura/FacturaForm";
+import BillPrintView from "./pages/Factura/PrintView";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -139,7 +142,23 @@ const router = createBrowserRouter([
       {
         path: 'client-payment/edit/:id',
         element: <ClientPaymentForm />
-      }
+      },
+      {
+        path: 'bill',
+        element: <BillList />
+      },
+      {
+        path: 'bill/create',
+        element: <FacturaForm />
+      },
+      {
+        path: 'bill/edit/:id',
+        element: <FacturaForm />
+      },
+      {
+        path: 'bill/detail/:id',
+        element: <BillPrintView />
+      },
     ],
   }
 ]);

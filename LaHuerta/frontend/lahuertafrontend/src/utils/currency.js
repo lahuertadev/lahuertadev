@@ -10,11 +10,11 @@
         return amount;
     }
 
-    //? Formateo a peso argentino
+    //? Formateo a peso argentino sin espacio entre $ y número
     return numAmount.toLocaleString('es-AR', { 
         style: 'currency', 
         currency: 'ARS', 
         minimumFractionDigits: 2, 
         maximumFractionDigits: 2 
-    });
+    }).replace(/\$\s/, '$');
 };
