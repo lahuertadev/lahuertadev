@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { clientUrl } from '../constants/urls';
-import { formatCuit } from '../utils/cuit';
-import { formatCurrency } from '../utils/currency';
-import { formatDate } from '../utils/date';
+import { clientUrl } from '../../../constants/urls';
+import { formatCuit } from '../../../utils/cuit';
+import { formatCurrency } from '../../../utils/currency';
+import { formatDate } from '../../../utils/date';
 import { Box, Paper, Typography, Button } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 

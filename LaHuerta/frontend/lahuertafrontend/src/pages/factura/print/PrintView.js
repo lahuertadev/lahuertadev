@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { billUrl } from '../../constants/urls';
-import '../../styles/print-remito.css';
+import { billUrl } from '../../../constants/urls';
+import '../../../styles/print-remito.css';
 
 const LA_HUERTA = {
   nombre: 'La Huerta',
@@ -157,11 +157,9 @@ const BillPrintView = () => {
           <tbody>
             {items.map((it, idx) => {
               const qty = parseFloat(it.cantidad) || 0;
-              const isBulk = it.precio_bulto && parseFloat(it.precio_bulto) > 0;
-              const price = isBulk
-                ? parseFloat(it.precio_bulto)
-                : parseFloat(it.precio_unitario) || 0;
+              const price = parseFloat(it.precio_aplicado) || 0;
               const subtotal = qty * price;
+              const isBulk = it.tipo_venta?.descripcion?.toLowerCase() === 'bulto';
               const tipoLabel = isBulk
                 ? it.producto?.tipo_contenedor?.abreviacion
                 : it.producto?.tipo_unidad?.abreviacion;

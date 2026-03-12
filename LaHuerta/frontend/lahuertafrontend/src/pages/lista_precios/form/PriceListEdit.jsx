@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { priceListUrl, priceListProductUrl, productUrl } from '../constants/urls';
+import { priceListUrl, priceListProductUrl, productUrl, saleTypeUrl } from '../../../constants/urls';
 
 import {
   Box,
@@ -22,7 +22,7 @@ import {
   DialogActions,
   Autocomplete,
   Alert,
-  Snackbar
+  Snackbar,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -36,6 +36,7 @@ const PriceListEdit = () => {
   const [products, setProducts] = useState([]);
   const [originalProducts, setOriginalProducts] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
+  const [saleTypes, setSaleTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
@@ -44,8 +45,7 @@ const PriceListEdit = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [newPriceUnit, setNewPriceUnit] = useState('');
-  const [newPriceBulk, setNewPriceBulk] = useState('');
+  const [newPrices, setNewPrices] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [listName, setListName] = useState('');
   const [listDescription, setListDescription] = useState('');
@@ -56,23 +56,24 @@ const PriceListEdit = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Obtener la lista de precios
-        const listResponse = await axios.get(`${priceListUrl}${id}/`);
-        setPriceList(listResponse.data);
-        setListName(listResponse.data.nombre);
-        setListDescription(listResponse.data.descripcion);
-        setOriginalListName(listResponse.data.nombre);
-        setOriginalListDescription(listResponse.data.descripcion);
+        const [listRes, productsRes, allProductsRes, saleTypesRes] = await Promise.all([
+          axios.get(`${priceListUrl}${id}/`),
+          axios.get(`${priceListProductUrl}?price_list=${id}`),
+          axios.get(productUrl),
+          axios.get(saleTypeUrl),
+        ]);
 
-        // Obtener productos de la lista
-        const productsResponse = await axios.get(`${priceListProductUrl}?price_list=${id}`);
-        const fetchedProducts = productsResponse.data;
-        setProducts(fetchedProducts);
-        setOriginalProducts(JSON.parse(JSON.stringify(fetchedProducts))); // Deep clone
+        setPriceList(listRes.data);
+        setListName(listRes.data.nombre);
+        setListDescription(listRes.data.descripcion);
+        setOriginalListName(listRes.data.nombre);
+        setOriginalListDescription(listRes.data.descripcion);
 
-        // Obtener todos los productos para el selector
-        const allProductsResponse = await axios.get(productUrl);
-        setAllProducts(allProductsResponse.data);
+        setProducts(productsRes.data);
+        setOriginalProducts(JSON.parse(JSON.stringify(productsRes.data)));
+
+        setAllProducts(allProductsRes.data);
+        setSaleTypes(saleTypesRes.data);
 
         setLoading(false);
       } catch (err) {
@@ -87,8 +88,8 @@ const PriceListEdit = () => {
 
   // Detectar cambios en metadatos de la lista
   useEffect(() => {
-    const metadataChanged = 
-      listName !== originalListName || 
+    const metadataChanged =
+      listName !== originalListName ||
       listDescription !== originalListDescription;
     setListMetadataChanged(metadataChanged);
   }, [listName, listDescription, originalListName, originalListDescription]);
@@ -98,10 +99,7 @@ const PriceListEdit = () => {
     const changes = products.some((product) => {
       const original = originalProducts.find(p => p.id === product.id);
       if (!original) return false;
-      return (
-        String(product.precio_unitario) !== String(original.precio_unitario) ||
-        String(product.precio_bulto) !== String(original.precio_bulto)
-      );
+      return String(product.precio) !== String(original.precio);
     });
     setHasChanges(changes || listMetadataChanged);
   }, [products, originalProducts, listMetadataChanged]);
@@ -118,32 +116,31 @@ const PriceListEdit = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasChanges]);
 
-  const handlePriceChange = (index, field, value) => {
-    // Solo permitir números y punto decimal
+  const handlePriceChange = (productId, tipoVentaId, value) => {
     if (value && !/^\d*\.?\d*$/.test(value)) return;
-
-    const updatedProducts = [...products];
-    updatedProducts[index][field] = value;
-    setProducts(updatedProducts);
+    setProducts(prev =>
+      prev.map(item =>
+        item.producto?.id === productId && item.tipo_venta?.id === tipoVentaId
+          ? { ...item, precio: value }
+          : item
+      )
+    );
   };
 
-  const handleDeleteProduct = async (index, productId) => {
-    setProductToDelete({ index, productId });
+  const handleDeleteProduct = (productId) => {
+    setProductToDelete({ productId });
     setOpenDeleteDialog(true);
   };
 
   const confirmDeleteProduct = async () => {
     if (!productToDelete) return;
-
-    const { index, productId } = productToDelete;
-
+    const { productId } = productToDelete;
+    // Eliminar todos los registros (uno por tipo_venta) del producto en esta lista
+    const itemsToDelete = products.filter(p => p.producto?.id === productId);
     try {
-      await axios.delete(`${priceListProductUrl}${productId}/`);
-      // Eliminar de ambos estados
-      const updatedProducts = products.filter((_, i) => i !== index);
-      const updatedOriginalProducts = originalProducts.filter(p => p.id !== productId);
-      setProducts(updatedProducts);
-      setOriginalProducts(updatedOriginalProducts);
+      await Promise.all(itemsToDelete.map(item => axios.delete(`${priceListProductUrl}${item.id}/`)));
+      setProducts(prev => prev.filter(p => p.producto?.id !== productId));
+      setOriginalProducts(prev => prev.filter(p => p.producto?.id !== productId));
       setSnackbar({ open: true, message: 'Producto eliminado correctamente', severity: 'success' });
     } catch (err) {
       console.error('Error deleting product:', err);
@@ -160,7 +157,6 @@ const PriceListEdit = () => {
     let errorCount = 0;
 
     try {
-      // Primero, guardar cambios en metadatos de la lista si hay cambios
       if (listMetadataChanged) {
         try {
           await axios.patch(`${priceListUrl}${id}/`, {
@@ -169,61 +165,32 @@ const PriceListEdit = () => {
           });
           setOriginalListName(listName);
           setOriginalListDescription(listDescription);
-          setPriceList(prev => ({
-            ...prev,
-            nombre: listName,
-            descripcion: listDescription
-          }));
+          setPriceList(prev => ({ ...prev, nombre: listName, descripcion: listDescription }));
           successCount++;
         } catch (err) {
-          console.error('Error actualizando metadatos:', err);
-          if (err.response?.data?.error) {
-            setSnackbar({ 
-              open: true, 
-              message: err.response.data.error, 
-              severity: 'error' 
-            });
-          } else {
-            setSnackbar({ 
-              open: true, 
-              message: 'Error al actualizar el nombre/descripción', 
-              severity: 'error' 
-            });
-          }
-          errorCount++;
+          const msg = err.response?.data?.error || 'Error al actualizar el nombre/descripción';
+          setSnackbar({ open: true, message: msg, severity: 'error' });
           setSaving(false);
           return;
         }
       }
 
-      // Validar todos los precios
       for (let i = 0; i < products.length; i++) {
         const product = products[i];
-        if (!product.precio_unitario || parseFloat(product.precio_unitario) <= 0) {
-          setSnackbar({ open: true, message: `El precio unitario debe ser mayor a 0 (fila ${i + 1})`, severity: 'error' });
-          setSaving(false);
-          return;
-        }
-        if (!product.precio_bulto || parseFloat(product.precio_bulto) <= 0) {
-          setSnackbar({ open: true, message: `El precio por bulto debe ser mayor a 0 (fila ${i + 1})`, severity: 'error' });
+        if (!product.precio || parseFloat(product.precio) <= 0) {
+          setSnackbar({ open: true, message: `El precio debe ser mayor a 0 (fila ${i + 1})`, severity: 'error' });
           setSaving(false);
           return;
         }
       }
 
-      // Enviar PATCH para cada producto modificado
       for (let i = 0; i < products.length; i++) {
         const product = products[i];
         const original = originalProducts.find(p => p.id === product.id);
-
-        if (original && (
-          String(product.precio_unitario) !== String(original.precio_unitario) ||
-          String(product.precio_bulto) !== String(original.precio_bulto)
-        )) {
+        if (original && String(product.precio) !== String(original.precio)) {
           try {
             await axios.patch(`${priceListProductUrl}${product.id}/`, {
-              precio_unitario: parseFloat(product.precio_unitario),
-              precio_bulto: parseFloat(product.precio_bulto)
+              precio: parseFloat(product.precio),
             });
             successCount++;
           } catch (err) {
@@ -235,7 +202,7 @@ const PriceListEdit = () => {
 
       if (errorCount === 0) {
         setSnackbar({ open: true, message: `${successCount} cambios guardados correctamente`, severity: 'success' });
-        setOriginalProducts(JSON.parse(JSON.stringify(products))); // Actualizar estado original
+        setOriginalProducts(JSON.parse(JSON.stringify(products)));
         setHasChanges(false);
       } else {
         setSnackbar({ open: true, message: `${successCount} guardados, ${errorCount} fallaron`, severity: 'warning' });
@@ -249,36 +216,50 @@ const PriceListEdit = () => {
   };
 
   const handleAddProduct = async () => {
-    if (!selectedProduct || !newPriceUnit || !newPriceBulk) {
-      setSnackbar({ open: true, message: 'Completá todos los campos', severity: 'warning' });
+    if (!selectedProduct) {
+      setSnackbar({ open: true, message: 'Seleccioná un producto', severity: 'warning' });
       return;
     }
 
-    if (parseFloat(newPriceUnit) <= 0 || parseFloat(newPriceBulk) <= 0) {
-      setSnackbar({ open: true, message: 'Los precios deben ser mayores a 0', severity: 'error' });
-      return;
-    }
-
-    // Verificar si el producto ya está en la lista
     if (products.some(p => p.producto?.id === selectedProduct.id)) {
       setSnackbar({ open: true, message: 'Este producto ya está en la lista', severity: 'warning' });
       return;
     }
 
-    try {
-      const response = await axios.post(priceListProductUrl, {
-        lista_precios: parseInt(id),
-        producto: selectedProduct.id,
-        precio_unitario: parseFloat(newPriceUnit),
-        precio_bulto: parseFloat(newPriceBulk)
-      });
+    // Validar que todos los tipos de venta tengan precio
+    const tipoVentaIds = [...new Set(products.map(p => p.tipo_venta?.id).filter(Boolean))];
+    if (tipoVentaIds.length === 0) {
+      setSnackbar({ open: true, message: 'La lista no tiene tipos de venta definidos', severity: 'error' });
+      return;
+    }
 
-      setProducts([...products, response.data]);
-      setOriginalProducts([...originalProducts, response.data]);
+    const allFilled = tipoVentaIds.every(tvId => {
+      const val = newPrices[tvId];
+      return val && parseFloat(val) > 0;
+    });
+
+    if (!allFilled) {
+      setSnackbar({ open: true, message: 'Completá el precio para todos los tipos de venta', severity: 'warning' });
+      return;
+    }
+
+    try {
+      const responses = await Promise.all(
+        tipoVentaIds.map(tvId =>
+          axios.post(priceListProductUrl, {
+            lista_precios: parseInt(id),
+            producto: selectedProduct.id,
+            tipo_venta: tvId,
+            precio: parseFloat(newPrices[tvId]),
+          })
+        )
+      );
+
+      setProducts([...products, ...responses.map(r => r.data)]);
+      setOriginalProducts([...originalProducts, ...responses.map(r => r.data)]);
       setOpenAddDialog(false);
       setSelectedProduct(null);
-      setNewPriceUnit('');
-      setNewPriceBulk('');
+      setNewPrices({});
       setSnackbar({ open: true, message: 'Producto agregado correctamente', severity: 'success' });
     } catch (err) {
       console.error('Error adding product:', err);
@@ -294,13 +275,11 @@ const PriceListEdit = () => {
   };
 
   const hasProductChanged = (productId) => {
-    const current = products.find(p => p.id === productId);
-    const original = originalProducts.find(p => p.id === productId);
-    if (!original || !current) return false;
-    return (
-      String(current.precio_unitario) !== String(original.precio_unitario) ||
-      String(current.precio_bulto) !== String(original.precio_bulto)
-    );
+    const currentItems = products.filter(p => p.producto?.id === productId);
+    return currentItems.some(item => {
+      const original = originalProducts.find(p => p.id === item.id);
+      return original && String(item.precio) !== String(original.precio);
+    });
   };
 
   if (loading) {
@@ -329,7 +308,7 @@ const PriceListEdit = () => {
               <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
                 Editar Lista de Precios
               </Typography>
-              
+
               <TextField
                 label="Nombre de la lista"
                 value={listName}
@@ -339,7 +318,7 @@ const PriceListEdit = () => {
                 inputProps={{ maxLength: 30 }}
                 helperText={`${listName.length}/30 caracteres`}
               />
-              
+
               <TextField
                 label="Descripción"
                 value={listDescription}
@@ -397,7 +376,7 @@ const PriceListEdit = () => {
         <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
           <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="h6" fontWeight="bold">
-              Productos ({products.length})
+              Productos ({new Set(products.map(p => p.producto?.id).filter(Boolean)).size})
             </Typography>
           </Box>
 
@@ -407,83 +386,121 @@ const PriceListEdit = () => {
                 Esta lista no tiene productos asociados. Hacé click en "Agregar Producto" para comenzar.
               </Typography>
             </Box>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 'bold', width: '28%' }}>Producto</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '16%' }}>Categoría</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '18%' }}>Precio Unitario</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '18%' }}>Precio Bulto</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '10%' }}>Peso Aprox.</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', width: '10%', textAlign: 'center' }}>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {products.map((item, index) => (
-                    <TableRow
-                      key={item.id}
-                      sx={{
-                        bgcolor: hasProductChanged(item.id) ? '#E3F2FD' : 'inherit',
-                        '&:hover': { bgcolor: hasProductChanged(item.id) ? '#BBDEFB' : 'grey.50' }
-                      }}
-                    >
-                      <TableCell>{item.producto?.descripcion || '—'}</TableCell>
-                      <TableCell>{item.producto?.categoria?.descripcion || '—'}</TableCell>
-                      <TableCell>
-                        <TextField
-                          type="text"
-                          value={item.precio_unitario}
-                          onChange={(e) => handlePriceChange(index, 'precio_unitario', e.target.value)}
-                          size="small"
-                          fullWidth
-                          inputProps={{ style: { textAlign: 'right' } }}
-                          InputProps={{
-                            startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
-                            endAdornment: <span style={{ marginLeft: '4px', color: '#666' }}>{item.producto?.tipo_unidad?.abreviacion || ''}</span>
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          type="text"
-                          value={item.precio_bulto}
-                          onChange={(e) => handlePriceChange(index, 'precio_bulto', e.target.value)}
-                          size="small"
-                          fullWidth
-                          inputProps={{ style: { textAlign: 'right' } }}
-                          InputProps={{
-                            startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
-                            endAdornment: <span style={{ marginLeft: '4px', color: '#666' }}>{item.producto?.tipo_contenedor?.abreviacion || ''}</span>
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <span style={{ color: '#666' }}>
-                          {item.producto?.cantidad_por_bulto || '—'} {item.producto?.tipo_unidad?.abreviacion || ''}
-                        </span>
-                      </TableCell>
-                      <TableCell align="center">
-                        <IconButton
-                          color="error"
-                          onClick={() => handleDeleteProduct(index, item.id)}
-                          size="small"
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
+          ) : (() => {
+            // Columnas dinámicas por tipo_venta
+            const tvMap = {};
+            products.forEach(item => {
+              if (item.tipo_venta && !tvMap[item.tipo_venta.id]) {
+                tvMap[item.tipo_venta.id] = item.tipo_venta;
+              }
+            });
+            const tipoVentaColumns = Object.values(tvMap).sort((a, b) => a.id - b.id);
+
+            // Pivot: una fila por producto
+            const rowMap = {};
+            products.forEach(item => {
+              const prodId = item.producto?.id;
+              if (!prodId) return;
+              if (!rowMap[prodId]) {
+                rowMap[prodId] = { producto: item.producto, items: {} };
+              }
+              if (item.tipo_venta) {
+                rowMap[prodId].items[item.tipo_venta.id] = item;
+              }
+            });
+            const rows = Object.values(rowMap).sort((a, b) => {
+              const catA = a.producto.categoria?.descripcion || '';
+              const catB = b.producto.categoria?.descripcion || '';
+              const catCmp = catA.localeCompare(catB);
+              return catCmp !== 0 ? catCmp : a.producto.descripcion.localeCompare(b.producto.descripcion);
+            });
+
+            const getAbreviacion = (producto, tipoVenta) => {
+              const desc = tipoVenta?.descripcion?.toLowerCase();
+              if (desc === 'unidad') return producto?.tipo_unidad?.abreviacion || '';
+              if (desc === 'bulto')  return producto?.tipo_contenedor?.abreviacion || '';
+              return '';
+            };
+
+            return (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: 'grey.50' }}>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Producto</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Categoría</TableCell>
+                      {tipoVentaColumns.map(tv => (
+                        <TableCell key={tv.id} sx={{ fontWeight: 'bold' }}>
+                          {tv.descripcion}
+                        </TableCell>
+                      ))}
+                      <TableCell sx={{ fontWeight: 'bold' }}>Peso Aprox.</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Acciones</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => {
+                      const changed = hasProductChanged(row.producto.id);
+                      return (
+                        <TableRow
+                          key={row.producto.id}
+                          sx={{
+                            bgcolor: changed ? '#E3F2FD' : 'inherit',
+                            '&:hover': { bgcolor: changed ? '#BBDEFB' : 'grey.50' }
+                          }}
+                        >
+                          <TableCell>{row.producto.descripcion}</TableCell>
+                          <TableCell>{row.producto.categoria?.descripcion || '—'}</TableCell>
+                          {tipoVentaColumns.map(tv => {
+                            const entry = row.items[tv.id];
+                            return (
+                              <TableCell key={tv.id}>
+                                {entry ? (
+                                  <TextField
+                                    type="text"
+                                    value={entry.precio}
+                                    onChange={(e) => handlePriceChange(row.producto.id, tv.id, e.target.value)}
+                                    size="small"
+                                    fullWidth
+                                    inputProps={{ style: { textAlign: 'right' } }}
+                                    InputProps={{
+                                      startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
+                                      endAdornment: <span style={{ marginLeft: '4px', color: '#666', fontSize: '0.85em', whiteSpace: 'nowrap' }}>{getAbreviacion(row.producto, tv)}</span>,
+                                    }}
+                                  />
+                                ) : (
+                                  <Typography variant="body2" color="text.disabled">—</Typography>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell>
+                            <span style={{ color: '#666' }}>
+                              {row.producto.cantidad_por_bulto || '—'} {row.producto.tipo_unidad?.abreviacion || ''}
+                            </span>
+                          </TableCell>
+                          <TableCell align="center">
+                            <IconButton
+                              color="error"
+                              onClick={() => handleDeleteProduct(row.producto.id)}
+                              size="small"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            );
+          })()}
         </Paper>
       </Box>
 
       {/* Dialog para agregar producto */}
-      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={openAddDialog} onClose={() => { setOpenAddDialog(false); setSelectedProduct(null); setNewPrices({}); }} maxWidth="sm" fullWidth>
         <DialogTitle>Agregar Producto a la Lista</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
@@ -491,37 +508,38 @@ const PriceListEdit = () => {
               options={allProducts}
               getOptionLabel={(option) => `${option.descripcion} (${option.categoria?.descripcion || 'Sin categoría'})`}
               value={selectedProduct}
-              onChange={(event, newValue) => setSelectedProduct(newValue)}
+              onChange={(_, newValue) => setSelectedProduct(newValue)}
               renderInput={(params) => (
                 <TextField {...params} label="Producto" placeholder="Buscá un producto" />
               )}
             />
-            <TextField
-              label="Precio Unitario"
-              type="text"
-              value={newPriceUnit}
-              onChange={(e) => {
-                if (!e.target.value || /^\d*\.?\d*$/.test(e.target.value)) {
-                  setNewPriceUnit(e.target.value);
-                }
-              }}
-              fullWidth
-            />
-            <TextField
-              label="Precio Bulto"
-              type="text"
-              value={newPriceBulk}
-              onChange={(e) => {
-                if (!e.target.value || /^\d*\.?\d*$/.test(e.target.value)) {
-                  setNewPriceBulk(e.target.value);
-                }
-              }}
-              fullWidth
-            />
+            {/* Un campo de precio por cada tipo de venta existente en la lista */}
+            {[...new Set(products.map(p => p.tipo_venta?.id).filter(Boolean))]
+              .map(tvId => saleTypes.find(st => st.id === tvId))
+              .filter(Boolean)
+              .sort((a, b) => a.id - b.id)
+              .map(tv => (
+                <TextField
+                  key={tv.id}
+                  label={`Precio ${tv.descripcion}`}
+                  type="text"
+                  value={newPrices[tv.id] || ''}
+                  onChange={(e) => {
+                    if (!e.target.value || /^\d*\.?\d*$/.test(e.target.value)) {
+                      setNewPrices(prev => ({ ...prev, [tv.id]: e.target.value }));
+                    }
+                  }}
+                  fullWidth
+                  InputProps={{
+                    startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
+                  }}
+                />
+              ))
+            }
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenAddDialog(false)} color="primary">
+          <Button onClick={() => { setOpenAddDialog(false); setSelectedProduct(null); setNewPrices({}); }} color="primary">
             Cancelar
           </Button>
           <Button onClick={handleAddProduct} variant="contained" color="primary">
@@ -531,8 +549,8 @@ const PriceListEdit = () => {
       </Dialog>
 
       {/* Dialog para confirmar eliminación */}
-      <Dialog 
-        open={openDeleteDialog} 
+      <Dialog
+        open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
         maxWidth="xs"
         fullWidth
@@ -544,16 +562,16 @@ const PriceListEdit = () => {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button 
-            onClick={() => setOpenDeleteDialog(false)} 
+          <Button
+            onClick={() => setOpenDeleteDialog(false)}
             variant="outlined"
             color="primary"
           >
             Cancelar
           </Button>
-          <Button 
-            onClick={confirmDeleteProduct} 
-            variant="contained" 
+          <Button
+            onClick={confirmDeleteProduct}
+            variant="contained"
             color="error"
           >
             Eliminar
