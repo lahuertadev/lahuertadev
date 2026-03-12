@@ -7,4 +7,4 @@ class BillTypeSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = TipoFactura
-        fields = ['id', 'descripcion']
+        fields = ['id', 'descripcion', 'abreviatura']

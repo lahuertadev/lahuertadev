@@ -26,6 +26,18 @@ const BillPrintView = () => {
   const navigate = useNavigate();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    axios.get(`${billUrl}${id}/`)
+      .then((r) => {
+        console.log('RESPONSE =>', r);
+        console.log('BILL =>', r.data);
+        console.log('TIPO_FACTURA =>', r.data.tipo_factura);
+        setBill(r.data);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [id]);
 
   useEffect(() => {
     axios.get(`${billUrl}${id}/`)
@@ -73,7 +85,7 @@ const BillPrintView = () => {
 
           {/* Centro: tipo de comprobante */}
           <div className="remito-tipo-box">
-            <div className="remito-tipo-letra">{tipo_factura?.descripcion || 'X'}</div>
+            <div className="remito-tipo-letra">{tipo_factura?.abreviatura || 'X'}</div>
             <div className="remito-tipo-sub">Documento No Válido como Factura</div>
           </div>
 
@@ -104,7 +116,7 @@ const BillPrintView = () => {
           <div className="remito-receptor-row remito-receptor-row-split">
             <div className="remito-receptor-left">
               <span className="remito-label">Localidad:</span>
-              <span className="remito-value remito-value-line">{cliente?.localidad?.nombre || ''}</span>
+              <span className="remito-value remito-value-line">{cliente?.localidad?.nombre + ' - ' + cliente?.localidad?.municipio?.nombre || ''}</span>
             </div>
             <div className="remito-receptor-right">
               <span className="remito-label">Cliente N°:</span>
