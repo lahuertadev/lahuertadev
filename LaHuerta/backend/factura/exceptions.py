@@ -4,3 +4,6 @@ class BillNotFoundException(Exception):
 
 class BillHasPaymentsException(Exception):
     pass
+
+class PriceNotFoundError(Exception):
+    pass

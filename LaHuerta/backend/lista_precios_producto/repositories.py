@@ -14,10 +14,10 @@ class ProductPriceListRepository(IProductPriceListRepository):
         Obtiene los productos asociados a una lista de precios específica,
         con filtros opcionales adicionales.
         """
-
         qs = (ListaPreciosProducto.objects.select_related(
                 "producto__categoria",
-                "producto__tipo_contenedor"
+                "producto__tipo_contenedor",
+                "tipo_venta"
             ).filter(lista_precios_id=price_list_id)
         )
 
@@ -33,13 +33,22 @@ class ProductPriceListRepository(IProductPriceListRepository):
         if description:
             qs = qs.filter(producto__descripcion__icontains=description)
 
-        # Ordenar por categoría y luego por descripción del producto alfabéticamente
-        qs = qs.order_by('producto__categoria__descripcion', 'producto__descripcion')
+        qs = qs.order_by('producto__categoria__descripcion', 'producto__descripcion', 'tipo_venta__descripcion')
 
         return qs
 
     def get_by_id(self, id):
         return ListaPreciosProducto.objects.filter(id=id).first()
+
+    def get_by_product_and_sale_type(self, price_list_id, product_id, sale_type_id):
+        """
+        Lookup del precio para una combinación específica de lista, producto y tipo_venta.
+        """
+        return ListaPreciosProducto.objects.filter(
+            lista_precios_id=price_list_id,
+            producto_id=product_id,
+            tipo_venta_id=sale_type_id,
+        ).first()
 
     def create(self, data):
         item = ListaPreciosProducto(**data)
@@ -54,8 +63,10 @@ class ProductPriceListRepository(IProductPriceListRepository):
             item.lista_precios = data["lista_precios"]
         if "producto" in data:
             item.producto = data["producto"]
-        item.precio_unitario = data.get("precio_unitario", item.precio_unitario)
-        item.precio_bulto = data.get("precio_bulto", item.precio_bulto)
+        if "tipo_venta" in data:
+            item.tipo_venta = data["tipo_venta"]
+        if "precio" in data:
+            item.precio = data["precio"]
         item.save()
         return item
 
