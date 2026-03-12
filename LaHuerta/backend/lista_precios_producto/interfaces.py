@@ -25,3 +25,7 @@ class IProductPriceListRepository(ABC):
     @abstractmethod
     def verify_product_on_price_list(self, product_id):
         pass
+
+    @abstractmethod
+    def get_by_product_and_sale_type(self, price_list_id, product_id, sale_type_id):
+        pass

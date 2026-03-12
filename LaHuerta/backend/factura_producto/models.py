@@ -10,8 +10,7 @@ class FacturaProducto(models.Model):
     tipo_venta = models.ForeignKey(TipoVenta, on_delete=models.PROTECT)
     
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_bulto = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_aplicado = models.DecimalField(max_digits=10, decimal_places=2)
     
 
     class Meta:

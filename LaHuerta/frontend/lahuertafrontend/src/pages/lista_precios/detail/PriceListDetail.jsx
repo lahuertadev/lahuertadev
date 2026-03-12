@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { priceListUrl, priceListProductUrl } from '../constants/urls';
-import { formatDate } from '../utils/date';
-import { formatCurrency } from '../utils/currency';
+import { priceListUrl, priceListProductUrl } from '../../../constants/urls';
+import { formatDate } from '../../../utils/date';
+import { formatCurrency } from '../../../utils/currency';
 import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintIcon from '@mui/icons-material/Print';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import IconLabelButtons from '../components/Button';
-import '../styles/print-price-list.css';
-import logoLaHuerta from '../assets/logo-lahuerta.jpg';
+import IconLabelButtons from '../../../components/Button';
+import '../../../styles/print-price-list.css';
+import logoLaHuerta from '../../../assets/logo-lahuerta.jpg';
 
 
 const PriceListDetail = () => {
@@ -223,61 +223,95 @@ const PriceListDetail = () => {
                 Esta lista no tiene productos asociados.
               </Typography>
             </Box>
-          ) : (
-            <Box className="table-wrapper">
-              {/* Marca de agua con logo */}
-              <Box
-                component="img"
-                src={logoLaHuerta}
-                alt="Logo La Huerta"
-                className="watermark-logo"
-              />
-              <TableContainer>
-                <Table aria-label="tabla de productos">
-                <colgroup>
-                  <col style={{ width: '35%' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '11%' }} />
-                </colgroup>
-                <TableHead>
-                  <TableRow sx={{ bgcolor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Producto</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Categoría</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Precio Unitario</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Precio Bulto</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Peso Aprox.</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {products.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { bgcolor: 'grey.50' } }}
-                    >
-                      <TableCell component="th" scope="row">
-                        {item.producto?.descripcion || '—'}
-                      </TableCell>
-                      <TableCell>{item.producto?.categoria?.descripcion || '—'}</TableCell>
-                      <TableCell align="right">
-                        {formatCurrency(item.precio_unitario)} <span style={{ color: '#666', fontSize: '0.9em' }}>{item.producto?.tipo_unidad?.abreviacion || ''}</span>
-                      </TableCell>
-                      <TableCell align="right">
-                        {formatCurrency(item.precio_bulto)} <span style={{ color: '#666', fontSize: '0.9em' }}>{item.producto?.tipo_contenedor?.abreviacion || ''}</span>
-                      </TableCell>
-                      <TableCell align="right">
-                        <span style={{ color: '#666' }}>
-                          {item.producto?.cantidad_por_bulto || '—'} {item.producto?.tipo_unidad?.abreviacion || ''}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            </Box>
-          )}
+          ) : (() => {
+            // Columnas dinámicas: un tipo_venta por columna
+            const tvMap = {};
+            products.forEach(item => {
+              if (item.tipo_venta && !tvMap[item.tipo_venta.id]) {
+                tvMap[item.tipo_venta.id] = item.tipo_venta;
+              }
+            });
+            const tipoVentaColumns = Object.values(tvMap).sort((a, b) => a.id - b.id);
+
+            // Pivot: una fila por producto
+            const rowMap = {};
+            products.forEach(item => {
+              const prodId = item.producto.id;
+              if (!rowMap[prodId]) {
+                rowMap[prodId] = { producto: item.producto, precios: {} };
+              }
+              if (item.tipo_venta) {
+                rowMap[prodId].precios[item.tipo_venta.id] = item.precio;
+              }
+            });
+            const rows = Object.values(rowMap).sort((a, b) => {
+              const catA = a.producto.categoria?.descripcion || '';
+              const catB = b.producto.categoria?.descripcion || '';
+              const catCmp = catA.localeCompare(catB);
+              return catCmp !== 0 ? catCmp : a.producto.descripcion.localeCompare(b.producto.descripcion);
+            });
+
+            // Devuelve la abreviación de unidad según el tipo_venta
+            const getAbreviacion = (producto, tipoVenta) => {
+              const desc = tipoVenta?.descripcion?.toLowerCase();
+              if (desc === 'unidad') return producto?.tipo_unidad?.abreviacion || '';
+              if (desc === 'bulto')  return producto?.tipo_contenedor?.abreviacion || '';
+              return '';
+            };
+
+            return (
+              <Box className="table-wrapper">
+                <Box
+                  component="img"
+                  src={logoLaHuerta}
+                  alt="Logo La Huerta"
+                  className="watermark-logo"
+                />
+                <TableContainer>
+                  <Table aria-label="tabla de productos">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: 'grey.50' }}>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Producto</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Categoría</TableCell>
+                        {tipoVentaColumns.map(tv => (
+                          <TableCell key={tv.id} align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                            {tv.descripcion}
+                          </TableCell>
+                        ))}
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Peso Aprox.</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {rows.map((row) => (
+                        <TableRow
+                          key={row.producto.id}
+                          sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { bgcolor: 'grey.50' } }}
+                        >
+                          <TableCell component="th" scope="row">
+                            {row.producto.descripcion}
+                          </TableCell>
+                          <TableCell>{row.producto.categoria?.descripcion || '—'}</TableCell>
+                          {tipoVentaColumns.map(tv => (
+                            <TableCell key={tv.id} align="right">
+                              {row.precios[tv.id] != null
+                                ? <>{formatCurrency(row.precios[tv.id])}{' '}<span style={{ color: '#666', fontSize: '0.9em' }}>{getAbreviacion(row.producto, tv)}</span></>
+                                : '—'
+                              }
+                            </TableCell>
+                          ))}
+                          <TableCell align="right">
+                            <span style={{ color: '#666' }}>
+                              {row.producto.cantidad_por_bulto || '—'} {row.producto.tipo_unidad?.abreviacion || ''}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            );
+          })()}
         </Paper>
       </Box>
 

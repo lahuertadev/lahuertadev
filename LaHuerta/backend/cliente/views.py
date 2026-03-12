@@ -253,5 +253,5 @@ class ClientViewSet(ViewSet):
 
         items = ListaPreciosProducto.objects.filter(
             lista_precios_id=client.lista_precios_id
-        ).select_related('producto')
+        ).select_related('producto', 'tipo_venta')
         return Response(PriceListProductSerializer(items, many=True).data, status=status.HTTP_200_OK)

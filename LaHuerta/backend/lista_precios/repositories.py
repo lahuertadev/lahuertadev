@@ -73,8 +73,8 @@ class PricesListRepository(IPricesListRepository):
             ListaPreciosProducto.objects.create(
                 lista_precios=new_list,
                 producto=product.producto,
-                precio_unitario=product.precio_unitario,
-                precio_bulto=product.precio_bulto
+                tipo_venta=product.tipo_venta,
+                precio=product.precio,
             )
         
         return new_list

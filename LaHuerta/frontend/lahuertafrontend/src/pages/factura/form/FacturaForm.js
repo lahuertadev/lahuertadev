@@ -20,9 +20,8 @@ import { formatCurrency } from '../../../utils/currency';
 const EMPTY_ITEM = {
   producto: null,
   cantidad: '',
-  precio_unitario: '',
-  precio_bulto: '',
   tipo_venta: null,
+  precio_aplicado: '',
 };
 
 const FacturaForm = () => {
@@ -30,21 +29,18 @@ const FacturaForm = () => {
   const { id } = useParams();
   const isEdit = Boolean(id);
 
-  // Opciones para selects
   const [clients, setClients] = useState([]);
   const [billTypes, setBillTypes] = useState([]);
   const [products, setProducts] = useState([]);
   const [saleTypes, setSaleTypes] = useState([]);
 
-  // Cabecera de la factura
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedBillType, setSelectedBillType] = useState(null);
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
 
-  // Ítems
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
 
-  // Precios de lista del cliente (producto_id → { precio_unitario, precio_bulto })
+  // { producto_id: { tipo_venta_id: precio } }
   const [clientPrices, setClientPrices] = useState({});
 
   const [saving, setSaving] = useState(false);
@@ -65,7 +61,6 @@ const FacturaForm = () => {
       setProducts(p.data.map((pr) => ({ label: pr.descripcion, ...pr })));
       setSaleTypes(st.data);
 
-      // Pre-seleccionar "Remito" automáticamente en creación
       if (!isEdit) {
         const remito = mappedBillTypes.find(
           (t) => t.descripcion?.toLowerCase() === 'remito'
@@ -77,21 +72,38 @@ const FacturaForm = () => {
   }, [isEdit]);
 
   // ── Precios del cliente ────────────────────────────────────────────
+  // Estructura: { producto_id: { tipo_venta_id: precio } }
+  // ── Precios del cliente ────────────────────────────────────────────
+// Estructura final: { producto_id: { tipo_venta_id: precio } }
+
   useEffect(() => {
-    if (!selectedClient) { setClientPrices({}); return; }
+    if (!selectedClient) {
+      setClientPrices({});
+      return;
+    }
+
     axios
       .get(`${clientUrl}${selectedClient.id}/products-with-prices/`)
       .then((res) => {
+
         const map = {};
+
         res.data.forEach((entry) => {
-          map[entry.producto.id] = {
-            precio_unitario: entry.precio_unitario,
-            precio_bulto: entry.precio_bulto,
-          };
+          const prodId = Number(entry.producto.id);
+          const tvId = Number(entry.tipo_venta.id);
+          const price = Number(entry.precio);
+
+          if (!map[prodId]) map[prodId] = {};
+
+          map[prodId][tvId] = price;
         });
+
         setClientPrices(map);
       })
-      .catch(() => setClientPrices({}));
+      .catch((err) => {
+        console.error("ERROR CARGANDO PRECIOS:", err);
+        setClientPrices({});
+      });
   }, [selectedClient]);
 
   // ── Carga de edición ───────────────────────────────────────────────
@@ -106,9 +118,8 @@ const FacturaForm = () => {
         b.items.map((it) => ({
           producto: { label: it.producto.descripcion, ...it.producto },
           cantidad: it.cantidad,
-          precio_unitario: it.precio_unitario,
-          precio_bulto: it.precio_bulto || '',
-          tipo_venta: it.tipo_venta,
+          tipo_venta: it.tipo_venta?.id ?? null,
+          precio_aplicado: it.precio_aplicado,
         }))
       );
     }).catch(console.error);
@@ -128,70 +139,81 @@ const FacturaForm = () => {
     });
   }, []);
 
+  // Busca el precio en la lista del cliente para (producto, tipo_venta)
+  const resolvePrecio = useCallback(
+    (productId, tipoVentaId) => {
+  
+      if (!productId || !tipoVentaId) {
+        return '';
+      }
+  
+      const price = clientPrices[productId]?.[tipoVentaId];
+  
+      return price ?? '';
+    },
+    [clientPrices],
+  );
+
   const handleProductSelect = (idx, product) => {
+  
     if (!product) {
       setItems((prev) => {
         const next = [...prev];
-        next[idx] = { ...next[idx], producto: null, precio_unitario: '', precio_bulto: '' };
+        next[idx] = { ...next[idx], producto: null, precio_aplicado: '' };
         return next;
       });
       return;
     }
-    const prices = clientPrices[product.id] || {};
-    const currentTipoVenta = items[idx].tipo_venta;
-    const isBulk = saleTypes.find((s) => s.id === currentTipoVenta)?.descripcion?.toLowerCase() === 'bulto';
+  
     setItems((prev) => {
+  
       const next = [...prev];
+  
+      const tipoVenta = next[idx].tipo_venta;
+  
+      const precio = resolvePrecio(product.id, tipoVenta);
+  
       next[idx] = {
         ...next[idx],
         producto: product,
-        precio_unitario: !isBulk ? (prices.precio_unitario ?? '') : '0',
-        precio_bulto: isBulk ? (prices.precio_bulto ?? '') : '0',
+        precio_aplicado: precio,
       };
+  
       return next;
     });
   };
 
-  // Cuando cambia el tipo de venta, rota el precio al campo correcto
   const handleSaleTypeChange = (idx, tipoVentaId) => {
-    const tipoVenta = saleTypes.find((s) => s.id === tipoVentaId);
-    const isBulk = tipoVenta?.descripcion?.toLowerCase() === 'bulto';
-    const product = items[idx].producto;
-    const prices = product ? (clientPrices[product.id] || {}) : {};
+  
     setItems((prev) => {
+  
       const next = [...prev];
+  
+      const productId = next[idx].producto?.id;
+  
+      const precio = resolvePrecio(productId, tipoVentaId);
+  
       next[idx] = {
         ...next[idx],
         tipo_venta: tipoVentaId,
-        precio_unitario: !isBulk ? (prices.precio_unitario ?? next[idx].precio_unitario ?? '') : '0',
-        precio_bulto:    isBulk  ? (prices.precio_bulto    ?? next[idx].precio_bulto    ?? '') : '0',
+        precio_aplicado: precio,
       };
+  
       return next;
     });
   };
 
-  // ── Helpers de tipo de venta ───────────────────────────────────────
-  const isBulkItem = (item) =>
-    saleTypes.find((s) => s.id === item.tipo_venta)?.descripcion?.toLowerCase() === 'bulto';
-
   // ── Total ──────────────────────────────────────────────────────────
-  // Devuelve null si no hay tipo_venta seleccionado (sin cálculo)
   const calcSubtotal = (item) => {
-    if (!item.tipo_venta) return null;
+    if (!item.tipo_venta || !item.precio_aplicado) return null;
     const qty = parseFloat(item.cantidad) || 0;
-    const price = isBulkItem(item)
-      ? parseFloat(item.precio_bulto) || 0
-      : parseFloat(item.precio_unitario) || 0;
+    const price = parseFloat(item.precio_aplicado) || 0;
     return qty * price;
   };
 
-  const total = items.reduce((sum, it) => {
-    const sub = calcSubtotal(it);
-    return sum + (sub ?? 0);
-  }, 0);
+  const total = items.reduce((sum, it) => sum + (calcSubtotal(it) ?? 0), 0);
 
   // ── Fila automática ────────────────────────────────────────────────
-  // Cuando el último ítem está completo, agrega una fila vacía
   useEffect(() => {
     const last = items[items.length - 1];
     if (last.producto && parseFloat(last.cantidad) > 0 && last.tipo_venta) {
@@ -212,7 +234,6 @@ const FacturaForm = () => {
       return e;
     }
 
-    // Solo validar filas con producto cargado (la última fila vacía auto-agregada se ignora)
     items.forEach((it, idx) => {
       if (!it.producto) return;
       if (!it.cantidad || parseFloat(it.cantidad) <= 0) e[`item_${idx}_cantidad`] = 'Requerido';
@@ -237,8 +258,6 @@ const FacturaForm = () => {
           .map((it) => ({
             producto: it.producto.id,
             cantidad: it.cantidad,
-          precio_unitario: it.precio_unitario || '0',
-          precio_bulto: it.precio_bulto || '0',
             tipo_venta: it.tipo_venta,
           })),
       };
@@ -260,6 +279,7 @@ const FacturaForm = () => {
   // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="container mx-auto py-6 px-4 bg-white rounded shadow-md w-full max-w-5xl">
+
       {/* Encabezado */}
       <div className="flex items-center justify-between mb-4">
         <Button
@@ -371,7 +391,7 @@ const FacturaForm = () => {
         )}
       </div>
 
-      {/* Tabla de ítems — solo visible si hay cliente seleccionado */}
+      {/* Tabla de ítems */}
       {selectedClient && (
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
@@ -398,103 +418,80 @@ const FacturaForm = () => {
               </tr>
             </thead>
             <tbody>
-              {items.map((item, idx) => {
-                const bulk = isBulkItem(item);
-                const noTipoVenta = !item.tipo_venta;
-                return (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="border border-gray-200 px-2 py-1 text-center text-gray-400">
-                      {idx + 1}
-                    </td>
-                    {/* Producto */}
-                    <td className="border border-gray-200 px-2 py-1">
-                      <Autocomplete
-                        options={products}
-                        value={item.producto}
-                        onChange={(_, v) => handleProductSelect(idx, v)}
-                        size="small"
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Escribir producto..."
-                            size="small"
-                            error={Boolean(errors[`item_${idx}_producto`])}
-                            sx={{ minWidth: 200 }}
-                          />
-                        )}
-                      />
-                    </td>
-                    {/* Cantidad */}
-                    <td className="border border-gray-200 px-2 py-1">
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.cantidad}
-                        onChange={(e) => updateItem(idx, 'cantidad', e.target.value)}
-                        className={`w-full border rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                          errors[`item_${idx}_cantidad`] ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                    </td>
-                    {/* Tipo venta */}
-                    <td className="border border-gray-200 px-2 py-1">
-                      <select
-                        value={item.tipo_venta || ''}
-                        onChange={(e) => handleSaleTypeChange(idx, Number(e.target.value))}
-                        className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                          errors[`item_${idx}_tipo_venta`] ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="">-</option>
-                        {saleTypes.map((st) => (
-                          <option key={st.id} value={st.id}>
-                            {st.descripcion}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    {/* Precio (dinámico según tipo venta) */}
-                    <td className="border border-gray-200 px-2 py-1">
-                      {noTipoVenta ? (
-                        <span className="text-gray-400 text-xs italic px-1">Elegí tipo</span>
-                      ) : bulk ? (
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.precio_bulto}
-                          onChange={(e) => updateItem(idx, 'precio_bulto', e.target.value)}
-                          placeholder="P. Bulto"
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
-                        />
-                      ) : (
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.precio_unitario}
-                          onChange={(e) => updateItem(idx, 'precio_unitario', e.target.value)}
-                          placeholder="P. Unitario"
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-400"
+              {items.map((item, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="border border-gray-200 px-2 py-1 text-center text-gray-400">
+                    {idx + 1}
+                  </td>
+                  {/* Producto */}
+                  <td className="border border-gray-200 px-2 py-1">
+                    <Autocomplete
+                      options={products}
+                      value={item.producto}
+                      onChange={(_, v) => handleProductSelect(idx, v)}
+                      size="small"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Escribir producto..."
+                          size="small"
+                          error={Boolean(errors[`item_${idx}_producto`])}
+                          sx={{ minWidth: 200 }}
                         />
                       )}
-                    </td>
-                    {/* Subtotal */}
-                    <td className="border border-gray-200 px-2 py-1 text-right font-medium text-gray-700">
-                      {calcSubtotal(item) !== null ? formatCurrency(calcSubtotal(item)) : '—'}
-                    </td>
-                    {/* Eliminar */}
-                    <td className="border border-gray-200 px-1 py-1 text-center">
-                      {items.length > 1 && (
-                        <IconButton size="small" onClick={() => removeItem(idx)} color="error">
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                    />
+                  </td>
+                  {/* Cantidad */}
+                  <td className="border border-gray-200 px-2 py-1">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.cantidad}
+                      onChange={(e) => updateItem(idx, 'cantidad', e.target.value)}
+                      className={`w-full border rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                        errors[`item_${idx}_cantidad`] ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                  </td>
+                  {/* Tipo venta */}
+                  <td className="border border-gray-200 px-2 py-1">
+                    <select
+                      value={item.tipo_venta || ''}
+                      onChange={(e) => handleSaleTypeChange(idx, Number(e.target.value))}
+                      className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                        errors[`item_${idx}_tipo_venta`] ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="">-</option>
+                      {saleTypes.map((st) => (
+                        <option key={st.id} value={st.id}>
+                          {st.descripcion}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  {/* Precio (read-only, resuelto desde la lista del cliente) */}
+                  <td className="border border-gray-200 px-2 py-1 text-right text-gray-700">
+                    {item.precio_aplicado
+                      ? formatCurrency(parseFloat(item.precio_aplicado))
+                      : <span className="text-gray-400 text-xs italic">—</span>
+                    }
+                  </td>
+                  {/* Subtotal */}
+                  <td className="border border-gray-200 px-2 py-1 text-right font-medium text-gray-700">
+                    {calcSubtotal(item) !== null ? formatCurrency(calcSubtotal(item)) : '—'}
+                  </td>
+                  {/* Eliminar */}
+                  <td className="border border-gray-200 px-1 py-1 text-center">
+                    {items.length > 1 && (
+                      <IconButton size="small" onClick={() => removeItem(idx)} color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -546,3 +543,4 @@ const FacturaForm = () => {
 };
 
 export default FacturaForm;
+

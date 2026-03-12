@@ -14,22 +14,19 @@ class BillProductRepository(IBillProductRepository):
             FacturaProducto.objects.create(
                 factura=bill,
                 producto=product['producto'],
-                cantidad=product['cantidad'],
-                precio_unitario=product['precio_unitario'],
-                precio_bulto=product['precio_bulto'],
                 tipo_venta=product['tipo_venta'],
+                cantidad=product['cantidad'],
+                precio_aplicado=product['precio_aplicado'],
             )
 
     def replace_products(self, bill, products):
-
         FacturaProducto.objects.filter(factura=bill).delete()
 
         for product in products:
             FacturaProducto.objects.create(
                 factura=bill,
                 producto=product['producto'],
-                cantidad=product['cantidad'],
-                precio_unitario=product['precio_unitario'],
-                precio_bulto=product['precio_bulto'],
                 tipo_venta=product['tipo_venta'],
+                cantidad=product['cantidad'],
+                precio_aplicado=product['precio_aplicado'],
             )
