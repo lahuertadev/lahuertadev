@@ -57,6 +57,12 @@ export const billTypeUrl = `${API_BASE}/bill_types/`;
 //! Sale Type (Tipo Venta: unidad / bulto)
 export const saleTypeUrl = `${API_BASE}/sale_types/`;
 
+//! Container Type 
+export const containerTypeUrl = `${API_BASE}/container_type/`;
+
+//! Unit Type
+export const unitTypeUrl = `${API_BASE}/unit_type/`;
+
 //! External Services 
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';
