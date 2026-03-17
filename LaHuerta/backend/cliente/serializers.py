@@ -80,7 +80,6 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
             'id', 
             'cuit',
             'razon_social',
-            'cuenta_corriente',
             'domicilio',
             'localidad',
             'tipo_facturacion',
