@@ -6,6 +6,7 @@ export const headerOptions = [
   { text: 'Facturas / Remitos', icon: <FaReceipt />, path: '/bill' },
   { text: 'Gastos', icon: <FaMoneyBill />, path: '/expense/' },
   { text: 'Pagos de Clientes', icon: <FaMoneyCheckAlt />, path: '/client-payment' },
+  { text: 'Productos', icon: <FaFileInvoice />, path: '/product' },
   { text: 'Listas de Precios', icon: <FaListAlt />, path: '/price-list' },
   {
     text: 'Catálogos',

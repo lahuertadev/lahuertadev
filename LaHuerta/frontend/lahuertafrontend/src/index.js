@@ -23,6 +23,9 @@ import PriceListEdit from "./pages/lista_precios/form/PriceListEdit";
 import PriceListForm from "./pages/lista_precios/form/PriceListForm";
 import ClientPaymentList from "./pages/pago_cliente/list";
 import ClientPaymentForm from "./pages/pago_cliente/form/ClientPaymentForm";
+import ProductForm from "./pages/producto/form/productForm";
+import ProductsList from "./pages/producto/list";
+import ProductDetail from "./pages/producto/detail";  
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
 import BillPrintView from "./pages/factura/print/PrintView";
@@ -31,6 +34,7 @@ import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
 import PasswordResetConfirm from "./pages/authentication/PasswordResetConfirm";
 import RequireAuth from "./components/RequireAuth";
+
 
 const router = createBrowserRouter([
   //! Sin header - Rutas de autenticación
@@ -74,6 +78,22 @@ const router = createBrowserRouter([
       {
         path: '/expense/edit/:id',
         element: <ExpenseForm />
+      },
+      {
+        path: 'product',
+        element: <ProductsList/>
+      },
+      {
+        path: '/product/create',
+        element: <ProductForm/>
+      },
+      {
+        path: '/product/edit/:id',
+        element: <ProductForm/>
+      },
+      {
+        path: '/product/detail/:id',
+        element: <ProductDetail/>
       },
       {
         path: '/client', 

@@ -4,16 +4,15 @@ from .exceptions import ProductNotFoundException
 
 class ProductRepository(IProductRepository):
     
-    # CRUD estándar
     def get_all(self, description=None, category=None, container_type=None):
         products = Producto.objects.all()
 
         if description is not None:
-            products = products.filter(descripcion=description)
+            products = products.filter(descripcion__icontains=description)
         if category is not None:
-            products = products.filter(categoria__descripcion=category)
+            products = products.filter(categoria__descripcion__icontains=category)
         if container_type is not None:
-            products = products.filter(tipo_contenedor__descripcion=container_type)
+            products = products.filter(tipo_contenedor__descripcion__icontains=container_type)
 
         return products
     
