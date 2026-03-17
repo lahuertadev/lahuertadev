@@ -137,7 +137,7 @@ class ClientViewSet(ViewSet):
         '''
         client = self.client_repository.get_client_by_id(pk)
         if not client:
-            return ClientNotFoundException('Cliente no encontrado.')
+            raise ClientNotFoundException('Cliente no encontrado.')
     
         try:
             data, district = self._resolve_localidad(dict(request.data))
@@ -183,7 +183,7 @@ class ClientViewSet(ViewSet):
         '''
         client = self.client_repository.get_client_by_id(pk)
         if not client:
-            return ClientNotFoundException('Cliente no encontrado.')
+            raise ClientNotFoundException('Cliente no encontrado.')
         
         try:
             data, district = self._resolve_localidad(request.data.copy())

@@ -162,7 +162,6 @@ const ClientForm = () => {
     const mappedData = {
       cuit: values.cuit,
       razon_social: values.businessName,
-      cuenta_corriente: 0.00,
       localidad: {
         'id': values.district.value,
         'nombre': values.district.name,
