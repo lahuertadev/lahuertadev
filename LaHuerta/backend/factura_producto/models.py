@@ -15,3 +15,9 @@ class FacturaProducto(models.Model):
 
     class Meta:
         db_table = 'factura_producto'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['factura', 'producto'],
+                name='unique_producto_por_factura'
+            )
+        ]

@@ -7,6 +7,27 @@ from cliente.serializers import ClientResponseSerializer
 from factura_producto.serializers import BillItemResponseSerializer, BillItemCreateSerializer
 
 
+def validate_unique_products(items):
+    seen = set()
+    duplicated = set()
+
+    for item in items:
+        product = item['producto']
+        product_id = product.id
+
+        if product_id in seen:
+            duplicated.add(product.descripcion)
+
+        seen.add(product_id)
+
+    if duplicated:
+        duplicated_list = ', '.join(sorted(duplicated))
+        raise serializers.ValidationError(
+            f'No se puede agregar el mismo producto más de una vez en la factura. '
+            f'Productos duplicados: {duplicated_list}.'
+        )
+
+
 class BillResponseSerializer(serializers.ModelSerializer):
     '''
     DTO de lectura: factura con cliente, tipo, e ítems anidados.
@@ -33,7 +54,9 @@ class BillCreateSerializer(serializers.Serializer):
 
     def validate_items(self, items):
         if not items:
-            raise serializers.ValidationError('La factura debe tener al menos un ítem.')
+            raise serializers.ValidationError('La factura debe tener al menos un producto.')
+
+        validate_unique_products(items)
         return items
 
 
@@ -50,7 +73,9 @@ class BillUpdateSerializer(serializers.Serializer):
 
     def validate_items(self, items):
         if items is not None and len(items) == 0:
-            raise serializers.ValidationError('Si se envían ítems, debe haber al menos uno.')
+            raise serializers.ValidationError('La factura debe tener al menos un producto.')
+        
+        validate_unique_products(items)
         return items
 
 
