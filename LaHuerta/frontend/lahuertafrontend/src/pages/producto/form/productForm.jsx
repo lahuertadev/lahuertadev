@@ -47,7 +47,10 @@ const ProductForm = () => {
     );
 
     const unitTypes = await loadOptions(unitTypeUrl, (data) =>
-      data.map((item) => ({ name: item.descripcion, value: item.id }))
+      data.map((item) => ({ 
+        name: item.descripcion, 
+        value: item.id,
+        measurementType: item.tipo_medicion}))
     );
 
     setSelectOptions({
@@ -72,7 +75,11 @@ const ProductForm = () => {
           ? { name: data.tipo_contenedor.descripcion, value: data.tipo_contenedor.id }
           : '',
         unitType: data.tipo_unidad
-          ? { name: data.tipo_unidad.descripcion, value: data.tipo_unidad.id }
+          ? { 
+            name: data.tipo_unidad.descripcion, 
+            value: data.tipo_unidad.id,
+            measurementType: data.tipo_unidad.tipo_medicion 
+          }
           : '',
         unitsPerBundle: data.cantidad_por_bulto ?? '',
         approximateWeight: data.peso_aproximado ?? '',
@@ -91,14 +98,37 @@ const ProductForm = () => {
     containerType: Yup.object().required('El tipo de contenedor es obligatorio'),
     unitType: Yup.object().required('El tipo de unidad es obligatorio'),
     unitsPerBundle: Yup.number()
-      .typeError('La cantidad por bulto debe ser numérica')
-      .integer('La cantidad por bulto debe ser un número entero')
-      .positive('La cantidad por bulto debe ser mayor a 0')
-      .required('La cantidad por bulto es obligatoria'),
+      .transform((value, originalValue) => (originalValue === '' ? null : value))
+      .nullable()
+      .when('unitType', (unitType, schema) => {
+        const measurementType = unitType?.measurementType;
+
+        if (measurementType === 'CANTIDAD') {
+          return schema
+          .typeError('La cantidad por bulto debe ser numérica')
+          .integer('La cantidad por bulto debe ser un número entero')
+          .positive('La cantidad por bulto debe ser mayor a 0')
+          .required('La cantidad por bulto es obligatoria');
+        }
+
+        return schema.notRequired();
+      }),
+      
     approximateWeight: Yup.number()
-      .typeError('El peso aproximado debe ser numérico')
-      .positive('El peso aproximado debe ser mayor a 0')
-      .required('El peso aproximado es obligatorio'),
+      .transform((value, originalValue) => (originalValue === '' ? null : value))
+      .nullable()
+      .when('unitType', (unitType, schema) => {
+        const measurementType = unitType?.measurementType;
+
+        if (measurementType === 'PESO') {
+          return schema
+            .typeError('El peso aproximado debe ser numérico')
+            .positive('El peso aproximado debe ser mayor a 0')
+            .required('El peso aproximado es obligatorio');
+        }
+
+        return schema.notRequired();
+      }),
   });
 
   //* Mapeo al formato esperado por backend
@@ -108,8 +138,14 @@ const ProductForm = () => {
       categoria: values.category.value,
       tipo_contenedor: values.containerType.value,
       tipo_unidad: values.unitType.value,
-      cantidad_por_bulto: Number(values.unitsPerBundle),
-      peso_aproximado: Number(values.approximateWeight),
+      cantidad_por_bulto:
+        values.unitsPerBundle === '' || values.unitsPerBundle === null
+        ? null
+        : Number(values.unitsPerBundle),
+      peso_aproximado:
+        values.approximateWeight === '' || values.approximateWeight === null
+        ? null
+        : Number(values.approximateWeight),
     };
   };
 
@@ -150,91 +186,112 @@ const ProductForm = () => {
       enableReinitialize
       onSubmit={handleSubmit}
     >
-      {({ values, errors, touched, handleChange }) => (
-        <div className="min-h-screen flex items-center justify-center bg-transparent flex-1">
-          <Form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl space-y-8">
-            {/* Datos del producto */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-semibold border-b-2 border-black pb-2">
-                Datos del producto
-              </h3>
+      {({ values, errors, touched, handleChange, setFieldValue }) => {
+        const measurementType = values.unitType?.measurementType;
+        const isWeightBased = measurementType === 'PESO';
+        const requiresUnitsPerBundle = measurementType === 'CANTIDAD';
 
-              <div className="grid grid-cols-2 gap-4">
-                <Field
-                  as={CustomInput}
-                  label="Descripción"
-                  name="description"
-                  required
-                  className="col-span-2"
-                  onChange={handleChange}
-                />
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-transparent flex-1">
+            <Form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl space-y-8">
+              {/* Datos del producto */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold border-b-2 border-black pb-2">
+                  Datos del producto
+                </h3>
 
-                <BasicSelect
-                  label="Categoría"
-                  name="category"
-                  value={values.category}
-                  options={selectOptions.categories}
-                  onChange={handleChange}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Field
+                    as={CustomInput}
+                    label="Descripción"
+                    name="description"
+                    required
+                    className="col-span-2"
+                    onChange={handleChange}
+                  />
 
-                <BasicSelect
-                  label="Tipo de contenedor"
-                  name="containerType"
-                  value={values.containerType}
-                  options={selectOptions.containerTypes}
-                  onChange={handleChange}
-                />
+                  <BasicSelect
+                    label="Categoría"
+                    name="category"
+                    value={values.category}
+                    options={selectOptions.categories}
+                    onChange={handleChange}
+                  />
 
-                <BasicSelect
-                  label="Tipo de unidad"
-                  name="unitType"
-                  value={values.unitType}
-                  options={selectOptions.unitTypes}
-                  onChange={handleChange}
-                />
+                  <BasicSelect
+                    label="Tipo de contenedor"
+                    name="containerType"
+                    value={values.containerType}
+                    options={selectOptions.containerTypes}
+                    onChange={handleChange}
+                  />
 
-                <Field
-                  as={CustomInput}
-                  label="Cantidad por bulto"
-                  name="unitsPerBundle"
-                  type="number"
-                  required
-                  onChange={handleChange}
-                />
+                  <BasicSelect
+                    label="Tipo de unidad"
+                    name="unitType"
+                    value={values.unitType}
+                    options={selectOptions.unitTypes}
+                    onChange={(event) => {
+                      handleChange(event);
 
-                <Field
-                  as={CustomInput}
-                  label="Peso aproximado"
-                  name="approximateWeight"
-                  type="number"
-                  required
-                  onChange={handleChange}
+                      const selectedUnitType = event.target.value;
+                      const selectedMeasurementType = selectedUnitType?.measurementType;
+
+                      if (selectedMeasurementType === 'PESO') {
+                        setFieldValue('unitsPerBundle', '');
+                      }
+
+                      if (selectedMeasurementType === 'CANTIDAD') {
+                        setFieldValue('approximateWeight', '');
+                      }
+                    }}
+                  />
+                  {requiresUnitsPerBundle && (
+                  <Field
+                    as={CustomInput}
+                    label="Cantidad por bulto"
+                    name="unitsPerBundle"
+                    type="number"
+                    required={requiresUnitsPerBundle}
+                    onChange={handleChange}
+                  />
+                  )}
+                  {isWeightBased && (
+                  <Field
+                    as={CustomInput}
+                    label="Peso aproximado"
+                    name="approximateWeight"
+                    type="number"
+                    required={isWeightBased}
+                    onChange={handleChange}
+                  />
+                  )}
+                </div>
+              </div>
+
+              {/* Botón submit */}
+              <div className="mt-8 flex justify-center">
+                <IconLabelButtons
+                  label="Guardar"
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  type="submit"
                 />
               </div>
-            </div>
 
-            {/* Botón submit */}
-            <div className="mt-8 flex justify-center">
-              <IconLabelButtons
-                label="Guardar"
-                variant="contained"
-                color="primary"
-                size="large"
-                type="submit"
-              />
-            </div>
-
-            {/* Errores */}
-            {Object.keys(errors).map((key) =>
-              touched[key] && errors[key] ? (
-                <div key={key} className="text-red-500 text-sm mt-2">
-                  {typeof errors[key] === 'string' ? errors[key] : 'Campo inválido'}
-                </div>
-              ) : null
-            )}
-          </Form>
-        </div>
-      )}
+              {/* Errores */}
+              {Object.keys(errors).map((key) =>
+                touched[key] && errors[key] ? (
+                  <div key={key} className="text-red-500 text-sm mt-2">
+                    {typeof errors[key] === 'string' ? errors[key] : 'Campo inválido'}
+                  </div>
+                ) : null
+              )}
+            </Form>
+          </div>
+        );
+      }}
     </Formik>
   );
 };
