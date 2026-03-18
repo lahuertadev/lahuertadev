@@ -7,4 +7,4 @@ class UnitTypeSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = TipoUnidad
-        fields = ['id', 'descripcion', 'abreviacion']
+        fields = ['id', 'descripcion', 'abreviacion', 'tipo_medicion']
