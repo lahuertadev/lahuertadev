@@ -52,6 +52,11 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             'cantidad_por_bulto',
             'peso_aproximado'
         ]
+        
+        extra_kwargs = {
+            'cantidad_por_bulto': {'required': False, 'allow_null': True},
+            'peso_aproximado': {'required': False, 'allow_null': True},
+        }
 
 class ProductUpdateSerializer(serializers.ModelSerializer):
     '''
@@ -76,6 +81,6 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         #* Hace que los datos no sean requeridos ya que es una actualización. 
         extra_kwargs = {
             'descripcion': {'required': False},
-            'cantidad_por_bulto': {'required': False},
-            'peso_aproximado': {'required': False},
+            'cantidad_por_bulto': {'required': False, 'allow_null': True},
+            'peso_aproximado': {'required': False, 'allow_null': True},
         }

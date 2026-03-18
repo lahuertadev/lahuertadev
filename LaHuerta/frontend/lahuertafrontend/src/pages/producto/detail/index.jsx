@@ -2,9 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { productUrl } from '../../../constants/urls';
-import { formatCuit } from '../../../utils/cuit';
-import { formatCurrency } from '../../../utils/currency';
-import { formatDate } from '../../../utils/date';
 import { Box, Paper, Typography, Button } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
@@ -16,7 +13,7 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchClient = async () => {
+    const fetchProduct = async () => {
       try {
         const response = await axios.get(`${productUrl}${id}/`);
         setProduct(response.data);
@@ -28,7 +25,7 @@ const ProductDetail = () => {
       }
     };
 
-    if (id) fetchClient();
+    if (id) fetchProduct();
   }, [id]);
 
   const handleBack = () => {
@@ -47,27 +44,63 @@ const ProductDetail = () => {
     return (
       <div className="container mx-auto p-4">
         <p className="text-red-600">Error al cargar el producto. {error}</p>
-        <Button startIcon={<ArrowBackIcon />} onClick={handleBack} color="primary" variant="outlined" sx={{ mt: 2 }}>
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={handleBack}
+          color="primary"
+          variant="outlined"
+          sx={{ mt: 2 }}
+        >
           Volver al listado
         </Button>
       </div>
     );
   }
 
+  const measurementType = product.tipo_unidad?.tipo_medicion;
+
+  const commercialField =
+    measurementType === 'PESO'
+      ? {
+          label: 'Peso Aproximado',
+          value:
+            product.peso_aproximado != null
+              ? `${product.peso_aproximado} kg`
+              : '—',
+        }
+      : measurementType === 'CANTIDAD'
+        ? {
+            label: 'Cantidad por Bulto',
+            value:
+              product.cantidad_por_bulto != null
+                ? product.cantidad_por_bulto
+                : '—',
+          }
+        : null;
+
   const fields = [
     { label: 'Producto', value: product.descripcion },
     { label: 'Categoría', value: product.categoria?.descripcion || '—' },
     { label: 'Tipo de Contenedor', value: product.tipo_contenedor?.descripcion || '—' },
-    { label: 'Tipo de Unidad', value: product.tipo_unidad?.descripcion || '-' },
-    { label: 'Cantidad por Bulto', value: product.cantidad_por_bulto || '-' },
-    { label: 'Peso Aproximado', value: product.cantidad_por_bulto || '—' },
+    { label: 'Tipo de Unidad', value: product.tipo_unidad?.descripcion || '—' },
+    ...(commercialField ? [commercialField] : []),
   ];
 
   return (
     <div className="container mx-auto h-full flex flex-col rounded">
       <Box sx={{ width: '100%', maxWidth: 720, mx: 'auto', p: 2 }}>
         <Paper sx={{ p: 3, border: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              mb: 2,
+              pb: 2,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
             <Typography variant="h5" component="h1" fontWeight="bold" color="text.primary">
               Detalle del producto
             </Typography>
@@ -87,6 +120,7 @@ const ProductDetail = () => {
               Volver al listado
             </Button>
           </Box>
+
           <Box sx={{ pt: 1 }}>
             {fields.map(({ label, value }) => (
               <Box key={label} sx={{ mb: 2 }}>
