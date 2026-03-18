@@ -16,6 +16,7 @@ import {
   saleTypeUrl,
 } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
+import MenuItem from '@mui/material/MenuItem';
 
 const EMPTY_ITEM = {
   producto: null,
@@ -33,6 +34,7 @@ const FacturaForm = () => {
   const [billTypes, setBillTypes] = useState([]);
   const [products, setProducts] = useState([]);
   const [saleTypes, setSaleTypes] = useState([]);
+  const [clientPrices, setClientPrices] = useState({});
 
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedBillType, setSelectedBillType] = useState(null);
@@ -40,42 +42,54 @@ const FacturaForm = () => {
 
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
 
-  // { producto_id: { tipo_venta_id: precio } }
-  const [clientPrices, setClientPrices] = useState({});
-
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // ── Carga de opciones ──────────────────────────────────────────────
+  // ── Load options ───────────────────────────────────────────────────
   useEffect(() => {
-    const load = async () => {
-      const [c, bt, p, st] = await Promise.all([
+    const loadOptions = async () => {
+      const [clientsResponse, billTypesResponse, productsResponse, saleTypesResponse] = await Promise.all([
         axios.get(clientUrl),
         axios.get(billTypeUrl),
         axios.get(productUrl),
         axios.get(saleTypeUrl),
       ]);
-      setClients(c.data.map((cl) => ({ label: `${cl.cuit} - ${cl.razon_social}`, ...cl })));
-      const mappedBillTypes = bt.data.map((t) => ({ label: t.descripcion, ...t }));
+
+      setClients(
+        clientsResponse.data.map((client) => ({
+          label: `${client.cuit} - ${client.razon_social}`,
+          ...client,
+        }))
+      );
+
+      const mappedBillTypes = billTypesResponse.data.map((billType) => ({
+        label: billType.descripcion,
+        ...billType,
+      }));
       setBillTypes(mappedBillTypes);
-      setProducts(p.data.map((pr) => ({ label: pr.descripcion, ...pr })));
-      setSaleTypes(st.data);
+
+      setProducts(
+        productsResponse.data.map((product) => ({
+          label: product.descripcion,
+          ...product,
+        }))
+      );
+
+      setSaleTypes(saleTypesResponse.data);
 
       if (!isEdit) {
         const remito = mappedBillTypes.find(
-          (t) => t.descripcion?.toLowerCase() === 'remito'
+          (billType) => billType.descripcion?.toLowerCase() === 'remito'
         );
         if (remito) setSelectedBillType(remito);
       }
     };
-    load().catch(console.error);
+
+    loadOptions().catch(console.error);
   }, [isEdit]);
 
-  // ── Precios del cliente ────────────────────────────────────────────
-  // Estructura: { producto_id: { tipo_venta_id: precio } }
-  // ── Precios del cliente ────────────────────────────────────────────
-// Estructura final: { producto_id: { tipo_venta_id: precio } }
-
+  // ── Load client prices ─────────────────────────────────────────────
+  // Final structure: { producto_id: { tipo_venta_id: precio } }
   useEffect(() => {
     if (!selectedClient) {
       setClientPrices({});
@@ -84,193 +98,238 @@ const FacturaForm = () => {
 
     axios
       .get(`${clientUrl}${selectedClient.id}/products-with-prices/`)
-      .then((res) => {
+      .then((response) => {
+        const priceMap = {};
 
-        const map = {};
-
-        res.data.forEach((entry) => {
-          const prodId = Number(entry.producto.id);
-          const tvId = Number(entry.tipo_venta.id);
+        response.data.forEach((entry) => {
+          const productId = Number(entry.producto.id);
+          const saleTypeId = Number(entry.tipo_venta.id);
           const price = Number(entry.precio);
 
-          if (!map[prodId]) map[prodId] = {};
-
-          map[prodId][tvId] = price;
+          if (!priceMap[productId]) priceMap[productId] = {};
+          priceMap[productId][saleTypeId] = price;
         });
 
-        setClientPrices(map);
+        setClientPrices(priceMap);
       })
-      .catch((err) => {
-        console.error("ERROR CARGANDO PRECIOS:", err);
+      .catch((error) => {
+        console.error('ERROR LOADING PRICES:', error);
         setClientPrices({});
       });
   }, [selectedClient]);
 
-  // ── Carga de edición ───────────────────────────────────────────────
+  // ── Load edit data ─────────────────────────────────────────────────
   useEffect(() => {
     if (!isEdit) return;
-    axios.get(`${billUrl}${id}/`).then((res) => {
-      const b = res.data;
-      setFecha(b.fecha);
-      setSelectedClient({ label: `${b.cliente.cuit} - ${b.cliente.razon_social}`, ...b.cliente });
-      setSelectedBillType({ label: b.tipo_factura.descripcion, ...b.tipo_factura });
-      setItems(
-        b.items.map((it) => ({
-          producto: { label: it.producto.descripcion, ...it.producto },
-          cantidad: it.cantidad,
-          tipo_venta: it.tipo_venta?.id ?? null,
-          precio_aplicado: it.precio_aplicado,
-        }))
-      );
-    }).catch(console.error);
+
+    axios
+      .get(`${billUrl}${id}/`)
+      .then((response) => {
+        const bill = response.data;
+
+        setFecha(bill.fecha);
+        setSelectedClient({
+          label: `${bill.cliente.cuit} - ${bill.cliente.razon_social}`,
+          ...bill.cliente,
+        });
+        setSelectedBillType({
+          label: bill.tipo_factura.descripcion,
+          ...bill.tipo_factura,
+        });
+
+        setItems(
+          bill.items.map((item) => ({
+            producto: { label: item.producto.descripcion, ...item.producto },
+            cantidad: item.cantidad,
+            tipo_venta: item.tipo_venta?.id ?? null,
+            precio_aplicado: item.precio_aplicado,
+          }))
+        );
+      })
+      .catch(console.error);
   }, [id, isEdit]);
 
-  // ── Helpers de ítems ───────────────────────────────────────────────
-  const addItem = () => setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
+  // ── Item helpers ───────────────────────────────────────────────────
+  const addItem = () => setItems((previous) => [...previous, { ...EMPTY_ITEM }]);
 
-  const removeItem = (idx) =>
-    setItems((prev) => prev.filter((_, i) => i !== idx));
+  const removeItem = (index) =>
+    setItems((previous) => previous.filter((_, currentIndex) => currentIndex !== index));
 
-  const updateItem = useCallback((idx, field, value) => {
-    setItems((prev) => {
-      const next = [...prev];
-      next[idx] = { ...next[idx], [field]: value };
-      return next;
+  const updateItem = useCallback((index, field, value) => {
+    setItems((previous) => {
+      const nextItems = [...previous];
+      nextItems[index] = { ...nextItems[index], [field]: value };
+      return nextItems;
     });
   }, []);
 
-  // Busca el precio en la lista del cliente para (producto, tipo_venta)
-  const resolvePrecio = useCallback(
-    (productId, tipoVentaId) => {
-  
-      if (!productId || !tipoVentaId) {
+  const resolvePrice = useCallback(
+    (productId, saleTypeId) => {
+      if (!productId || !saleTypeId) {
         return '';
       }
-  
-      const price = clientPrices[productId]?.[tipoVentaId];
-  
+
+      const price = clientPrices[productId]?.[saleTypeId];
       return price ?? '';
     },
-    [clientPrices],
+    [clientPrices]
   );
 
-  const handleProductSelect = (idx, product) => {
-  
+  const handleProductSelect = (index, product) => {
     if (!product) {
-      setItems((prev) => {
-        const next = [...prev];
-        next[idx] = { ...next[idx], producto: null, precio_aplicado: '' };
-        return next;
+      setItems((previous) => {
+        const nextItems = [...previous];
+        nextItems[index] = { ...EMPTY_ITEM };
+        return nextItems;
       });
       return;
     }
-  
-    setItems((prev) => {
-  
-      const next = [...prev];
-  
-      const tipoVenta = next[idx].tipo_venta;
-  
-      const precio = resolvePrecio(product.id, tipoVenta);
-  
-      next[idx] = {
-        ...next[idx],
+
+    setItems((previous) => {
+      const nextItems = [...previous];
+      const saleTypeId = nextItems[index].tipo_venta;
+      const price = resolvePrice(product.id, saleTypeId);
+
+      nextItems[index] = {
+        ...nextItems[index],
         producto: product,
-        precio_aplicado: precio,
+        precio_aplicado: price,
       };
-  
-      return next;
+
+      return nextItems;
     });
   };
 
-  const handleSaleTypeChange = (idx, tipoVentaId) => {
-  
-    setItems((prev) => {
-  
-      const next = [...prev];
-  
-      const productId = next[idx].producto?.id;
-  
-      const precio = resolvePrecio(productId, tipoVentaId);
-  
-      next[idx] = {
-        ...next[idx],
-        tipo_venta: tipoVentaId,
-        precio_aplicado: precio,
+  const handleSaleTypeChange = (index, saleTypeId) => {
+    setItems((previous) => {
+      const nextItems = [...previous];
+      const productId = nextItems[index].producto?.id;
+      const price = resolvePrice(productId, saleTypeId);
+
+      nextItems[index] = {
+        ...nextItems[index],
+        tipo_venta: saleTypeId,
+        precio_aplicado: price,
       };
-  
-      return next;
+
+      return nextItems;
     });
   };
 
-  // ── Total ──────────────────────────────────────────────────────────
-  const calcSubtotal = (item) => {
+  const hasDuplicatedProducts = () => {
+    const selectedIds = items
+      .map((item) => item.producto?.id)
+      .filter(Boolean);
+
+    return new Set(selectedIds).size !== selectedIds.length;
+  };
+
+  const getAvailableProducts = (currentIndex) => {
+    const selectedProductIds = items
+      .filter((_, index) => index !== currentIndex)
+      .map((item) => item.producto?.id)
+      .filter(Boolean);
+
+    return products.filter((product) => !selectedProductIds.includes(product.id));
+  };
+
+  // ── Totals ─────────────────────────────────────────────────────────
+  const calculateSubtotal = (item) => {
     if (!item.tipo_venta || !item.precio_aplicado) return null;
-    const qty = parseFloat(item.cantidad) || 0;
+
+    const quantity = parseFloat(item.cantidad) || 0;
     const price = parseFloat(item.precio_aplicado) || 0;
-    return qty * price;
+
+    return quantity * price;
   };
 
-  const total = items.reduce((sum, it) => sum + (calcSubtotal(it) ?? 0), 0);
+  const total = items.reduce((sum, item) => sum + (calculateSubtotal(item) ?? 0), 0);
 
-  // ── Fila automática ────────────────────────────────────────────────
+  // ── Auto-add row ───────────────────────────────────────────────────
   useEffect(() => {
-    const last = items[items.length - 1];
-    if (last.producto && parseFloat(last.cantidad) > 0 && last.tipo_venta) {
-      setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
+    const lastItem = items[items.length - 1];
+
+    if (lastItem.producto && parseFloat(lastItem.cantidad) > 0 && lastItem.tipo_venta) {
+      setItems((previous) => [...previous, { ...EMPTY_ITEM }]);
     }
   }, [items]);
 
-  // ── Validación ─────────────────────────────────────────────────────
+  // ── Validation ─────────────────────────────────────────────────────
   const validate = () => {
-    const e = {};
-    if (!selectedClient) e.client = 'Seleccioná un cliente';
-    if (!selectedBillType) e.billType = 'Seleccioná un tipo';
-    if (!fecha) e.fecha = 'Ingresá la fecha';
+    const nextErrors = {};
 
-    const filledItems = items.filter((it) => it.producto !== null);
+    if (!selectedClient) nextErrors.client = 'Debe seleccionar un cliente';
+    if (!selectedBillType) nextErrors.billType = 'Debe seleccionar un tipo de factura';
+    if (!fecha) nextErrors.fecha = 'Debe ingresar una fecha';
+
+    const filledItems = items.filter((item) => item.producto !== null);
+
     if (filledItems.length === 0) {
-      e.items_empty = 'Agregá al menos un producto';
-      return e;
+      nextErrors.items_empty = 'Debe agregar al menos un producto';
+      return nextErrors;
     }
 
-    items.forEach((it, idx) => {
-      if (!it.producto) return;
-      if (!it.cantidad || parseFloat(it.cantidad) <= 0) e[`item_${idx}_cantidad`] = 'Requerido';
-      if (!it.tipo_venta) e[`item_${idx}_tipo_venta`] = 'Requerido';
+    items.forEach((item, index) => {
+      if (!item.producto) return;
+
+      if (!item.cantidad || parseFloat(item.cantidad) <= 0) {
+        nextErrors[`item_${index}_cantidad`] = 'Requerido';
+      }
+
+      if (!item.tipo_venta) {
+        nextErrors[`item_${index}_tipo_venta`] = 'Requerido';
+      }
     });
-    return e;
+
+    if (hasDuplicatedProducts()) {
+      nextErrors.items_duplicated =
+        'No se puede agregar el mismo producto más de una vez en la factura';
+    }
+
+    return nextErrors;
   };
 
-  // ── Guardar ────────────────────────────────────────────────────────
+  // ── Save ───────────────────────────────────────────────────────────
   const handleSave = async () => {
-    const e = validate();
-    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    const validationErrors = validate();
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
     setErrors({});
     setSaving(true);
+
     try {
       const payload = {
         cliente: selectedClient.id,
         tipo_factura: selectedBillType.id,
         fecha,
         items: items
-          .filter((it) => it.producto !== null)
-          .map((it) => ({
-            producto: it.producto.id,
-            cantidad: it.cantidad,
-            tipo_venta: it.tipo_venta,
+          .filter((item) => item.producto !== null)
+          .map((item) => ({
+            producto: item.producto.id,
+            cantidad: item.cantidad,
+            tipo_venta: item.tipo_venta,
           })),
       };
-      let res;
+
+      let response;
       if (isEdit) {
-        res = await axios.put(`${billUrl}${id}/`, payload);
+        response = await axios.put(`${billUrl}${id}/`, payload);
       } else {
-        res = await axios.post(billUrl, payload);
+        response = await axios.post(billUrl, payload);
       }
-      navigate(`/bill/detail/${res.data.id}`);
-    } catch (err) {
-      const msg = err?.response?.data?.detail || err?.response?.data || 'Error al guardar la factura.';
-      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+
+      navigate(`/bill/detail/${response.data.id}`);
+    } catch (error) {
+      const message =
+        error?.response?.data?.detail ||
+        error?.response?.data ||
+        'Error al guardar la factura.';
+
+      alert(typeof message === 'string' ? message : JSON.stringify(message));
     } finally {
       setSaving(false);
     }
@@ -279,8 +338,7 @@ const FacturaForm = () => {
   // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="container mx-auto py-6 px-4 bg-white rounded shadow-md w-full max-w-5xl">
-
-      {/* Encabezado */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <Button
           startIcon={<ArrowBackIcon />}
@@ -298,15 +356,15 @@ const FacturaForm = () => {
 
       <hr className="border-gray-200 mb-6" />
 
-      {/* Datos del encabezado */}
+      {/* Header data */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Cliente */}
+        {/* Client */}
         <div className="md:col-span-2">
           <label className="block text-sm font-semibold text-gray-700 mb-1">Cliente *</label>
           <Autocomplete
             options={clients}
             value={selectedClient}
-            onChange={(_, v) => setSelectedClient(v)}
+            onChange={(_, value) => setSelectedClient(value)}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -319,13 +377,13 @@ const FacturaForm = () => {
           />
         </div>
 
-        {/* Fecha */}
+        {/* Date */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha *</label>
           <input
             type="date"
             value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
+            onChange={(event) => setFecha(event.target.value)}
             className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 ${
               errors.fecha ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -333,13 +391,13 @@ const FacturaForm = () => {
           {errors.fecha && <p className="text-red-500 text-xs mt-1">{errors.fecha}</p>}
         </div>
 
-        {/* Tipo factura */}
+        {/* Bill type */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de facturación *</label>
           <Autocomplete
             options={billTypes}
             value={selectedBillType}
-            onChange={(_, v) => setSelectedBillType(v)}
+            onChange={(_, value) => setSelectedBillType(value)}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -352,7 +410,7 @@ const FacturaForm = () => {
           />
         </div>
 
-        {/* Info del cliente (readonly) */}
+        {/* Client info */}
         {selectedClient && (
           <>
             <div>
@@ -391,122 +449,152 @@ const FacturaForm = () => {
         )}
       </div>
 
-      {/* Tabla de ítems */}
+      {/* Items table */}
       {selectedClient && (
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-700">Productos</h2>
-          <button
-            onClick={addItem}
-            className="flex items-center gap-1 bg-transparent border-none text-blue-lahuerta text-sm font-medium cursor-pointer hover:underline hover:underline-offset-2"
-          >
-            <AddCircleOutlineIcon fontSize="small" /> Agregar línea
-          </button>
-        </div>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-gray-700">Productos</h2>
+            <button
+                type="button"
+                onClick={addItem}
+                className="flex items-center gap-1 bg-transparent border-none text-blue-lahuerta text-sm font-medium cursor-pointer hover:underline hover:underline-offset-2 focus:outline-none"
+                style={{ background: 'transparent', boxShadow: 'none' }}
+              >
+              <AddCircleOutlineIcon fontSize="small" /> Agregar línea
+            </button>
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="bg-gray-100 text-gray-700">
-                <th className="border border-gray-200 px-2 py-2 text-center w-12">#</th>
-                <th className="border border-gray-200 px-2 py-2 text-center">Producto</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-24">Cantidad</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-32">Tipo de venta</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-32">Precio</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-28">Subtotal</th>
-                <th className="border border-gray-200 px-2 py-2 w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="border border-gray-200 px-2 py-1 text-center text-gray-400">
-                    {idx + 1}
-                  </td>
-                  {/* Producto */}
-                  <td className="border border-gray-200 px-2 py-1">
-                    <Autocomplete
-                      options={products}
-                      value={item.producto}
-                      onChange={(_, v) => handleProductSelect(idx, v)}
-                      size="small"
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder="Escribir producto..."
-                          size="small"
-                          error={Boolean(errors[`item_${idx}_producto`])}
-                          sx={{ minWidth: 200 }}
-                        />
-                      )}
-                    />
-                  </td>
-                  {/* Cantidad */}
-                  <td className="border border-gray-200 px-2 py-1">
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={item.cantidad}
-                      onChange={(e) => updateItem(idx, 'cantidad', e.target.value)}
-                      className={`w-full border rounded px-2 py-1 text-sm text-right focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                        errors[`item_${idx}_cantidad`] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                  </td>
-                  {/* Tipo venta */}
-                  <td className="border border-gray-200 px-2 py-1">
-                    <select
-                      value={item.tipo_venta || ''}
-                      onChange={(e) => handleSaleTypeChange(idx, Number(e.target.value))}
-                      className={`w-full border rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-                        errors[`item_${idx}_tipo_venta`] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    >
-                      <option value="">-</option>
-                      {saleTypes.map((st) => (
-                        <option key={st.id} value={st.id}>
-                          {st.descripcion}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  {/* Precio (read-only, resuelto desde la lista del cliente) */}
-                  <td className="border border-gray-200 px-2 py-1 text-right text-gray-700">
-                    {item.precio_aplicado
-                      ? formatCurrency(parseFloat(item.precio_aplicado))
-                      : <span className="text-gray-400 text-xs italic">—</span>
-                    }
-                  </td>
-                  {/* Subtotal */}
-                  <td className="border border-gray-200 px-2 py-1 text-right font-medium text-gray-700">
-                    {calcSubtotal(item) !== null ? formatCurrency(calcSubtotal(item)) : '—'}
-                  </td>
-                  {/* Eliminar */}
-                  <td className="border border-gray-200 px-1 py-1 text-center">
-                    {items.length > 1 && (
-                      <IconButton size="small" onClick={() => removeItem(idx)} color="error">
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-100 text-gray-700">
+                  <th className="border border-gray-200 px-2 py-2 text-center w-12">#</th>
+                  <th className="border border-gray-200 px-2 py-2 text-center">Producto</th>
+                  <th className="border border-gray-200 px-2 py-2 text-center w-24">Cantidad</th>
+                  <th className="border border-gray-200 px-2 py-2 text-center w-32">Tipo de venta</th>
+                  <th className="border border-gray-200 px-2 py-2 text-center w-32">Precio</th>
+                  <th className="border border-gray-200 px-2 py-2 text-center w-28">Subtotal</th>
+                  <th className="border border-gray-200 px-2 py-2 w-10"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-200 px-2 py-1 text-center text-gray-400">
+                      {index + 1}
+                    </td>
 
-        {/* Total */}
-        <div className="flex justify-end mt-3 pr-10">
-          <div className="text-right">
-            <span className="text-gray-500 text-sm mr-4">TOTAL</span>
-            <span className="text-xl font-bold text-gray-800">{formatCurrency(total)}</span>
+                    {/* Product */}
+                    <td className="border border-gray-200 px-2 py-1 align-middle">
+                      <Autocomplete
+                        options={getAvailableProducts(index)}
+                        value={item.producto}
+                        onChange={(_, value) => handleProductSelect(index, value)}
+                        size="small"
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Escribir producto..."
+                            size="small"
+                            error={Boolean(errors[`item_${index}_producto`])}
+                            sx={{ minWidth: 200 }}
+                          />
+                        )}
+                      />
+                    </td>
+
+                    {/* Quantity */}
+                    <td className="border border-gray-200 px-2 py-1 w-32">
+                      <TextField
+                        type="number"
+                        size="small"
+                        fullWidth
+                        inputProps={{ min: 0, step: 0.01 }}
+                        value={item.cantidad}
+                        onChange={(event) => updateItem(index, 'cantidad', event.target.value)}
+                        error={Boolean(errors[`item_${index}_cantidad`])}
+                        sx={{
+                          '& input': {
+                            textAlign: 'right',
+                          },
+                        }}
+                      />
+                    </td>
+
+                    {/* Sale type */}
+                    <td className="border border-gray-200 px-2 py-1">
+                      <TextField
+                        select
+                        size="small"
+                        fullWidth
+                        value={item.tipo_venta ?? ''}
+                        onChange={(event) =>
+                          handleSaleTypeChange(
+                            index,
+                            event.target.value === '' ? null : Number(event.target.value)
+                          )
+                        }
+                        error={Boolean(errors[`item_${index}_tipo_venta`])}
+                      >
+                        <MenuItem value="">-</MenuItem>
+                        {saleTypes.map((saleType) => (
+                          <MenuItem key={saleType.id} value={saleType.id}>
+                            {saleType.descripcion}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </td>
+
+                    {/* Price */}
+                    <td className="border border-gray-200 px-2 py-1 text-right text-gray-700">
+                      {item.precio_aplicado ? (
+                        formatCurrency(parseFloat(item.precio_aplicado))
+                      ) : (
+                        <span className="text-gray-400 text-xs italic">—</span>
+                      )}
+                    </td>
+
+                    {/* Subtotal */}
+                    <td className="border border-gray-200 px-2 py-1 text-right font-medium text-gray-700">
+                      {calculateSubtotal(item) !== null ? formatCurrency(calculateSubtotal(item)) : '—'}
+                    </td>
+
+                    {/* Delete */}
+                    <td className="border border-gray-200 px-1 py-1 text-center">
+                      {items.length > 1 && (
+                        <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {(errors.items_empty || errors.items_duplicated) && (
+            <div className="mt-2">
+              {errors.items_empty && (
+                <p className="text-red-500 text-sm">{errors.items_empty}</p>
+              )}
+              {errors.items_duplicated && (
+                <p className="text-red-500 text-sm">{errors.items_duplicated}</p>
+              )}
+            </div>
+          )}
+
+          {/* Total */}
+          <div className="flex justify-end mt-3 pr-10">
+            <div className="text-right">
+              <span className="text-gray-500 text-sm mr-4">TOTAL</span>
+              <span className="text-xl font-bold text-gray-800">{formatCurrency(total)}</span>
+            </div>
           </div>
         </div>
-      </div>
       )}
 
-      {/* Botones */}
+      {/* Actions */}
       <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-gray-200">
         <Button
           variant="contained"
@@ -522,10 +610,17 @@ const FacturaForm = () => {
         >
           Cancelar
         </Button>
+
         <Button
           variant="contained"
           onClick={handleSave}
-          disabled={saving || !items.some((it) => { const s = calcSubtotal(it); return s !== null && s > 0; })}
+          disabled={
+            saving ||
+            !items.some((item) => {
+              const subtotal = calculateSubtotal(item);
+              return subtotal !== null && subtotal > 0;
+            })
+          }
           sx={{
             bgcolor: '#5d89c8',
             '&:hover': { bgcolor: '#4a70a8' },
@@ -543,4 +638,3 @@ const FacturaForm = () => {
 };
 
 export default FacturaForm;
-
