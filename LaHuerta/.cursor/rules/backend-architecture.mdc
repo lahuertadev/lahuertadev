@@ -1,0 +1,28 @@
+---
+description: Arquitectura backend Django/DRF de La Huerta
+globs:
+  - "backend/**/*.py"
+alwaysApply: true
+---
+
+# Arquitectura backend - La Huerta
+
+Seguir la arquitectura existente del proyecto.
+
+Capas principales:
+- views.py: capa HTTP
+- serializers.py: validación y serialización
+- interfaces.py: contratos
+- repositories.py: acceso a datos
+- service.py: lógica de negocio
+- factory.py: construcción de dependencias
+- exceptions.py: errores de dominio
+
+Reglas:
+- las views deben ser delgadas
+- no poner lógica de negocio compleja en views
+- usar repositories para acceso a datos
+- usar service solo cuando haya lógica de dominio real
+- para endpoints simples como list, retrieve o gets sin lógica de negocio relevante, puede usarse view + repository sin pasar por service
+- usar service cuando haya cálculos, reglas de dominio, múltiples entidades, transacciones o efectos colaterales
+- priorizar siempre el patrón ya existente en apps reales del proyecto

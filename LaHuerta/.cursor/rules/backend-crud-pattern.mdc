@@ -1,0 +1,29 @@
+---
+description: Patrón para crear o extender CRUDs backend en La Huerta
+globs:
+  - "backend/**/*.py"
+alwaysApply: false
+---
+
+# CRUD backend - La Huerta
+
+Cuando se pida crear o extender un CRUD:
+
+1. revisar si la app ya existe
+2. buscar una app similar
+3. listar archivos a crear o modificar
+4. decidir si el caso necesita service o si alcanza con repository
+5. implementar solo lo necesario
+6. indicar si requiere migraciones
+
+Evaluar según el caso:
+- model
+- serializers
+- interfaces
+- repository
+- service
+- factory
+- exceptions
+- views o viewset
+- urls
+- tests
