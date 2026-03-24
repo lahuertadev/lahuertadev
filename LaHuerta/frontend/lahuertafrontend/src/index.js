@@ -28,6 +28,8 @@ import ProductsList from "./pages/producto/list";
 import ProductDetail from "./pages/producto/detail";  
 import SupplierList from "./pages/proveedor/list";
 import ProveedorForm from "./pages/proveedor/form/ProveedorForm";
+import MarketList from "./pages/mercado/list";
+import MercadoForm from "./pages/mercado/form/MercadoForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
 import BillPrintView from "./pages/factura/print/PrintView";
@@ -176,6 +178,18 @@ const router = createBrowserRouter([
       {
         path: 'supplier/edit/:id',
         element: <ProveedorForm />,
+      },
+      {
+        path: 'market',
+        element: <MarketList />,
+      },
+      {
+        path: 'market/create',
+        element: <MercadoForm />,
+      },
+      {
+        path: 'market/edit/:id',
+        element: <MercadoForm />,
       },
       {
         path: 'bill',

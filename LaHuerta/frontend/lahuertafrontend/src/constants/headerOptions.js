@@ -1,4 +1,4 @@
-import { FaHome, FaUser, FaMoneyBill, FaFileInvoice, FaBook, FaTags, FaListAlt, FaMoneyCheckAlt, FaReceipt, FaTruck } from 'react-icons/fa';
+import { FaHome, FaUser, FaMoneyBill, FaFileInvoice, FaBook, FaTags, FaListAlt, FaMoneyCheckAlt, FaReceipt, FaTruck, FaStore } from 'react-icons/fa';
 
 export const headerOptions = [
   { text: 'Inicio', icon: <FaHome />, path: '/' },
@@ -13,6 +13,7 @@ export const headerOptions = [
     icon: <FaBook />,
     children: [
       { text: 'Proveedores', icon: <FaTruck />, path: '/supplier' },
+      { text: 'Mercados', icon: <FaStore />, path: '/market' },
       { text: 'Condiciones de IVA', icon: <FaFileInvoice />, path: '/condition-iva-type' },
       { text: 'Categorías', icon: <FaTags />, path: '/category' },
     ],
