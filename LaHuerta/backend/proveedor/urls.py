@@ -1,8 +1,10 @@
-from django.urls import path
-from .views import (
-    GetAllSuppliers
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import SupplierViewSet
+
+router = DefaultRouter()
+router.register(r'supplier', SupplierViewSet, basename='supplier')
 
 urlpatterns = [
-    path('supplier/', GetAllSuppliers.as_view(), name='get-all-suppliers'),
+    path('', include(router.urls)),
 ]
