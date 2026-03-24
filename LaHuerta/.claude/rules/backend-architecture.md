@@ -66,3 +66,49 @@ Usar `service.py` cuando:
 ## Exceptions
 - Usar errores de dominio claros.
 - Evitar mensajes ambiguos.
+
+## Patrón 404 en views
+Cuando una entidad no se encuentra, usar la excepción de dominio correspondiente (ej. `SupplierNotFoundException`).
+La excepción debe lanzarse **dentro** del bloque `try` para que sea capturada por el `except`.
+No retornar `Response` 404 directamente sin pasar por la excepción.
+
+Patrón correcto:
+```python
+try:
+    entity = self.repository.get_by_id(pk)
+    if not entity:
+        raise EntityNotFoundException('Entidad no encontrada.')
+    # resto de la lógica
+except EntityNotFoundException as e:
+    return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+```
+
+Patrón incorrecto (raise fuera del try — la excepción no es capturada):
+```python
+entity = self.repository.get_by_id(pk)
+if not entity:
+    raise EntityNotFoundException(...)  # nunca llega al except
+
+try:
+    ...
+except EntityNotFoundException as e:
+    ...  # no se ejecuta
+```
+
+## Patrón de filtros en repositorios
+Pasar los filtros como parámetros nombrados individuales, con valor default `None`.
+Actualizar la firma en `interfaces.py` cada vez que se agregue un filtro nuevo al repositorio.
+
+```python
+# interfaces.py
+def get_all_suppliers(self, searchQuery=None, mercado=None): pass
+
+# repositories.py
+def get_all_suppliers(self, searchQuery=None, mercado=None):
+    queryset = Model.objects.all()
+    if searchQuery:
+        queryset = queryset.filter(...)
+    if mercado:
+        queryset = queryset.filter(...)
+    return queryset
+```

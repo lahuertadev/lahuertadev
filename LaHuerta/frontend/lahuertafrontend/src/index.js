@@ -26,6 +26,8 @@ import ClientPaymentForm from "./pages/pago_cliente/form/ClientPaymentForm";
 import ProductForm from "./pages/producto/form/productForm";
 import ProductsList from "./pages/producto/list";
 import ProductDetail from "./pages/producto/detail";  
+import SupplierList from "./pages/proveedor/list";
+import ProveedorForm from "./pages/proveedor/form/ProveedorForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
 import BillPrintView from "./pages/factura/print/PrintView";
@@ -162,6 +164,18 @@ const router = createBrowserRouter([
       {
         path: 'client-payment/edit/:id',
         element: <ClientPaymentForm />
+      },
+      {
+        path: 'supplier',
+        element: <SupplierList />,
+      },
+      {
+        path: 'supplier/create',
+        element: <ProveedorForm />,
+      },
+      {
+        path: 'supplier/edit/:id',
+        element: <ProveedorForm />,
       },
       {
         path: 'bill',

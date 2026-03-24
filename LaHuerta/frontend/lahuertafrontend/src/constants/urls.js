@@ -63,6 +63,12 @@ export const containerTypeUrl = `${API_BASE}/container_type/`;
 //! Unit Type
 export const unitTypeUrl = `${API_BASE}/unit_type/`;
 
-//! External Services 
+//! Supplier
+export const supplierUrl = `${API_BASE}/supplier/`;
+
+//! Market
+export const marketUrl = `${API_BASE}/market/`;
+
+//! External Services
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';
