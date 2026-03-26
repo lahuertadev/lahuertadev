@@ -365,7 +365,7 @@ const Register = () => {
               <button
                 type="button"
                 className="text-sm text-blue-lahuerta hover:underline hover:text-blue-800"
-                style={{ color: '#5d89c8', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={() => navigate('/login')}
               >
                 ¿Ya tenés cuenta? Iniciar sesión

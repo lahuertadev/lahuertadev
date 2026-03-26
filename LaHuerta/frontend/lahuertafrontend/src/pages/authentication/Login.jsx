@@ -137,7 +137,7 @@ const Login = () => {
               <button
                 type="button"
                 className="text-sm hover:underline"
-                style={{ color: '#5d89c8', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={() => navigate('/password-reset')}
               >
                 ¿Olvidaste tu contraseña?
@@ -146,7 +146,7 @@ const Login = () => {
               <button
                 type="button"
                 className="text-sm hover:underline"
-                style={{ color: '#5d89c8', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={() => navigate('/register')}
               >
                 ¿Sos nuevo? Registrate

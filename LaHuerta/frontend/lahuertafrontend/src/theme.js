@@ -1,7 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 
-const SITE_BLUE = '#5d89c8';
-const SITE_BLUE_DARK = '#4a73a8';
+const SITE_BLUE = '#4a7bc4';
+const SITE_BLUE_DARK = '#3a6ab4';
 
 const theme = createTheme({
   palette: {
@@ -14,7 +14,7 @@ const theme = createTheme({
         outlined: {
           borderColor: SITE_BLUE,
           color: SITE_BLUE,
-          '&:hover': { borderColor: SITE_BLUE_DARK, backgroundColor: 'rgba(93, 137, 200, 0.08)' },
+          '&:hover': { borderColor: SITE_BLUE_DARK, backgroundColor: 'rgba(74, 123, 196, 0.08)' },
         },
         contained: {
           backgroundColor: SITE_BLUE,
@@ -27,7 +27,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '&:hover': {
-            backgroundColor: 'rgba(93, 137, 200, 0.08)',
+            backgroundColor: 'rgba(74, 123, 196, 0.08)',
           },
           '& .MuiCardActionArea-focusHighlight': {
             backgroundColor: SITE_BLUE,
