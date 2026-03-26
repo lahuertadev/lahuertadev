@@ -22,3 +22,7 @@ class ISupplierRepository(ABC):
     @abstractmethod
     def delete_supplier(self, supplier):
         pass
+
+    @abstractmethod
+    def update_balance(self, supplier):
+        pass

@@ -40,3 +40,7 @@ class SupplierRepository(ISupplierRepository):
 
     def delete_supplier(self, supplier):
         supplier.delete()
+
+    def update_balance(self, supplier):
+        supplier.save(update_fields=['cuenta_corriente'])
+        return supplier

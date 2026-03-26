@@ -33,6 +33,8 @@ import MercadoForm from "./pages/mercado/form/MercadoForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
 import BillPrintView from "./pages/factura/print/PrintView";
+import BuyList from "./pages/compra/list";
+import CompraForm from "./pages/compra/form/CompraForm";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -206,6 +208,18 @@ const router = createBrowserRouter([
       {
         path: 'bill/detail/:id',
         element: <BillPrintView />
+      },
+      {
+        path: 'buy',
+        element: <BuyList />,
+      },
+      {
+        path: 'buy/create',
+        element: <CompraForm />,
+      },
+      {
+        path: 'buy/edit/:id',
+        element: <CompraForm />,
       },
     ],
   }

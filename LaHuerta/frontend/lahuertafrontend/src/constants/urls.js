@@ -66,6 +66,9 @@ export const unitTypeUrl = `${API_BASE}/unit_type/`;
 //! Supplier
 export const supplierUrl = `${API_BASE}/supplier/`;
 
+//! Buy (Compra)
+export const buyUrl = `${API_BASE}/buy/`;
+
 //! Market
 export const marketUrl = `${API_BASE}/market/`;
 

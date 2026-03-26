@@ -5,8 +5,11 @@ def migrate_precio_por_tipo_venta(apps, schema_editor):
     ListaPreciosProducto = apps.get_model('lista_precios_producto', 'ListaPreciosProducto')
     TipoVenta = apps.get_model('tipo_venta', 'TipoVenta')
 
-    tipo_unidad = TipoVenta.objects.get(descripcion__iexact='unidad')
-    tipo_bulto = TipoVenta.objects.get(descripcion__iexact='bulto')
+    try:
+        tipo_unidad = TipoVenta.objects.get(descripcion__iexact='unidad')
+        tipo_bulto = TipoVenta.objects.get(descripcion__iexact='bulto')
+    except TipoVenta.DoesNotExist:
+        return
 
     filas_originales = list(ListaPreciosProducto.objects.all())
 
@@ -34,7 +37,10 @@ def reverse_migration(apps, schema_editor):
     ListaPreciosProducto = apps.get_model('lista_precios_producto', 'ListaPreciosProducto')
     TipoVenta = apps.get_model('tipo_venta', 'TipoVenta')
 
-    tipo_bulto = TipoVenta.objects.get(descripcion__iexact='bulto')
+    try:
+        tipo_bulto = TipoVenta.objects.get(descripcion__iexact='bulto')
+    except TipoVenta.DoesNotExist:
+        return
 
     ListaPreciosProducto.objects.filter(tipo_venta=tipo_bulto).delete()
     ListaPreciosProducto.objects.all().update(tipo_venta=None, precio=None)
