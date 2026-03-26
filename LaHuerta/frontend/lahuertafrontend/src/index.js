@@ -29,6 +29,7 @@ import ProductDetail from "./pages/producto/detail";
 import SupplierList from "./pages/proveedor/list";
 import ProveedorForm from "./pages/proveedor/form/ProveedorForm";
 import MarketList from "./pages/mercado/list";
+import BankList from "./pages/banco";
 import MercadoForm from "./pages/mercado/form/MercadoForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
@@ -220,6 +221,10 @@ const router = createBrowserRouter([
       {
         path: 'buy/edit/:id',
         element: <CompraForm />,
+      },
+      {
+        path: 'bank',
+        element: <BankList />,
       },
     ],
   }
