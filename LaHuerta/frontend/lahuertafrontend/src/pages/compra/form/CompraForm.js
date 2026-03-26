@@ -555,7 +555,7 @@ const CompraForm = () => {
           onClick={handleSave}
           disabled={saving}
           sx={{
-            bgcolor: '#5d89c8',
+            bgcolor: '#4a7bc4',
             '&:hover': { bgcolor: '#4a70a8' },
             textTransform: 'none',
             fontWeight: 700,
