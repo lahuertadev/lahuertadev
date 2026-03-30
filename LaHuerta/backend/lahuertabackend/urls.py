@@ -39,6 +39,7 @@ urlpatterns = [
     path('', include('lista_precios_producto.urls')),
     path('', include('proveedor.urls')),
     path('', include('compra.urls')),
+    path('', include('estado_cheque.urls')),
     path('', include('cheque.urls')),
     path('', include('pago_cliente.urls')),
     path('', include('pago_factura.urls')),

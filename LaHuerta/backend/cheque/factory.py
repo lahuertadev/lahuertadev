@@ -1,0 +1,7 @@
+from .repositories import CheckRepository
+from .service import CheckService
+
+
+def build_check_service(check_repository=None):
+    check_repository = check_repository or CheckRepository()
+    return CheckService(check_repository=check_repository)

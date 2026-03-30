@@ -1,8 +1,10 @@
-from django.urls import path
-from .views import (
-    GetAllChecks
-    ) 
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CheckViewSet
+
+router = DefaultRouter()
+router.register(r'checks', CheckViewSet, basename='checks')
 
 urlpatterns = [
-    path('check/', GetAllChecks.as_view(), name='get-all-checks'),
+    path('', include(router.urls)),
 ]
