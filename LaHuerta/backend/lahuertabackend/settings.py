@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'lista_precios',
     'proveedor',
     'compra',
+    'estado_cheque',
     'cheque',
     'pago_cliente',
     'pago_factura',
