@@ -30,6 +30,8 @@ import SupplierList from "./pages/proveedor/list";
 import ProveedorForm from "./pages/proveedor/form/ProveedorForm";
 import MarketList from "./pages/mercado/list";
 import BankList from "./pages/banco";
+import CheckList from "./pages/cheque/list";
+import CheckForm from "./pages/cheque/form/CheckForm";
 import MercadoForm from "./pages/mercado/form/MercadoForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
@@ -225,6 +227,18 @@ const router = createBrowserRouter([
       {
         path: 'bank',
         element: <BankList />,
+      },
+      {
+        path: 'check',
+        element: <CheckList />,
+      },
+      {
+        path: 'check/create',
+        element: <CheckForm />,
+      },
+      {
+        path: 'check/edit/:id',
+        element: <CheckForm />,
       },
     ],
   }

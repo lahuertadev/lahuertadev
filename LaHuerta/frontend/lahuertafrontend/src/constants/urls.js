@@ -75,6 +75,12 @@ export const marketUrl = `${API_BASE}/market/`;
 //! Bank
 export const bankUrl = `${API_BASE}/bank/`;
 
+//! Check (Cheque)
+export const checkUrl = `${API_BASE}/checks/`;
+
+//! Check State (Estado Cheque)
+export const checkStateUrl = `${API_BASE}/check_state/`;
+
 //! External Services
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';
