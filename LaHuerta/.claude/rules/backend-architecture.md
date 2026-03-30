@@ -7,6 +7,12 @@ Aplicar esta regla al trabajar sobre archivos backend Python/Django/DRF.
 - Priorizar consistencia con apps reales del proyecto, especialmente las que siguen el patrón de `factura`.
 - No introducir capas nuevas que el proyecto no usa.
 
+## Idioma del código
+- Variables, funciones, clases y nombres de archivos: **inglés**.
+- Mensajes de error y texto visible al usuario: **español**.
+- Nombres de entidades de dominio ya definidos en español (ej. `Cheque`, `PagoCliente`) se mantienen tal cual.
+- Nunca usar nombres de variables en español para entidades genéricas: usar `check`, `payment`, `supplier`, etc.
+
 ## Capas del backend
 Cuando aplique, seguir esta separación:
 - `models.py`: entidades del dominio
