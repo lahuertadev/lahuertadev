@@ -24,4 +24,5 @@ export const breadcrumbsMap = {
   '/condition-iva-type': [HOME, CATALOGOS, { label: 'Condición de IVA' }],
   '/category':         [HOME, CATALOGOS, { label: 'Categorías' }],
   '/bank':             [HOME, CATALOGOS, { label: 'Bancos' }],
+  '/check':            [HOME, { label: 'Cheques' }],
 };
