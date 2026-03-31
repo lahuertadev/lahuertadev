@@ -30,7 +30,7 @@ import CloseIcon from '@mui/icons-material/Close';
  *                   si no se pasa, navega a fetchUrl.createUrl
  */
 const GenericList = ({ data, onAdd }) => {
-  const { title, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true } = data;
+  const { title, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, showAdd = true, showEdit = true, showDelete = true } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,9 @@ const GenericList = ({ data, onAdd }) => {
       if (filters && Object.keys(filters).length > 0) {
         const queryParams = new URLSearchParams();
         filtersConfig.forEach((filter) => {
-          const value = filters[filter.name];
+          const raw = filters[filter.name];
+          if (!raw) return;
+          const value = filter.type === 'select' ? (raw?.value ?? raw) : raw;
           if (value) queryParams.append(filter.name, value);
         });
         urlWithParams = `${fetchUrl.baseUrl}?${queryParams.toString()}`;
@@ -185,11 +187,13 @@ const GenericList = ({ data, onAdd }) => {
                 Filtros
               </button>
             )}
-            <IconLabelButtons
-              label={`Nueva ${newLabelText || ''}`}
-              icon={<AddCircleOutlineIcon />}
-              onClick={onAdd || (() => navigate(fetchUrl.createUrl))}
-            />
+            {showAdd && (
+              <IconLabelButtons
+                label={`Nueva ${newLabelText || ''}`}
+                icon={<AddCircleOutlineIcon />}
+                onClick={onAdd || (() => navigate(fetchUrl.createUrl))}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -216,6 +220,10 @@ const GenericList = ({ data, onAdd }) => {
               onDetail={handleDetail}
               onSelectionChange={handleSelectionChange}
               multiSelect={multiSelect}
+              canDelete={canDelete}
+              canEdit={canEdit}
+              showEdit={showEdit}
+              showDelete={showDelete}
             />
           </div>
         )}
