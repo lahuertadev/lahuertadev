@@ -8,7 +8,7 @@ from .serializers import (
     ClientPaymentSerializer,
     ClientPaymentQueryParamsSerializer,
 )
-from .exceptions import ClientPaymentNotFoundException
+from .exceptions import ClientPaymentNotFoundException, PaymentTypeChangeBlockedException
 from .factory import build_client_payment_service
 
 
@@ -66,7 +66,8 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         Registra un pago de cliente y actualiza la cuenta corriente del mismo.
         '''
         serializer = ClientPaymentSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             payment = self.service.create_payment(serializer.validated_data)
@@ -81,7 +82,8 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         Edita un pago (PUT). Ajusta la cuenta corriente si cambia el importe o el cliente.
         '''
         serializer = ClientPaymentSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             payment = self.service.update_payment(payment_id=pk,data=serializer.validated_data)
@@ -90,6 +92,9 @@ class ClientPaymentViewSet(viewsets.ViewSet):
 
         except ClientPaymentNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except PaymentTypeChangeBlockedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             return Response(
@@ -102,7 +107,8 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         Edita parcialmente un pago (PATCH). Solo se modifican los campos enviados.
         '''
         serializer = ClientPaymentSerializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             payment = self.service.update_payment(
@@ -114,6 +120,9 @@ class ClientPaymentViewSet(viewsets.ViewSet):
 
         except ClientPaymentNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except PaymentTypeChangeBlockedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             return Response(

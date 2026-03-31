@@ -159,10 +159,11 @@ const CheckForm = () => {
               <input
                 name="numero"
                 type="number"
+                min="1"
                 value={values.numero}
                 onChange={handleChange}
                 placeholder="Nº de cheque"
-                className={inputCls(touched.numero && errors.numero)}
+                className={inputCls(touched.numero && errors.numero) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
                 disabled={!!id}
               />
               <FieldError error={errors.numero} touched={touched.numero} />

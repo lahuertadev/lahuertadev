@@ -3,7 +3,6 @@ import { columns } from '../../../constants/grid/Check';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
-import { useNavigate } from 'react-router-dom';
 
 const mapCheckData = (data) => {
   return data.map((check) => ({
@@ -20,33 +19,41 @@ const mapCheckData = (data) => {
 
 const data = {
   title: 'Cheques',
-  fetchUrl: {
-    baseUrl: checkUrl,
-    createUrl: '/check/create',
-    editUrl: '/check/edit',
-  },
+  fetchUrl: { baseUrl: checkUrl },
   columns: columns,
   mapData: mapCheckData,
+  multiSelect: false,
+  showAdd: false,
+  showEdit: false,
+  showDelete: false,
   filtersConfig: [
-    { label: 'Banco', name: 'bank', type: 'text' },
-    { label: 'Estado', name: 'state', type: 'text' },
+    { label: 'Banco', name: 'banco', type: 'text' },
+    {
+      label: 'Estado',
+      name: 'estado',
+      type: 'select',
+      options: [
+        { name: 'En cartera',  value: 'EN_CARTERA' },
+        { name: 'Depositado',  value: 'DEPOSITADO' },
+        { name: 'Acreditado',  value: 'ACREDITADO' },
+        { name: 'Endosado',    value: 'ENDOSADO'   },
+        { name: 'Rechazado',   value: 'RECHAZADO'  },
+      ],
+    },
+    {
+      label: 'Endosado',
+      name: 'endosado',
+      type: 'select',
+      options: [
+        { name: 'Sí', value: 'true'  },
+        { name: 'No', value: 'false' },
+      ],
+    },
+    { label: 'Fecha depósito desde', name: 'fecha_deposito_desde', type: 'date' },
+    { label: 'Fecha depósito hasta', name: 'fecha_deposito_hasta', type: 'date' },
   ],
-  newLabelText: 'cheque',
 };
 
-const CheckList = () => {
-  const navigate = useNavigate();
-
-  const handleAddCheck = () => {
-    navigate('/check/create');
-  };
-
-  return (
-    <GenericList
-      data={data}
-      onAdd={handleAddCheck}
-    />
-  );
-};
+const CheckList = () => <GenericList data={data} />;
 
 export default CheckList;

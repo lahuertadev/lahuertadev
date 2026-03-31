@@ -69,6 +69,10 @@ export default function DataGridDemo({
   onDelete,
   onEdit,
   onDetail,
+  canDelete,
+  canEdit,
+  showEdit = true,
+  showDelete = true,
   multiSelect = true,
   pageSize = 10,
 }) {
@@ -102,18 +106,21 @@ export default function DataGridDemo({
     sortable: false,
     headerAlign: 'center',
     align: 'center',
-    renderCell: (params) => (
-      <Tooltip title="Editar">
-        <button
-          style={actionButtonSx}
-          onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
-          onClick={() => onEdit(params.row.id)}
-        >
-          <EditIcon sx={{ fontSize: 18 }} />
-        </button>
-      </Tooltip>
-    ),
+    renderCell: (params) => {
+      if (canEdit && !canEdit(params.row)) return null;
+      return (
+        <Tooltip title="Editar">
+          <button
+            style={actionButtonSx}
+            onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+            onClick={() => onEdit(params.row.id)}
+          >
+            <EditIcon sx={{ fontSize: 18 }} />
+          </button>
+        </Tooltip>
+      );
+    },
   };
 
   const deleteColumn = {
@@ -123,21 +130,28 @@ export default function DataGridDemo({
     sortable: false,
     headerAlign: 'center',
     align: 'center',
-    renderCell: (params) => (
-      <Tooltip title="Eliminar">
-        <button
-          style={actionButtonSx}
-          onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
-          onClick={() => onDelete(params.row.id)}
-        >
-          <DeleteIcon sx={{ fontSize: 18 }} />
-        </button>
-      </Tooltip>
-    ),
+    renderCell: (params) => {
+      if (canDelete && !canDelete(params.row)) return null;
+      return (
+        <Tooltip title="Eliminar">
+          <button
+            style={actionButtonSx}
+            onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+            onClick={() => onDelete(params.row.id)}
+          >
+            <DeleteIcon sx={{ fontSize: 18 }} />
+          </button>
+        </Tooltip>
+      );
+    },
   };
 
-  const actionColumns = [detailColumn, editColumn, deleteColumn].filter(Boolean);
+  const actionColumns = [
+    detailColumn,
+    showEdit ? editColumn : null,
+    showDelete ? deleteColumn : null,
+  ].filter(Boolean);
   const adjustedColumns = calculateColumnWidths(rows, columns).concat(actionColumns);
 
   return (

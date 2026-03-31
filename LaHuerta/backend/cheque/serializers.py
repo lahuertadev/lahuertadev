@@ -32,6 +32,14 @@ class EndorseCheckSerializer(serializers.Serializer):
     pago_compra = serializers.PrimaryKeyRelatedField(queryset=PagoCompra.objects.all())
 
 
+class CheckQueryParamsSerializer(serializers.Serializer):
+    banco = serializers.CharField(required=False)
+    estado = serializers.CharField(required=False)
+    endosado = serializers.CharField(required=False)
+    fecha_deposito_desde = serializers.DateField(required=False)
+    fecha_deposito_hasta = serializers.DateField(required=False)
+
+
 class CheckResponseSerializer(serializers.ModelSerializer):
     '''
     DTO de lectura: cheque con relaciones expandidas.
