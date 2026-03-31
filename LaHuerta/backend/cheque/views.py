@@ -3,8 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .repositories import CheckRepository
 from .interfaces import ICheckRepository
-from .serializers import CheckWriteSerializer, CheckResponseSerializer, EndorseCheckSerializer
-from .exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException
+from .serializers import CheckWriteSerializer, CheckResponseSerializer, EndorseCheckSerializer, CheckQueryParamsSerializer
+from .exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException, CheckLinkedToPaymentException
 from .factory import build_check_service
 
 
@@ -20,10 +20,27 @@ class CheckViewSet(viewsets.ViewSet):
 
     def list(self, request):
         '''
-        Lista todos los cheques.
+        Lista todos los cheques. Acepta filtros por banco, estado, endosado y rango de fecha_deposito.
         '''
+        params_serializer = CheckQueryParamsSerializer(data=request.query_params)
+        params_serializer.is_valid(raise_exception=True)
+        params = params_serializer.validated_data
+
+        endosado_raw = params.get('endosado')
+        endosado = None
+        if endosado_raw == 'true':
+            endosado = True
+        elif endosado_raw == 'false':
+            endosado = False
+
         try:
-            checks = self.repository.get_all()
+            checks = self.repository.get_all(
+                banco=params.get('banco'),
+                estado=params.get('estado'),
+                endosado=endosado,
+                fecha_deposito_desde=params.get('fecha_deposito_desde'),
+                fecha_deposito_hasta=params.get('fecha_deposito_hasta'),
+            )
             serializer = CheckResponseSerializer(checks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -68,7 +85,7 @@ class CheckViewSet(viewsets.ViewSet):
 
     def update(self, request, pk=None):
         '''
-        Edita un cheque (PUT).
+        Edita un cheque (PUT). No se permite si está asociado a un pago.
         '''
         serializer = CheckWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -78,12 +95,21 @@ class CheckViewSet(viewsets.ViewSet):
             if not check:
                 raise CheckNotFoundException('Cheque no encontrado.')
 
+            if check.pago_cliente_id or check.pago_compra_id:
+                raise CheckLinkedToPaymentException(
+                    'No se puede editar el cheque porque está asociado a un pago. '
+                    'Editá el pago correspondiente.'
+                )
+
             check = self.repository.update(check, serializer.validated_data)
             response_serializer = CheckResponseSerializer(check)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
         except CheckNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except CheckLinkedToPaymentException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             return Response(
@@ -93,7 +119,7 @@ class CheckViewSet(viewsets.ViewSet):
 
     def partial_update(self, request, pk=None):
         '''
-        Edita parcialmente un cheque (PATCH).
+        Edita parcialmente un cheque (PATCH). No se permite si está asociado a un pago.
         '''
         serializer = CheckWriteSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -103,12 +129,21 @@ class CheckViewSet(viewsets.ViewSet):
             if not check:
                 raise CheckNotFoundException('Cheque no encontrado.')
 
+            if check.pago_cliente_id or check.pago_compra_id:
+                raise CheckLinkedToPaymentException(
+                    'No se puede editar el cheque porque está asociado a un pago. '
+                    'Editá el pago correspondiente.'
+                )
+
             check = self.repository.update(check, serializer.validated_data)
             response_serializer = CheckResponseSerializer(check)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
         except CheckNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except CheckLinkedToPaymentException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             return Response(
@@ -118,18 +153,33 @@ class CheckViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         '''
-        Elimina un cheque.
+        Elimina un cheque. No se permite si está asociado a un pago de cliente o de compra.
         '''
         try:
             check = self.repository.get_by_id(pk)
             if not check:
                 raise CheckNotFoundException('Cheque no encontrado.')
 
+            if check.pago_cliente_id:
+                raise CheckLinkedToPaymentException(
+                    'No se puede eliminar el cheque porque está asociado a un pago de cliente. '
+                    'Eliminá primero el pago correspondiente.'
+                )
+
+            if check.pago_compra_id:
+                raise CheckLinkedToPaymentException(
+                    'No se puede eliminar el cheque porque está asociado a un pago de compra. '
+                    'Eliminá primero el pago correspondiente.'
+                )
+
             self.repository.delete(check)
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except CheckNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except CheckLinkedToPaymentException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             return Response(

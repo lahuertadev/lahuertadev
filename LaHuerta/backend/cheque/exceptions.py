@@ -8,3 +8,7 @@ class CheckAlreadyEndorsedException(Exception):
 
 class CheckInvalidStateException(Exception):
     pass
+
+
+class CheckLinkedToPaymentException(Exception):
+    pass
