@@ -22,7 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
  *   columns       — definición de columnas para DataGridDemo
  *   mapData       — (responseData) => rows[]   función para transformar la respuesta
  *   filtersConfig — array de { label, name, type: 'text'|'date'|'number'|'select', options? }
- *   newLabelText  — texto del botón "Nueva X" (ej. "cliente", "gasto")
+ *   newLabelText  — texto completo del botón de creación (ej. "Nuevo cliente", "Nueva categoría")
  *   breadcrumbs   — (opcional) array de { label, path? } para mostrar navegación superior
  *
  * Props directas:
@@ -189,7 +189,7 @@ const GenericList = ({ data, onAdd }) => {
             )}
             {showAdd && (
               <IconLabelButtons
-                label={`Nueva ${newLabelText || ''}`}
+                label={newLabelText || ''}
                 icon={<AddCircleOutlineIcon />}
                 onClick={onAdd || (() => navigate(fetchUrl.createUrl))}
               />

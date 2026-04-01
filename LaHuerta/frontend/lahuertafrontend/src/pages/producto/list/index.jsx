@@ -44,7 +44,7 @@ const data = {
       type: 'text',
     },
   ],
-  newLabelText: 'producto',
+  newLabelText: 'Nuevo producto',
 };
 
 const ProductsList = () => {

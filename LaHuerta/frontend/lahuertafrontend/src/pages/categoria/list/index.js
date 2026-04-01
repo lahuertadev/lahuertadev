@@ -22,7 +22,7 @@ const data = {
   columns,
   mapData: mapCategoryData,
   filtersConfig: [{ label: 'Descripción', name: 'descripcion', type: 'text' }],
-  newLabelText: 'categoría',
+  newLabelText: 'Nueva categoría',
 };
 
 const CategoryList = () => {

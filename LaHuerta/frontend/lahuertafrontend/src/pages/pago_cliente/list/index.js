@@ -30,7 +30,7 @@ const data = {
     { label: 'Fecha', name: 'date', type: 'date' },
     { label: 'Importe', name: 'amount', type: 'number' },
   ],
-  newLabelText: 'pago',
+  newLabelText: 'Nuevo pago',
 };
 
 const ClientPaymentList = () => {

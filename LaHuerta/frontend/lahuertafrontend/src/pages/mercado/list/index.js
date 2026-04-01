@@ -22,7 +22,7 @@ const data = {
   columns,
   mapData: mapMarketData,
   filtersConfig: [],
-  newLabelText: 'mercado',
+  newLabelText: 'Nuevo mercado',
 };
 
 const MarketList = () => {
