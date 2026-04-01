@@ -18,6 +18,7 @@ export const headerOptions = [
     children: [
       { text: 'Proveedores', icon: <FaTruck />, path: '/supplier' },
       { text: 'Compras', icon: <FaShoppingCart />, path: '/buy' },
+      { text: 'Pagos de Compras', icon: <FaMoneyCheckAlt />, path: '/purchase-payment' },
     ],
   },
   {

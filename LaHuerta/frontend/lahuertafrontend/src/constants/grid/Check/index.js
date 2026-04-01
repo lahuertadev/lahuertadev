@@ -1,3 +1,5 @@
+import React from 'react';
+
 const STATE_CONFIG = {
   'EN_CARTERA': { label: 'En cartera', bg: '#e8f0fb', color: '#4a7bc4' },
   'DEPOSITADO': { label: 'Depositado', bg: '#fef9c3', color: '#a16207' },
