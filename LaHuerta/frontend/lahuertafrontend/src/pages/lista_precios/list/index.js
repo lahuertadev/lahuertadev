@@ -30,7 +30,7 @@ const data = {
   filtersConfig: [
     { label: 'Nombre', name: 'nombre', type: 'text' },
   ],
-  newLabelText: 'lista de precios', 
+  newLabelText: 'Nueva lista de precios', 
 };
 
 const PriceListList = () => {

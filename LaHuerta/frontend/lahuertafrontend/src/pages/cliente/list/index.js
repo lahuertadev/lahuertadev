@@ -47,7 +47,7 @@ const data = {
     { label: 'Razón Social o nombre fantasía', name: 'searchQuery', type :'text' },
     { label: 'Dirección', name: 'address', type: 'text' },
   ],
-  newLabelText : 'cliente',
+  newLabelText: 'Nuevo cliente',
 };
 
 const ClientsList = () => {

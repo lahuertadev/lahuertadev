@@ -29,7 +29,7 @@ const data = {
     { label: 'Importe', name: 'amount', type:'number'},
     { label: 'Tipo de gasto', name: 'expense_type', type:'text'}
   ],
-  newLabelText : 'gasto',
+  newLabelText: 'Nuevo gasto',
 };
 
 const ExpensesList = () => {

@@ -32,7 +32,7 @@ const data = {
     { label: 'Nombre o nombre fantasía', name: 'searchQuery', type: 'text' },
     { label: 'Mercado', name: 'mercado', type: 'text' },
   ],
-  newLabelText: 'proveedor',
+  newLabelText: 'Nuevo proveedor',
 };
 
 const SupplierList = () => {

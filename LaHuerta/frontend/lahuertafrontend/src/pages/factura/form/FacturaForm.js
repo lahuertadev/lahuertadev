@@ -5,9 +5,11 @@ import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
+import MenuItem from '@mui/material/MenuItem';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import Button from '@mui/material/Button';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import PersonIcon from '@mui/icons-material/Person';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import {
   billUrl,
   billTypeUrl,
@@ -16,7 +18,6 @@ import {
   saleTypeUrl,
 } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
-import MenuItem from '@mui/material/MenuItem';
 
 const EMPTY_ITEM = {
   producto: null,
@@ -25,6 +26,64 @@ const EMPTY_ITEM = {
   precio_aplicado: '',
 };
 
+// ── Estilos reutilizables ──────────────────────────────────────────────────────
+const inputCls = (hasError) =>
+  `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
+    hasError
+      ? 'border-red-400 ring-2 ring-red-100'
+      : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+  }`;
+
+const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
+
+const colsMap = {
+  1: 'md:grid-cols-1',
+  2: 'md:grid-cols-2',
+  3: 'md:grid-cols-3',
+  4: 'md:grid-cols-4',
+};
+
+const SectionCard = ({ icon, title, children, cols = 3 }) => (
+  <section className="space-y-3">
+    <div className="flex items-center gap-2 px-1">
+      <span className="text-blue-lahuerta">{icon}</span>
+      <h2 className="text-base font-semibold text-on-surface">{title}</h2>
+    </div>
+    <div className={`bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle grid grid-cols-1 ${colsMap[cols] ?? 'md:grid-cols-3'} gap-6`}>
+      {children}
+    </div>
+  </section>
+);
+
+const FieldError = ({ message }) =>
+  message ? <p className="mt-1 text-xs text-red-500">{message}</p> : null;
+
+// sx compartido para MUI Autocomplete
+const autocompleteSx = (hasError) => ({
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: '#f0f4f7',
+    borderRadius: '0.5rem',
+    fontSize: '0.875rem',
+    padding: '0 !important',
+    '& fieldset': {
+      borderColor: hasError ? '#f87171' : '#e3e9ed',
+    },
+    '&:hover fieldset': {
+      borderColor: hasError ? '#f87171' : '#4a7bc4',
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: '#4a7bc4',
+      borderWidth: '1px',
+    },
+  },
+  '& .MuiInputBase-input': {
+    padding: '0.625rem 0.75rem !important',
+    fontSize: '0.875rem',
+    color: '#2c3437',
+  },
+});
+
+// ── Componente principal ───────────────────────────────────────────────────────
 const FacturaForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -89,7 +148,6 @@ const FacturaForm = () => {
   }, [isEdit]);
 
   // ── Load client prices ─────────────────────────────────────────────
-  // Final structure: { producto_id: { tipo_venta_id: precio } }
   useEffect(() => {
     if (!selectedClient) {
       setClientPrices({});
@@ -165,10 +223,7 @@ const FacturaForm = () => {
 
   const resolvePrice = useCallback(
     (productId, saleTypeId) => {
-      if (!productId || !saleTypeId) {
-        return '';
-      }
-
+      if (!productId || !saleTypeId) return '';
       const price = clientPrices[productId]?.[saleTypeId];
       return price ?? '';
     },
@@ -217,10 +272,7 @@ const FacturaForm = () => {
   };
 
   const hasDuplicatedProducts = () => {
-    const selectedIds = items
-      .map((item) => item.producto?.id)
-      .filter(Boolean);
-
+    const selectedIds = items.map((item) => item.producto?.id).filter(Boolean);
     return new Set(selectedIds).size !== selectedIds.length;
   };
 
@@ -236,10 +288,8 @@ const FacturaForm = () => {
   // ── Totals ─────────────────────────────────────────────────────────
   const calculateSubtotal = (item) => {
     if (!item.tipo_venta || !item.precio_aplicado) return null;
-
     const quantity = parseFloat(item.cantidad) || 0;
     const price = parseFloat(item.precio_aplicado) || 0;
-
     return quantity * price;
   };
 
@@ -248,7 +298,6 @@ const FacturaForm = () => {
   // ── Auto-add row ───────────────────────────────────────────────────
   useEffect(() => {
     const lastItem = items[items.length - 1];
-
     if (lastItem.producto && parseFloat(lastItem.cantidad) > 0 && lastItem.tipo_venta) {
       setItems((previous) => [...previous, { ...EMPTY_ITEM }]);
     }
@@ -337,30 +386,32 @@ const FacturaForm = () => {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto py-6 px-4 bg-white rounded shadow-md w-full max-w-5xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/bill')}
-          color="primary"
-          variant="outlined"
+    <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
+        <span
+          className="hover:text-blue-lahuerta cursor-pointer transition-colors"
+          onClick={() => navigate('/')}
         >
-          Volver
-        </Button>
-        <h1 className="text-2xl font-bold text-gray-800">
-          {isEdit ? `Editar Remito #${String(id).padStart(8, '0')}` : 'Nueva Factura'}
-        </h1>
-        <div className="w-20" />
-      </div>
+          Home
+        </span>
+        <span className="text-xs">›</span>
+        <span
+          className="hover:text-blue-lahuerta cursor-pointer transition-colors"
+          onClick={() => navigate('/bill')}
+        >
+          Facturas
+        </span>
+        <span className="text-xs">›</span>
+        <span className="text-on-surface font-semibold">
+          {isEdit ? `Editar #${String(id).padStart(8, '0')}` : 'Nueva'}
+        </span>
+      </nav>
 
-      <hr className="border-gray-200 mb-6" />
-
-      {/* Header data */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Client */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Cliente *</label>
+      {/* 1. Datos de la factura */}
+      <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de la Factura" cols={3}>
+        <div className="md:col-span-2 flex flex-col gap-1">
+          <label className={labelCls}>Cliente *</label>
           <Autocomplete
             options={clients}
             value={selectedClient}
@@ -368,32 +419,29 @@ const FacturaForm = () => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                size="small"
                 placeholder="CUIT o Razón Social..."
-                error={Boolean(errors.client)}
-                helperText={errors.client}
+                sx={autocompleteSx(Boolean(errors.client))}
               />
             )}
           />
+          <FieldError message={errors.client} />
         </div>
 
-        {/* Date */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha *</label>
+        {/* Fecha */}
+        <div className="flex flex-col gap-1">
+          <label className={labelCls}>Fecha *</label>
           <input
             type="date"
             value={fecha}
             onChange={(event) => setFecha(event.target.value)}
-            className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-              errors.fecha ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={inputCls(Boolean(errors.fecha))}
           />
-          {errors.fecha && <p className="text-red-500 text-xs mt-1">{errors.fecha}</p>}
+          <FieldError message={errors.fecha} />
         </div>
 
-        {/* Bill type */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de facturación *</label>
+        {/* Tipo de facturación */}
+        <div className="flex flex-col gap-1">
+          <label className={labelCls}>Tipo de facturación *</label>
           <Autocomplete
             options={billTypes}
             value={selectedBillType}
@@ -401,218 +449,239 @@ const FacturaForm = () => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                size="small"
                 placeholder="Seleccionar..."
-                error={Boolean(errors.billType)}
-                helperText={errors.billType}
+                sx={autocompleteSx(Boolean(errors.billType))}
               />
             )}
           />
+          <FieldError message={errors.billType} />
         </div>
+      </SectionCard>
 
-        {/* Client info */}
-        {selectedClient && (
-          <>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">CUIT</label>
-              <input
-                readOnly
-                value={selectedClient.cuit || ''}
-                className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Domicilio</label>
-              <input
-                readOnly
-                value={selectedClient.domicilio || ''}
-                className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Localidad</label>
-              <input
-                readOnly
-                value={selectedClient.localidad?.nombre || ''}
-                className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Condición IVA</label>
-              <input
-                readOnly
-                value={selectedClient.condicion_IVA?.descripcion || ''}
-                className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm"
-              />
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Items table */}
+      {/* 2. Datos del cliente (condicional) */}
       {selectedClient && (
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-700">Productos</h2>
-            <button
-                type="button"
-                onClick={addItem}
-                className="flex items-center gap-1 bg-transparent border-none text-blue-lahuerta text-sm font-medium cursor-pointer hover:underline hover:underline-offset-2 focus:outline-none"
-                style={{ background: 'transparent', boxShadow: 'none' }}
-              >
-              <AddCircleOutlineIcon fontSize="small" /> Agregar línea
-            </button>
+        <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Cliente" cols={2}>
+          <div className="flex flex-col gap-1">
+            <label className={labelCls}>CUIT</label>
+            <input
+              readOnly
+              value={selectedClient.cuit || ''}
+              className={inputCls(false) + ' opacity-70 cursor-default'}
+            />
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-gray-700">
-                  <th className="border border-gray-200 px-2 py-2 text-center w-12">#</th>
-                  <th className="border border-gray-200 px-2 py-2 text-center">Producto</th>
-                  <th className="border border-gray-200 px-2 py-2 text-center w-24">Cantidad</th>
-                  <th className="border border-gray-200 px-2 py-2 text-center w-32">Tipo de venta</th>
-                  <th className="border border-gray-200 px-2 py-2 text-center w-32">Precio</th>
-                  <th className="border border-gray-200 px-2 py-2 text-center w-28">Subtotal</th>
-                  <th className="border border-gray-200 px-2 py-2 w-10"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-200 px-2 py-1 text-center text-gray-400">
-                      {index + 1}
-                    </td>
-
-                    {/* Product */}
-                    <td className="border border-gray-200 px-2 py-1 align-middle">
-                      <Autocomplete
-                        options={getAvailableProducts(index)}
-                        value={item.producto}
-                        onChange={(_, value) => handleProductSelect(index, value)}
-                        size="small"
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Escribir producto..."
-                            size="small"
-                            error={Boolean(errors[`item_${index}_producto`])}
-                            sx={{ minWidth: 200 }}
-                          />
-                        )}
-                      />
-                    </td>
-
-                    {/* Quantity */}
-                    <td className="border border-gray-200 px-2 py-1 w-32">
-                      <TextField
-                        type="number"
-                        size="small"
-                        fullWidth
-                        inputProps={{ min: 0, step: 0.01 }}
-                        value={item.cantidad}
-                        onChange={(event) => updateItem(index, 'cantidad', event.target.value)}
-                        error={Boolean(errors[`item_${index}_cantidad`])}
-                        sx={{
-                          '& input': {
-                            textAlign: 'right',
-                          },
-                        }}
-                      />
-                    </td>
-
-                    {/* Sale type */}
-                    <td className="border border-gray-200 px-2 py-1">
-                      <TextField
-                        select
-                        size="small"
-                        fullWidth
-                        value={item.tipo_venta ?? ''}
-                        onChange={(event) =>
-                          handleSaleTypeChange(
-                            index,
-                            event.target.value === '' ? null : Number(event.target.value)
-                          )
-                        }
-                        error={Boolean(errors[`item_${index}_tipo_venta`])}
-                      >
-                        <MenuItem value="">-</MenuItem>
-                        {saleTypes.map((saleType) => (
-                          <MenuItem key={saleType.id} value={saleType.id}>
-                            {saleType.descripcion}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </td>
-
-                    {/* Price */}
-                    <td className="border border-gray-200 px-2 py-1 text-right text-gray-700">
-                      {item.precio_aplicado ? (
-                        formatCurrency(parseFloat(item.precio_aplicado))
-                      ) : (
-                        <span className="text-gray-400 text-xs italic">—</span>
-                      )}
-                    </td>
-
-                    {/* Subtotal */}
-                    <td className="border border-gray-200 px-2 py-1 text-right font-medium text-gray-700">
-                      {calculateSubtotal(item) !== null ? formatCurrency(calculateSubtotal(item)) : '—'}
-                    </td>
-
-                    {/* Delete */}
-                    <td className="border border-gray-200 px-1 py-1 text-center">
-                      {items.length > 1 && (
-                        <IconButton size="small" onClick={() => removeItem(index)} color="error">
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-col gap-1">
+            <label className={labelCls}>Domicilio</label>
+            <input
+              readOnly
+              value={selectedClient.domicilio || ''}
+              className={inputCls(false) + ' opacity-70 cursor-default'}
+            />
           </div>
-
-          {(errors.items_empty || errors.items_duplicated) && (
-            <div className="mt-2">
-              {errors.items_empty && (
-                <p className="text-red-500 text-sm">{errors.items_empty}</p>
-              )}
-              {errors.items_duplicated && (
-                <p className="text-red-500 text-sm">{errors.items_duplicated}</p>
-              )}
-            </div>
-          )}
-
-          {/* Total */}
-          <div className="flex justify-end mt-3 pr-10">
-            <div className="text-right">
-              <span className="text-gray-500 text-sm mr-4">TOTAL</span>
-              <span className="text-xl font-bold text-gray-800">{formatCurrency(total)}</span>
-            </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelCls}>Localidad</label>
+            <input
+              readOnly
+              value={selectedClient.localidad?.nombre || ''}
+              className={inputCls(false) + ' opacity-70 cursor-default'}
+            />
           </div>
-        </div>
+          <div className="flex flex-col gap-1">
+            <label className={labelCls}>Condición IVA</label>
+            <input
+              readOnly
+              value={selectedClient.condicion_IVA?.descripcion || ''}
+              className={inputCls(false) + ' opacity-70 cursor-default'}
+            />
+          </div>
+        </SectionCard>
       )}
 
-      {/* Actions */}
-      <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-gray-200">
-        <Button
-          variant="contained"
+      {/* 3. Productos */}
+      {selectedClient && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <span className="text-blue-lahuerta">
+              <ListAltIcon sx={{ fontSize: 20 }} />
+            </span>
+            <h2 className="text-base font-semibold text-on-surface">Productos</h2>
+          </div>
+
+          <div className="bg-surface-card rounded-xl shadow-sm border border-border-subtle overflow-hidden">
+            {/* Toolbar */}
+            <div className="flex items-center justify-end px-4 py-3 border-b border-border-subtle">
+              <button
+                type="button"
+                onClick={addItem}
+                className="flex items-center gap-1.5 text-sm font-semibold text-blue-lahuerta hover:text-blue-lahuerta/80 transition-colors"
+              >
+                <AddCircleOutlineIcon fontSize="small" />
+                Agregar línea
+              </button>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-surface-low">
+                    <th className="px-3 py-2.5 text-center border-b border-border-subtle w-10">
+                      <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">#</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-left border-b border-border-subtle">
+                      <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">Producto</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-center border-b border-border-subtle w-28">
+                      <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">Cantidad</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-center border-b border-border-subtle w-36">
+                      <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">Tipo de venta</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-right border-b border-border-subtle w-32">
+                      <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">Precio</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-right border-b border-border-subtle w-32">
+                      <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">Subtotal</span>
+                    </th>
+                    <th className="border-b border-border-subtle w-10" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => (
+                    <tr key={index} className="hover:bg-surface-low transition-colors">
+                      {/* # */}
+                      <td className="px-3 py-2 text-center align-middle border-b border-border-subtle text-on-surface-muted text-xs">
+                        {index + 1}
+                      </td>
+
+                      {/* Producto */}
+                      <td className="px-2 py-2 align-middle border-b border-border-subtle">
+                        <Autocomplete
+                          options={getAvailableProducts(index)}
+                          value={item.producto}
+                          onChange={(_, value) => handleProductSelect(index, value)}
+                          size="small"
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Escribir producto..."
+                              size="small"
+                              sx={{
+                                ...autocompleteSx(Boolean(errors[`item_${index}_producto`])),
+                                minWidth: 200,
+                              }}
+                            />
+                          )}
+                        />
+                      </td>
+
+                      {/* Cantidad */}
+                      <td className="px-2 py-2 align-middle border-b border-border-subtle">
+                        <TextField
+                          type="number"
+                          size="small"
+                          fullWidth
+                          inputProps={{ min: 0, step: 0.01 }}
+                          value={item.cantidad}
+                          onChange={(event) => updateItem(index, 'cantidad', event.target.value)}
+                          sx={{
+                            ...autocompleteSx(Boolean(errors[`item_${index}_cantidad`])),
+                            '& input': { textAlign: 'right' },
+                            '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { display: 'none' },
+                            '& input[type=number]': { MozAppearance: 'textfield' },
+                          }}
+                        />
+                      </td>
+
+                      {/* Tipo de venta */}
+                      <td className="px-2 py-2 align-middle border-b border-border-subtle">
+                        <TextField
+                          select
+                          size="small"
+                          fullWidth
+                          value={item.tipo_venta ?? ''}
+                          onChange={(event) =>
+                            handleSaleTypeChange(
+                              index,
+                              event.target.value === '' ? null : Number(event.target.value)
+                            )
+                          }
+                          sx={autocompleteSx(Boolean(errors[`item_${index}_tipo_venta`]))}
+                        >
+                          <MenuItem value="">-</MenuItem>
+                          {saleTypes.map((saleType) => (
+                            <MenuItem key={saleType.id} value={saleType.id}>
+                              {saleType.descripcion}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      </td>
+
+                      {/* Precio */}
+                      <td className="px-3 py-2 text-right align-middle border-b border-border-subtle text-sm text-on-surface tabular-nums">
+                        {item.precio_aplicado ? (
+                          formatCurrency(parseFloat(item.precio_aplicado))
+                        ) : (
+                          <span className="text-on-surface-muted">—</span>
+                        )}
+                      </td>
+
+                      {/* Subtotal */}
+                      <td className="px-3 py-2 text-right align-middle border-b border-border-subtle text-sm font-semibold text-on-surface tabular-nums">
+                        {calculateSubtotal(item) !== null
+                          ? formatCurrency(calculateSubtotal(item))
+                          : <span className="text-on-surface-muted font-normal">—</span>}
+                      </td>
+
+                      {/* Eliminar */}
+                      <td className="px-2 py-1.5 text-center align-middle border-b border-border-subtle">
+                        {items.length > 1 && (
+                          <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Errores de items */}
+            {(errors.items_empty || errors.items_duplicated) && (
+              <div className="px-4 py-2 border-t border-border-subtle">
+                {errors.items_empty && (
+                  <p className="text-xs text-red-500">{errors.items_empty}</p>
+                )}
+                {errors.items_duplicated && (
+                  <p className="text-xs text-red-500">{errors.items_duplicated}</p>
+                )}
+              </div>
+            )}
+
+            {/* Total */}
+            <div className="flex justify-end items-center gap-4 px-6 py-4 border-t border-border-subtle bg-surface-low">
+              <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">
+                Total
+              </span>
+              <span className="text-xl font-bold text-on-surface tabular-nums">
+                {formatCurrency(total)}
+              </span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Action bar */}
+      <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
+        <button
+          type="button"
           onClick={() => navigate('/bill')}
-          sx={{
-            bgcolor: '#ef4444',
-            '&:hover': { bgcolor: '#dc2626' },
-            textTransform: 'none',
-            fontWeight: 700,
-            px: 4,
-            py: 1.25,
-          }}
+          className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted hover:bg-surface-low rounded-lg transition-colors"
         >
           Cancelar
-        </Button>
-
-        <Button
-          variant="contained"
+        </button>
+        <button
+          type="button"
           onClick={handleSave}
           disabled={
             saving ||
@@ -621,17 +690,10 @@ const FacturaForm = () => {
               return subtotal !== null && subtotal > 0;
             })
           }
-          sx={{
-            bgcolor: '#4a7bc4',
-            '&:hover': { bgcolor: '#4a70a8' },
-            textTransform: 'none',
-            fontWeight: 700,
-            px: 4,
-            py: 1.25,
-          }}
+          className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {saving ? 'Guardando…' : 'Confirmar'}
-        </Button>
+          {saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Confirmar'}
+        </button>
       </div>
     </div>
   );

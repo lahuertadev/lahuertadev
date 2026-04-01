@@ -31,7 +31,7 @@ const data = {
     { label: 'Fecha desde',  name: 'fecha_desde',  type: 'date'   },
     { label: 'Fecha hasta',  name: 'fecha_hasta',  type: 'date'   },
   ],
-  newLabelText: 'compra',
+  newLabelText: 'Nueva compra',
 };
 
 const BuyList = () => {
