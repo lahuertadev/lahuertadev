@@ -70,6 +70,38 @@ En este caso:
 - reutilizar utilidades de formato antes de formatear inline
 - no introducir una capa API nueva si el proyecto no la usa
 
+## Definición de columnas para DataGrid
+
+El componente `Grid/index.js` calcula `minWidth` automáticamente en base al largo del header y el contenido de las filas. No hace falta calcularlo a mano.
+
+### Convención estándar
+- Usar siempre `flex` para controlar el ancho proporcional. No mezclar columnas con `flex` y sin `flex` en la misma grilla.
+- Usar `flex: 1` para la mayoría de columnas, `flex: 2` para columnas de nombre/descripción larga.
+- Agregar siempre `align: 'center'` y `headerAlign: 'center'` en todas las columnas.
+- No poner `minWidth` explícito salvo que el cálculo automático no alcance.
+
+### Cuándo poner `minWidth` explícito
+Solo cuando la columna tenga contenido especial que el cálculo estima mal:
+- Columnas con badge (`renderCell` con span estilizado): usar `minWidth: 160` como piso, ya que el CSS del header aplica `textTransform: uppercase` y `letterSpacing` que hacen el texto más ancho de lo que el cálculo predice.
+
+### Ejemplo de columnas bien definidas
+```javascript
+export const columns = [
+  { field: 'number',   headerName: 'N° Compra', flex: 1, align: 'center', headerAlign: 'center' },
+  { field: 'supplier', headerName: 'Proveedor', flex: 2, align: 'center', headerAlign: 'center' },
+  { field: 'amount',   headerName: 'Importe',   flex: 1, align: 'center', headerAlign: 'center' },
+  {
+    field: 'status',
+    headerName: 'Estado',
+    flex: 1,
+    minWidth: 160,         // badge: uppercase + letter-spacing necesitan más espacio
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => { ... },
+  },
+];
+```
+
 ## Formato de respuesta
 Siempre responder en este orden:
 1. enfoque
