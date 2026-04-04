@@ -13,6 +13,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import MenuItem from '@mui/material/MenuItem';
 import { buyUrl, supplierUrl, productUrl, saleTypeUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
+import AmountInput from '../../../components/AmountInput';
 
 const EMPTY_ITEM = {
   producto: null,
@@ -361,14 +362,10 @@ const CompraForm = () => {
         {tieneSenia && (
           <div className="mt-2 max-w-xs">
             <label className="block text-sm font-semibold text-gray-700 mb-1">Importe señado</label>
-            <TextField
-              type="number"
-              size="small"
-              fullWidth
-              inputProps={{ min: 0, step: 0.01 }}
+            <AmountInput
+              name="senia"
               value={senia}
-              onChange={(e) => setSenia(e.target.value)}
-              placeholder="0.00"
+              onChange={(raw) => setSenia(raw)}
             />
           </div>
         )}

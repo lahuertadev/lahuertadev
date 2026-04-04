@@ -7,6 +7,7 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { clientPaymentUrl, clientUrl, paymentTypeUrl, bankUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
+import AmountInput from '../../../components/AmountInput';
 import PersonIcon from '@mui/icons-material/Person';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 
@@ -205,14 +206,11 @@ const ClientPaymentForm = () => {
               </div>
               <div className="flex flex-col gap-1">
                 <label className={labelCls}>Importe</label>
-                <input
+                <AmountInput
                   name="amount"
-                  type="number"
-                  step="0.01"
                   value={values.amount}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  className={inputCls(touched.amount && errors.amount)}
+                  onChange={(raw) => setFieldValue('amount', raw)}
+                  hasError={touched.amount && Boolean(errors.amount)}
                 />
                 <FieldError error={errors.amount} touched={touched.amount} />
               </div>

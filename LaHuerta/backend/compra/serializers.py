@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Compra
+from .service import BuyService
 from proveedor.models import Proveedor
 from proveedor.serializers import SupplierSerializer
 from compra_producto.serializers import BuyItemResponseSerializer, BuyItemCreateSerializer
@@ -28,14 +29,22 @@ def validate_unique_products(items):
 
 class BuyResponseSerializer(serializers.ModelSerializer):
     '''
-    DTO de lectura: compra con proveedor e ítems anidados.
+    DTO de lectura: compra con proveedor, ítems y estado de pago.
     '''
     proveedor = SupplierSerializer()
     items = BuyItemResponseSerializer(many=True, source='compraproducto_set')
+    payment_status = serializers.SerializerMethodField()
+    outstanding_balance = serializers.SerializerMethodField()
+
+    def get_payment_status(self, obj):
+        return BuyService.calculate_payment_status(obj)
+
+    def get_outstanding_balance(self, obj):
+        return BuyService.calculate_outstanding_balance(obj)
 
     class Meta:
         model = Compra
-        fields = ['id', 'fecha', 'importe', 'senia', 'proveedor', 'items']
+        fields = ['id', 'fecha', 'importe', 'senia', 'proveedor', 'items', 'payment_status', 'outstanding_balance']
 
 
 class BuyCreateSerializer(serializers.Serializer):

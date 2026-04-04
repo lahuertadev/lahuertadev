@@ -38,6 +38,8 @@ import FacturaForm from "./pages/factura/form/FacturaForm";
 import BillPrintView from "./pages/factura/print/PrintView";
 import BuyList from "./pages/compra/list";
 import CompraForm from "./pages/compra/form/CompraForm";
+import PurchasePaymentList from "./pages/pago_compra/list";
+import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -223,6 +225,14 @@ const router = createBrowserRouter([
       {
         path: 'buy/edit/:id',
         element: <CompraForm />,
+      },
+      {
+        path: 'purchase-payment',
+        element: <PurchasePaymentList />,
+      },
+      {
+        path: 'purchase-payment/create',
+        element: <PurchasePaymentForm />,
       },
       {
         path: 'bank',

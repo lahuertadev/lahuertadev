@@ -1,12 +1,23 @@
+from django.db.models import Sum, DecimalField, Value
+from django.db.models.functions import Coalesce
 from .models import Compra
 from .interfaces import IBuyRepository
+
+
+def _annotate_payments(qs):
+    return qs.annotate(
+        total_payments=Coalesce(
+            Sum('pagocompra__importe_abonado'),
+            Value(0, output_field=DecimalField()),
+        )
+    )
 
 
 class BuyRepository(IBuyRepository):
 
     def get_all(self, proveedor_id=None, fecha_desde=None, fecha_hasta=None,
                 importe_min=None, importe_max=None):
-        qs = Compra.objects.select_related('proveedor').all()
+        qs = _annotate_payments(Compra.objects.select_related('proveedor'))
 
         if proveedor_id:
             qs = qs.filter(proveedor_id=proveedor_id)
@@ -23,8 +34,7 @@ class BuyRepository(IBuyRepository):
 
     def get_by_id(self, id):
         return (
-            Compra.objects
-            .select_related('proveedor')
+            _annotate_payments(Compra.objects.select_related('proveedor'))
             .filter(id=id)
             .first()
         )

@@ -8,6 +8,10 @@ from rest_framework.parsers import JSONParser
 
 from banco.models import Banco
 from estado_cheque.models import EstadoCheque
+from mercado.models import Mercado
+from proveedor.models import Proveedor
+from compra.models import Compra
+from pago_compra.models import PagoCompra
 from cheque.models import Cheque
 from cheque.views import CheckViewSet
 from cheque.interfaces import ICheckRepository
@@ -64,7 +68,7 @@ class FakeCheckRepo(ICheckRepository):
         self._items[numero] = obj
         return obj
 
-    def get_all(self):
+    def get_all(self, banco=None, estado=None, endosado=None, fecha_deposito_desde=None, fecha_deposito_hasta=None):
         return list(self._items.values())
 
     def get_by_id(self, numero):
@@ -264,3 +268,67 @@ def test_destroy_success(factory, viewset):
 
     assert response.status_code == 204
     assert viewset.repository.get_by_id(1001) is None
+
+
+# ── ENDORSE ──────────────────────────────────────────────────────────────────
+
+def _create_pago_compra():
+    mercado = Mercado.objects.create(descripcion='Mercado Test')
+    proveedor = Proveedor.objects.create(
+        nombre='Prov Test', puesto=1, telefono='11111111',
+        cuenta_corriente=0, nombre_fantasia='Prov', mercado=mercado,
+    )
+    compra = Compra.objects.create(
+        fecha='2024-01-01', importe='1000.00', senia='0.00', proveedor=proveedor,
+    )
+    return PagoCompra.objects.create(compra=compra, importe_abonado='1000.00')
+
+
+@pytest.mark.django_db
+def test_endorse_not_found(factory, viewset):
+    pago_compra = _create_pago_compra()
+
+    request = factory.post('/checks/9999/endorse/', {'pago_compra': pago_compra.id}, format='json')
+    response = viewset.endorse(Request(request, parsers=[JSONParser()]), pk=9999)
+
+    assert response.status_code == 404
+    assert 'no encontrado' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_endorse_already_endorsed(factory, viewset):
+    pago_compra = _create_pago_compra()
+    viewset.repository._add(1001)
+    viewset.repository._items[1001].endosado = True
+
+    request = factory.post('/checks/1001/endorse/', {'pago_compra': pago_compra.id}, format='json')
+    response = viewset.endorse(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 400
+    assert 'endosado' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_endorse_invalid_state(factory, viewset):
+    pago_compra = _create_pago_compra()
+    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+
+    request = factory.post('/checks/1001/endorse/', {'pago_compra': pago_compra.id}, format='json')
+    response = viewset.endorse(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 400
+    assert 'en_cartera' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_endorse_success(factory, viewset):
+    pago_compra = _create_pago_compra()
+    EstadoCheque.objects.create(descripcion='ENDOSADO')
+    viewset.repository._add(1001)
+
+    request = factory.post('/checks/1001/endorse/', {'pago_compra': pago_compra.id}, format='json')
+    response = viewset.endorse(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 200
+    assert response.data['numero'] == 1001

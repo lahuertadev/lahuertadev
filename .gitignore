@@ -32,3 +32,5 @@ staticfiles/
 *.txt
 notas.md
 PROMPT_FACTURACION_PAGOS.md
+
+.coverage
