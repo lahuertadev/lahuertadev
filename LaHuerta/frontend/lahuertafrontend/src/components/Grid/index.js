@@ -26,11 +26,12 @@ import RoundedCheckbox from '../RoundedCheckbox';
 
 // Calcula el minWidth de cada columna comparando el largo del headerName
 // contra el contenido más largo. El mayor determina el mínimo.
-// Las columnas también reciben flex:1 para expandirse y cubrir el contenedor.
+// Se aplica a todas las columnas sin ancho fijo (width), tanto si tienen flex
+// explícito como si no, para evitar que se achiquen por debajo del texto.
 function calculateColumnWidths(rows, columns) {
   return columns.map((column) => {
-    // Si la columna ya define flex o width explícito, respetar eso
-    if (column.flex != null || column.width != null) return column;
+    // Columnas con ancho fijo: no tocar
+    if (column.width != null) return column;
 
     const titleLength = column.headerName ? column.headerName.length : 0;
     const contentLengths = rows.length
@@ -38,14 +39,16 @@ function calculateColumnWidths(rows, columns) {
       : [0];
     const maxContentLength = Math.max(titleLength, ...contentLengths);
     const charWidth = 9;  // 9px/char cubre uppercase + letter-spacing del header
-    const padding = 32;
+    const padding = 24;   // 12px a cada lado, igual que el padding '0 12px' del header en el sx
     const minWidth = Math.max(maxContentLength * charWidth + padding, column.minWidth || 80);
 
-    return {
-      ...column,
-      minWidth,
-      flex: minWidth, // peso proporcional: columnas más anchas por contenido obtienen más espacio
-    };
+    if (column.flex != null) {
+      // Tiene flex explícito: agregar minWidth calculado, mantener el flex
+      return { ...column, minWidth };
+    }
+
+    // Sin flex ni width: calcular ambos (peso proporcional al contenido)
+    return { ...column, minWidth, flex: minWidth };
   });
 }
 
@@ -182,7 +185,7 @@ export default function DataGridDemo({
             borderRadius: 0,
           },
           '& .MuiDataGrid-columnHeader': {
-            padding: '0 24px',
+            padding: '0 12px',
             '&:focus, &:focus-within': { outline: 'none' },
           },
           '& .MuiDataGrid-columnHeaderCheckbox': {
@@ -206,7 +209,7 @@ export default function DataGridDemo({
             },
           },
           '& .MuiDataGrid-cell': {
-            padding: '0 24px',
+            padding: '0 12px',
             color: '#2c3437',
             borderBottom: '1px solid #e3e9ed',
             '&:focus, &:focus-within': { outline: 'none' },

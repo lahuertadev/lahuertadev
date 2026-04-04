@@ -16,6 +16,7 @@ const mapSupplierData = (data) => {
     nave: supplier.nave,
     telefono: supplier.telefono,
     checkingAccount: formatCurrency(supplier.cuenta_corriente),
+    checkingAccountRaw: parseFloat(supplier.cuenta_corriente) || 0,
   }));
 };
 

@@ -13,6 +13,8 @@ const mapBuyData = (data) =>
     supplier: buy.proveedor.nombre,
     senia: formatCurrency(buy.senia),
     amount: formatCurrency(buy.importe),
+    paymentStatus: buy.payment_status,
+    outstandingBalance: formatCurrency(buy.outstanding_balance),
   }));
 
 const data = {
