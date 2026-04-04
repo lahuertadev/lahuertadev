@@ -5,6 +5,11 @@ from .exceptions import BuyNotFoundException
 from compra_producto.interfaces import IBuyProductRepository
 from proveedor.interfaces import ISupplierRepository
 
+# Estados de pago de una compra
+PAYMENT_STATUS_PENDING = 'PENDIENTE'
+PAYMENT_STATUS_PARTIAL = 'PARCIAL'
+PAYMENT_STATUS_PAID    = 'ABONADO'
+
 
 class BuyService:
 
@@ -24,8 +29,7 @@ class BuyService:
         proveedor = data['proveedor']
         senia = Decimal(str(data.get('senia', 0)))
 
-        subtotal = self._calculate_subtotal(products)
-        importe = subtotal - senia
+        importe = self._calculate_subtotal(products)
 
         compra = self.buy_repository.create(
             proveedor=proveedor,
@@ -36,7 +40,8 @@ class BuyService:
 
         self.buy_product_repository.create_products(compra, products)
 
-        proveedor.cuenta_corriente += importe
+        # La CC refleja la deuda neta: importe total menos la seña ya abonada.
+        proveedor.cuenta_corriente += importe - senia
         self.supplier_repository.update_balance(proveedor)
 
         return compra
@@ -48,33 +53,33 @@ class BuyService:
             raise BuyNotFoundException('Compra no encontrada.')
 
         old_importe = compra.importe
+        old_senia   = compra.senia
         old_proveedor = compra.proveedor
 
         new_proveedor = data.get('proveedor', old_proveedor)
+        new_senia = Decimal(str(data['senia'])) if 'senia' in data else old_senia
 
         if 'fecha' in data:
             compra.fecha = data['fecha']
 
         products = data.get('items', None)
-        new_senia = Decimal(str(data['senia'])) if 'senia' in data else compra.senia
 
         if products is not None:
-            subtotal = self._calculate_subtotal(products)
-            new_importe = subtotal - new_senia
+            # Importe es siempre el total bruto de la factura (sin descontar seña).
+            new_importe = self._calculate_subtotal(products)
             compra.importe = new_importe
-            compra.senia = new_senia
             self.buy_product_repository.replace_products(compra, products)
         else:
-            if 'senia' in data:
-                # Solo cambió la seña: recalcular importe manteniendo el subtotal
-                old_subtotal = old_importe + compra.senia
-                new_importe = old_subtotal - new_senia
-                compra.importe = new_importe
-                compra.senia = new_senia
-            else:
-                new_importe = old_importe
+            new_importe = old_importe
 
-        self._adjust_supplier_balance(old_proveedor, new_proveedor, old_importe, new_importe)
+        compra.senia = new_senia
+
+        # _adjust_supplier_balance trabaja con deudas netas (importe - seña).
+        self._adjust_supplier_balance(
+            old_proveedor, new_proveedor,
+            old_importe - old_senia,
+            new_importe - new_senia,
+        )
 
         compra.proveedor = new_proveedor
         self.buy_repository.save(compra)
@@ -87,35 +92,77 @@ class BuyService:
         if not compra:
             raise BuyNotFoundException('Compra no encontrada.')
 
-        importe = compra.importe
         proveedor = compra.proveedor
 
-        proveedor.cuenta_corriente -= importe
+        # Revertir solo la deuda neta que se había acreditado al crear la compra.
+        proveedor.cuenta_corriente -= (compra.importe - compra.senia)
         self.supplier_repository.update_balance(proveedor)
 
         # Eliminación de ítems automática por CASCADE
         self.buy_repository.delete(compra)
 
+    @staticmethod
+    def _calculate_total_paid(buy) -> Decimal:
+        '''
+        Suma la seña más todos los pagos registrados para la compra.
+        Usa la annotation total_payments del repositorio si está disponible;
+        si no, cae en una query directa.
+        '''
+        payments = getattr(buy, 'total_payments', None)
+        if payments is None:
+            from django.db.models import Sum
+            payments = buy.pagocompra_set.aggregate(
+                total=Sum('importe_abonado')
+            )['total'] or Decimal('0')
+        return Decimal(str(payments)) + Decimal(str(buy.senia))
+
+    @staticmethod
+    def calculate_payment_status(buy) -> str:
+        '''
+        Clasifica el estado de pago según cuánto se abonó del importe total.
+        '''
+        
+        total_paid = BuyService._calculate_total_paid(buy)
+        amount = Decimal(str(buy.importe))
+        if total_paid <= 0:
+            return PAYMENT_STATUS_PENDING
+        if total_paid >= amount:
+            return PAYMENT_STATUS_PAID
+        return PAYMENT_STATUS_PARTIAL
+
+    @staticmethod
+    def calculate_outstanding_balance(buy) -> Decimal:
+        '''
+        Calcula el saldo pendiente. Nunca retorna negativo.
+        '''
+
+        balance = Decimal(str(buy.importe)) - BuyService._calculate_total_paid(buy)
+        return max(balance, Decimal('0'))
+
     def _calculate_subtotal(self, products: list[dict]) -> Decimal:
+        '''
+        Calcula el subtotal
+        '''
+
         return sum(
             Decimal(str(product['cantidad_producto'])) * Decimal(str(product['precio_bulto']))
             for product in products
         )
 
-    def _adjust_supplier_balance(self, old_proveedor, new_proveedor, old_importe: Decimal, new_importe: Decimal) -> None:
+    def _adjust_supplier_balance(self, old_proveedor, new_proveedor, old_debt: Decimal, new_debt: Decimal) -> None:
         proveedor_changed = old_proveedor != new_proveedor
-        importe_changed = old_importe != new_importe
+        debt_changed = old_debt != new_debt
 
         if proveedor_changed:
-            old_proveedor.cuenta_corriente -= old_importe
+            old_proveedor.cuenta_corriente -= old_debt
             self.supplier_repository.update_balance(old_proveedor)
 
-            new_proveedor.cuenta_corriente += new_importe
+            new_proveedor.cuenta_corriente += new_debt
             self.supplier_repository.update_balance(new_proveedor)
 
             return
 
-        if importe_changed:
-            difference = new_importe - old_importe
+        if debt_changed:
+            difference = new_debt - old_debt
             old_proveedor.cuenta_corriente += difference
             self.supplier_repository.update_balance(old_proveedor)

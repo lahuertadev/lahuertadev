@@ -7,7 +7,7 @@ from .serializers import (
     PurchasePaymentResponseSerializer,
     PurchasePaymentQueryParamsSerializer,
 )
-from .exceptions import PurchasePaymentNotFoundException
+from .exceptions import PurchasePaymentNotFoundException, PaymentExceedsBalanceException
 from .factory import build_purchase_payment_service
 from cheque.exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException
 
@@ -66,7 +66,7 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
         except CheckNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except (CheckAlreadyEndorsedException, CheckInvalidStateException) as e:
+        except (CheckAlreadyEndorsedException, CheckInvalidStateException, PaymentExceedsBalanceException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
