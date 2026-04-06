@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from .repositories import CheckRepository
 from .interfaces import ICheckRepository
 from .serializers import CheckWriteSerializer, CheckResponseSerializer, EndorseCheckSerializer, CheckQueryParamsSerializer
-from .exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException, CheckLinkedToPaymentException
+from .exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException, CheckLinkedToPaymentException, CheckInvalidTransitionException
 from .factory import build_check_service
 
 
@@ -221,3 +221,69 @@ class CheckViewSet(viewsets.ViewSet):
                 {'detail': 'Error al endosar el cheque.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    @action(detail=True, methods=['post'], url_path='deposit')
+    def deposit(self, request, pk=None):
+        '''
+        Deposita un cheque (EN_CARTERA → DEPOSITADO).
+        '''
+        try:
+            check = self.repository.get_by_id(pk)
+            if not check:
+                raise CheckNotFoundException('Cheque no encontrado.')
+
+            check = self.service.deposit_check(check)
+            return Response(CheckResponseSerializer(check).data, status=status.HTTP_200_OK)
+
+        except CheckNotFoundException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except CheckInvalidTransitionException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception:
+            return Response({'detail': 'Error al depositar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], url_path='credit')
+    def credit(self, request, pk=None):
+        '''
+        Acredita un cheque (DEPOSITADO → ACREDITADO).
+        '''
+        try:
+            check = self.repository.get_by_id(pk)
+            if not check:
+                raise CheckNotFoundException('Cheque no encontrado.')
+
+            check = self.service.credit_check(check)
+            return Response(CheckResponseSerializer(check).data, status=status.HTTP_200_OK)
+
+        except CheckNotFoundException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except CheckInvalidTransitionException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception:
+            return Response({'detail': 'Error al acreditar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        '''
+        Rechaza un cheque (DEPOSITADO → RECHAZADO).
+        '''
+        try:
+            check = self.repository.get_by_id(pk)
+            if not check:
+                raise CheckNotFoundException('Cheque no encontrado.')
+
+            check = self.service.reject_check(check)
+            return Response(CheckResponseSerializer(check).data, status=status.HTTP_200_OK)
+
+        except CheckNotFoundException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except CheckInvalidTransitionException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception:
+            return Response({'detail': 'Error al rechazar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

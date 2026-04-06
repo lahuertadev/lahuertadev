@@ -12,3 +12,7 @@ class CheckInvalidStateException(Exception):
 
 class CheckLinkedToPaymentException(Exception):
     pass
+
+
+class CheckInvalidTransitionException(Exception):
+    pass

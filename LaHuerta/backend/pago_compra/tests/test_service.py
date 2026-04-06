@@ -3,6 +3,7 @@ from decimal import Decimal
 from unittest.mock import Mock
 
 from estado_cheque.models import EstadoCheque
+from estado_cheque import constants as check_status
 from tipo_pago.models import TipoPago
 from cheque.interfaces import ICheckRepository
 from pago_compra.interfaces import IPurchasePaymentRepository
@@ -126,8 +127,8 @@ class TestCreatePurchasePayment:
     def setup_method(self):
         self.tipo_efectivo = TipoPago.objects.create(descripcion='Efectivo')
         self.tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
-        EstadoCheque.objects.create(descripcion='EN_CARTERA')
-        EstadoCheque.objects.create(descripcion='ENDOSADO')
+        EstadoCheque.objects.create(descripcion=check_status.EN_CARTERA)
+        EstadoCheque.objects.create(descripcion=check_status.ENDOSADO)
 
     def test_tipo_efectivo_no_endosa_cheque(self):
         service = _make_service()
@@ -143,7 +144,7 @@ class TestCreatePurchasePayment:
 
     def test_tipo_cheque_endosa_el_cheque(self):
         service = _make_service()
-        en_cartera = EstadoCheque.objects.get(descripcion='EN_CARTERA')
+        en_cartera = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
         check = Mock()
         check.numero = 12345
         check.endosado = False
@@ -210,7 +211,7 @@ class TestDeletePurchasePayment:
     def setup_method(self):
         self.tipo_efectivo = TipoPago.objects.create(descripcion='Efectivo')
         self.tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
-        EstadoCheque.objects.create(descripcion='EN_CARTERA')
+        EstadoCheque.objects.create(descripcion=check_status.EN_CARTERA)
 
     def test_delete_pago_sin_cheque(self):
         service = _make_service()
@@ -234,7 +235,7 @@ class TestDeletePurchasePayment:
             tipo_pago=self.tipo_cheque,
             fecha_pago='2024-01-01',
         )
-        en_cartera = EstadoCheque.objects.get(descripcion='EN_CARTERA')
+        en_cartera = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
         check = Mock()
         check.numero = 55555
         check.endosado = True

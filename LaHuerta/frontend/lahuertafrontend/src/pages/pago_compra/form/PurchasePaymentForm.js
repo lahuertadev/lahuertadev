@@ -85,6 +85,7 @@ const PurchasePaymentForm = () => {
           data.map((c) => ({
             name: `Nro. ${c.numero} — ${c.banco?.descripcion || c.banco} — ${formatCurrency(c.importe)}`,
             value: c.numero,
+            importe: c.importe,
           }))
         ),
       ]);
@@ -232,23 +233,13 @@ const PurchasePaymentForm = () => {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className={labelCls}>Importe abonado</label>
-                  <AmountInput
-                    name="amount"
-                    value={values.amount}
-                    onChange={(raw) => setFieldValue('amount', raw)}
-                    hasError={touched.amount && Boolean(errors.amount)}
-                  />
-                  <FieldError error={errors.amount} touched={touched.amount} />
-                </div>
-
-                <div className="flex flex-col gap-1">
                   <label className={labelCls}>Tipo de pago</label>
                   <select
                     value={values.paymentType}
                     onChange={(e) => {
                       setFieldValue('paymentType', e.target.value);
                       setFieldValue('chequeNumero', '');
+                      setFieldValue('amount', '');
                     }}
                     className={inputCls(touched.paymentType && errors.paymentType)}
                   >
@@ -259,6 +250,19 @@ const PurchasePaymentForm = () => {
                   </select>
                   <FieldError error={errors.paymentType} touched={touched.paymentType} />
                 </div>
+
+                {values.paymentType && !isCheckPayment && (
+                  <div className="flex flex-col gap-1">
+                    <label className={labelCls}>Importe abonado</label>
+                    <AmountInput
+                      name="amount"
+                      value={values.amount}
+                      onChange={(raw) => setFieldValue('amount', raw)}
+                      hasError={touched.amount && Boolean(errors.amount)}
+                    />
+                    <FieldError error={errors.amount} touched={touched.amount} />
+                  </div>
+                )}
               </SectionCard>
             )}
 
@@ -269,7 +273,11 @@ const PurchasePaymentForm = () => {
                   <label className={labelCls}>Cheque en cartera</label>
                   <select
                     value={values.chequeNumero}
-                    onChange={(e) => setFieldValue('chequeNumero', e.target.value)}
+                    onChange={(e) => {
+                      const selected = selectOptions.checks.find((c) => String(c.value) === e.target.value);
+                      setFieldValue('chequeNumero', e.target.value);
+                      setFieldValue('amount', selected ? String(selected.importe) : '');
+                    }}
                     className={inputCls(touched.chequeNumero && errors.chequeNumero)}
                   >
                     <option value="">Seleccionar cheque...</option>
@@ -282,6 +290,19 @@ const PurchasePaymentForm = () => {
                     <p className="mt-1 text-xs text-on-surface-muted">No hay cheques en cartera disponibles.</p>
                   )}
                 </div>
+
+                {values.chequeNumero && (
+                  <div className="flex flex-col gap-1">
+                    <label className={labelCls}>Importe abonado</label>
+                    <AmountInput
+                      name="amount"
+                      value={values.amount}
+                      onChange={(raw) => setFieldValue('amount', raw)}
+                      hasError={touched.amount && Boolean(errors.amount)}
+                    />
+                    <FieldError error={errors.amount} touched={touched.amount} />
+                  </div>
+                )}
               </SectionCard>
             )}
 

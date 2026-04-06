@@ -1,5 +1,30 @@
 [
     {
+      "model": "estado_cheque.estadocheque",
+      "pk": 1,
+      "fields": { "descripcion": "EN_CARTERA" }
+    },
+    {
+      "model": "estado_cheque.estadocheque",
+      "pk": 2,
+      "fields": { "descripcion": "DEPOSITADO" }
+    },
+    {
+      "model": "estado_cheque.estadocheque",
+      "pk": 3,
+      "fields": { "descripcion": "ACREDITADO" }
+    },
+    {
+      "model": "estado_cheque.estadocheque",
+      "pk": 4,
+      "fields": { "descripcion": "ENDOSADO" }
+    },
+    {
+      "model": "estado_cheque.estadocheque",
+      "pk": 5,
+      "fields": { "descripcion": "RECHAZADO" }
+    },
+    {
       "model": "categoria.categoria",
       "pk": 1,
       "fields": { "descripcion": "Frutas" }
