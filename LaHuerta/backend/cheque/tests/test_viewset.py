@@ -332,3 +332,110 @@ def test_endorse_success(factory, viewset):
 
     assert response.status_code == 200
     assert response.data['numero'] == 1001
+
+
+# ── DEPOSIT ───────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_deposit_not_found(factory, viewset):
+    request = factory.post('/checks/9999/deposit/')
+    response = viewset.deposit(Request(request, parsers=[JSONParser()]), pk=9999)
+
+    assert response.status_code == 404
+    assert 'no encontrado' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_deposit_invalid_state(factory, viewset):
+    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+
+    request = factory.post('/checks/1001/deposit/')
+    response = viewset.deposit(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 400
+    assert 'en_cartera' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_deposit_success(factory, viewset):
+    EstadoCheque.objects.create(descripcion='DEPOSITADO')
+    viewset.repository._add(1001)  # EN_CARTERA por defecto
+
+    request = factory.post('/checks/1001/deposit/')
+    response = viewset.deposit(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 200
+    assert response.data['numero'] == 1001
+
+
+# ── CREDIT ────────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_credit_not_found(factory, viewset):
+    request = factory.post('/checks/9999/credit/')
+    response = viewset.credit(Request(request, parsers=[JSONParser()]), pk=9999)
+
+    assert response.status_code == 404
+    assert 'no encontrado' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_credit_invalid_state(factory, viewset):
+    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
+    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'EN_CARTERA'))
+
+    request = factory.post('/checks/1001/credit/')
+    response = viewset.credit(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 400
+    assert 'depositado' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_credit_success(factory, viewset):
+    EstadoCheque.objects.create(descripcion='ACREDITADO')
+    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+
+    request = factory.post('/checks/1001/credit/')
+    response = viewset.credit(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 200
+    assert response.data['numero'] == 1001
+
+
+# ── REJECT ────────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_reject_not_found(factory, viewset):
+    request = factory.post('/checks/9999/reject/')
+    response = viewset.reject(Request(request, parsers=[JSONParser()]), pk=9999)
+
+    assert response.status_code == 404
+    assert 'no encontrado' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_reject_invalid_state(factory, viewset):
+    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
+    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'EN_CARTERA'))
+
+    request = factory.post('/checks/1001/reject/')
+    response = viewset.reject(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 400
+    assert 'depositado' in response.data['detail'].lower()
+
+
+@pytest.mark.django_db
+def test_reject_success(factory, viewset):
+    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+
+    request = factory.post('/checks/1001/reject/')
+    response = viewset.reject(Request(request, parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 200
+    assert response.data['numero'] == 1001
