@@ -1,4 +1,6 @@
 import React from 'react';
+import Tooltip from '@mui/material/Tooltip';
+import ErrorIcon from '@mui/icons-material/Error';
 
 const STATE_CONFIG = {
   'EN_CARTERA': { label: 'En cartera', bg: '#e8f0fb', color: '#4a7bc4' },
@@ -9,11 +11,31 @@ const STATE_CONFIG = {
 };
 
 export const columns = [
-  { field: 'numero',      headerName: 'Número' },
-  { field: 'bank',        headerName: 'Banco' },
-  { field: 'amount',      headerName: 'Importe' },
-  { field: 'issueDate',   headerName: 'Fecha emisión',  minWidth: 140 },
-  { field: 'depositDate', headerName: 'Fecha depósito', minWidth: 145 },
+  { field: 'numero',    headerName: 'Número',         align: 'center', headerAlign: 'center' },
+  { field: 'bank',      headerName: 'Banco',           align: 'center', headerAlign: 'center' },
+  { field: 'amount',    headerName: 'Importe',         align: 'center', headerAlign: 'center' },
+  { field: 'issueDate', headerName: 'Fecha emisión',   align: 'center', headerAlign: 'center', minWidth: 140 },
+  {
+    field: 'depositDate',
+    headerName: 'Fecha depósito',
+    minWidth: 160,
+    align: 'center',
+    headerAlign: 'center',
+    renderCell: (params) => {
+      const { depositDateRaw, stateRaw } = params.row;
+      const overdue = stateRaw === 'EN_CARTERA' && depositDateRaw && new Date(depositDateRaw) < new Date();
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+          <span>{params.value}</span>
+          {overdue && (
+            <Tooltip title="La fecha de depósito ya pasó y el cheque sigue en cartera" arrow>
+              <ErrorIcon sx={{ fontSize: 16, color: '#ef4444', cursor: 'default' }} />
+            </Tooltip>
+          )}
+        </div>
+      );
+    },
+  },
   {
     field: 'state',
     headerName: 'Estado',
@@ -39,5 +61,5 @@ export const columns = [
       );
     },
   },
-  { field: 'endorsed', headerName: 'Endosado' },
+  { field: 'endorsed', headerName: 'Endosado', align: 'center', headerAlign: 'center' },
 ];
