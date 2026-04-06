@@ -5,6 +5,7 @@ from .exceptions import ClientPaymentNotFoundException, PaymentTypeChangeBlocked
 from cliente.interfaces import IClientRepository
 from cheque.interfaces import ICheckRepository
 from estado_cheque.models import EstadoCheque
+from estado_cheque import constants as check_status
 
 
 class ClientPaymentService:
@@ -34,7 +35,7 @@ class ClientPaymentService:
         self.client_repository.update_balance(client)
 
         if data['tipo_pago'].descripcion == 'Cheque':
-            in_wallet = EstadoCheque.objects.get(descripcion='EN_CARTERA')
+            in_wallet = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
             self.check_repository.create({
                 'numero': data['cheque_numero'],
                 'importe': data['importe'],
@@ -71,7 +72,7 @@ class ClientPaymentService:
             check = None
 
         elif not old_is_check and new_is_check:
-            in_wallet = EstadoCheque.objects.get(descripcion='EN_CARTERA')
+            in_wallet = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
             self.check_repository.create({
                 'numero': data['cheque_numero'],
                 'importe': data.get('importe', payment.importe),

@@ -1,6 +1,7 @@
 from django.db import transaction
 from decimal import Decimal
 from estado_cheque.models import EstadoCheque
+from estado_cheque import constants as check_status
 from cheque.exceptions import CheckNotFoundException
 from compra.service import BuyService
 from .exceptions import PurchasePaymentNotFoundException, PaymentExceedsBalanceException
@@ -52,7 +53,7 @@ class PurchasePaymentService:
 
         check = payment.cheque_set.first()
         if check:
-            in_portfolio = EstadoCheque.objects.get(descripcion='EN_CARTERA')
+            in_portfolio = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
             self.check_repository.update(check, {
                 'endosado': False,
                 'estado': in_portfolio,
