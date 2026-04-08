@@ -111,7 +111,7 @@
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 2,
-      "fields": { "descripcion": "Monotributo" }
+      "fields": { "descripcion": "Monotributista" }
     },
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
@@ -121,7 +121,7 @@
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 4,
-      "fields": { "descripcion": "Cons. Final" }
+      "fields": { "descripcion": "Consumidor Final" }
     },
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
@@ -168,72 +168,77 @@
 {
   "model": "tipo_factura.tipofactura",
   "pk": 1,
-  "fields": { "descripcion": "FA" }
+  "fields": { "descripcion": "Factura A", "abreviatura": "FA" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 2,
-  "fields": { "descripcion": "FB" }
+  "fields": { "descripcion": "Factura B", "abreviatura": "FB" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 3,
-  "fields": { "descripcion": "FC" }
+  "fields": { "descripcion": "Factura C", "abreviatura": "FC" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 4,
-  "fields": { "descripcion": "FM" }
+  "fields": { "descripcion": "Factura M", "abreviatura": "FM" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 5,
-  "fields": { "descripcion": "FE" }
+  "fields": { "descripcion": "Factura E", "abreviatura": "FE" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 6,
-  "fields": { "descripcion": "NCA" }
+  "fields": { "descripcion": "Nota de Crédito A", "abreviatura": "NCA" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 7,
-  "fields": { "descripcion": "NCB" }
+  "fields": { "descripcion": "Nota de Crédito B", "abreviatura": "NCB" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 8,
-  "fields": { "descripcion": "NCC" }
+  "fields": { "descripcion": "Nota de Crédito C", "abreviatura": "NCC" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 9,
-  "fields": { "descripcion": "NDA" }
+  "fields": { "descripcion": "Nota de Débito A", "abreviatura": "NDA" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 10,
-  "fields": { "descripcion": "NDB" }
+  "fields": { "descripcion": "Nota de Débito B", "abreviatura": "NDB" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 11,
-  "fields": { "descripcion": "NDC" }
+  "fields": { "descripcion": "Nota de Débito C", "abreviatura": "NDC" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 12,
-  "fields": { "descripcion": "RA" }
+  "fields": { "descripcion": "Recibo A", "abreviatura": "RA" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 13,
-  "fields": { "descripcion": "RB" }
+  "fields": { "descripcion": "Recibo B", "abreviatura": "RB" }
 },
 {
   "model": "tipo_factura.tipofactura",
   "pk": 14,
-  "fields": { "descripcion": "RC" }
+  "fields": { "descripcion": "Recibo C", "abreviatura": "RC" }
+},
+{
+  "model": "tipo_factura.tipofactura",
+  "pk": 15,
+  "fields": { "descripcion": "Remito", "abreviatura": "R" }
 },
     {
       "model": "producto.producto",

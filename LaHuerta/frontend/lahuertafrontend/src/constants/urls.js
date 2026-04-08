@@ -2,7 +2,7 @@
 // Para desarrollo, apuntamos al backend en localhost:8080.
 // En producción podés definir REACT_APP_API_BASE_URL en el .env de React.
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api';
 
 //! Auth
 export const authLoginUrl = `${API_BASE}/auth/login/`;
