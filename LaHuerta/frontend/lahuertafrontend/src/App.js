@@ -9,7 +9,7 @@ import './App.css';
 import { FaLinkedin } from 'react-icons/fa';
 
 function App() {
-  // Fuerza Django para que cree la cookie csrftoken apenas arranca la app. 
+  // Fuerza Django para que cree la cookie csrftoken apenas arranca la app.
   useEffect(() => {
     axios.get(authCsrfUrl, { withCredentials: true }).catch(() => {});
   }, []);

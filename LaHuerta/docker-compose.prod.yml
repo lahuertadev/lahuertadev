@@ -5,6 +5,16 @@ services:
       - mysql_data:/var/lib/mysql
     env_file:
       - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - lahuerta_network
 
@@ -19,12 +29,17 @@ services:
       python manage.py collectstatic --noinput &&
       gunicorn lahuertabackend.wsgi:application --bind 0.0.0.0:8000
       "
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - lahuerta_network
 
   frontend:
     build:
       context: ./frontend/lahuertafrontend
+      args:
+        REACT_APP_API_BASE_URL: http://31.97.169.150/api
     networks:
       - lahuerta_network
 
