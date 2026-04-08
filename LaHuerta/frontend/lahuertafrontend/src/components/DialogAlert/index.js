@@ -1,33 +1,54 @@
 import * as React from 'react';
-import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
-export default function AlertDialog({open, title, message, onConfirm, onCancel}) {
+export default function AlertDialog({ open, title, message, onConfirm, onCancel }) {
   return (
     <Dialog
       open={open}
       onClose={onCancel}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
+      PaperProps={{
+        style: {
+          borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(44,52,55,0.12)',
+          minWidth: '400px',
+          maxWidth: '480px',
+          padding: '8px',
+        },
+      }}
     >
-      <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
-      <DialogContent>
-        <DialogContentText id="alert-dialog-description">
+      <div className="p-6 space-y-5">
+
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+            <DeleteOutlineIcon sx={{ fontSize: 20, color: '#ef4444' }} />
+          </div>
+          <h2 className="text-base font-semibold text-on-surface">{title}</h2>
+        </div>
+
+        {/* Message */}
+        <p className="text-sm text-on-surface-muted leading-relaxed pl-[52px]">
           {message}
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onCancel} color="primary">
-          Cancelar
-        </Button>
-        <Button onClick={onConfirm} color="secondary" autoFocus>
-          Confirmar
-        </Button>
-      </DialogActions>
+        </p>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end gap-3 pt-1">
+          <button
+            onClick={onCancel}
+            className="px-5 py-2 text-sm font-semibold text-on-surface-muted hover:bg-surface-low rounded-lg transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-6 py-2 bg-red-500 text-white font-bold text-sm rounded-lg hover:bg-red-600 active:scale-[0.98] transition-all shadow-sm"
+          >
+            Confirmar
+          </button>
+        </div>
+
+      </div>
     </Dialog>
   );
 }

@@ -4,9 +4,9 @@ from mercado.models import Mercado
 class Proveedor(models.Model):
     nombre = models.CharField(max_length=20, unique=True, blank=False)
     puesto = models.SmallIntegerField(blank=False)
-    nave = models.SmallIntegerField(blank=False)
+    nave = models.SmallIntegerField(null=True, blank=True)
     telefono = models.CharField(max_length=20, blank=False)
-    cuenta_corriente = models.DecimalField(max_digits=10, decimal_places=2)
+    cuenta_corriente = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     nombre_fantasia = models.CharField(max_length=50)
     mercado = models.ForeignKey(Mercado, on_delete=models.CASCADE)
 

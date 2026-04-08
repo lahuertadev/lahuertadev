@@ -10,7 +10,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('banco', '0001_initial'),
-        ('pago', '0001_initial'),
     ]
 
     operations = [
@@ -26,7 +25,6 @@ class Migration(migrations.Migration):
                 ('fecha_deposito_pago', models.DateField(blank=True, null=True)),
                 ('check_pago_proveedor', models.BooleanField(default=False)),
                 ('banco', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='banco.banco')),
-                ('pago', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='pago.pago')),
             ],
             options={
                 'db_table': 'cheque',

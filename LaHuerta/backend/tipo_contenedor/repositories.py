@@ -1,7 +1,6 @@
 from .models import TipoContenedor
 from .interfaces import IContainerTypeRepository
-from .exceptions import ContainerHasProductsException, ContainerNotFoundException
-from producto.repositories import ProductRepository
+from .exceptions import ContainerNotFoundException
 
 class ContainerTypeRepository(IContainerTypeRepository):
     
@@ -26,21 +25,16 @@ class ContainerTypeRepository(IContainerTypeRepository):
         container.save()
         return container
     
-    def modify_container_type(self, id, data):
+    def modify_container_type(self, container_type, data):
         '''
         Modifica un tipo de contenedor.
         '''
-        container = self.get_container_by_id(id)
-        if not container:
-            raise ContainerNotFoundException('Tipo de contenedor no encontrado.')
-        
-        container.descripcion = data.get('descripcion', container.descripcion)
-        container.save()
-        return container
+        container_type.descripcion = data.get('descripcion', container_type.descripcion)
+        container_type.save()
+        return container_type
 
-    def destroy_container_type(self, id):
+    def destroy_container_type(self, container_type):
         '''
         Elimina un tipo de contenedor.
         '''
-        container = self.get_container_by_id(id)
-        container.delete()
+        container_type.delete()

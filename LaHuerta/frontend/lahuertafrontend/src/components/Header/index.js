@@ -12,11 +12,24 @@ import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import AccountCircle from '@mui/icons-material/AccountCircle';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
+import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import { useNavigate } from 'react-router-dom';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { authLogoutUrl } from '../../constants/urls';
+import { useCsrfToken } from '../../hooks/useCsrfToken';
+import { useAuth } from '../../context/AuthContext';
+import logoLaHuerta from '../../assets/logo-lahuerta-sin-fondo.png';
 
 const drawerWidth = 240;
 
@@ -53,6 +66,9 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
 })(({ theme }) => ({
   zIndex: theme.zIndex.drawer + 1,
+  backgroundColor: '#ffffff',
+  color: '#2c3437',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   transition: theme.transitions.create(['width', 'margin'], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -78,29 +94,66 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
     flexShrink: 0,
     whiteSpace: 'nowrap',
     boxSizing: 'border-box',
+    '& .MuiDrawer-paper': {
+      backgroundColor: '#f0f4f7',
+      borderRight: '1px solid #e3e9ed',
+    },
     variants: [
       {
         props: ({ open }) => open,
         style: {
           ...openedMixin(theme),
-          '& .MuiDrawer-paper': openedMixin(theme),
+          '& .MuiDrawer-paper': {
+            ...openedMixin(theme),
+            backgroundColor: '#f0f4f7',
+            borderRight: '1px solid #e3e9ed',
+          },
         },
       },
       {
         props: ({ open }) => !open,
         style: {
           ...closedMixin(theme),
-          '& .MuiDrawer-paper': closedMixin(theme),
+          '& .MuiDrawer-paper': {
+            ...closedMixin(theme),
+            backgroundColor: '#f0f4f7',
+            borderRight: '1px solid #e3e9ed',
+          },
         },
       },
     ],
   }),
 );
 
+const BLUE = '#4a7bc4';
+
+const isPathActive = (path, currentPath) => {
+  if (!path) return false;
+  if (path === '/') return currentPath === '/';
+  return currentPath === path || currentPath.startsWith(path);
+};
+
 export default function MiniDrawer({title, menuOptions}) {
   const theme = useTheme();
+  const location = useLocation();
   const [open, setOpen] = React.useState(false);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const csrfToken = useCsrfToken();
   const navigate = useNavigate();
+  const { clearUser, user } = useAuth();
+
+  // Auto-expande el grupo cuyo hijo está activo
+  const initialOpenGroups = React.useMemo(() => {
+    const groups = {};
+    menuOptions.forEach((item) => {
+      if (Array.isArray(item.children)) {
+        const hasActiveChild = item.children.some(c => isPathActive(c.path, location.pathname));
+        if (hasActiveChild) groups[item.text] = true;
+      }
+    });
+    return groups;
+  }, []);
+  const [openGroups, setOpenGroups] = React.useState(initialOpenGroups);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -110,13 +163,51 @@ export default function MiniDrawer({title, menuOptions}) {
     setOpen(false);
   };
 
-  const handleMenuClick = (option) => {
-    if (option === 'Gastos') {
-      navigate('/expense/');
-    } else if (option === 'Inicio') {
-      navigate('/');
-    } else if (option === 'Clientes') {
-      navigate('/client/');
+  const handleNavigate = (path) => {
+    if (!path) return;
+    handleDrawerClose();
+    navigate(path);
+  };
+
+  const toggleGroup = (groupText) => {
+    setOpenGroups((prev) => ({ ...prev, [groupText]: !prev[groupText] }));
+  };
+
+  // Manejo del menú de usuario
+  const handleUserMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleProfileClick = () => {
+    handleUserMenuClose();
+    // TODO: Navegar a la página de perfil cuando esté implementada
+    // navigate('/profile');
+    alert('Página de perfil próximamente');
+  };
+
+  const handleLogout = async () => {
+    handleUserMenuClose();
+    try {
+      await axios.post(
+        authLogoutUrl,
+        {},
+        {
+          withCredentials: true,
+          headers: {
+            'X-CSRFToken': csrfToken,
+          },
+        }
+      );
+      clearUser();
+      navigate('/login');
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+      clearUser();
+      navigate('/login');
     }
   };
 
@@ -126,82 +217,182 @@ export default function MiniDrawer({title, menuOptions}) {
       <AppBar position="fixed" open={open}>
         <Toolbar>
           <IconButton
-            color="inherit"
             aria-label="open drawer"
             onClick={handleDrawerOpen}
             edge="start"
             sx={[
-              {
-                marginRight: 5,
-              },
+              { marginRight: 2, color: '#596064' },
               open && { display: 'none' },
             ]}
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            {title}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+            <img src={logoLaHuerta} alt="La Huerta" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
+              {title}
+            </Typography>
+          </Box>
+          {/* Info de usuario + menú desplegable */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {user && (
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'inherit' }}>
+                  {[user.first_name, user.last_name].filter(Boolean).join(' ') || user.email}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#596064', lineHeight: 1.2 }}>
+                  {user.role}
+                </Typography>
+              </Box>
+            )}
+            <IconButton
+              size="large"
+              edge="end"
+              aria-label="account of current user"
+              aria-controls="user-menu"
+              aria-haspopup="true"
+              onClick={handleUserMenuOpen}
+              sx={{ color: '#596064' }}
+            >
+              <AccountCircle />
+            </IconButton>
+          </Box>
+          <Menu
+            id="user-menu"
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleUserMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            <MenuItem onClick={handleProfileClick}>
+              <ListItemIcon>
+                <PersonIcon fontSize="small" />
+              </ListItemIcon>
+              Perfil
+            </MenuItem>
+            <MenuItem onClick={handleLogout}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              Cerrar Sesión
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>
         <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
+          <IconButton onClick={handleDrawerClose} sx={{ color: '#596064' }}>
             {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </IconButton>
         </DrawerHeader>
         <Divider />
         <List>
-          {menuOptions.map(({ text, icon }) => (
-            <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                onClick={() => handleMenuClick(text)}
-                sx={[
-                  {
-                    minHeight: 50,
-                    px: 2.5,
-                  },
-                  open
-                    ? {
-                        justifyContent: 'initial',
-                      }
-                    : {
-                        justifyContent: 'center',
-                      },
-                ]}
-              >
-                <ListItemIcon
-                  sx={[
-                    {
-                      minWidth: 0,
-                      justifyContent: 'center',
-                    },
-                    open
-                      ? {
-                          mr: 3,
-                        }
-                      : {
-                          mr: 'auto',
-                        },
-                  ]}
+          {menuOptions.map((item) => {
+            const isGroup = Array.isArray(item.children) && item.children.length > 0;
+            const isGroupOpen = Boolean(openGroups[item.text]);
+            const groupHasActiveChild = isGroup && item.children.some(c => isPathActive(c.path, location.pathname));
+            const itemActive = !isGroup && isPathActive(item.path, location.pathname);
+
+            const itemSx = (active) => ({
+              minHeight: 50,
+              px: 1.5,
+              mx: 1,
+              borderRadius: '8px',
+              color: active ? BLUE : '#596064',
+              backgroundColor: active ? `rgba(74,123,196,0.10)` : 'transparent',
+              '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE },
+              justifyContent: open ? 'initial' : 'center',
+            });
+
+            if (isGroup) {
+              return (
+                <React.Fragment key={item.text}>
+                  <ListItem disablePadding sx={{ display: 'block' }}>
+                    <ListItemButton
+                      onClick={() => toggleGroup(item.text)}
+                      sx={itemSx(groupHasActiveChild)}
+                    >
+                      <ListItemIcon
+                        sx={[
+                          { minWidth: 0, justifyContent: 'center', color: 'inherit' },
+                          open ? { mr: 3 } : { mr: 'auto' },
+                        ]}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={item.text}
+                        primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
+                        sx={[open ? { opacity: 1 } : { opacity: 0 }]}
+                      />
+                      {open ? (isGroupOpen ? <ExpandLess sx={{ color: 'inherit' }} /> : <ExpandMore sx={{ color: 'inherit' }} />) : null}
+                    </ListItemButton>
+                  </ListItem>
+
+                  <Collapse in={isGroupOpen && open} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding sx={{ ml: 1, pl: 1, borderLeft: '1px solid rgba(74,123,196,0.15)' }}>
+                      {item.children.map((child) => {
+                        const childActive = isPathActive(child.path, location.pathname);
+                        return (
+                          <ListItem key={child.text} disablePadding sx={{ display: 'block' }}>
+                            <ListItemButton
+                              onClick={() => handleNavigate(child.path)}
+                              sx={{
+                                minHeight: 40,
+                                pl: 3,
+                                pr: 2,
+                                mx: 1,
+                                borderRadius: '8px',
+                                color: childActive ? BLUE : '#596064',
+                                backgroundColor: childActive ? 'rgba(74,123,196,0.06)' : 'transparent',
+                                fontWeight: childActive ? 600 : 400,
+                                '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE },
+                              }}
+                            >
+                              <ListItemText
+                                primary={child.text}
+                                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: childActive ? 600 : 400 }}
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        );
+                      })}
+                    </List>
+                  </Collapse>
+                </React.Fragment>
+              );
+            }
+
+            return (
+              <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
+                <ListItemButton
+                  onClick={() => handleNavigate(item.path)}
+                  sx={itemSx(itemActive)}
                 >
-                  {icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={text}
-                  sx={[
-                    open
-                      ? {
-                          opacity: 1,
-                        }
-                      : {
-                          opacity: 0,
-                        },
-                  ]}
-                />
-              </ListItemButton>
-            </ListItem>
-          ))}
+                  <ListItemIcon
+                    sx={[
+                      { minWidth: 0, justifyContent: 'center', color: 'inherit' },
+                      open ? { mr: 3 } : { mr: 'auto' },
+                    ]}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.text}
+                    primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
+                    sx={[open ? { opacity: 1 } : { opacity: 0 }]}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
         </List>
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>

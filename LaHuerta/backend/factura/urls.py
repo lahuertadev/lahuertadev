@@ -1,8 +1,10 @@
-from django.urls import path
-from .views import (
-    GetAllBills
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import BillViewSet
+
+router = DefaultRouter()
+router.register(r'bill', BillViewSet, basename='bill')
 
 urlpatterns = [
-    path('bill/', GetAllBills.as_view(), name='get-all-bills'),
+    path('', include(router.urls)),
 ]

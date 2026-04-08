@@ -1,0 +1,2 @@
+class BuyNotFoundException(Exception):
+    pass

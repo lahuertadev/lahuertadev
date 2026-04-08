@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('factura', '0001_initial'),
-        ('pago', '0001_initial'),
+        ('pago_cliente', '0001_initial'),
     ]
 
     operations = [
@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('importe_abonado', models.DecimalField(decimal_places=2, max_digits=10)),
                 ('factura', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='factura.factura')),
-                ('pago', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='pago.pago')),
+                ('pago_cliente', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='pago_cliente.pagocliente')),
             ],
             options={
                 'db_table': 'pago_factura',

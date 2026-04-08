@@ -8,8 +8,8 @@ class Producto(models.Model):
     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, blank=False, null=False)
     tipo_contenedor = models.ForeignKey(TipoContenedor, on_delete=models.CASCADE)
     tipo_unidad = models.ForeignKey(TipoUnidad, on_delete=models.CASCADE)
-    cantidad_por_bulto = models.SmallIntegerField()
-    peso_aproximado = models.FloatField()
+    cantidad_por_bulto = models.SmallIntegerField(null=True, blank=True)
+    peso_aproximado = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return f'{self.descripcion}'

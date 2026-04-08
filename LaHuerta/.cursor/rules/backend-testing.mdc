@@ -1,0 +1,40 @@
+---
+description: Estrategia de tests backend para La Huerta
+globs:
+  - "backend/**/*.py"
+alwaysApply: true
+---
+
+# Tests backend - La Huerta
+
+Los tests se organizan por capa dentro de cada app.
+
+Ubicación esperada:
+- app_name/tests/repository_tests.py
+- app_name/tests/service_tests.py
+- app_name/tests/view_tests.py
+
+Se suele testear:
+- repository
+- service
+- views
+
+Repository tests:
+- queries
+- filtros
+- búsquedas por id
+- persistencia
+- casos inexistentes
+
+Service tests:
+- reglas de negocio
+- cálculos
+- coordinación entre entidades
+- transacciones
+
+View tests:
+- status codes
+- response
+- validaciones
+- manejo de errores
+- flujo HTTP

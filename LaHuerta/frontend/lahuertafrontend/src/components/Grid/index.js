@@ -1,132 +1,246 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Box from '@mui/material/Box';
+import Tooltip from '@mui/material/Tooltip';
 import { DataGrid } from '@mui/x-data-grid';
+import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete'; 
-import '../../styles/grids.css' 
+import DeleteIcon from '@mui/icons-material/Delete';
+import RoundedCheckbox from '../RoundedCheckbox';
 
-export default function DataGridDemo({ rows, columns, onSelectionChange, onDelete, onEdit }) {
-  const [selectedRows, setSelectedRows] = useState([]);
+/**
+ * DataGridDemo — grilla reutilizable.
+ *
+ * Props:
+ *   rows              — array de filas (cada fila debe tener `id`)
+ *   columns           — definición de columnas MUI DataGrid:
+ *                         { field, headerName, flex?, width?, minWidth?, renderCell? }
+ *                         Si una columna no tiene `flex` ni `width`, se le calcula
+ *                         minWidth en base al header vs. el contenido más largo.
+ *   onEdit            — (id) => void
+ *   onDelete          — (id) => void
+ *   onDetail          — (id) => void  (opcional — omitir para ocultar el botón)
+ *   onSelectionChange — (ids[]) => void
+ *   multiSelect       — bool (default true) — activa checkboxes y selección múltiple
+ *   pageSize          — number (default 10)
+ */
 
-  //* Acción de edición
+// Calcula el minWidth de cada columna comparando el largo del headerName
+// contra el contenido más largo. El mayor determina el mínimo.
+// Se aplica a todas las columnas sin ancho fijo (width), tanto si tienen flex
+// explícito como si no, para evitar que se achiquen por debajo del texto.
+function calculateColumnWidths(rows, columns) {
+  return columns.map((column) => {
+    // Columnas con ancho fijo: no tocar
+    if (column.width != null) return column;
+
+    const titleLength = column.headerName ? column.headerName.length : 0;
+    const contentLengths = rows.length
+      ? rows.map((row) => (row[column.field] != null ? String(row[column.field]).length : 0))
+      : [0];
+    const maxContentLength = Math.max(titleLength, ...contentLengths);
+    const charWidth = 9;  // 9px/char cubre uppercase + letter-spacing del header
+    const padding = 24;   // 12px a cada lado, igual que el padding '0 12px' del header en el sx
+    const minWidth = Math.max(maxContentLength * charWidth + padding, column.minWidth || 80);
+
+    if (column.flex != null) {
+      // Tiene flex explícito: agregar minWidth calculado, mantener el flex
+      return { ...column, minWidth };
+    }
+
+    // Sin flex ni width: calcular ambos (peso proporcional al contenido)
+    return { ...column, minWidth, flex: minWidth };
+  });
+}
+
+const actionButtonSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '6px',
+  borderRadius: '8px',
+  border: 'none',
+  background: 'none',
+  cursor: 'pointer',
+  color: '#596064',
+  transition: 'all 0.15s',
+};
+
+export default function DataGridDemo({
+  rows,
+  columns,
+  onSelectionChange,
+  onDelete,
+  onEdit,
+  onDetail,
+  canDelete,
+  canEdit,
+  showEdit = true,
+  showDelete = true,
+  multiSelect = true,
+  pageSize = 10,
+}) {
+  const detailColumn = onDetail
+    ? {
+        field: 'detail',
+        headerName: 'Detalle',
+        width: 120,
+        sortable: false,
+        headerAlign: 'center',
+        align: 'center',
+        renderCell: (params) => (
+          <Tooltip title="Ver detalle">
+            <button
+              style={actionButtonSx}
+              onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+              onClick={() => onDetail(params.row.id)}
+            >
+              <SearchIcon sx={{ fontSize: 18 }} />
+            </button>
+          </Tooltip>
+        ),
+      }
+    : null;
+
   const editColumn = {
     field: 'edit',
     headerName: 'Editar',
-    minWidth: 100, 
+    width: 120,
+    sortable: false,
     headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', alignItems: 'center', height: '52px' }}>
-        <EditIcon 
-          onClick={() => onEdit(params.row.id)} 
-          style={{ cursor: 'pointer' }} 
-        />
-      </div>
-    ),
+    align: 'center',
+    renderCell: (params) => {
+      if (canEdit && !canEdit(params.row)) return null;
+      return (
+        <Tooltip title="Editar">
+          <button
+            style={actionButtonSx}
+            onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+            onClick={() => onEdit(params.row.id)}
+          >
+            <EditIcon sx={{ fontSize: 18 }} />
+          </button>
+        </Tooltip>
+      );
+    },
   };
-  
-  //* Acción de eliminación
+
   const deleteColumn = {
     field: 'delete',
     headerName: 'Eliminar',
-    minWidth: 100, 
+    width: 120,
+    sortable: false,
     headerAlign: 'center',
-    renderCell: (params) => (
-      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', alignItems: 'center', height: '52px' }}>
-        <DeleteIcon 
-          onClick={() => onDelete(params.row.id)} 
-          style={{ cursor: 'pointer', color: 'red'}} 
-        />
-      </div>
-    ),
+    align: 'center',
+    renderCell: (params) => {
+      if (canDelete && !canDelete(params.row)) return null;
+      return (
+        <Tooltip title="Eliminar">
+          <button
+            style={actionButtonSx}
+            onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+            onClick={() => onDelete(params.row.id)}
+          >
+            <DeleteIcon sx={{ fontSize: 18 }} />
+          </button>
+        </Tooltip>
+      );
+    },
   };
 
-  function calculateColumnWidths(rows, columns) {
-    return columns.map((column) => {
-      const titleLength = column.headerName ? column.headerName.length : 0;
-  
-      // Encuentra la longitud máxima entre las celdas de la columna
-      const maxContentLength = Math.max(
-        ...rows.map((row) => (row[column.field] ? row[column.field].toString().length : 0))
-      );
-  
-      // Calcula el ancho basado en el texto más largo entre el título y el contenido
-      const maxLength = Math.max(titleLength, maxContentLength);
-      const charWidth = 8; // Ancho promedio por carácter
-      const padding = 32; // Espaciado adicional
-      const calculatedWidth = maxLength * charWidth + padding;
-  
-      return {
-        ...column,
-        width: calculatedWidth, // Ancho dinámico calculado
-        minWidth: titleLength * charWidth + padding, // Ancho mínimo basado en el título
-      };
-    });
-  }
-  
-  const adjustedColumns = calculateColumnWidths(rows, columns).concat([editColumn, deleteColumn]);
+  const actionColumns = [
+    detailColumn,
+    showEdit ? editColumn : null,
+    showDelete ? deleteColumn : null,
+  ].filter(Boolean);
+  const adjustedColumns = calculateColumnWidths(rows, columns).concat(actionColumns);
 
-  
   return (
-    <DataGrid
-      rows={rows}
-      columns={adjustedColumns}
-      initialState={{
-        pagination: {
-          paginationModel: {
-            pageSize: 10,
-          },
-        },
-      }}
-      pageSizeOptions={[10]}
-      checkboxSelection
-      onRowSelectionModelChange={(newSelection) => onSelectionChange(newSelection)}
-      disableRowSelectionOnClick
-      disableColumnMenu
-      className="custom-grid"
-      sx={{
-        width: '100%',
-        height: '631px',
-        overflowX: 'auto',
-        '.MuiDataGrid-columnHeader': {
-          height: 'auto', 
-          minHeight: '56px', 
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: '0 8px',
-          fontWeight: 'bold',
-        },
-        '.MuiDataGrid-columnHeaderTitle': {
-          fontSize: '16px', 
-          fontWeight: 'bold',
-          textAlign: 'center',
-          whiteSpace: 'nowrap',
-          wordWrap: 'break-word', 
-          padding: '4px 0', 
-          overflow: 'visible',  // Permite que el texto se muestre completamente si cabe
-          textOverflow: 'clip', // No trunca el texto con "..."
-        },
-        '.MuiDataGrid-columnHeaderTitleContainerContent': {
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
+    <Box sx={{ width: '100%' }}>
+      <DataGrid
+        rows={rows}
+        columns={adjustedColumns}
+        initialState={{
+          pagination: { paginationModel: { pageSize } },
+        }}
+        pageSizeOptions={[10, 25, 50]}
+        checkboxSelection={multiSelect}
+        onRowSelectionModelChange={(sel) => onSelectionChange?.(sel)}
+        disableRowSelectionOnClick
+        disableColumnMenu
+        autoHeight
+        slots={{ baseCheckbox: RoundedCheckbox }}
+        sx={{
           width: '100%',
-          padding: '4px',
-        },
-        
-        '.MuiDataGrid-cell': {
-          textAlign: 'center',
-          padding: '10px', 
-          display: 'flex',                  
-          alignItems: 'center',   
-          justifyContent: 'center',  
-        },
-        
-        '.MuiDataGrid-cellContent': {
-          wordWrap: 'break-word', 
-          whiteSpace: 'normal', 
-        },
-      }}
-    />
+          border: 'none',
+          fontFamily: 'Inter, sans-serif',
+          fontSize: '0.875rem',
+
+          // ── Headers ────────────────────────────────────────────
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: 'rgba(240,244,247,0.5)',
+            borderBottom: '1px solid #e3e9ed',
+            borderRadius: 0,
+          },
+          '& .MuiDataGrid-columnHeader': {
+            padding: '0 12px',
+            '&:focus, &:focus-within': { outline: 'none' },
+          },
+          '& .MuiDataGrid-columnHeaderCheckbox': {
+            padding: 0,
+          },
+          '& .MuiDataGrid-columnHeaderTitle': {
+            fontSize: '0.6875rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: '#596064',
+          },
+          '& .MuiDataGrid-columnSeparator': { display: 'none' },
+
+          // ── Filas ──────────────────────────────────────────────
+          '& .MuiDataGrid-row': {
+            '&:hover': { backgroundColor: '#f0f4f7' },
+            '&.Mui-selected': {
+              backgroundColor: 'rgba(93,137,200,0.05)',
+              '&:hover': { backgroundColor: 'rgba(93,137,200,0.08)' },
+            },
+          },
+          '& .MuiDataGrid-cell': {
+            padding: '0 12px',
+            color: '#2c3437',
+            borderBottom: '1px solid #e3e9ed',
+            '&:focus, &:focus-within': { outline: 'none' },
+          },
+
+          // ── Checkbox ───────────────────────────────────────────
+          '& .MuiCheckbox-root': {
+            '&:hover': { backgroundColor: 'rgba(93,137,200,0.06)' },
+          },
+
+          // ── Paginación ─────────────────────────────────────────
+          '& .MuiDataGrid-footerContainer': {
+            borderTop: '1px solid #e3e9ed',
+            backgroundColor: 'rgba(240,244,247,0.1)',
+            minHeight: '52px',
+          },
+          '& .MuiTablePagination-root': {
+            color: '#596064',
+            fontSize: '0.6875rem',
+          },
+          '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+            fontSize: '0.6875rem',
+            color: '#596064',
+          },
+          '& .MuiIconButton-root': {
+            color: '#596064',
+            '&:hover': { backgroundColor: 'rgba(93,137,200,0.08)' },
+            '&.Mui-disabled': { color: '#acb3b7' },
+          },
+        }}
+      />
+    </Box>
   );
 }

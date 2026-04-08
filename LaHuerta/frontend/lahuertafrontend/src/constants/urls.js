@@ -1,6 +1,19 @@
 //* Rutas de backend
+// Para desarrollo, apuntamos al backend en localhost:8080.
+// En producción podés definir REACT_APP_API_BASE_URL en el .env de React.
 
-const API_BASE = '';
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api';
+
+//! Auth
+export const authLoginUrl = `${API_BASE}/auth/login/`;
+export const authRegisterUrl = `${API_BASE}/auth/register/`;
+export const authLogoutUrl = `${API_BASE}/auth/logout/`;
+export const authMeUrl = `${API_BASE}/auth/me/`;
+export const authPasswordResetUrl = `${API_BASE}/auth/password-reset/`;
+export const authPasswordResetConfirmUrl = `${API_BASE}/auth/password-reset-confirm/`;
+export const authVerifyEmailUrl = `${API_BASE}/auth/verify-email/`;
+export const authResendVerificationCodeUrl = `${API_BASE}/auth/resend-verification-code/`;
+export const authCsrfUrl = `${API_BASE}/auth/csrf/`;
 
 //! Expense
 export const expenseUrl = `${API_BASE}/expense/`;
@@ -11,12 +24,66 @@ export const clientUrl = `${API_BASE}/client/`;
 //! Iva Condition
 export const ConditionIvaTypeUrl = `${API_BASE}/type_condition_iva/`;
 
+//! Category
+export const categoryUrl = `${API_BASE}/category/`;
+
 //! Facturation Type
 export const billingTypeUrl = `${API_BASE}/type_facturation/`;
 
 //! Expense Type
 export const expenseTypeUrl = `${API_BASE}/type_expense/`;
 
-//! External Services 
+//! Price List
+export const priceListUrl = `${API_BASE}/price_list/`;
+
+//! Price List Product
+export const priceListProductUrl = `${API_BASE}/price_list_product/`;
+
+//! Product
+export const productUrl = `${API_BASE}/product/`;
+
+//! Client Payment
+export const clientPaymentUrl = `${API_BASE}/client-payment/`;
+
+//! Payment Type
+export const paymentTypeUrl = `${API_BASE}/payment_type/`;
+
+//! Bill (Factura / Remito)
+export const billUrl = `${API_BASE}/bill/`;
+
+//! Bill Type (Tipo Factura)
+export const billTypeUrl = `${API_BASE}/bill_types/`;
+
+//! Sale Type (Tipo Venta: unidad / bulto)
+export const saleTypeUrl = `${API_BASE}/sale_types/`;
+
+//! Container Type 
+export const containerTypeUrl = `${API_BASE}/container_type/`;
+
+//! Unit Type
+export const unitTypeUrl = `${API_BASE}/unit_type/`;
+
+//! Supplier
+export const supplierUrl = `${API_BASE}/supplier/`;
+
+//! Buy (Compra)
+export const buyUrl = `${API_BASE}/buy/`;
+
+//! Market
+export const marketUrl = `${API_BASE}/market/`;
+
+//! Bank
+export const bankUrl = `${API_BASE}/bank/`;
+
+//! Check (Cheque)
+export const checkUrl = `${API_BASE}/checks/`;
+
+//! Check State (Estado Cheque)
+export const checkStateUrl = `${API_BASE}/check_state/`;
+
+//! Purchase Payment (Pago Compra)
+export const purchasePaymentUrl = `${API_BASE}/purchase-payment/`;
+
+//! External Services
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';

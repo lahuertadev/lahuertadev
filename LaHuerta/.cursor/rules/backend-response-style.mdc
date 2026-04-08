@@ -1,0 +1,20 @@
+---
+description: Forma de responder para cambios backend en La Huerta
+globs:
+  - "backend/**/*.py"
+alwaysApply: true
+---
+
+# Estilo de respuesta backend
+
+Antes de proponer código:
+1. resumir enfoque
+2. listar archivos a modificar
+3. indicar si hace falta service o no
+4. recién después proponer implementación
+
+Evitar:
+- sobreingeniería
+- cambios masivos no pedidos
+- explicaciones básicas innecesarias
+- inventar estructuras no alineadas con el repo

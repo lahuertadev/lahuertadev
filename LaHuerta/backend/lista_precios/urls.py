@@ -1,8 +1,10 @@
-from django.urls import path
-from .views import (
-    GetAllPricesList
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import PricesListViewSet
+
+router = DefaultRouter()
+router.register(r"price_list", PricesListViewSet, basename="price_list")
 
 urlpatterns = [
-    path('product_list/', GetAllPricesList.as_view(), name='get-all-products_list'),
+    path("", include(router.urls)),
 ]

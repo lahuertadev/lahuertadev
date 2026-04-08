@@ -6,12 +6,12 @@ import Typography from '@mui/material/Typography';
 import CardActionArea from '@mui/material/CardActionArea';
 import { useNavigate } from 'react-router-dom';
 
-export default function ActionAreaCard({title, description, url, img, imgDescription}) {
-    const navigate = useNavigate();
+export default function ActionAreaCard({ title, description, url, img, imgDescription }) {
+  const navigate = useNavigate();
 
-    const handleClick = () => {
-        navigate(url);
-    }
+  const handleClick = () => {
+    navigate(url);
+  };
 
   return (
     <Card sx={{ maxWidth: 345 }}>

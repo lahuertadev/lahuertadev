@@ -24,18 +24,16 @@ class UnitTypeRepository(IUnitTypeRepository):
         type_unit.save()
         return type_unit
     
-    def modify_unit_type(self, id, data):
+    def modify_unit_type(self, unit_type, data):
         '''
         Modifica un tipo de unidad
         '''
-        unit_type = self.get_unit_type_by_id(id)
         unit_type.descripcion = data.get('descripcion', unit_type.descripcion)
         unit_type.save()
         return unit_type
 
-    def destroy_unit_type(self, id):
+    def destroy_unit_type(self, unit_type):
         '''
         Elimina un tipo de unidad
         '''
-        unit_type = self.get_unit_type_by_id(id)
         unit_type.delete()

@@ -1,8 +1,8 @@
-from django.urls import path
-from .views import (
-    GetAllMarkets
-)
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import MarketViewSet
 
-urlpatterns = [
-    path('market/', GetAllMarkets.as_view(), name='get-all-markets'),
-]
+router = DefaultRouter()
+router.register(r'market', MarketViewSet, basename='market')
+
+urlpatterns = [path('', include(router.urls))]

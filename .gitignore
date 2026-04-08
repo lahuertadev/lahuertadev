@@ -30,4 +30,7 @@ staticfiles/
 
 # Archivos de anotaciones
 *.txt
+notas.md
+PROMPT_FACTURACION_PAGOS.md
 
+.coverage

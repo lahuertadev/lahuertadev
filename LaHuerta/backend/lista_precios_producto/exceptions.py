@@ -1,0 +1,3 @@
+class PriceListProductNotFoundException(Exception):
+    pass
+
