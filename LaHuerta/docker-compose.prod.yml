@@ -48,13 +48,17 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/staticfiles:/app/staticfiles
-    ports:
-      - "80:80"
     depends_on:
       - backend
       - frontend
     networks:
       - lahuerta_network
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.lahuerta.rule=Host(`31.97.169.150`)"
+      - "traefik.http.routers.lahuerta.entrypoints=web"
+      - "traefik.http.services.lahuerta.loadbalancer.server.port=80"
 
 volumes:
   mysql_data:
@@ -62,3 +66,5 @@ volumes:
 networks:
   lahuerta_network:
     driver: bridge
+  dokploy-network:
+    external: true
