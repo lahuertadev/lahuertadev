@@ -19,7 +19,7 @@ services:
 
   # Backend Django
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: lahuerta_backend
