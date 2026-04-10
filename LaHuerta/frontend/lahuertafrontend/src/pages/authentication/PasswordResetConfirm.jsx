@@ -169,7 +169,8 @@ const PasswordResetConfirm = () => {
             <div className="mt-4 text-center">
               <button
                 type="button"
-                className="text-sm text-blue-lahuerta hover:underline"
+                className="text-sm hover:underline"
+                style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
                 onClick={() => navigate('/login')}
               >
                 Volver al inicio de sesión

@@ -195,7 +195,8 @@ const Register = () => {
               <div className="mt-4 text-center">
                 <button
                   type="button"
-                  className="text-sm text-blue-lahuerta hover:underline"
+                  className="text-sm hover:underline"
+                  style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
                   onClick={() => navigate('/login')}
                 >
                   Ir al inicio de sesión
@@ -240,7 +241,8 @@ const Register = () => {
               <div className="mt-4 text-center">
                 <button
                   type="button"
-                  className="text-sm text-blue-lahuerta hover:underline disabled:opacity-50"
+                  className="text-sm hover:underline disabled:opacity-50"
+                  style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
                   onClick={handleResendCode}
                   disabled={resendLoading}
                 >
