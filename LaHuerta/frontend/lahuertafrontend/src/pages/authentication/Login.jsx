@@ -221,6 +221,7 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               required
+              showToggle
               autoComplete="current-password"
             />
 
