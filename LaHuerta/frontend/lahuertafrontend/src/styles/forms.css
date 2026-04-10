@@ -15,22 +15,7 @@
     margin-top: 20px;
 }
 
-/* Estilos para los inputs */
-input, select, textarea {
-width: 100%;  /* Ocupa todo el ancho del contenedor */
-padding: 10px;  /* Espaciado interno */
-margin-bottom: 20px;  /* Espacio entre campos */
-border: 1px solid #ccc;  /* Borde gris */
-border-radius: 5px;  /* Bordes redondeados */
-font-size: 16px;  /* Tamaño de fuente */
-}
-
-/* Estilo para etiquetas */
-label {
-display: block;  /* Cada etiqueta en su propia línea */
-margin-bottom: 5px;  /* Espacio entre la etiqueta y el input */
-font-weight: bold;  /* Etiqueta en negrita */
-}
+/* Estilo para mensajes de error inline (legacy) */
 
 /* Estilo para mensajes de error */
 .error {
@@ -40,9 +25,6 @@ margin-bottom: 10px;  /* Espacio entre el error y el siguiente elemento */
 }
 
 
-button:hover {
-background-color: #45a049;  /* Cambia el color al hacer hover */
-}
 
 /* Estilos responsivos */
 @media (max-width: 768px) {

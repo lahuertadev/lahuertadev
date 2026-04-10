@@ -30,6 +30,18 @@ const Register = () => {
   const [verificationCode, setVerificationCode] = useState('');
   const [verificationError, setVerificationError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
+  const [touchedFields, setTouchedFields] = useState({ password: false, password_confirm: false, verificationCode: false });
+
+  const handleBlur = (fieldName) => {
+    setTouchedFields((prev) => ({ ...prev, [fieldName]: true }));
+  };
+
+  const passwordRules = [
+    { label: 'Mínimo 8 caracteres', test: (p) => p.length >= 8 },
+    { label: '1 letra mayúscula', test: (p) => /[A-Z]/.test(p) },
+    { label: '1 número', test: (p) => /[0-9]/.test(p) },
+    { label: '1 carácter especial', test: (p) => /[^A-Za-z0-9]/.test(p) },
+  ];
 
   // Opciones de roles
   const roleOptions = [
@@ -221,10 +233,10 @@ const Register = () => {
                     setVerificationCode(v);
                     setVerificationError('');
                   }}
+                  onBlur={() => handleBlur('verificationCode')}
                   placeholder="123456"
                   maxLength={6}
-                  helperText={verificationError || 'Ingresá el código de 6 dígitos que recibiste por email'}
-                  error={!!verificationError}
+                  helperText={touchedFields.verificationCode ? verificationError : ''}
                 />
                 <div className="mt-6">
                   <Button
@@ -326,9 +338,24 @@ const Register = () => {
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
+                onBlur={() => handleBlur('password')}
                 required
-                helperText={fieldErrors.password ? (Array.isArray(fieldErrors.password) ? fieldErrors.password[0] : fieldErrors.password) : 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial'}
+                showToggle
+                helperText={touchedFields.password && fieldErrors.password ? (Array.isArray(fieldErrors.password) ? fieldErrors.password[0] : fieldErrors.password) : ''}
               />
+              {formData.password.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {passwordRules.map((rule) => {
+                    const met = rule.test(formData.password);
+                    return (
+                      <div key={rule.label} className={`flex items-center gap-1.5 text-xs ${met ? 'text-green-600' : 'text-red-500'}`}>
+                        <span>{met ? '✓' : '✗'}</span>
+                        <span>{rule.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Password Confirm */}
@@ -339,9 +366,23 @@ const Register = () => {
                 type="password"
                 value={formData.password_confirm}
                 onChange={handleChange}
+                onBlur={() => handleBlur('password_confirm')}
                 required
-                helperText={fieldErrors.password_confirm ? (Array.isArray(fieldErrors.password_confirm) ? fieldErrors.password_confirm[0] : fieldErrors.password_confirm) : ''}
+                showToggle
+                helperText={
+                  touchedFields.password_confirm && formData.password_confirm && formData.password !== formData.password_confirm
+                    ? 'Las contraseñas no coinciden'
+                    : touchedFields.password_confirm && fieldErrors.password_confirm
+                    ? (Array.isArray(fieldErrors.password_confirm) ? fieldErrors.password_confirm[0] : fieldErrors.password_confirm)
+                    : ''
+                }
               />
+              {formData.password_confirm.length > 0 && formData.password === formData.password_confirm && (
+                <div className="flex items-center gap-1.5 text-xs text-green-600 mt-1">
+                  <span>✓</span>
+                  <span>Las contraseñas coinciden</span>
+                </div>
+              )}
             </div>
 
             {/* Error general */}
