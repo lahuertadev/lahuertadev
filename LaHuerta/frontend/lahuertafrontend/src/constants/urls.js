@@ -84,6 +84,9 @@ export const checkStateUrl = `${API_BASE}/check_state/`;
 //! Purchase Payment (Pago Compra)
 export const purchasePaymentUrl = `${API_BASE}/purchase-payment/`;
 
+//! Client Report
+export const clientReportUrl = `${API_BASE}/client-report/`;
+
 //! External Services
 //? Provinces
 export const provincesUrl = 'https://apis.datos.gob.ar/georef/api/provincias?campos=id,nombre&max=25';
