@@ -14,6 +14,7 @@ class KpiSerializer(serializers.Serializer):
     total_billed = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
     pending_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
+    account_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
 
 
 class ChartEntrySerializer(serializers.Serializer):

@@ -70,6 +70,41 @@ En este caso:
 - reutilizar utilidades de formato antes de formatear inline
 - no introducir una capa API nueva si el proyecto no la usa
 
+## Componentes reutilizables obligatorios
+
+Siempre usar los componentes ya existentes en `src/components/`. **Nunca usar el equivalente de MUI directamente** si ya existe un wrapper propio:
+
+| Necesidad | Componente a usar | Nunca usar |
+|-----------|-------------------|------------|
+| Select / dropdown | `BasicSelect` (`components/Select`) | `<Select>` de MUI |
+| Date picker | `BasicDatePicker` (`components/DatePicker`) | `<DatePicker>` de MUI directamente |
+| Input de texto | `components/Input` | `<TextField>` de MUI si hay wrapper propio |
+| Input de monto | `components/AmountInput` | input numérico crudo |
+| Rango de fechas | `components/DateRange` | dos DatePicker sueltos |
+
+### Formato de `BasicSelect`
+```jsx
+<BasicSelect
+  label="Etiqueta"
+  name="fieldName"
+  value={selectedOption}          // objeto { name, value } o ''
+  options={[{ name: 'Texto', value: 'id' }]}
+  onChange={e => setSelected(e.target.value)}  // e.target.value es el objeto completo
+/>
+```
+
+### Formato de `BasicDatePicker`
+```jsx
+<BasicDatePicker
+  label="Etiqueta"
+  name="fieldName"
+  value={dateString}              // string 'YYYY-MM-DD' o null
+  onChange={setDateString}        // recibe string 'YYYY-MM-DD' o null
+/>
+```
+
+Usar MUI (`Button`, `Paper`, `Typography`, `CircularProgress`, etc.) solo para los elementos que **no tienen wrapper propio** en el proyecto.
+
 ## Definición de columnas para DataGrid
 
 El componente `Grid/index.js` calcula `minWidth` automáticamente en base al largo del header y el contenido de las filas. No hace falta calcularlo a mano.

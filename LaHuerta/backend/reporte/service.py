@@ -132,6 +132,7 @@ class ReportService:
                 'total_billed': total_billed,
                 'total_paid': total_paid,
                 'pending_balance': pending_balance,
+                'account_balance': client.cuenta_corriente,
             },
             'chart': build_chart(period, date_from, date_to, bills, payments),
             'bills': bills,
