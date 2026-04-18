@@ -41,6 +41,7 @@ urlpatterns = [
     path('api/', include('compra.urls')),
     path('api/', include('estado_cheque.urls')),
     path('api/', include('cheque.urls')),
+    path('api/', include('cheque_propio.urls')),
     path('api/', include('pago_cliente.urls')),
     path('api/', include('pago_factura.urls')),
     path('api/', include('pago_compra.urls')),
