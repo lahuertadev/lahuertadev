@@ -39,7 +39,7 @@ services:
     build:
       context: ./frontend/lahuertafrontend
       args:
-        REACT_APP_API_BASE_URL: http://31.97.169.150/api
+        REACT_APP_API_BASE_URL: https://lahuerta-app.com/api
     networks:
       - lahuerta_network
 
@@ -56,7 +56,7 @@ services:
       - dokploy-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.lahuerta.rule=Host(`31.97.169.150`)"
+      - "traefik.http.routers.lahuerta.rule=Host(`lahuerta-app.com`)"
       - "traefik.http.routers.lahuerta.entrypoints=web"
       - "traefik.http.services.lahuerta.loadbalancer.server.port=80"
 
