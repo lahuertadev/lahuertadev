@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class TipoVentaConfig(AppConfig):
+class ReporteConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'tipo_venta'
+    name = 'reporte'
