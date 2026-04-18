@@ -60,7 +60,8 @@ INSTALLED_APPS = [
     'tipo_venta',
     'provincia',
     'municipio',
-    'localidad'
+    'localidad',
+    'reporte',
 ]
 
 MIDDLEWARE = [

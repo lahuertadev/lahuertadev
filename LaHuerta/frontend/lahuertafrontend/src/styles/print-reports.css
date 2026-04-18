@@ -1,0 +1,448 @@
+/* ==========================================================================
+   REPORTE DE CLIENTES — estilos de pantalla e impresión
+   ========================================================================== */
+
+/* ── Layout general ──────────────────────────────────────────────────────── */
+
+.report-page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ── Filtros ─────────────────────────────────────────────────────────────── */
+
+.report-filters-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .report-filters-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── KPIs ────────────────────────────────────────────────────────────────── */
+
+.report-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .report-kpis {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-kpi-card {
+  border-radius: 8px;
+}
+
+.report-kpi-bg-icon {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  opacity: 0.07;
+  color: #374151;
+  pointer-events: none;
+}
+
+.report-kpi-bg-icon svg {
+  font-size: 88px;
+}
+
+/* ── Tablas ──────────────────────────────────────────────────────────────── */
+
+.report-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+  .report-tables {
+    grid-template-columns: 1fr;
+  }
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.report-table thead tr {
+  background-color: #f5f5f5;
+}
+
+.report-table th {
+  padding: 10px 14px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.report-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #374151;
+}
+
+.report-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.report-table tbody tr:hover td {
+  background-color: #f9fafb;
+}
+
+.report-table .text-right {
+  text-align: right;
+}
+
+.report-table .text-center {
+  text-align: center;
+}
+
+.report-table .text-secondary {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.report-table .font-bold {
+  font-weight: 700;
+}
+
+.report-table .text-primary {
+  color: #4a7bc4;
+}
+
+/* ── Títulos de sección ──────────────────────────────────────────────────── */
+
+.report-section-title {
+  border-left: 4px solid #4a7bc4;
+  padding-left: 16px;
+}
+
+/* ── Solo impresión ──────────────────────────────────────────────────────── */
+
+.print-only {
+  display: none;
+}
+
+/* ── Tabla wrapper para thead/tfoot repetibles en impresión ─────────────── */
+
+.report-print-wrapper {
+  display: block;
+  width: 100%;
+}
+
+.report-print-wrapper > thead,
+.report-print-wrapper > tfoot {
+  display: none;
+}
+
+.report-print-wrapper > tbody,
+.report-print-wrapper > tbody > tr,
+.report-print-wrapper > tbody > tr > td {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+}
+
+/* ==========================================================================
+   IMPRESIÓN
+   ========================================================================== */
+
+@page {
+  size: A4;
+  margin: 0mm 18mm 12mm 18mm;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff;
+  }
+
+  main {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  tr.print-only {
+    display: table-row !important;
+  }
+
+  .report-page {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  .report-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .report-kpis,
+  .report-tables {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Tabla wrapper: thead/tfoot se repiten en cada hoja ── */
+  .report-print-wrapper {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    break-inside: auto !important;
+    margin: 0 !important;
+  }
+
+  .report-print-wrapper > thead {
+    display: table-header-group !important;
+  }
+
+  .report-print-wrapper > thead > tr,
+  .report-print-wrapper > thead > tr > td {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+
+  .report-print-wrapper > tfoot {
+    display: table-footer-group !important;
+  }
+
+  .report-print-wrapper > tbody {
+    display: table-row-group !important;
+    break-inside: auto !important;
+  }
+
+  .report-print-wrapper > tbody > tr {
+    display: table-row !important;
+    break-inside: auto !important;
+  }
+
+  .report-print-wrapper > tbody > tr > td {
+    display: table-cell !important;
+    padding: 0 !important;
+    vertical-align: top !important;
+    border: none !important;
+    break-inside: auto !important;
+  }
+
+/* ── Encabezado del documento ── */
+  .report-print-header {
+    padding-top: 0;
+    margin-bottom: 20px;
+  }
+
+  /* Logo + empresa + contacto — en thead, se repite en cada hoja ── */
+  .report-print-header-top {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 14px !important;
+    background: white !important;
+    padding: 4mm 0 8px 0 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    margin: 0 !important;
+  }
+
+  .report-print-logo {
+    height: 44px;
+    width: auto;
+  }
+
+  .report-print-company {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .report-print-company-name {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .report-print-company-sub {
+    font-size: 9pt;
+    color: #6b7280;
+  }
+
+  .report-print-title {
+    font-size: 22pt;
+    font-weight: 700;
+    color: #4a7bc4;
+    margin: 10mm 0 8mm 0 !important;
+    padding: 0;
+  }
+ 
+  /* ── Cliente, Período y Fecha de emisión ── */
+  .report-print-meta {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    background-color: #f9fafb !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .report-print-meta > div {
+    flex: 1 !important;
+    padding: 16px 20px !important;
+    border: none !important;
+    border-right: 1px solid #d1d5db !important;
+    background: none !important;
+    border-radius: 0 !important;
+  }
+
+  .report-print-meta > div:last-child {
+    border-right: none !important;
+  }
+
+  .report-print-meta-right {
+    margin-left: 0;
+    text-align: left;
+  }
+
+  .report-print-meta-label {
+    display: block;
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9ca3af;
+    margin-bottom: 4px;
+  }
+
+  .report-print-meta-value {
+    display: block;
+    font-size: 11pt;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  /* ── KPIs (Total Facturado, Total Pagado, Saldo Pendiente) ── */
+  .report-kpis {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 32px !important;
+    margin-bottom: 40px !important;
+  }
+
+  .report-kpi-card {
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    padding: 24px !important;
+  }
+
+  /* ── Tablas en impresión: apiladas verticalmente ── */
+  .report-tables {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .report-table tbody tr {
+    break-inside: avoid;
+  }
+
+  .report-table th {
+    background-color: #f5f5f5 !important;
+    padding: 13px 16px !important;
+  }
+
+  .report-table td {
+    padding: 13px 16px !important;
+  }
+
+  .report-table tbody tr:hover td {
+    background-color: transparent;
+  }
+
+  .report-table td.text-primary {
+    color: #1f2937 !important;
+  }
+
+  /* ── Títulos de sección en impresión ── */
+  .report-section-title {
+    padding-left: 16px !important;
+  }
+
+  /* ── Subtotales (print-only) ── */
+  .report-subtotal-row td {
+    padding: 13px 16px !important;
+    font-size: 11pt !important;
+    font-weight: 700 !important;
+    color: #4a7bc4 !important;
+    background-color: #f0f4fb !important;
+    border-top: 2px solid #dce8f8 !important;
+  }
+
+  .report-subtotal-row td:last-child {
+    text-align: right !important;
+  }
+
+  /* ── Placeholder invisible en tfoot: reserva el espacio del footer en cada hoja ── */
+  .report-print-footer-placeholder {
+    height: 12mm !important;
+    visibility: hidden !important;
+    display: block !important;
+  }
+
+  /* ── Footer visual, fijo al pie de cada hoja ── */
+  .report-print-footer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 18mm !important;
+    right: 18mm !important;
+    height: 12mm !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-top: 1px solid #e5e7eb !important;
+    background: white !important;
+    z-index: 100 !important;
+  }
+}
