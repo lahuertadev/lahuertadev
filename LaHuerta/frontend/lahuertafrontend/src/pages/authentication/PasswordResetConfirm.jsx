@@ -133,8 +133,7 @@ const PasswordResetConfirm = () => {
                 value={formData.new_password}
                 onChange={handleChange}
                 required
-                showToggle
-                helperText={fieldErrors.new_password ? (Array.isArray(fieldErrors.new_password) ? fieldErrors.new_password[0] : fieldErrors.new_password) : ''}
+                helperText={fieldErrors.new_password ? (Array.isArray(fieldErrors.new_password) ? fieldErrors.new_password[0] : fieldErrors.new_password) : 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial'}
               />
             </div>
 
@@ -146,7 +145,6 @@ const PasswordResetConfirm = () => {
                 value={formData.new_password_confirm}
                 onChange={handleChange}
                 required
-                showToggle
                 helperText={fieldErrors.new_password_confirm ? (Array.isArray(fieldErrors.new_password_confirm) ? fieldErrors.new_password_confirm[0] : fieldErrors.new_password_confirm) : ''}
               />
             </div>
@@ -171,8 +169,7 @@ const PasswordResetConfirm = () => {
             <div className="mt-4 text-center">
               <button
                 type="button"
-                className="text-sm hover:underline"
-                style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
+                className="text-sm text-blue-lahuerta hover:underline"
                 onClick={() => navigate('/login')}
               >
                 Volver al inicio de sesión

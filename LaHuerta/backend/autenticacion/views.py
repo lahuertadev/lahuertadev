@@ -101,13 +101,7 @@ class LoginView(APIView):
                 {'detail':'Usuario inactivo'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-
-        if not user.email_verified:
-            return Response(
-                {'detail': 'Debés verificar tu cuenta antes de ingresar. Revisá tu email.', 'code': 'email_not_verified'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
+        
         login(request, user) #* loguea el usuario, request ya auntenticadas. Setea las cookies.
 
         return Response(

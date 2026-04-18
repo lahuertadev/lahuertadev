@@ -39,7 +39,7 @@ services:
     build:
       context: ./frontend/lahuertafrontend
       args:
-        REACT_APP_API_BASE_URL: https://lahuerta-app.com/api
+        REACT_APP_API_BASE_URL: http://31.97.169.150/api
     networks:
       - lahuerta_network
 

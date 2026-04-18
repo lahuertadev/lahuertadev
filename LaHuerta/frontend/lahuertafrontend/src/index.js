@@ -40,7 +40,6 @@ import BuyList from "./pages/compra/list";
 import CompraForm from "./pages/compra/form/CompraForm";
 import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
-import ClientReport from "./pages/reporte";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -250,10 +249,6 @@ const router = createBrowserRouter([
       {
         path: 'check/edit/:id',
         element: <CheckForm />,
-      },
-      {
-        path: 'report',
-        element: <ClientReport />,
       },
     ],
   }
