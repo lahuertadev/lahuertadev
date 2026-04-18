@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 const inputCls = (hasError) =>
   `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
@@ -26,7 +25,6 @@ const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted upperca
  *   regexErrorText — mensaje si falla regex (default: 'Formato inválido')
  *   multiline      — renderiza <textarea> en lugar de <input>
  *   autoComplete   — atributo autocomplete
- *   showToggle     — muestra botón ojo para revelar/ocultar contraseña (solo type="password")
  *   className      — clases adicionales
  */
 const CustomInput = ({
@@ -42,7 +40,6 @@ const CustomInput = ({
   regexErrorText = 'Formato inválido',
   multiline = false,
   autoComplete,
-  showToggle = false,
   className = '',
   // Props MUI heredados — absorbidos para no pasarlos al DOM
   variant,
@@ -51,7 +48,6 @@ const CustomInput = ({
   ...props
 }) => {
   const [regexError, setRegexError] = useState('');
-  const [visible, setVisible] = useState(false);
 
   const handleChange = (e) => {
     const newValue = e.target.value;
@@ -66,8 +62,6 @@ const CustomInput = ({
   const errorMsg = regexError || helperText;
   const isError = Boolean(errorMsg);
 
-  const resolvedType = type === 'password' && showToggle ? (visible ? 'text' : 'password') : type;
-
   const fieldProps = {
     id: `${name}-input`,
     name,
@@ -76,8 +70,7 @@ const CustomInput = ({
     maxLength,
     required,
     autoComplete,
-    type: resolvedType,
-    className: `${inputCls(isError)}${showToggle && type === 'password' ? ' pr-10' : ''}${className ? ` ${className}` : ''}`,
+    className: `${inputCls(isError)}${className ? ` ${className}` : ''}`,
     ...props,
   };
 
@@ -91,33 +84,7 @@ const CustomInput = ({
       {multiline ? (
         <textarea rows={3} {...fieldProps} />
       ) : (
-        <div className="relative">
-          <input {...fieldProps} />
-          {showToggle && type === 'password' && (
-            <button
-              type="button"
-              tabIndex={-1}
-              className="focus:outline-none transition-transform hover:scale-110 hover:text-gray-600"
-              style={{
-                position: 'absolute',
-                top: 0,
-                bottom: 0,
-                right: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                color: '#9ca3af',
-              }}
-              onClick={() => setVisible((v) => !v)}
-              aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            >
-              {visible ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-            </button>
-          )}
-        </div>
+        <input type={type} {...fieldProps} />
       )}
       {errorMsg && <p className="mt-1 text-xs text-red-500">{errorMsg}</p>}
     </div>

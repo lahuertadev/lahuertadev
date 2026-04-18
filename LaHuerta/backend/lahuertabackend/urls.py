@@ -48,5 +48,4 @@ urlpatterns = [
     path('api/', include('localidad.urls')),
     path('api/', include('provincia.urls')),
     path('api/', include('municipio.urls')),
-    path('api/', include('reporte.urls')),
 ]

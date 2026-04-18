@@ -91,8 +91,7 @@ const PasswordResetRequest = () => {
               <div className="mt-4 text-center">
                 <button
                   type="button"
-                  className="text-sm hover:underline"
-                  style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
+                  className="text-sm text-blue-lahuerta hover:underline"
                   onClick={() => navigate('/login')}
                 >
                   Volver al inicio de sesión
@@ -130,8 +129,7 @@ const PasswordResetRequest = () => {
               <div className="mt-4 text-center">
                 <button
                   type="button"
-                  className="text-sm hover:underline"
-                  style={{ color: '#4a7bc4', background: 'none', border: 'none', cursor: 'pointer' }}
+                  className="text-sm text-blue-lahuerta hover:underline"
                   onClick={() => navigate('/login')}
                 >
                   Volver al inicio de sesión

@@ -6,7 +6,11 @@ export default function IconLabelButtons({ label, color, variant, size, onClick,
   return (
     <Stack direction="row" spacing={2}>
       <Button
-        className={`!font-bold ${className || ''}`}
+        className={`
+          bg-blue-lahuerta 
+          text-white !font-bold 
+          hover:bg-blue-lahuerta 
+          hover:text-white ${className || ''}`}
         variant={variant || 'contained'}
         size={size}
         endIcon={icon}
@@ -15,12 +19,6 @@ export default function IconLabelButtons({ label, color, variant, size, onClick,
         type={type || 'button'}
         sx={{
           textTransform: 'none',
-          backgroundColor: '#4a7bc4',
-          color: '#ffffff',
-          '&:hover': {
-            backgroundColor: '#3a6ab4',
-            boxShadow: '0 4px 12px rgba(74, 123, 196, 0.4)',
-          },
           ...sx,
         }}
       >
