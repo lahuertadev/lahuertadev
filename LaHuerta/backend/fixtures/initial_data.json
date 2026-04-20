@@ -548,6 +548,51 @@
         "importe": "39000.00",
         "tipo_gasto": 2
       }
-    }    
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 1,
+      "fields": { "descripcion": "Efectivo" }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 2,
+      "fields": { "descripcion": "Transferencia" }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 3,
+      "fields": { "descripcion": "Cheque" }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 4,
+      "fields": { "descripcion": "Débito" }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 5,
+      "fields": { "descripcion": "Crédito" }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 6,
+      "fields": { "descripcion": "Mercado Pago" }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 7,
+      "fields": { "descripcion": "Cuenta Corr." }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 8,
+      "fields": { "descripcion": "Pagaré" }
+    },
+    {
+      "model": "tipo_pago.tipopago",
+      "pk": 9,
+      "fields": { "descripcion": "Cheque Propio" }
+    }
   ]
   
