@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.db.models import Sum
 from rest_framework import serializers
 from .models import OwnCheck
 from banco.models import Banco
@@ -19,10 +20,12 @@ class OwnCheckWriteSerializer(serializers.Serializer):
 
 class OwnCheckResponseSerializer(serializers.ModelSerializer):
     '''
-    DTO de lectura: cheque propio con banco expandido y proveedor inferido desde pago_compra.
+    DTO de lectura: cheque propio con banco expandido, proveedor y compras inferidos desde los pagos asociados.
     '''
     banco = BankSerializer()
-    proveedor_nombre = serializers.SerializerMethodField()
+    supplier_name = serializers.SerializerMethodField()
+    purchases = serializers.SerializerMethodField()
+    remaining_balance = serializers.SerializerMethodField()
 
     class Meta:
         model = OwnCheck
@@ -32,19 +35,32 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
             'fecha_emision',
             'fecha_vencimiento',
             'banco',
-            'pago_compra',
-            'proveedor_nombre',
+            'supplier_name',
+            'purchases',
+            'remaining_balance',
             'estado',
             'observaciones',
         ]
 
-    def get_proveedor_nombre(self, obj):
+    def get_supplier_name(self, obj):
+        first_payment = obj.pagocompra_set.first()
+        if not first_payment:
+            return None
         try:
-            return obj.pago_compra.compra.proveedor.nombre
+            return first_payment.compra.proveedor.nombre
         except AttributeError:
             return None
 
+    def get_purchases(self, obj):
+        return [payment.compra_id for payment in obj.pagocompra_set.all()]
+
+    def get_remaining_balance(self, obj):
+        used = obj.pagocompra_set.aggregate(total=Sum('importe_abonado'))['total'] or Decimal('0')
+        return obj.importe - used
+
 
 class OwnCheckQueryParamsSerializer(serializers.Serializer):
-    estado = serializers.CharField(required=False)
-    banco = serializers.CharField(required=False)
+    state = serializers.CharField(required=False)
+    bank = serializers.CharField(required=False)
+    available = serializers.BooleanField(required=False)
+    supplier_id = serializers.IntegerField(required=False)

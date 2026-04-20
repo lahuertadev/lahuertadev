@@ -25,8 +25,10 @@ class OwnCheckViewSet(viewsets.ViewSet):
 
         try:
             own_checks = self.repository.get_all(
-                estado=params.get('estado'),
-                banco=params.get('banco'),
+                state=params.get('state'),
+                bank=params.get('bank'),
+                available=params.get('available'),
+                supplier_id=params.get('supplier_id'),
             )
             serializer = OwnCheckResponseSerializer(own_checks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
