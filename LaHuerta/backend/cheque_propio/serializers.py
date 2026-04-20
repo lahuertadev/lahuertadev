@@ -3,8 +3,6 @@ from rest_framework import serializers
 from .models import OwnCheck
 from banco.models import Banco
 from banco.serializers import BankSerializer
-from proveedor.models import Proveedor
-from proveedor.serializers import SupplierSerializer
 
 
 class OwnCheckWriteSerializer(serializers.Serializer):
@@ -16,16 +14,15 @@ class OwnCheckWriteSerializer(serializers.Serializer):
     fecha_emision = serializers.DateField()
     fecha_vencimiento = serializers.DateField()
     banco = serializers.PrimaryKeyRelatedField(queryset=Banco.objects.all())
-    proveedor = serializers.PrimaryKeyRelatedField(queryset=Proveedor.objects.all())
     observaciones = serializers.CharField(max_length=255, required=False, allow_null=True, allow_blank=True)
 
 
 class OwnCheckResponseSerializer(serializers.ModelSerializer):
     '''
-    DTO de lectura: cheque propio con relaciones expandidas.
+    DTO de lectura: cheque propio con banco expandido y proveedor inferido desde pago_compra.
     '''
     banco = BankSerializer()
-    proveedor = SupplierSerializer()
+    proveedor_nombre = serializers.SerializerMethodField()
 
     class Meta:
         model = OwnCheck
@@ -35,13 +32,19 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
             'fecha_emision',
             'fecha_vencimiento',
             'banco',
-            'proveedor',
+            'pago_compra',
+            'proveedor_nombre',
             'estado',
             'observaciones',
         ]
 
+    def get_proveedor_nombre(self, obj):
+        try:
+            return obj.pago_compra.compra.proveedor.nombre
+        except AttributeError:
+            return None
+
 
 class OwnCheckQueryParamsSerializer(serializers.Serializer):
-    proveedor = serializers.CharField(required=False)
     estado = serializers.CharField(required=False)
     banco = serializers.CharField(required=False)

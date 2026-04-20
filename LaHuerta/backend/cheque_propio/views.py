@@ -25,7 +25,6 @@ class OwnCheckViewSet(viewsets.ViewSet):
 
         try:
             own_checks = self.repository.get_all(
-                proveedor=params.get('proveedor'),
                 estado=params.get('estado'),
                 banco=params.get('banco'),
             )

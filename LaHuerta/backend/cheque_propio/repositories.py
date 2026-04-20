@@ -4,10 +4,11 @@ from .interfaces import IOwnCheckRepository
 
 class OwnCheckRepository(IOwnCheckRepository):
 
-    def get_all(self, proveedor=None, estado=None, banco=None):
-        queryset = OwnCheck.objects.select_related('banco', 'proveedor').all()
-        if proveedor:
-            queryset = queryset.filter(proveedor__nombre__icontains=proveedor)
+    def get_all(self, estado=None, banco=None):
+        queryset = OwnCheck.objects.select_related(
+            'banco',
+            'pago_compra__compra__proveedor',
+        ).all()
         if estado:
             queryset = queryset.filter(estado=estado)
         if banco:
@@ -17,7 +18,7 @@ class OwnCheckRepository(IOwnCheckRepository):
     def get_by_id(self, numero):
         return (
             OwnCheck.objects
-            .select_related('banco', 'proveedor')
+            .select_related('banco', 'pago_compra__compra__proveedor')
             .filter(numero=numero)
             .first()
         )

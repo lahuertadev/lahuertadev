@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 class IOwnCheckRepository(ABC):
 
     @abstractmethod
-    def get_all(self, proveedor=None, estado=None, banco=None):
+    def get_all(self, estado=None, banco=None):
         pass
 
     @abstractmethod
