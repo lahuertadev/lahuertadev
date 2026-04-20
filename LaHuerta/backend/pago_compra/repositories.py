@@ -7,7 +7,7 @@ class PurchasePaymentRepository(IPurchasePaymentRepository):
     def get_all(self, compra_id=None):
         qs = (
             PagoCompra.objects
-            .select_related('compra__proveedor', 'tipo_pago')
+            .select_related('compra__proveedor', 'tipo_pago', 'cheque_propio__banco')
             .prefetch_related('cheque_set__banco', 'cheque_set__estado')
             .all()
         )
@@ -18,18 +18,19 @@ class PurchasePaymentRepository(IPurchasePaymentRepository):
     def get_by_id(self, id):
         return (
             PagoCompra.objects
-            .select_related('compra__proveedor', 'tipo_pago')
+            .select_related('compra__proveedor', 'tipo_pago', 'cheque_propio__banco')
             .prefetch_related('cheque_set__banco', 'cheque_set__estado')
             .filter(id=id)
             .first()
         )
 
-    def create(self, compra, importe_abonado, tipo_pago, fecha_pago):
+    def create(self, compra, importe_abonado, tipo_pago, fecha_pago, cheque_propio=None):
         payment = PagoCompra(
             compra=compra,
             importe_abonado=importe_abonado,
             tipo_pago=tipo_pago,
             fecha_pago=fecha_pago,
+            cheque_propio=cheque_propio,
         )
         payment.save()
         return payment

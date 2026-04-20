@@ -10,7 +10,7 @@ class IPurchasePaymentRepository(ABC):
     def get_by_id(self, id): pass
 
     @abstractmethod
-    def create(self, compra, importe_abonado, tipo_pago, fecha_pago): pass
+    def create(self, compra, importe_abonado, tipo_pago, fecha_pago, cheque_propio=None): pass
 
     @abstractmethod
     def delete(self, payment): pass
