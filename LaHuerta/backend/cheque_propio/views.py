@@ -1,9 +1,10 @@
+from django.db.models import ProtectedError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .repositories import OwnCheckRepository
 from .interfaces import IOwnCheckRepository
-from .serializers import OwnCheckWriteSerializer, OwnCheckResponseSerializer, OwnCheckQueryParamsSerializer
+from .serializers import OwnCheckCreateSerializer, OwnCheckUpdateSerializer, OwnCheckResponseSerializer, OwnCheckQueryParamsSerializer
 from .exceptions import OwnCheckNotFoundException, OwnCheckInvalidTransitionException
 from .factory import build_own_check_service
 
@@ -52,7 +53,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response({'detail': 'Error al obtener el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request):
-        serializer = OwnCheckWriteSerializer(data=request.data)
+        serializer = OwnCheckCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -64,7 +65,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
-        serializer = OwnCheckWriteSerializer(data=request.data)
+        serializer = OwnCheckUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -73,8 +74,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
                 raise OwnCheckNotFoundException('Cheque propio no encontrado.')
 
             own_check = self.repository.update(own_check, serializer.validated_data)
-            response_serializer = OwnCheckResponseSerializer(own_check)
-            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            return Response(OwnCheckResponseSerializer(own_check).data, status=status.HTTP_200_OK)
 
         except OwnCheckNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
@@ -83,7 +83,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response({'detail': 'Error al actualizar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, pk=None):
-        serializer = OwnCheckWriteSerializer(data=request.data, partial=True)
+        serializer = OwnCheckUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         try:
@@ -92,8 +92,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
                 raise OwnCheckNotFoundException('Cheque propio no encontrado.')
 
             own_check = self.repository.update(own_check, serializer.validated_data)
-            response_serializer = OwnCheckResponseSerializer(own_check)
-            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            return Response(OwnCheckResponseSerializer(own_check).data, status=status.HTTP_200_OK)
 
         except OwnCheckNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
@@ -112,6 +111,12 @@ class OwnCheckViewSet(viewsets.ViewSet):
 
         except OwnCheckNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except ProtectedError:
+            return Response(
+                {'detail': 'No se puede eliminar el cheque porque tiene pagos asociados. Eliminá los pagos primero.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         except Exception:
             return Response({'detail': 'Error al eliminar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

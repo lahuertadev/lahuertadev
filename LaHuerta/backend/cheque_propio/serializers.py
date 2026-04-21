@@ -6,16 +6,38 @@ from banco.models import Banco
 from banco.serializers import BankSerializer
 
 
-class OwnCheckWriteSerializer(serializers.Serializer):
+class OwnCheckCreateSerializer(serializers.ModelSerializer):
     '''
-    DTO para Create, Update y Partial Update de cheques propios.
+    DTO para la creación de cheques propios.
     '''
-    numero = serializers.IntegerField()
-    importe = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
-    fecha_emision = serializers.DateField()
-    fecha_vencimiento = serializers.DateField()
     banco = serializers.PrimaryKeyRelatedField(queryset=Banco.objects.all())
-    observaciones = serializers.CharField(max_length=255, required=False, allow_null=True, allow_blank=True)
+
+    class Meta:
+        model = OwnCheck
+        fields = ['numero', 'importe', 'fecha_emision', 'fecha_vencimiento', 'banco', 'observaciones']
+        extra_kwargs = {
+            'numero': {'validators': []}
+        }
+
+    def validate_numero(self, value):
+        if OwnCheck.objects.filter(numero=value).exists():
+            raise serializers.ValidationError('Ya existe un cheque con ese número.')
+        return value
+
+
+class OwnCheckUpdateSerializer(serializers.ModelSerializer):
+    '''
+    DTO para la modificación de cheques propios.
+    El número no se valida por unicidad porque es la PK y no puede modificarse.
+    '''
+    banco = serializers.PrimaryKeyRelatedField(queryset=Banco.objects.all())
+
+    class Meta:
+        model = OwnCheck
+        fields = ['numero', 'importe', 'fecha_emision', 'fecha_vencimiento', 'banco', 'observaciones']
+        extra_kwargs = {
+            'numero': {'validators': []}
+        }
 
 
 class OwnCheckResponseSerializer(serializers.ModelSerializer):

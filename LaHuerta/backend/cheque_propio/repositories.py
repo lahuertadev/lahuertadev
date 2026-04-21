@@ -40,9 +40,7 @@ class OwnCheckRepository(IOwnCheckRepository):
         )
 
     def create(self, data: dict):
-        own_check = OwnCheck(**data)
-        own_check.save()
-        return own_check
+        return OwnCheck.objects.create(**data)
 
     def update(self, own_check, data: dict):
         for key, value in data.items():
@@ -52,3 +50,6 @@ class OwnCheckRepository(IOwnCheckRepository):
 
     def delete(self, own_check):
         own_check.delete()
+
+    def get_payments(self, own_check):
+        return own_check.pagocompra_set.select_related('compra__proveedor').all()

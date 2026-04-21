@@ -22,3 +22,7 @@ class IOwnCheckRepository(ABC):
     @abstractmethod
     def delete(self, own_check):
         pass
+
+    @abstractmethod
+    def get_payments(self, own_check):
+        pass
