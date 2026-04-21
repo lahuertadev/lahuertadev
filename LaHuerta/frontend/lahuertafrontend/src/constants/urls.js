@@ -81,6 +81,12 @@ export const checkUrl = `${API_BASE}/checks/`;
 //! Check State (Estado Cheque)
 export const checkStateUrl = `${API_BASE}/check_state/`;
 
+//! Own Check (Cheque Propio)
+export const ownCheckUrl = `${API_BASE}/own-checks/`;
+
+//! Client Report
+export const clientReportUrl = `${API_BASE}/client-report/`;
+
 //! Purchase Payment (Pago Compra)
 export const purchasePaymentUrl = `${API_BASE}/purchase-payment/`;
 

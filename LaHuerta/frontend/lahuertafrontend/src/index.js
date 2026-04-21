@@ -32,6 +32,8 @@ import MarketList from "./pages/mercado/list";
 import BankList from "./pages/banco";
 import CheckList from "./pages/cheque/list";
 import CheckForm from "./pages/cheque/form/CheckForm";
+import OwnCheckList from "./pages/cheque_propio/list";
+import OwnCheckForm from "./pages/cheque_propio/form/OwnCheckForm";
 import MercadoForm from "./pages/mercado/form/MercadoForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
@@ -40,6 +42,7 @@ import BuyList from "./pages/compra/list";
 import CompraForm from "./pages/compra/form/CompraForm";
 import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
+import ClientReport from "./pages/reporte";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -249,6 +252,22 @@ const router = createBrowserRouter([
       {
         path: 'check/edit/:id',
         element: <CheckForm />,
+      },
+      {
+        path: 'own-check',
+        element: <OwnCheckList />,
+      },
+      {
+        path: 'own-check/create',
+        element: <OwnCheckForm />,
+      },
+      {
+        path: 'own-check/edit/:id',
+        element: <OwnCheckForm />,
+      },
+      {
+        path: 'report',
+        element: <ClientReport />,
       },
     ],
   }

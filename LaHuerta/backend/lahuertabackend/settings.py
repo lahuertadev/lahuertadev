@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'compra',
     'estado_cheque',
     'cheque',
+    'cheque_propio',
     'pago_cliente',
     'pago_factura',
     'cliente_dia_entrega',
