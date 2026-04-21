@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { loadOptions } from '../../../utils/selectOptions';
-import { purchasePaymentUrl, buyUrl, paymentTypeUrl, checkUrl } from '../../../constants/urls';
+import { purchasePaymentUrl, buyUrl, paymentTypeUrl, checkUrl, ownCheckUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
@@ -14,6 +14,8 @@ import { formatDate } from '../../../utils/date';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import Tooltip from '@mui/material/Tooltip';
 
 // ── Estilos ───────────────────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -40,10 +42,23 @@ const SectionCard = ({ icon, title, children, cols = 2 }) => (
   </section>
 );
 
-const ReadonlyField = ({ label, value }) => (
+const ReadonlyField = ({ label, value, highlight = false, helpText }) => (
   <div className="flex flex-col gap-1">
-    <label className={labelCls}>{label}</label>
-    <div className={readonlyCls}>{value || '—'}</div>
+    <div className="flex items-center gap-1.5 mb-1.5">
+      <label className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">{label}</label>
+      {helpText && (
+        <Tooltip title={helpText} placement="top" arrow>
+          <InfoOutlinedIcon sx={{ fontSize: 14, color: '#9ca3af', cursor: 'help', '&:hover': { color: '#4a7bc4' } }} />
+        </Tooltip>
+      )}
+    </div>
+    <div className={
+      highlight
+        ? 'w-full px-3 py-2.5 rounded-lg border text-sm font-semibold select-none bg-amber-50 border-amber-200 text-amber-700'
+        : readonlyCls
+    }>
+      {value || '—'}
+    </div>
   </div>
 );
 
@@ -56,7 +71,7 @@ const today = () => dayjs().format('YYYY-MM-DD');
 const PurchasePaymentForm = () => {
   const navigate = useNavigate();
   const [toast, setToast] = useState({ open: false, message: '' });
-  const [selectOptions, setSelectOptions] = useState({ buys: [], paymentTypes: [], checks: [] });
+  const [selectOptions, setSelectOptions] = useState({ buys: [], paymentTypes: [], checks: [], ownChecks: [] });
   const [selectedBuy, setSelectedBuy] = useState(null);
 
   const initialValues = {
@@ -65,6 +80,7 @@ const PurchasePaymentForm = () => {
     amount: '',
     paymentType: '',
     chequeNumero: '',
+    ownCheckNumero: '',
   };
 
   useEffect(() => {
@@ -89,7 +105,7 @@ const PurchasePaymentForm = () => {
           }))
         ),
       ]);
-      setSelectOptions({ buys, paymentTypes, checks });
+      setSelectOptions((prev) => ({ ...prev, buys, paymentTypes, checks, ownChecks: [] }));
     };
     load();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -99,16 +115,32 @@ const PurchasePaymentForm = () => {
     setFieldValue('amount', '');
     setFieldValue('paymentType', '');
     setFieldValue('chequeNumero', '');
+    setFieldValue('ownCheckNumero', '');
 
     if (!buyId) {
       setSelectedBuy(null);
+      setSelectOptions((prev) => ({ ...prev, ownChecks: [] }));
       return;
     }
     try {
       const { data } = await axios.get(`${buyUrl}${buyId}/`);
       setSelectedBuy(data);
+
+      const proveedorId = data.proveedor?.id;
+      if (proveedorId) {
+        const ownChecks = await loadOptions(
+          `${ownCheckUrl}?available=true&supplier_id=${proveedorId}`,
+          (items) => items.map((c) => ({
+            name: `Nro. ${c.numero} — ${c.banco?.descripcion || c.banco} — Saldo: ${formatCurrency(c.remaining_balance)}`,
+            value: c.numero,
+            importe: c.remaining_balance,
+          }))
+        );
+        setSelectOptions((prev) => ({ ...prev, ownChecks }));
+      }
     } catch {
       setSelectedBuy(null);
+      setSelectOptions((prev) => ({ ...prev, ownChecks: [] }));
     }
   };
 
@@ -129,6 +161,9 @@ const PurchasePaymentForm = () => {
     if (selected?.name === 'Cheque' && !values.chequeNumero) {
       errors.chequeNumero = 'Requerido cuando el tipo de pago es cheque.';
     }
+    if (selected?.name === 'Cheque Propio' && !values.ownCheckNumero) {
+      errors.ownCheckNumero = 'Requerido cuando el tipo de pago es cheque propio.';
+    }
     return errors;
   };
 
@@ -145,6 +180,12 @@ const PurchasePaymentForm = () => {
     if (selected?.name === 'Cheque') {
       payload.cheque_numero = values.chequeNumero;
     }
+    if (selected?.name === 'Cheque Propio') {
+      payload.own_check_numero = values.ownCheckNumero;
+    }
+    const formatDetailAmounts = (msg) =>
+      msg.replace(/\((\d+(?:\.\d+)?)\)/g, (_, num) => `(${formatCurrency(parseFloat(num))})`);
+
     try {
       await axios.post(purchasePaymentUrl, payload);
       navigate('/purchase-payment');
@@ -153,7 +194,9 @@ const PurchasePaymentForm = () => {
       if (detail.toLowerCase().includes('saldo pendiente')) {
         setFieldError('amount', 'El importe supera el saldo pendiente de la compra.');
       } else {
-        const msg = detail || error?.response?.data?.cheque_numero?.[0] || 'Error al registrar el pago.';
+        const msg = detail
+          ? formatDetailAmounts(detail)
+          : error?.response?.data?.cheque_numero?.[0] || 'Error al registrar el pago.';
         setToast({ open: true, message: msg });
       }
     }
@@ -171,6 +214,7 @@ const PurchasePaymentForm = () => {
           (opt) => String(opt.value) === String(values.paymentType)
         );
         const isCheckPayment = selectedPaymentType?.name === 'Cheque';
+        const isOwnCheckPayment = selectedPaymentType?.name === 'Cheque Propio';
 
         return (
           <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
@@ -213,8 +257,17 @@ const PurchasePaymentForm = () => {
                 <ReadonlyField label="N° Compra"      value={String(selectedBuy.id).padStart(8, '0')} />
                 <ReadonlyField label="Proveedor"      value={selectedBuy.proveedor?.nombre} />
                 <ReadonlyField label="Fecha"          value={formatDate(selectedBuy.fecha)} />
-                <ReadonlyField label="Importe total"  value={formatCurrency(selectedBuy.importe)} />
-                <ReadonlyField label="Saldo pendiente" value={formatCurrency(selectedBuy.outstanding_balance)} />
+                <ReadonlyField
+                  label="Importe total"
+                  value={formatCurrency(selectedBuy.importe)}
+                  helpText="Importe original de la compra, sin tener en cuenta los pagos ya realizados."
+                />
+                <ReadonlyField
+                  label="Saldo pendiente"
+                  value={formatCurrency(selectedBuy.outstanding_balance)}
+                  highlight
+                  helpText="Monto que aún resta abonar. Es el importe total menos los pagos ya registrados para esta compra."
+                />
                 <ReadonlyField label="Estado"         value={selectedBuy.payment_status} />
               </SectionCard>
             )}
@@ -239,6 +292,7 @@ const PurchasePaymentForm = () => {
                     onChange={(e) => {
                       setFieldValue('paymentType', e.target.value);
                       setFieldValue('chequeNumero', '');
+                      setFieldValue('ownCheckNumero', '');
                       setFieldValue('amount', '');
                     }}
                     className={inputCls(touched.paymentType && errors.paymentType)}
@@ -251,7 +305,7 @@ const PurchasePaymentForm = () => {
                   <FieldError error={errors.paymentType} touched={touched.paymentType} />
                 </div>
 
-                {values.paymentType && !isCheckPayment && (
+                {values.paymentType && !isCheckPayment && !isOwnCheckPayment && (
                   <div className="flex flex-col gap-1">
                     <label className={labelCls}>Importe abonado</label>
                     <AmountInput
@@ -292,6 +346,46 @@ const PurchasePaymentForm = () => {
                 </div>
 
                 {values.chequeNumero && (
+                  <div className="flex flex-col gap-1">
+                    <label className={labelCls}>Importe abonado</label>
+                    <AmountInput
+                      name="amount"
+                      value={values.amount}
+                      onChange={(raw) => setFieldValue('amount', raw)}
+                      hasError={touched.amount && Boolean(errors.amount)}
+                    />
+                    <FieldError error={errors.amount} touched={touched.amount} />
+                  </div>
+                )}
+              </SectionCard>
+            )}
+
+            {/* 5. Cheque Propio (condicional) */}
+            {isOwnCheckPayment && (
+              <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Cheque Propio" cols={1}>
+                <div className="flex flex-col gap-1">
+                  <label className={labelCls}>Cheque propio disponible</label>
+                  <select
+                    value={values.ownCheckNumero}
+                    onChange={(e) => {
+                      const selected = selectOptions.ownChecks.find((c) => String(c.value) === e.target.value);
+                      setFieldValue('ownCheckNumero', e.target.value);
+                      setFieldValue('amount', selected ? String(selected.importe) : '');
+                    }}
+                    className={inputCls(touched.ownCheckNumero && errors.ownCheckNumero)}
+                  >
+                    <option value="">Seleccionar cheque...</option>
+                    {selectOptions.ownChecks.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.name}</option>
+                    ))}
+                  </select>
+                  <FieldError error={errors.ownCheckNumero} touched={touched.ownCheckNumero} />
+                  {selectOptions.ownChecks.length === 0 && (
+                    <p className="mt-1 text-xs text-on-surface-muted">No hay cheques propios disponibles.</p>
+                  )}
+                </div>
+
+                {values.ownCheckNumero && (
                   <div className="flex flex-col gap-1">
                     <label className={labelCls}>Importe abonado</label>
                     <AmountInput

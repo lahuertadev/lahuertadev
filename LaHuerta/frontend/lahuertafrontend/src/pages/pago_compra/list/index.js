@@ -12,7 +12,8 @@ const mapPaymentData = (data) => {
     buyDate: p.compra?.fecha ? formatDate(p.compra.fecha) : '-',
     amount: formatCurrency(p.importe_abonado),
     paymentType: p.tipo_pago?.descripcion || '-',
-    cheque: p.cheque?.numero || '-',
+    cheque: p.cheque?.numero || p.cheque_propio?.numero || '-',
+    hasRegularCheck: !!p.cheque?.numero,
   }));
 };
 
@@ -27,7 +28,7 @@ const data = {
   newLabelText: 'Nuevo pago',
   multiSelect: false,
   showEdit: false,
-  canDelete: (row) => !row.cheque || row.cheque === '-',
+  canDelete: (row) => !row.hasRegularCheck,
 };
 
 const PurchasePaymentList = () => <GenericList data={data} />;
