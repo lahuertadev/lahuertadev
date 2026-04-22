@@ -4,6 +4,7 @@ from .service import BuyService
 from proveedor.models import Proveedor
 from proveedor.serializers import SupplierSerializer
 from compra_producto.serializers import BuyItemResponseSerializer, BuyItemCreateSerializer
+from compra_vacio.serializers import BuyEmptyResponseSerializer, BuyEmptyCreateSerializer
 
 
 def validate_unique_products(items):
@@ -33,6 +34,7 @@ class BuyResponseSerializer(serializers.ModelSerializer):
     '''
     proveedor = SupplierSerializer()
     items = BuyItemResponseSerializer(many=True, source='compraproducto_set')
+    vacios = BuyEmptyResponseSerializer(many=True)
     payment_status = serializers.SerializerMethodField()
     outstanding_balance = serializers.SerializerMethodField()
 
@@ -44,7 +46,7 @@ class BuyResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Compra
-        fields = ['id', 'fecha', 'importe', 'senia', 'proveedor', 'items', 'payment_status', 'outstanding_balance']
+        fields = ['id', 'fecha', 'importe', 'senia', 'proveedor', 'items', 'vacios', 'payment_status', 'outstanding_balance']
 
 
 class BuyCreateSerializer(serializers.Serializer):
@@ -56,6 +58,7 @@ class BuyCreateSerializer(serializers.Serializer):
     fecha = serializers.DateField()
     senia = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0, required=False, default=0)
     items = BuyItemCreateSerializer(many=True)
+    vacios = BuyEmptyCreateSerializer(many=True, required=False, default=list)
 
     def validate_items(self, items):
         if not items:
@@ -74,6 +77,7 @@ class BuyUpdateSerializer(serializers.Serializer):
     fecha = serializers.DateField(required=False)
     senia = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0, required=False)
     items = BuyItemCreateSerializer(many=True, required=False)
+    vacios = BuyEmptyCreateSerializer(many=True, required=False)
 
     def validate_items(self, items):
         if items is not None and len(items) == 0:
