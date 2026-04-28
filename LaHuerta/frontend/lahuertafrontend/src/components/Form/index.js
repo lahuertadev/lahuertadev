@@ -5,6 +5,7 @@ import DatePicker from '../DatePicker';
 import BasicSelect from '../Select';
 import Button from '../Button';
 import CheckboxLabels from '../Checkbox';
+import Toast from '../Toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../../styles/forms.css';
 import { Grid } from '@mui/material';
@@ -22,6 +23,7 @@ const GenericForm = ({
 }) => {
   const [itemToEdit, setItemToEdit] = useState(initialValues || null);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '' });
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -38,6 +40,7 @@ const GenericForm = ({
       navigate(urls.list);
     } catch (error) {
       console.error('Error enviando el formulario:', error);
+      setToast({ open: true, message: error.message });
     }
   };
 
@@ -76,6 +79,11 @@ const GenericForm = ({
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        onClose={() => setToast({ open: false, message: '' })}
+      />
       <Formik
         initialValues={initialValues}
         validationSchema={validationSchema}
