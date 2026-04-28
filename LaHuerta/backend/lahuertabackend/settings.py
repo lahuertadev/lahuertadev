@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'factura_producto',
     'lista_precios_producto',
     'compra_producto',
+    'compra_vacio',
     'pago_compra',
     'tipo_venta',
     'provincia',
