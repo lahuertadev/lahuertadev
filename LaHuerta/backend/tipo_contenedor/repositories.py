@@ -30,6 +30,8 @@ class ContainerTypeRepository(IContainerTypeRepository):
         Modifica un tipo de contenedor.
         '''
         container_type.descripcion = data.get('descripcion', container_type.descripcion)
+        if 'requiere_vacio' in data:
+            container_type.requiere_vacio = data['requiere_vacio']
         container_type.save()
         return container_type
 
