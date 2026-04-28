@@ -2,7 +2,21 @@ import * as React from 'react';
 import Dialog from '@mui/material/Dialog';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
-export default function AlertDialog({ open, title, message, onConfirm, onCancel }) {
+export default function AlertDialog({
+  open,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  icon,
+  confirmClassName,
+  confirmLabel = 'Confirmar',
+  cancelLabel = 'Cancelar',
+}) {
+  const iconEl = icon ?? <DeleteOutlineIcon sx={{ fontSize: 20, color: '#ef4444' }} />;
+  const iconBg = icon ? 'bg-amber-50' : 'bg-red-50';
+  const confirmCls = confirmClassName ?? 'bg-red-500 hover:bg-red-600';
+
   return (
     <Dialog
       open={open}
@@ -21,16 +35,16 @@ export default function AlertDialog({ open, title, message, onConfirm, onCancel 
 
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
-            <DeleteOutlineIcon sx={{ fontSize: 20, color: '#ef4444' }} />
+          <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center flex-shrink-0`}>
+            {iconEl}
           </div>
           <h2 className="text-base font-semibold text-on-surface">{title}</h2>
         </div>
 
         {/* Message */}
-        <p className="text-sm text-on-surface-muted leading-relaxed pl-[52px]">
+        <div className="text-sm text-on-surface-muted leading-relaxed pl-[52px]">
           {message}
-        </p>
+        </div>
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-1">
@@ -38,13 +52,13 @@ export default function AlertDialog({ open, title, message, onConfirm, onCancel 
             onClick={onCancel}
             className="px-5 py-2 text-sm font-semibold text-on-surface-muted hover:bg-surface-low rounded-lg transition-colors"
           >
-            Cancelar
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className="px-6 py-2 bg-red-500 text-white font-bold text-sm rounded-lg hover:bg-red-600 active:scale-[0.98] transition-all shadow-sm"
+            className={`px-6 py-2 text-white font-bold text-sm rounded-lg active:scale-[0.98] transition-all shadow-sm ${confirmCls}`}
           >
-            Confirmar
+            {confirmLabel}
           </button>
         </div>
 

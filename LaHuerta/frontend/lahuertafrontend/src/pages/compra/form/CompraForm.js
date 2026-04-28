@@ -10,16 +10,50 @@ import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import MenuItem from '@mui/material/MenuItem';
-import { buyUrl, supplierUrl, productUrl, saleTypeUrl } from '../../../constants/urls';
+import { buyUrl, supplierUrl, productUrl, saleTypeUrl, containerTypeUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import AmountInput from '../../../components/AmountInput';
+import Toast from '../../../components/Toast';
+import IconLabelButtons from '../../../components/Button';
+import BasicSelect from '../../../components/Select';
+import AlertDialog from '../../../components/DialogAlert';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+
+const autocompleteSx = (hasError) => ({
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: '#f0f4f7',
+    borderRadius: '0.5rem',
+    fontSize: '0.875rem',
+    padding: '0 !important',
+    '& fieldset': {
+      borderColor: hasError ? '#f87171' : '#e3e9ed',
+    },
+    '&:hover fieldset': {
+      borderColor: hasError ? '#f87171' : '#4a7bc4',
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: '#4a7bc4',
+      borderWidth: '1px',
+    },
+  },
+  '& .MuiInputBase-input': {
+    padding: '0.625rem 0.75rem !important',
+    fontSize: '0.875rem',
+    color: '#2c3437',
+  },
+});
 
 const EMPTY_ITEM = {
   producto: null,
   cantidad_producto: '',
   tipo_venta: null,
   precio: '',
+};
+
+const EMPTY_VACIO = {
+  tipo_contenedor: null,
+  cantidad: '',
+  precio_unitario: '',
 };
 
 const CompraForm = () => {
@@ -30,6 +64,7 @@ const CompraForm = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [saleTypes, setSaleTypes] = useState([]);
+  const [containerTypes, setContainerTypes] = useState([]);
 
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
@@ -38,17 +73,22 @@ const CompraForm = () => {
   const [senia, setSenia] = useState('');
 
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
+  const [vacios, setVacios] = useState([]);
 
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState({ open: false, message: '' });
+  const [vaciosWarning, setVaciosWarning] = useState([]);
+  const [showVaciosDialog, setShowVaciosDialog] = useState(false);
 
   // ── Cargar opciones ────────────────────────────────────────────────
   useEffect(() => {
     const loadOptions = async () => {
-      const [suppliersResponse, productsResponse, saleTypesResponse] = await Promise.all([
+      const [suppliersResponse, productsResponse, saleTypesResponse, containerTypesResponse] = await Promise.all([
         axios.get(supplierUrl),
         axios.get(productUrl),
         axios.get(saleTypeUrl),
+        axios.get(containerTypeUrl),
       ]);
 
       setSuppliers(
@@ -66,6 +106,7 @@ const CompraForm = () => {
       );
 
       setSaleTypes(saleTypesResponse.data);
+      setContainerTypes(containerTypesResponse.data);
     };
 
     loadOptions().catch(console.error);
@@ -100,6 +141,16 @@ const CompraForm = () => {
             precio: item.precio_bulto,
           }))
         );
+
+        if (buy.vacios?.length > 0) {
+          setVacios(
+            buy.vacios.map((v) => ({
+              tipo_contenedor: v.tipo_contenedor.id,
+              cantidad: v.cantidad,
+              precio_unitario: v.precio_unitario,
+            }))
+          );
+        }
       })
       .catch(console.error);
   }, [id, isEdit]);
@@ -149,6 +200,27 @@ const CompraForm = () => {
     return new Set(ids).size !== ids.length;
   };
 
+  // ── Helpers de vacíos ──────────────────────────────────────────────
+  const addVacio = () => setVacios((prev) => [...prev, { ...EMPTY_VACIO }]);
+
+  const removeVacio = (index) => setVacios((prev) => prev.filter((_, i) => i !== index));
+
+  const updateVacio = (index, field, value) => {
+    setVacios((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const getAvailableContainerTypes = (currentIndex) => {
+    const usedIds = vacios
+      .filter((_, i) => i !== currentIndex)
+      .map((v) => v.tipo_contenedor)
+      .filter(Boolean);
+    return containerTypes.filter((ct) => !usedIds.includes(ct.id));
+  };
+
   // ── Cálculos ───────────────────────────────────────────────────────
   const calculateItemSubtotal = (item) => {
     const qty = parseFloat(item.cantidad_producto) || 0;
@@ -159,6 +231,9 @@ const CompraForm = () => {
   const subtotal = items.reduce((sum, item) => sum + calculateItemSubtotal(item), 0);
   const seniaValue = tieneSenia ? (parseFloat(senia) || 0) : 0;
   const total = subtotal - seniaValue;
+
+  // ── Limpiar advertencia al modificar items o vacíos ───────────────
+  useEffect(() => { setVaciosWarning([]); setShowVaciosDialog(false); }, [items, vacios]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-agregar fila ──────────────────────────────────────────────
   useEffect(() => {
@@ -171,6 +246,33 @@ const CompraForm = () => {
       setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
     }
   }, [items]);
+
+  // ── Advertencia de vacíos ──────────────────────────────────────────
+  const checkVaciosWarning = () => {
+    const bulto = saleTypes.find((st) => st.descripcion.toLowerCase() === 'bulto');
+    if (!bulto) return [];
+
+    const required = {};
+    items.forEach((item) => {
+      if (item.tipo_venta !== bulto.id || !item.producto?.tipo_contenedor) return;
+      const qty = parseFloat(item.cantidad_producto) || 0;
+      if (qty <= 0) return;
+      const { id, descripcion } = item.producto.tipo_contenedor;
+      if (!required[id]) required[id] = { descripcion, qty: 0 };
+      required[id].qty += qty;
+    });
+
+    return Object.entries(required).flatMap(([ctId, { descripcion, qty }]) => {
+      const containerType = containerTypes.find((ct) => ct.id === Number(ctId));
+      if (!containerType?.requiere_vacio) return [];
+      const vacio = vacios.find((v) => v.tipo_contenedor === Number(ctId));
+      const vacioQty = vacio ? (parseFloat(vacio.cantidad) || 0) : 0;
+      if (vacioQty >= qty) return [];
+      if (vacioQty === 0)
+        return [`No se cargaron vacíos para "${descripcion}" (${qty} bulto${qty !== 1 ? 's' : ''} comprado${qty !== 1 ? 's' : ''}).`];
+      return [`Los vacíos de "${descripcion}" cargados son ${vacioQty}, pero se compran ${qty} bulto${qty !== 1 ? 's' : ''}.`];
+    });
+  };
 
   // ── Validación ─────────────────────────────────────────────────────
   const validate = () => {
@@ -211,19 +313,41 @@ const CompraForm = () => {
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      setVaciosWarning([]);
       return;
     }
 
     setErrors({});
+
+    const warnings = checkVaciosWarning();
+    if (warnings.length > 0) {
+      setVaciosWarning(warnings);
+      setShowVaciosDialog(true);
+      return;
+    }
+
+    await executeSave();
+  };
+
+  const executeSave = async () => {
+    setShowVaciosDialog(false);
+    setVaciosWarning([]);
     setSaving(true);
 
     const filledItems = items.filter((item) => item.producto !== null);
 
     try {
+      const filledVacios = vacios.filter((v) => v.tipo_contenedor && parseFloat(v.cantidad) > 0);
+
       const payload = {
         proveedor: selectedSupplier.id,
         fecha,
         senia: seniaValue,
+        vacios: filledVacios.map((v) => ({
+          tipo_contenedor: v.tipo_contenedor,
+          cantidad: parseFloat(v.cantidad),
+          precio_unitario: parseFloat(v.precio_unitario) || 0,
+        })),
         items: filledItems.map((item) => {
           const qty = parseFloat(item.cantidad_producto) || 1;
           const precioBulto = parseFloat(item.precio) || 0;
@@ -252,7 +376,7 @@ const CompraForm = () => {
         error?.response?.data ||
         'Error al guardar la compra.';
 
-      alert(typeof message === 'string' ? message : JSON.stringify(message));
+      setToast({ open: true, message: typeof message === 'string' ? message : JSON.stringify(message) });
     } finally {
       setSaving(false);
     }
@@ -261,6 +385,12 @@ const CompraForm = () => {
   // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="container mx-auto py-6 px-4 bg-white rounded shadow-md w-full max-w-5xl">
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        onClose={() => setToast({ open: false, message: '' })}
+      />
+
       {/* Encabezado */}
       <div className="flex items-center justify-between mb-4">
         <Button
@@ -279,6 +409,10 @@ const CompraForm = () => {
 
       <hr className="border-gray-200 mb-6" />
 
+      {/* Sección: Datos de la compra */}
+      <div className="space-y-4 mb-6">
+        <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Datos de la compra</h3>
+
       {/* Fila 1: Proveedor + Fecha */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="md:col-span-2">
@@ -290,10 +424,10 @@ const CompraForm = () => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                size="small"
                 placeholder="Buscar proveedor..."
                 error={Boolean(errors.supplier)}
                 helperText={errors.supplier}
+                sx={autocompleteSx(Boolean(errors.supplier))}
               />
             )}
           />
@@ -371,10 +505,15 @@ const CompraForm = () => {
         )}
       </div>
 
+      </div>{/* fin sección Datos de la compra */}
+
+      {/* Sección: Productos */}
+      <div className="space-y-4 mb-6">
+        <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Productos</h3>
+
       {/* Tabla de productos */}
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-700">Productos</h2>
+        <div className="flex items-center justify-end mb-2">
           <button
             type="button"
             onClick={addItem}
@@ -411,13 +550,14 @@ const CompraForm = () => {
                       options={getAvailableProducts(index)}
                       value={item.producto}
                       onChange={(_, value) => handleProductSelect(index, value)}
-                      size="small"
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           placeholder="Escribir producto..."
-                          size="small"
-                          sx={{ minWidth: 200 }}
+                          sx={{
+                            ...autocompleteSx(false),
+                            minWidth: 200,
+                          }}
                         />
                       )}
                     />
@@ -439,26 +579,16 @@ const CompraForm = () => {
 
                   {/* Tipo venta */}
                   <td className="border border-gray-200 px-2 py-1">
-                    <TextField
-                      select
-                      size="small"
-                      fullWidth
-                      value={item.tipo_venta ?? ''}
-                      onChange={(e) =>
-                        updateItem(
-                          index,
-                          'tipo_venta',
-                          e.target.value === '' ? null : Number(e.target.value)
-                        )
+                    <BasicSelect
+                      name={`tipo_venta_${index}`}
+                      value={
+                        item.tipo_venta
+                          ? { name: saleTypes.find((st) => st.id === item.tipo_venta)?.descripcion, value: item.tipo_venta }
+                          : null
                       }
-                    >
-                      <MenuItem value="">-</MenuItem>
-                      {saleTypes.map((st) => (
-                        <MenuItem key={st.id} value={st.id}>
-                          {st.descripcion}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                      options={saleTypes.map((st) => ({ name: st.descripcion, value: st.id }))}
+                      onChange={(e) => updateItem(index, 'tipo_venta', e.target.value?.value ?? null)}
+                    />
                   </td>
 
                   {/* Precio */}
@@ -530,38 +660,117 @@ const CompraForm = () => {
         </div>
       </div>
 
+      </div>{/* fin sección Productos */}
+
+      {/* Sección: Vacíos */}
+      <div className="space-y-4 mb-6">
+        <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Vacíos</h3>
+
+        {vacios.length === 0 ? (
+          <p className="text-sm text-gray-400">Sin vacíos registrados.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-100 text-gray-700">
+                  <th className="border border-gray-200 px-2 py-2 text-center">Tipo</th>
+                  <th className="border border-gray-200 px-2 py-2 text-center w-28">Cantidad</th>
+                  <th className="border border-gray-200 px-2 py-2 text-center w-36">Precio seña</th>
+                  <th className="border border-gray-200 px-2 py-2 w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {vacios.map((vacio, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="border border-gray-200 px-2 py-1">
+                      <BasicSelect
+                        name={`vacio_tipo_${index}`}
+                        value={
+                          vacio.tipo_contenedor
+                            ? {
+                                name: containerTypes.find((ct) => ct.id === vacio.tipo_contenedor)?.descripcion,
+                                value: vacio.tipo_contenedor,
+                              }
+                            : null
+                        }
+                        options={getAvailableContainerTypes(index).map((ct) => ({ name: ct.descripcion, value: ct.id }))}
+                        onChange={(e) => updateVacio(index, 'tipo_contenedor', e.target.value?.value ?? null)}
+                      />
+                    </td>
+                    <td className="border border-gray-200 px-2 py-1">
+                      <TextField
+                        type="number"
+                        size="small"
+                        fullWidth
+                        inputProps={{ min: 0, step: 1 }}
+                        value={vacio.cantidad}
+                        onChange={(e) => updateVacio(index, 'cantidad', e.target.value)}
+                        sx={{ ...autocompleteSx(false), '& input': { textAlign: 'right' } }}
+                      />
+                    </td>
+                    <td className="border border-gray-200 px-2 py-1">
+                      <AmountInput
+                        name={`vacio_precio_${index}`}
+                        value={vacio.precio_unitario}
+                        onChange={(raw) => updateVacio(index, 'precio_unitario', raw)}
+                      />
+                    </td>
+                    <td className="border border-gray-200 px-1 py-1 text-center">
+                      <IconButton size="small" onClick={() => removeVacio(index)} color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={addVacio}
+          className="flex items-center gap-1 bg-transparent border-none text-blue-lahuerta text-sm font-medium cursor-pointer hover:underline hover:underline-offset-2 focus:outline-none"
+          style={{ background: 'transparent', boxShadow: 'none' }}
+        >
+          <AddCircleOutlineIcon fontSize="small" /> Agregar vacío
+        </button>
+      </div>{/* fin sección Vacíos */}
+
+      <AlertDialog
+        open={showVaciosDialog}
+        title="Vacíos sin cargar o con cantidad insuficiente"
+        message={
+          <ul className="list-disc list-inside space-y-1">
+            {vaciosWarning.map((msg, i) => <li key={i}>{msg}</li>)}
+            <li className="mt-2 list-none text-xs">¿Querés guardar la compra de todas formas?</li>
+          </ul>
+        }
+        icon={<WarningAmberIcon sx={{ fontSize: 20, color: '#d97706' }} />}
+        confirmClassName="bg-amber-500 hover:bg-amber-600"
+        confirmLabel="Guardar igual"
+        cancelLabel="Volver a revisar"
+        onConfirm={executeSave}
+        onCancel={() => setShowVaciosDialog(false)}
+      />
+
       {/* Acciones */}
       <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-gray-200">
         <Button
-          variant="contained"
+          variant="outlined"
           onClick={() => navigate('/buy')}
-          sx={{
-            bgcolor: '#ef4444',
-            '&:hover': { bgcolor: '#dc2626' },
-            textTransform: 'none',
-            fontWeight: 700,
-            px: 4,
-            py: 1.25,
-          }}
+          sx={{ textTransform: 'none', fontWeight: 700, px: 4, py: 1.25 }}
         >
           Cancelar
         </Button>
 
-        <Button
+        <IconLabelButtons
+          label={saving ? 'Guardando…' : 'Confirmar'}
           variant="contained"
-          onClick={handleSave}
+          size="large"
           disabled={saving}
-          sx={{
-            bgcolor: '#4a7bc4',
-            '&:hover': { bgcolor: '#4a70a8' },
-            textTransform: 'none',
-            fontWeight: 700,
-            px: 4,
-            py: 1.25,
-          }}
-        >
-          {saving ? 'Guardando…' : 'Confirmar'}
-        </Button>
+          onClick={handleSave}
+        />
       </div>
     </div>
   );
