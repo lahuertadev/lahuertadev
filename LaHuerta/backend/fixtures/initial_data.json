@@ -66,41 +66,64 @@
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 1,
-      "fields": { 
+      "fields": {
         "descripcion": "Cajón",
-        "abreviacion": "c"
+        "abreviacion": "c",
+        "requiere_vacio": true
       }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 2,
-      "fields": { 
+      "fields": {
         "descripcion": "Bolsa",
-        "abreviacion": "b"
+        "abreviacion": "b",
+        "requiere_vacio": false
       }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 3,
-      "fields": { 
+      "fields": {
         "descripcion": "Jaula",
-        "abreviacion": "j"
+        "abreviacion": "j",
+        "requiere_vacio": true
       }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 4,
-      "fields": { 
+      "fields": {
         "descripcion": "Bandeja",
-        "abreviacion": "b"
+        "abreviacion": "ban",
+        "requiere_vacio": true
       }
     },
     {
       "model": "tipo_contenedor.tipocontenedor",
       "pk": 5,
-      "fields": { 
+      "fields": {
+        "descripcion": "Unidad",
+        "abreviacion": "u",
+        "requiere_vacio": false
+      }
+    },
+    {
+      "model": "tipo_contenedor.tipocontenedor",
+      "pk": 6,
+      "fields": {
         "descripcion": "Riestra",
-        "abreviacion": "r"
+        "abreviacion": "r",
+        "requiere_vacio": false
+      }
+    },
+    {
+      "model": "tipo_contenedor.tipocontenedor",
+      "pk": 7,
+      "fields": {
+        "descripcion": "Caja",
+        "abreviacion": "cj",
+        "requiere_vacio": false
       }
     },
     {
