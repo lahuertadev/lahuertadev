@@ -68,3 +68,31 @@ class TestContainerTypeRepository:
 
         assert TipoContenedor.objects.count() == 0
 
+    # -------------------- REQUIERE VACÍO -----------------------
+    def test_requiere_vacio_default_es_true(self):
+        item = TipoContenedor.objects.create(descripcion="Cajón")
+
+        assert item.requiere_vacio is True
+
+    def test_requiere_vacio_false_se_persiste(self):
+        item = TipoContenedor.objects.create(descripcion="Bolsa", requiere_vacio=False)
+
+        item.refresh_from_db()
+
+        assert item.requiere_vacio is False
+
+    def test_requiere_vacio_true_se_persiste(self):
+        item = TipoContenedor.objects.create(descripcion="Jaula", requiere_vacio=True)
+
+        item.refresh_from_db()
+
+        assert item.requiere_vacio is True
+
+    def test_modify_container_type_actualiza_requiere_vacio(self):
+        item = TipoContenedor.objects.create(descripcion="Bandeja", requiere_vacio=True)
+
+        self.repository.modify_container_type(item, {"requiere_vacio": False})
+
+        item.refresh_from_db()
+        assert item.requiere_vacio is False
+

@@ -61,7 +61,7 @@ Verificar si existen las siguientes variables de entorno:
 ```bash
 eval $(python3 -c "
 import json
-with open('.claude/settings.local.json') as f:
+with open('/Users/pablogermanantunez/Desktop/proyectoLaHuerta/lahuertadev/LaHuerta/.claude/settings.local.json') as f:
     env = json.load(f)['env']
 for k, v in env.items():
     print(f'export {k}=\"{v}\"')

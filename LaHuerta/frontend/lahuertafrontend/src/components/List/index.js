@@ -5,6 +5,7 @@ import IconLabelButtons from '../Button';
 import CustomInput from '../Input';
 import BasicDatePicker from '../DatePicker';
 import BasicSelect from '../Select';
+import Toast from '../Toast';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
@@ -41,6 +42,7 @@ const GenericList = ({ data, onAdd }) => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({});
+  const [toast, setToast] = useState({ open: false, message: '' });
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -124,7 +126,7 @@ const GenericList = ({ data, onAdd }) => {
         err?.response?.data?.detail ||
         err?.message ||
         'Error inesperado al eliminar';
-      alert(msg);
+      setToast({ open: true, message: msg });
     } finally {
       handleCloseConfirmDialog();
     }
@@ -147,6 +149,7 @@ const GenericList = ({ data, onAdd }) => {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
+      <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} />
 
       {/* Breadcrumbs */}
       {resolvedBreadcrumbs && (

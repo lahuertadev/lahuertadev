@@ -41,8 +41,33 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 - `PUT /buy/:id/` — Actualizar compra
 - `DELETE /buy/:id/` — Eliminar compra
 
+## Vacíos
+
+### Concepto
+En el mercado, muchos productos se compran dentro de contenedores retornables (cajones, jaulas, bandejas) que tienen un valor de depósito. Ese depósito se llama **vacío**. Cuando el contenedor se devuelve al proveedor, el valor del vacío se reintegra. Si no se devuelve, se cobra el producto más el vacío.
+
+### Registro en la compra
+Al crear o editar una compra se puede registrar la cantidad de vacíos por tipo de contenedor, junto con el precio de depósito de cada uno. Este registro sirve para tener trazabilidad y gestionar las devoluciones futuras.
+
+### Tipos de contenedor y vacíos
+No todos los tipos de contenedor generan vacíos. La regla está definida en el campo `requiere_vacio` del modelo `TipoContenedor`:
+
+| Tipo de contenedor | Requiere vacío | Motivo |
+|--------------------|---------------|--------|
+| Cajón | Sí | Contenedor de madera/metal retornable |
+| Jaula | Sí | Contenedor metálico retornable |
+| Bandeja | Sí | Bandeja retornable |
+| Bolsa | No | Envase descartable |
+| Unidad | No | Productos que se venden sueltos (ej: sandía). No hay contenedor que devolver |
+| Riestra | No | Se vende la tira sola, sin contenedor retornable |
+| Caja | No | Caja de cartón descartable (reemplaza al cajón de madera en algunos productos, ej: manzana) |
+
+### Advertencia en el formulario
+Si se compran productos con tipo de venta **Bulto** y su contenedor requiere vacío, el sistema muestra una advertencia si los vacíos cargados son insuficientes o no fueron registrados. El usuario puede guardar de todas formas (por ejemplo, cuando el proveedor usa cajas de cartón en lugar de cajones de madera y no cobra el vacío).
+
 ## Consideraciones
 - La cuenta corriente del proveedor (`cuenta_corriente`) se actualiza automáticamente en el backend con cada operación de compra.
 - Al editar una compra y cambiar el proveedor, el sistema ajusta el balance de ambos proveedores.
 - Al eliminar una compra, el importe se revierte en la cuenta corriente del proveedor.
 - El precio unitario no afecta el cálculo del importe total; es un dato informativo para la gestión de precios de venta.
+- Los vacíos **no afectan el importe** de la compra. Son únicamente un registro para gestionar devoluciones.

@@ -9,7 +9,9 @@ from .serializers import (
 )
 from .exceptions import PurchasePaymentNotFoundException, PaymentExceedsBalanceException
 from .factory import build_purchase_payment_service
+from .service import OwnCheckInsufficientBalanceException
 from cheque.exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException
+from cheque_propio.exceptions import OwnCheckNotFoundException
 
 
 class PurchasePaymentViewSet(viewsets.ViewSet):
@@ -63,10 +65,10 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
             response_serializer = PurchasePaymentResponseSerializer(payment)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except CheckNotFoundException as e:
+        except (CheckNotFoundException, OwnCheckNotFoundException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except (CheckAlreadyEndorsedException, CheckInvalidStateException, PaymentExceedsBalanceException) as e:
+        except (CheckAlreadyEndorsedException, CheckInvalidStateException, PaymentExceedsBalanceException, OwnCheckInsufficientBalanceException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:

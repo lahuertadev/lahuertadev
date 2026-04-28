@@ -6,6 +6,7 @@ from compra.service import BuyService
 from compra.interfaces import IBuyRepository
 from compra.exceptions import BuyNotFoundException
 from compra_producto.interfaces import IBuyProductRepository
+from compra_vacio.interfaces import IBuyEmptyRepository
 from proveedor.interfaces import ISupplierRepository
 
 
@@ -124,6 +125,18 @@ class FakeBuyProductRepo(IBuyProductRepository):
         self.replaced.append((buy, products))
 
 
+class FakeBuyEmptyRepo(IBuyEmptyRepository):
+    def __init__(self):
+        self.created = []
+        self.replaced = []
+
+    def create_empties(self, buy, empties):
+        self.created.append((buy, empties))
+
+    def replace_empties(self, buy, empties):
+        self.replaced.append((buy, empties))
+
+
 class FakeSupplierRepo(ISupplierRepository):
     def __init__(self):
         self.updated = []
@@ -144,6 +157,7 @@ def _make_service():
     return BuyService(
         buy_repository=FakeBuyRepo(),
         buy_product_repository=FakeBuyProductRepo(),
+        buy_empty_repository=FakeBuyEmptyRepo(),
         supplier_repository=FakeSupplierRepo(),
     )
 
@@ -214,6 +228,37 @@ class TestCreateBuy:
 
         assert len(service.buy_product_repository.created) == 1
 
+    def test_create_sin_vacios_llama_create_empties_con_lista_vacia(self):
+        service = _make_service()
+
+        service.create_buy({
+            'proveedor': _make_supplier(),
+            'fecha': '2024-01-01',
+            'items': _make_products(500),
+        })
+
+        assert len(service.buy_empty_repository.created) == 1
+        _, empties_passed = service.buy_empty_repository.created[0]
+        assert empties_passed == []
+
+    def test_create_con_vacios_pasa_vacios_al_repo(self):
+        service = _make_service()
+        vacios = [
+            {'tipo_contenedor': Mock(id=1), 'cantidad': 5.0, 'precio_unitario': Decimal('10000.00')},
+            {'tipo_contenedor': Mock(id=3), 'cantidad': 2.0, 'precio_unitario': Decimal('5000.00')},
+        ]
+
+        service.create_buy({
+            'proveedor': _make_supplier(),
+            'fecha': '2024-01-01',
+            'items': _make_products(500),
+            'vacios': vacios,
+        })
+
+        assert len(service.buy_empty_repository.created) == 1
+        _, empties_passed = service.buy_empty_repository.created[0]
+        assert empties_passed == vacios
+
 
 # ── Tests: update_buy ──────────────────────────────────────────────────────────
 
@@ -268,6 +313,46 @@ class TestUpdateBuy:
 
         assert old_supplier.cuenta_corriente == Decimal('0')
         assert new_supplier.cuenta_corriente == Decimal('1000.00')
+
+    def test_update_con_vacios_llama_replace_empties(self):
+        service = _make_service()
+        compra = service.buy_repository.create(
+            proveedor=_make_supplier(), fecha='2024-01-01',
+            importe=Decimal('1000.00'), senia=Decimal('0'),
+        )
+        vacios = [
+            {'tipo_contenedor': Mock(id=1), 'cantidad': 3.0, 'precio_unitario': Decimal('8000.00')},
+        ]
+
+        service.update_buy(compra.id, {'vacios': vacios})
+
+        assert len(service.buy_empty_repository.replaced) == 1
+        _, empties_passed = service.buy_empty_repository.replaced[0]
+        assert empties_passed == vacios
+
+    def test_update_sin_vacios_no_llama_replace_empties(self):
+        service = _make_service()
+        compra = service.buy_repository.create(
+            proveedor=_make_supplier(), fecha='2024-01-01',
+            importe=Decimal('1000.00'), senia=Decimal('0'),
+        )
+
+        service.update_buy(compra.id, {'fecha': '2024-06-01'})
+
+        assert len(service.buy_empty_repository.replaced) == 0
+
+    def test_update_vacios_vacio_reemplaza_con_lista_vacia(self):
+        service = _make_service()
+        compra = service.buy_repository.create(
+            proveedor=_make_supplier(), fecha='2024-01-01',
+            importe=Decimal('1000.00'), senia=Decimal('0'),
+        )
+
+        service.update_buy(compra.id, {'vacios': []})
+
+        assert len(service.buy_empty_repository.replaced) == 1
+        _, empties_passed = service.buy_empty_repository.replaced[0]
+        assert empties_passed == []
 
     def test_update_sin_cambios_no_modifica_cc(self):
         service = _make_service()
