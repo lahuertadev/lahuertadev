@@ -8,7 +8,8 @@ class ContainerTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TipoContenedor
         fields = [
-            'id', 
+            'id',
             'descripcion',
-            'abreviacion'
+            'abreviacion',
+            'requiere_vacio',
         ]
