@@ -1,12 +1,17 @@
 import React from 'react';
+import packageJson from '../../../package.json';
+const { version } = packageJson;
 
 const Footer = ({ linkedinUrl, title }) => {
   return (
-    <footer className="ml-[65px] w-[calc(100%-65px)] py-4 mt-auto bg-surface-low border-t border-border-subtle flex flex-wrap justify-between items-center gap-3 px-8">
+    <footer className="ml-[65px] w-[calc(100%-65px)] py-4 mt-auto bg-surface-low border-t border-border-subtle grid grid-cols-3 items-center px-8">
       <p className="text-xs font-medium text-on-surface-muted whitespace-nowrap">
         {title}
       </p>
-      <div className="flex items-center gap-4 flex-wrap">
+      <p className="text-xs font-medium text-on-surface-muted text-center whitespace-nowrap">
+        v{version}
+      </p>
+      <div className="flex items-center gap-4 justify-end flex-wrap">
         <a
           href={linkedinUrl}
           target="_blank"
