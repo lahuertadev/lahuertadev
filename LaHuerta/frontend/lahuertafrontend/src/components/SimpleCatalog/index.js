@@ -107,6 +107,7 @@ const SimpleCatalog = ({
       fetchItems();
     } catch (err) {
       console.error('Error eliminando:', err);
+      setToast({ open: true, message: err.message });
     } finally {
       setOpenConfirmDialog(false);
       setItemToDelete(null);

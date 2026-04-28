@@ -35,4 +35,24 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const contentType = error.response?.headers?.['content-type'] || '';
+    if (contentType.includes('text/html')) {
+      error.message = 'Ocurrió un error, por favor intentá de nuevo.';
+    } else if (error.response?.data) {
+      const data = error.response.data;
+      error.message =
+        data?.detail ||
+        data?.message ||
+        data?.error ||
+        'Ocurrió un error, por favor intentá de nuevo.';
+    } else {
+      error.message = 'Ocurrió un error, por favor intentá de nuevo.';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default axios;
