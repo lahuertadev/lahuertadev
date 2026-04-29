@@ -1,0 +1,2 @@
+class SystemEntityException(Exception):
+    pass
