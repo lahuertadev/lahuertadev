@@ -12,4 +12,6 @@ class ContainerTypeSerializer(serializers.ModelSerializer):
             'descripcion',
             'abreviacion',
             'requiere_vacio',
+            'is_system',
         ]
+        read_only_fields = ['is_system']

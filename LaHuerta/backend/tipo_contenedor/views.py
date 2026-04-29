@@ -6,9 +6,11 @@ from .interfaces import IContainerTypeRepository
 from .repositories import ContainerTypeRepository
 from .exceptions import ContainerHasProductsException, ContainerNotFoundException
 from producto.repositories import ProductRepository
+from core.mixins import SystemProtectedMixin
+from core.exceptions import SystemEntityException
 
 
-class ContainerTypeViewSet(ViewSet):
+class ContainerTypeViewSet(SystemProtectedMixin, ViewSet):
     '''
     Gestión de Tipos de Contenedores
     '''
@@ -65,6 +67,8 @@ class ContainerTypeViewSet(ViewSet):
             if not container_type:
                 raise ContainerNotFoundException('Tipo de contenedor no encontrado.')
 
+            self._check_system_protected(container_type)
+
             serializer = ContainerTypeSerializer(data=request.data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -73,11 +77,13 @@ class ContainerTypeViewSet(ViewSet):
             container_type_serialized = ContainerTypeSerializer(container_type)
             return Response(container_type_serialized.data, status=status.HTTP_200_OK)
 
+        except SystemEntityException as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except ContainerNotFoundException as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
             return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     def destroy(self, request, pk=None):
         '''
         Elimina un tipo de contenedor.
@@ -88,6 +94,8 @@ class ContainerTypeViewSet(ViewSet):
             if not container_type:
                 raise ContainerNotFoundException('El tipo de contenedor seleccionado no existe')
 
+            self._check_system_protected(container_type)
+
             product_repository = ProductRepository()
             related_products = product_repository.verify_products_with_container_type_id(pk)
 
@@ -97,6 +105,8 @@ class ContainerTypeViewSet(ViewSet):
             self.repository.destroy_container_type(container_type)
             return Response({'message': 'Tipo de contenedor eliminado exitosamente'}, status=status.HTTP_204_NO_CONTENT)
         
+        except SystemEntityException as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except ContainerHasProductsException as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except ContainerNotFoundException as e:

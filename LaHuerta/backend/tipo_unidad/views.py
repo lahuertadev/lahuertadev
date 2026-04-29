@@ -5,13 +5,15 @@ from .serializers import UnitTypeSerializer
 from .interfaces import IUnitTypeRepository
 from .repositories import UnitTypeRepository
 from .exceptions import (
-    UnitTypeHasProductsException, 
+    UnitTypeHasProductsException,
     UnitTypeNotFoundException
 )
 from producto.repositories import ProductRepository
+from core.mixins import SystemProtectedMixin
+from core.exceptions import SystemEntityException
 
 
-class UnitTypeViewSet(ViewSet):
+class UnitTypeViewSet(SystemProtectedMixin, ViewSet):
     '''
     Gestión de Tipos de Unidad
     '''
@@ -66,10 +68,12 @@ class UnitTypeViewSet(ViewSet):
         '''
         try:
             unit_type = self.repository.get_unit_type_by_id(pk)
-            
+
             if not unit_type:
                 raise UnitTypeNotFoundException('El tipo de unidad seleccionado no existe')
-            
+
+            self._check_system_protected(unit_type)
+
             serializer = UnitTypeSerializer(data=request.data)
 
             if not serializer.is_valid():
@@ -79,11 +83,13 @@ class UnitTypeViewSet(ViewSet):
             unit_type_serialized = UnitTypeSerializer(unit_type)
             return Response(unit_type_serialized.data, status=status.HTTP_200_OK)
             
+        except SystemEntityException as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except UnitTypeNotFoundException as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     def destroy(self, request, pk=None):
         '''
         Elimina un tipo de unidad comprobando si existe un producto asociado previamente.
@@ -93,7 +99,9 @@ class UnitTypeViewSet(ViewSet):
 
             if not unit_type:
                 raise UnitTypeNotFoundException('El tipo de unidad seleccionado no existe')
-            
+
+            self._check_system_protected(unit_type)
+
             product_repository = ProductRepository()
             products_related = product_repository.verify_products_with_unit_type_id(pk)
 
@@ -103,6 +111,8 @@ class UnitTypeViewSet(ViewSet):
             self.repository.destroy_unit_type(unit_type)
             return Response({'message': 'El tipo de unidad fue eliminado exitosamente'}, status=status.HTTP_204_NO_CONTENT)
         
+        except SystemEntityException as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except UnitTypeHasProductsException as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except UnitTypeNotFoundException as e:

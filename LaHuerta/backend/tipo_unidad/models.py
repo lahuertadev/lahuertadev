@@ -10,6 +10,7 @@ class TipoUnidad(models.Model):
     descripcion = models.CharField(unique=True, max_length=20)
     abreviacion = models.CharField(max_length=5, default='u')
     tipo_medicion = models.CharField(max_length=10, choices=TIPO_MEDICION_CHOICES)
+    is_system = models.BooleanField(default=False)
 
     def __str__(self):
         return self.descripcion

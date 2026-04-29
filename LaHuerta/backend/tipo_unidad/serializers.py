@@ -7,4 +7,5 @@ class UnitTypeSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = TipoUnidad
-        fields = ['id', 'descripcion', 'abreviacion', 'tipo_medicion']
+        fields = ['id', 'descripcion', 'abreviacion', 'tipo_medicion', 'is_system']
+        read_only_fields = ['is_system']

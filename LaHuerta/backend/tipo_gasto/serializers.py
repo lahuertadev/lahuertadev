@@ -8,7 +8,8 @@ class TipoGastoSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = TipoGasto
-        fields = ['id', 'descripcion']
+        fields = ['id', 'descripcion', 'is_system']
+        read_only_fields = ['is_system']
 
 class TipoGastoCreateSerializer(serializers.ModelSerializer):
     '''

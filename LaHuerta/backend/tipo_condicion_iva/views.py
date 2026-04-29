@@ -6,8 +6,11 @@ from .interfaces import IConditionIvaTypeRepository
 from rest_framework.viewsets import ViewSet
 from django.core.exceptions import ObjectDoesNotExist
 from autenticacion.permissions import IsAdministratorOrReadOnly
+from core.mixins import SystemProtectedMixin
+from core.exceptions import SystemEntityException
 
-class ConditionIvaTypeViewSet(ViewSet):
+
+class ConditionIvaTypeViewSet(SystemProtectedMixin, ViewSet):
     """
     ViewSet para gestionar Tipos de Condición IVA.
     Solo administradores y superusuarios pueden crear/editar/eliminar.
@@ -75,19 +78,23 @@ class ConditionIvaTypeViewSet(ViewSet):
 
         if serializer.is_valid():
             try:
+                instance = self.repository.get_by_id(pk)
+                self._check_system_protected(instance)
                 self.repository.update(pk, serializer.validated_data)
                 return Response(status=status.HTTP_200_OK)
+            except SystemEntityException as e:
+                return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
             except ObjectDoesNotExist:
                 return Response(
-                    {'detail':'Tipo de Condición IVA no encontado.'},
+                    {'detail': 'Tipo de Condición IVA no encontrado.'},
                     status=status.HTTP_404_NOT_FOUND
                 )
             except Exception:
                 return Response(
-                    {'detail':'Error al actualizar el tipo de Condición IVA'},
+                    {'detail': 'Error al actualizar el tipo de Condición IVA'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-        
+
         return Response(
             serializer.errors,
             status=status.HTTP_400_BAD_REQUEST
@@ -95,18 +102,21 @@ class ConditionIvaTypeViewSet(ViewSet):
 
     def destroy(self, request, pk=None):
         try:
+            instance = self.repository.get_by_id(pk)
+            self._check_system_protected(instance)
             self.repository.delete(pk)
             return Response(status=status.HTTP_204_NO_CONTENT)
-        
+
+        except SystemEntityException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
             return Response(
-                {'detail':'Tipo de Condición IVA no encontrado'},
+                {'detail': 'Tipo de Condición IVA no encontrado'},
                 status=status.HTTP_404_NOT_FOUND
             )
-    
         except Exception:
             return Response(
-                {'detail':'Error al eliminar un Tipo de Condición IVA'},
+                {'detail': 'Error al eliminar un Tipo de Condición IVA'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
