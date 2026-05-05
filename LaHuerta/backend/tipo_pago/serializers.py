@@ -7,4 +7,5 @@ class PaymentTypeSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = TipoPago
-        fields = ['id', 'descripcion']
+        fields = ['id', 'descripcion', 'is_system']
+        read_only_fields = ['is_system']

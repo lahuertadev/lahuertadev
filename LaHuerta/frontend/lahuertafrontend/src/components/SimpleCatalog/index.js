@@ -54,7 +54,7 @@ const SimpleCatalog = ({
     try {
       const response = await axios.get(url);
       const list = Array.isArray(response.data) ? response.data : [];
-      setRows(list.map(item => ({ id: item.id, [fieldName]: item[fieldName] })));
+      setRows(list.map(item => ({ id: item.id, [fieldName]: item[fieldName], isSystem: item.is_system })));
     } catch (err) {
       console.error('Error cargando datos:', err);
     } finally {
@@ -88,11 +88,15 @@ const SimpleCatalog = ({
     resetForm();
   };
 
+  const selectableRows = rows.filter(r => !r.isSystem);
+
   const toggleSelectAll = () => {
-    setSelectedIds(selectedIds.length === rows.length ? [] : rows.map(r => r.id));
+    setSelectedIds(selectedIds.length === selectableRows.length ? [] : selectableRows.map(r => r.id));
   };
 
   const toggleSelectOne = (id) => {
+    const row = rows.find(r => r.id === id);
+    if (row?.isSystem) return;
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
@@ -226,8 +230,8 @@ const SimpleCatalog = ({
                   {multiSelect && (
                     <th className="px-4 py-4 w-10">
                       <RoundedCheckbox
-                        checked={rows.length > 0 && selectedIds.length === rows.length}
-                        indeterminate={selectedIds.length > 0 && selectedIds.length < rows.length}
+                        checked={selectableRows.length > 0 && selectedIds.length === selectableRows.length}
+                        indeterminate={selectedIds.length > 0 && selectedIds.length < selectableRows.length}
                         onChange={toggleSelectAll}
                       />
                     </th>
@@ -254,27 +258,32 @@ const SimpleCatalog = ({
                         <RoundedCheckbox
                           checked={selectedIds.includes(row.id)}
                           onChange={() => toggleSelectOne(row.id)}
+                          disabled={row.isSystem}
                         />
                       </td>
                     )}
                     <td className="px-6 py-4 text-sm text-on-surface">{row[fieldName]}</td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleEdit(row.id)}
-                        className="p-2 text-on-surface-muted hover:text-blue-lahuerta hover:bg-blue-lahuerta/10 rounded-lg transition-all"
-                        title="Editar"
-                      >
-                        <EditIcon fontSize="small" />
-                      </button>
+                      {!row.isSystem && (
+                        <button
+                          onClick={() => handleEdit(row.id)}
+                          className="p-2 text-on-surface-muted hover:text-blue-lahuerta hover:bg-blue-lahuerta/10 rounded-lg transition-all"
+                          title="Editar"
+                        >
+                          <EditIcon fontSize="small" />
+                        </button>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => { setItemToDelete(row.id); setOpenConfirmDialog(true); }}
-                        className="p-2 text-on-surface-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        title="Eliminar"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </button>
+                      {!row.isSystem && (
+                        <button
+                          onClick={() => { setItemToDelete(row.id); setOpenConfirmDialog(true); }}
+                          className="p-2 text-on-surface-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                          title="Eliminar"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

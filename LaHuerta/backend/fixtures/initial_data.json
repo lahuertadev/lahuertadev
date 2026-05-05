@@ -2,65 +2,81 @@
     {
       "model": "estado_cheque.estadocheque",
       "pk": 1,
-      "fields": { "descripcion": "EN_CARTERA" }
+      "fields": { "descripcion": "EN_CARTERA", "is_system": true }
     },
     {
       "model": "estado_cheque.estadocheque",
       "pk": 2,
-      "fields": { "descripcion": "DEPOSITADO" }
+      "fields": { "descripcion": "DEPOSITADO", "is_system": true }
     },
     {
       "model": "estado_cheque.estadocheque",
       "pk": 3,
-      "fields": { "descripcion": "ACREDITADO" }
+      "fields": { "descripcion": "ACREDITADO", "is_system": true }
     },
     {
       "model": "estado_cheque.estadocheque",
       "pk": 4,
-      "fields": { "descripcion": "ENDOSADO" }
+      "fields": { "descripcion": "ENDOSADO", "is_system": true }
     },
     {
       "model": "estado_cheque.estadocheque",
       "pk": 5,
-      "fields": { "descripcion": "RECHAZADO" }
+      "fields": { "descripcion": "RECHAZADO", "is_system": true }
     },
     {
       "model": "categoria.categoria",
       "pk": 1,
-      "fields": { "descripcion": "Frutas" }
+      "fields": { "descripcion": "Frutas", "is_system": true }
     },
     {
       "model": "categoria.categoria",
       "pk": 2,
-      "fields": { "descripcion": "Verduras" }
+      "fields": { "descripcion": "Verduras", "is_system": true }
     },
     {
       "model": "categoria.categoria",
       "pk": 3,
-      "fields": { "descripcion": "Procesados" }
+      "fields": { "descripcion": "Procesados", "is_system": true }
     },
     {
       "model": "tipo_unidad.tipounidad",
       "pk": 1,
-      "fields": { 
-        "descripcion": "Kilogramo",
-        "abreviacion": "kg"
-      }
-    },
-    {
-      "model": "tipo_unidad.tipounidad",
-      "pk": 2,
-      "fields": { 
+      "fields": {
         "descripcion": "Unidad",
-        "abreviacion": "u"
+        "abreviacion": "u",
+        "tipo_medicion": "CANTIDAD",
+        "is_system": true
+      }
+    },
+    {
+      "model": "tipo_unidad.tipounidad",
+      "pk": 2,
+      "fields": {
+        "descripcion": "Kilogramo",
+        "abreviacion": "kg",
+        "tipo_medicion": "PESO",
+        "is_system": true
       }
     },
     {
       "model": "tipo_unidad.tipounidad",
       "pk": 3,
-      "fields": { 
-        "descripcion": "Paquete",
-        "abreviacion": "p"
+      "fields": {
+        "descripcion": "Planta",
+        "abreviacion": "p",
+        "tipo_medicion": "CANTIDAD",
+        "is_system": true
+      }
+    },
+    {
+      "model": "tipo_unidad.tipounidad",
+      "pk": 5,
+      "fields": {
+        "descripcion": "Diente",
+        "abreviacion": "d",
+        "tipo_medicion": "CANTIDAD",
+        "is_system": true
       }
     },
     {
@@ -69,7 +85,8 @@
       "fields": {
         "descripcion": "Cajón",
         "abreviacion": "c",
-        "requiere_vacio": true
+        "requiere_vacio": true,
+        "is_system": true
       }
     },
     {
@@ -78,7 +95,8 @@
       "fields": {
         "descripcion": "Bolsa",
         "abreviacion": "b",
-        "requiere_vacio": false
+        "requiere_vacio": false,
+        "is_system": true
       }
     },
     {
@@ -87,7 +105,8 @@
       "fields": {
         "descripcion": "Jaula",
         "abreviacion": "j",
-        "requiere_vacio": true
+        "requiere_vacio": true,
+        "is_system": true
       }
     },
     {
@@ -96,7 +115,8 @@
       "fields": {
         "descripcion": "Bandeja",
         "abreviacion": "ban",
-        "requiere_vacio": true
+        "requiere_vacio": true,
+        "is_system": true
       }
     },
     {
@@ -105,7 +125,8 @@
       "fields": {
         "descripcion": "Unidad",
         "abreviacion": "u",
-        "requiere_vacio": false
+        "requiere_vacio": false,
+        "is_system": true
       }
     },
     {
@@ -114,7 +135,8 @@
       "fields": {
         "descripcion": "Riestra",
         "abreviacion": "r",
-        "requiere_vacio": false
+        "requiere_vacio": false,
+        "is_system": true
       }
     },
     {
@@ -123,499 +145,253 @@
       "fields": {
         "descripcion": "Caja",
         "abreviacion": "cj",
-        "requiere_vacio": false
+        "requiere_vacio": false,
+        "is_system": true
       }
-    },
-    {
-      "model": "tipo_condicion_iva.tipocondicioniva",
-      "pk": 1,
-      "fields": { "descripcion": "Resp. Inscripto" }
-    },
-    {
-      "model": "tipo_condicion_iva.tipocondicioniva",
-      "pk": 2,
-      "fields": { "descripcion": "Monotributista" }
     },
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 3,
-      "fields": { "descripcion": "Exento" }
+      "fields": { "descripcion": "Resp. Inscripto", "is_system": true }
     },
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 4,
-      "fields": { "descripcion": "Consumidor Final" }
+      "fields": { "descripcion": "Monotributo", "is_system": true }
     },
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 5,
-      "fields": { "descripcion": "Resp. No Insc." }
+      "fields": { "descripcion": "Exento", "is_system": true }
     },
     {
       "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 6,
-      "fields": { "descripcion": "No Categorizado" }
-    },
-    
-    {
-      "model": "tipo_facturacion.tipofacturacion",
-      "pk": 1,
-      "fields": { "descripcion": "Manual" }
+      "fields": { "descripcion": "Cons. Final", "is_system": true }
     },
     {
-      "model": "tipo_facturacion.tipofacturacion",
-      "pk": 2,
-      "fields": { "descripcion": "Automática" }
-    },
-    {
-      "model": "tipo_facturacion.tipofacturacion",
-      "pk": 3,
-      "fields": { "descripcion": "Electrónica" }
-    },
-    {
-      "model": "tipo_facturacion.tipofacturacion",
-      "pk": 4,
-      "fields": { "descripcion": "Nota Crédito" }
-    },
-    {
-      "model": "tipo_facturacion.tipofacturacion",
-      "pk": 5,
-      "fields": { "descripcion": "Nota Débito" }
-    },
-    {
-      "model": "tipo_facturacion.tipofacturacion",
-      "pk": 6,
-      "fields": { "descripcion": "Presupuesto" }
-    }
-    ,
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 1,
-  "fields": { "descripcion": "Factura A", "abreviatura": "FA" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 2,
-  "fields": { "descripcion": "Factura B", "abreviatura": "FB" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 3,
-  "fields": { "descripcion": "Factura C", "abreviatura": "FC" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 4,
-  "fields": { "descripcion": "Factura M", "abreviatura": "FM" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 5,
-  "fields": { "descripcion": "Factura E", "abreviatura": "FE" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 6,
-  "fields": { "descripcion": "Nota de Crédito A", "abreviatura": "NCA" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 7,
-  "fields": { "descripcion": "Nota de Crédito B", "abreviatura": "NCB" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 8,
-  "fields": { "descripcion": "Nota de Crédito C", "abreviatura": "NCC" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 9,
-  "fields": { "descripcion": "Nota de Débito A", "abreviatura": "NDA" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 10,
-  "fields": { "descripcion": "Nota de Débito B", "abreviatura": "NDB" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 11,
-  "fields": { "descripcion": "Nota de Débito C", "abreviatura": "NDC" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 12,
-  "fields": { "descripcion": "Recibo A", "abreviatura": "RA" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 13,
-  "fields": { "descripcion": "Recibo B", "abreviatura": "RB" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 14,
-  "fields": { "descripcion": "Recibo C", "abreviatura": "RC" }
-},
-{
-  "model": "tipo_factura.tipofactura",
-  "pk": 15,
-  "fields": { "descripcion": "Remito", "abreviatura": "R" }
-},
-    {
-      "model": "producto.producto",
-      "pk": 1,
-      "fields": {
-        "descripcion": "Manzana Roja",
-        "categoria": 1,
-        "tipo_contenedor": 1,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 20,
-        "peso_aproximado": 0.2
-      }
-    },
-    {
-      "model": "producto.producto",
-      "pk": 2,
-      "fields": {
-        "descripcion": "Banana",
-        "categoria": 1,
-        "tipo_contenedor": 1,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 25,
-        "peso_aproximado": 0.15
-      }
-    },
-    {
-      "model": "producto.producto",
-      "pk": 3,
-      "fields": {
-        "descripcion": "Naranja",
-        "categoria": 1,
-        "tipo_contenedor": 1,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 30,
-        "peso_aproximado": 0.25
-      }
-    },
-    {
-      "model": "producto.producto",
-      "pk": 4,
-      "fields": {
-        "descripcion": "Melón",
-        "categoria": 1,
-        "tipo_contenedor": 1,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 10,
-        "peso_aproximado": 1.5
-      }
-    },
-    {
-      "model": "producto.producto",
-      "pk": 5,
-      "fields": {
-        "descripcion": "Sandía",
-        "categoria": 1,
-        "tipo_contenedor": 1,
-        "tipo_unidad": 2,
-        "cantidad_por_bulto": 6,
-        "peso_aproximado": 4.0
-      }
-    },
-    {
-      "model": "producto.producto",
-      "pk": 6,
-      "fields": {
-        "descripcion": "Frutilla",
-        "categoria": 1,
-        "tipo_contenedor": 4,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 12,
-        "peso_aproximado": 0.25
-      }
-    },
-    {
-      "model": "producto.producto",
+      "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 7,
-      "fields": {
-        "descripcion": "Palta",
-        "categoria": 1,
-        "tipo_contenedor": 1,
-        "tipo_unidad": 2,
-        "cantidad_por_bulto": 15,
-        "peso_aproximado": 0.3
-      }
+      "fields": { "descripcion": "Resp. No Insc.", "is_system": true }
     },
     {
-      "model": "producto.producto",
+      "model": "tipo_condicion_iva.tipocondicioniva",
       "pk": 8,
-      "fields": {
-        "descripcion": "Papa",
-        "categoria": 2,
-        "tipo_contenedor": 2,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 50,
-        "peso_aproximado": 0.25
-      }
+      "fields": { "descripcion": "No Categorizado", "is_system": true }
     },
     {
-      "model": "producto.producto",
-      "pk": 9,
-      "fields": {
-        "descripcion": "Cebolla",
-        "categoria": 2,
-        "tipo_contenedor": 2,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 40,
-        "peso_aproximado": 0.2
-      }
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 1,
+      "fields": { "descripcion": "Manual", "is_system": true }
     },
     {
-      "model": "producto.producto",
-      "pk": 10,
-      "fields": {
-        "descripcion": "Tomate",
-        "categoria": 2,
-        "tipo_contenedor": 1,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 30,
-        "peso_aproximado": 0.18
-      }
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 2,
+      "fields": { "descripcion": "Automática", "is_system": true }
     },
     {
-      "model": "producto.producto",
-      "pk": 11,
-      "fields": {
-        "descripcion": "Lechuga",
-        "categoria": 2,
-        "tipo_contenedor": 3,
-        "tipo_unidad": 1,
-        "cantidad_por_bulto": 15,
-        "peso_aproximado": 0.5
-      }
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 3,
+      "fields": { "descripcion": "Electrónica", "is_system": true }
     },
     {
-      "model": "producto.producto",
-      "pk": 12,
-      "fields": {
-        "descripcion": "Acelga",
-        "categoria": 2,
-        "tipo_contenedor": 3,
-        "tipo_unidad": 3,
-        "cantidad_por_bulto": 10,
-        "peso_aproximado": 0.8
-      }
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 4,
+      "fields": { "descripcion": "Nota de Crédito", "is_system": true }
     },
     {
-      "model": "producto.producto",
-      "pk": 13,
-      "fields": {
-        "descripcion": "Rúcula",
-        "categoria": 2,
-        "tipo_contenedor": 4,
-        "tipo_unidad": 3,
-        "cantidad_por_bulto": 20,
-        "peso_aproximado": 0.2
-      }
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 5,
+      "fields": { "descripcion": "Nota de Débito", "is_system": true }
     },
     {
-      "model": "producto.producto",
-      "pk": 14,
-      "fields": {
-        "descripcion": "Ajo",
-        "categoria": 2,
-        "tipo_contenedor": 5,
-        "tipo_unidad": 2,
-        "cantidad_por_bulto": 30,
-        "peso_aproximado": 0.05
-      }
+      "model": "tipo_facturacion.tipofacturacion",
+      "pk": 6,
+      "fields": { "descripcion": "Presupuesto", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 15,
+      "fields": { "descripcion": "Factura A", "abreviatura": "A", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 16,
+      "fields": { "descripcion": "Factura B", "abreviatura": "B", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 17,
+      "fields": { "descripcion": "Factura C", "abreviatura": "C", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 18,
+      "fields": { "descripcion": "Factura M", "abreviatura": "M", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 19,
+      "fields": { "descripcion": "Ticket", "abreviatura": "T", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 20,
+      "fields": { "descripcion": "Remito", "abreviatura": "R", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 21,
+      "fields": { "descripcion": "Nota de Crédito A", "abreviatura": "NCA", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 22,
+      "fields": { "descripcion": "Nota de Crédito B", "abreviatura": "NCB", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 23,
+      "fields": { "descripcion": "Nota de Crédito C", "abreviatura": "NCC", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 24,
+      "fields": { "descripcion": "Nota de Crédito M", "abreviatura": "NCM", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 25,
+      "fields": { "descripcion": "Nota de Débito A", "abreviatura": "NDA", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 26,
+      "fields": { "descripcion": "Nota de Débito B", "abreviatura": "NDB", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 27,
+      "fields": { "descripcion": "Nota de Débito C", "abreviatura": "NDC", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 28,
+      "fields": { "descripcion": "Nota de Débito M", "abreviatura": "NDM", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 29,
+      "fields": { "descripcion": "Recibo A", "abreviatura": "RA", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 30,
+      "fields": { "descripcion": "Recibo B", "abreviatura": "RB", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 31,
+      "fields": { "descripcion": "Recibo C", "abreviatura": "RC", "is_system": true }
+    },
+    {
+      "model": "tipo_factura.tipofactura",
+      "pk": 32,
+      "fields": { "descripcion": "Presupuesto", "abreviatura": "PRE", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 1,
-      "fields": { "descripcion": "Transporte" }
+      "fields": { "descripcion": "Transporte", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 2,
-      "fields": { "descripcion": "Combustible" }
+      "fields": { "descripcion": "Combustible", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 3,
-      "fields": { "descripcion": "Mantenimiento" }
+      "fields": { "descripcion": "Mantenimiento", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 4,
-      "fields": { "descripcion": "Sueldos" }
+      "fields": { "descripcion": "Sueldos", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 5,
-      "fields": { "descripcion": "Servicios" }
+      "fields": { "descripcion": "Servicios", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 6,
-      "fields": { "descripcion": "Alquiler" }
+      "fields": { "descripcion": "Alquiler", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 7,
-      "fields": { "descripcion": "Impuestos" }
+      "fields": { "descripcion": "Impuestos", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 8,
-      "fields": { "descripcion": "Insumos" }
+      "fields": { "descripcion": "Insumos", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 9,
-      "fields": { "descripcion": "Reparaciones" }
+      "fields": { "descripcion": "Reparaciones", "is_system": true }
     },
     {
       "model": "tipo_gasto.tipogasto",
       "pk": 10,
-      "fields": { "descripcion": "Limpieza" }
-    },
-    
-    {
-      "model": "gasto.gasto",
-      "pk": 1,
-      "fields": {
-        "fecha": "2026-01-03",
-        "importe": "18500.00",
-        "tipo_gasto": 1
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 2,
-      "fields": {
-        "fecha": "2026-01-05",
-        "importe": "42000.50",
-        "tipo_gasto": 2
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 3,
-      "fields": {
-        "fecha": "2026-01-07",
-        "importe": "95000.00",
-        "tipo_gasto": 4
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 4,
-      "fields": {
-        "fecha": "2026-01-10",
-        "importe": "18000.75",
-        "tipo_gasto": 5
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 5,
-      "fields": {
-        "fecha": "2026-01-12",
-        "importe": "25000.00",
-        "tipo_gasto": 3
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 6,
-      "fields": {
-        "fecha": "2026-01-15",
-        "importe": "15000.00",
-        "tipo_gasto": 8
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 7,
-      "fields": {
-        "fecha": "2026-01-20",
-        "importe": "48000.00",
-        "tipo_gasto": 6
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 8,
-      "fields": {
-        "fecha": "2026-01-27",
-        "importe": "67000.00",
-        "tipo_gasto": 7
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 9,
-      "fields": {
-        "fecha": "2026-02-01",
-        "importe": "46000.00",
-        "tipo_gasto": 4
-      }
-    },
-    {
-      "model": "gasto.gasto",
-      "pk": 10,
-      "fields": {
-        "fecha": "2026-02-02",
-        "importe": "39000.00",
-        "tipo_gasto": 2
-      }
+      "fields": { "descripcion": "Gastos Administrativos", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 1,
-      "fields": { "descripcion": "Efectivo" }
+      "fields": { "descripcion": "Efectivo", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 2,
-      "fields": { "descripcion": "Transferencia" }
+      "fields": { "descripcion": "Transferencia", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 3,
-      "fields": { "descripcion": "Cheque" }
+      "fields": { "descripcion": "Cheque", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 4,
-      "fields": { "descripcion": "Débito" }
+      "fields": { "descripcion": "Débito", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 5,
-      "fields": { "descripcion": "Crédito" }
+      "fields": { "descripcion": "Crédito", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 6,
-      "fields": { "descripcion": "Mercado Pago" }
+      "fields": { "descripcion": "Mercado Pago", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 7,
-      "fields": { "descripcion": "Cuenta Corr." }
+      "fields": { "descripcion": "Cuenta Corr.", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 8,
-      "fields": { "descripcion": "Pagaré" }
+      "fields": { "descripcion": "Pagaré", "is_system": true }
     },
     {
       "model": "tipo_pago.tipopago",
       "pk": 9,
-      "fields": { "descripcion": "Cheque Propio" }
+      "fields": { "descripcion": "Cheque Propio", "is_system": true }
     }
   ]
-  

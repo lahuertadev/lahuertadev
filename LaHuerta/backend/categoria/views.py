@@ -6,8 +6,11 @@ from .interfaces import ICategoryRepository
 from .repositories import CategoryRepository
 from .exceptions import CategoryHasProductsException, CategoryNotFoundException
 from producto.repositories import ProductRepository
+from core.mixins import SystemProtectedMixin
+from core.exceptions import SystemEntityException
 
-class CategoryViewSet(ViewSet):
+
+class CategoryViewSet(SystemProtectedMixin, ViewSet):
     '''
     Gestión de Categorías
     '''
@@ -66,7 +69,9 @@ class CategoryViewSet(ViewSet):
 
             if not category:
                 raise CategoryNotFoundException('La categoría seleccionada no existe')
-            
+
+            self._check_system_protected(category)
+
             serializer = CategorySerializer(data=request.data)
 
             if serializer.is_valid():
@@ -75,11 +80,13 @@ class CategoryViewSet(ViewSet):
                 return Response(category_serialized.data,status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+        except SystemEntityException as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except CategoryNotFoundException as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     def destroy(self, request, pk=None):
         '''
         Elimina una categoría.
@@ -89,7 +96,9 @@ class CategoryViewSet(ViewSet):
 
             if not category:
                 raise CategoryNotFoundException('La categoría seleccionada no existe')
-            
+
+            self._check_system_protected(category)
+
             product_repository = ProductRepository()
             related_products = product_repository.verify_products_with_category_id(pk)
 
@@ -99,6 +108,8 @@ class CategoryViewSet(ViewSet):
             self.repository.destroy_category(pk)
             return Response({'message': 'La categoría fue eliminada exitosamente'}, status=status.HTTP_204_NO_CONTENT)
         
+        except SystemEntityException as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except CategoryHasProductsException as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except CategoryNotFoundException as e:
