@@ -8,6 +8,8 @@ from .exceptions import (
     BillHasPaymentsException,
     PriceNotFoundError,
     )
+from arca.service import ARCAService
+from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError, WSFEInvalidReceiptTypeError
 from decimal import Decimal
 
 
@@ -19,11 +21,13 @@ class BillService:
         bill_product_repository: IBillProductRepository,
         client_repository: IClientRepository,
         price_list_product_repository: IProductPriceListRepository,
+        arca_service: ARCAService = None,
     ):
         self.bill_repository = bill_repository
         self.bill_product_repository = bill_product_repository
         self.client_repository = client_repository
         self.price_list_product_repository = price_list_product_repository
+        self.arca_service = arca_service or ARCAService(homologacion=True)
 
     @transaction.atomic
     def create_bill(self, data: dict):
@@ -44,6 +48,21 @@ class BillService:
 
         client.cuenta_corriente += amount
         self.client_repository.update_balance(client)
+
+        try:
+            arca_result = self.arca_service.emit_receipt(
+                tipo_factura_abreviatura=data['tipo_factura'].abreviatura,
+                importe=float(amount),
+                fecha=data['fecha'],
+                cuit_receptor=client.cuit,
+                condicion_iva_receptor_id=client.condicion_IVA.codigo_afip,
+            )
+            factura.numero_comprobante = arca_result['numero_comprobante']
+            factura.cae = arca_result['cae']
+            factura.cae_vto = arca_result['cae_vto']
+            self.bill_repository.save(factura)
+        except (WSAAAuthenticationError, WSFEEmissionError, WSFEInvalidReceiptTypeError):
+            raise
 
         return factura
 

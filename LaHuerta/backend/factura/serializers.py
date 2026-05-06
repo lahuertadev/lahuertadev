@@ -38,7 +38,8 @@ class BillResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Factura
-        fields = ['id', 'fecha', 'importe', 'cliente', 'tipo_factura', 'items']
+        fields = ['id', 'fecha', 'importe', 'cliente', 'tipo_factura', 'items',
+                  'numero_comprobante', 'cae', 'cae_vto']
 
 
 class BillCreateSerializer(serializers.Serializer):
