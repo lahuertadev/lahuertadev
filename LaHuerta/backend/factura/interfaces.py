@@ -22,3 +22,7 @@ class IBillRepository(ABC):
     @abstractmethod
     def delete(self, bill):
         pass
+
+    @abstractmethod
+    def get_last_receipt_number(self, tipo_factura_id: int) -> int:
+        pass

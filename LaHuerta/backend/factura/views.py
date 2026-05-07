@@ -9,8 +9,9 @@ from .serializers import (
     BillUpdateSerializer,
     BillQueryParamsSerializer,
 )
-from .exceptions import BillNotFoundException, BillHasPaymentsException
+from .exceptions import BillNotFoundException, BillHasPaymentsException, PriceNotFoundError
 from .factory import build_bill_service
+from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 
 class BillViewSet(viewsets.ViewSet):
     '''
@@ -77,13 +78,17 @@ class BillViewSet(viewsets.ViewSet):
 
         try:
             bill = self.service.create_bill(serializer.validated_data)
-
             response_serializer = BillResponseSerializer(bill)
-            
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-        
+
+        except PriceNotFoundError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except (WSAAAuthenticationError, WSFEEmissionError) as e:
+            return Response({'detail': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
         except Exception as e:
-            return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
         '''

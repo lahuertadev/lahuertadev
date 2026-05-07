@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Max
 from .models import Factura
 from .interfaces import IBillRepository
 
@@ -48,3 +49,7 @@ class BillRepository(IBillRepository):
     
     def delete(self, bill):
         bill.delete()
+
+    def get_last_receipt_number(self, tipo_factura_id: int) -> int:
+        result = Factura.objects.filter(tipo_factura_id=tipo_factura_id).aggregate(Max('numero_comprobante'))
+        return result['numero_comprobante__max'] or 0

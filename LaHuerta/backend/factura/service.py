@@ -9,7 +9,7 @@ from .exceptions import (
     PriceNotFoundError,
     )
 from arca.service import ARCAService
-from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError, WSFEInvalidReceiptTypeError
+from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 from decimal import Decimal
 
 
@@ -37,34 +37,39 @@ class BillService:
         products_with_price = self._resolve_prices(client, products)
         amount = self._calculate_total_amount(products_with_price)
 
-        factura = self.bill_repository.create(
+        bill = self.bill_repository.create(
             client=client,
             bill_type=data['tipo_factura'],
             date=data['fecha'],
             amount=amount
         )
 
-        self.bill_product_repository.create_products(factura, products_with_price)
+        self.bill_product_repository.create_products(bill, products_with_price)
 
         client.cuenta_corriente += amount
         self.client_repository.update_balance(client)
 
-        try:
-            arca_result = self.arca_service.emit_receipt(
-                tipo_factura_abreviatura=data['tipo_factura'].abreviatura,
-                importe=float(amount),
-                fecha=data['fecha'],
-                cuit_receptor=client.cuit,
-                condicion_iva_receptor_id=client.condicion_IVA.codigo_afip,
-            )
-            factura.numero_comprobante = arca_result['numero_comprobante']
-            factura.cae = arca_result['cae']
-            factura.cae_vto = arca_result['cae_vto']
-            self.bill_repository.save(factura)
-        except (WSAAAuthenticationError, WSFEEmissionError, WSFEInvalidReceiptTypeError):
-            raise
+        if data['tipo_factura'].codigo_afip is not None:
+            try:
+                arca_result = self.arca_service.emit_receipt(
+                    tipo_cbte=data['tipo_factura'].codigo_afip,
+                    importe=float(amount),
+                    fecha=data['fecha'],
+                    cuit_receptor=client.cuit,
+                    condicion_iva_receptor_id=client.condicion_IVA.codigo_afip,
+                )
+                bill.numero_comprobante = arca_result['numero_comprobante']
+                bill.cae = arca_result['cae']
+                bill.cae_vto = arca_result['cae_vto']
+                self.bill_repository.save(bill)
+            except (WSAAAuthenticationError, WSFEEmissionError):
+                raise
+        else:
+            last_number = self.bill_repository.get_last_receipt_number(data['tipo_factura'].id)
+            bill.numero_comprobante = last_number + 1
+            self.bill_repository.save(bill)
 
-        return factura
+        return bill
 
     @transaction.atomic
     def update_bill(self, bill_id: int, data: dict):
