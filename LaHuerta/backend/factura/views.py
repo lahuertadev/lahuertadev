@@ -74,7 +74,8 @@ class BillViewSet(viewsets.ViewSet):
         El importe total se calcula automáticamente a partir de cantidad × precio_unitario de cada ítem.
         '''
         serializer = BillCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             bill = self.service.create_bill(serializer.validated_data)
@@ -125,7 +126,8 @@ class BillViewSet(viewsets.ViewSet):
         '''
 
         serializer = BillUpdateSerializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             bill = self.service.update_bill(

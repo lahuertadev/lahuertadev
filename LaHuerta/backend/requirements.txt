@@ -9,3 +9,4 @@ django-sendgrid-v5==1.2.3
 pytest
 pytest-django
 pytest-cov
+git+https://github.com/reingart/pyafipws.git

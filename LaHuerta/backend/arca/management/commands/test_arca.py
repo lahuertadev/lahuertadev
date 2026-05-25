@@ -22,11 +22,11 @@ class Command(BaseCommand):
         self.stdout.write("  [2/2] Emitiendo comprobante de prueba (Factura B)...")
         try:
             result = service.emit_receipt(
-                tipo_factura_abreviatura="FB",
+                tipo_cbte=6,  # Factura B
                 importe=1210.00,
                 fecha=date.today(),
                 cuit_receptor="20000000001",
-                condicion_iva_receptor_id=5,  # AFIP code 5 = Consumidor Final
+                condicion_iva_receptor_id=5,  # Consumidor Final
             )
             self.stdout.write(self.style.SUCCESS(
                 f"\n  Comprobante emitido exitosamente:\n"

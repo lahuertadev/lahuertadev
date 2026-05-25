@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 const mapBillData = (data) =>
   data.map((bill) => ({
     id: bill.id,
-    number: String(bill.id).padStart(8, '0'),
+    number: `${bill.tipo_factura.abreviatura}${String(bill.numero_comprobante || bill.id).padStart(8, '0')}`,
     date: formatDate(bill.fecha),
     client: bill.cliente.razon_social,
     billType: bill.tipo_factura.descripcion,

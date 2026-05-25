@@ -38,6 +38,7 @@ import MercadoForm from "./pages/mercado/form/MercadoForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
 import BillPrintView from "./pages/factura/print/PrintView";
+import InvoicePrintView from "./pages/factura/invoice-print/InvoicePrintView";
 import BuyList from "./pages/compra/list";
 import CompraForm from "./pages/compra/form/CompraForm";
 import PurchasePaymentList from "./pages/pago_compra/list";
@@ -216,6 +217,10 @@ const router = createBrowserRouter([
       {
         path: 'bill/detail/:id',
         element: <BillPrintView />
+      },
+      {
+        path: 'bill/invoice/:id',
+        element: <InvoicePrintView />
       },
       {
         path: 'buy',

@@ -2,9 +2,13 @@ from datetime import datetime, date, timezone
 from pathlib import Path
 import json
 from django.conf import settings
-from pyafipws.wsaa import WSAA
-from pyafipws.wsfev1 import WSFEv1
-from .exceptions import WSAAAuthenticationError, WSFEEmissionError, WSFEInvalidReceiptTypeError
+try:
+    from pyafipws.wsaa import WSAA
+    from pyafipws.wsfev1 import WSFEv1
+except ImportError:
+    WSAA = None
+    WSFEv1 = None
+from .exceptions import WSAAAuthenticationError, WSFEEmissionError
 
 CERTS_DIR = Path(settings.BASE_DIR) / "certs"
 CERT_PATH_PROD = str(CERTS_DIR / "lahuerta.crt")
@@ -19,16 +23,6 @@ WSFE_WSDL_HOMO = "https://wswhomo.afip.gov.ar/wsfev1/service.asmx?WSDL"
 
 WSAA_WSDL_PROD = "https://wsaa.afip.gov.ar/ws/services/LoginCms?wsdl"
 WSFE_WSDL_PROD = "https://servicios1.afip.gov.ar/wsfev1/service.asmx?WSDL"
-
-# Mapeo de abreviatura del tipo_factura a código AFIP
-RECEIPT_TYPE_CODES = {
-    "FA": 1,   # Factura A
-    "FB": 6,   # Factura B
-    "NCA": 3,  # Nota de Crédito A
-    "NCB": 8,  # Nota de Crédito B
-    "NDA": 2,  # Nota de Débito A
-    "NDB": 7,  # Nota de Débito B
-}
 
 CUIT_EMISOR = "20331162907"
 PUNTO_VENTA = 3
@@ -103,21 +97,14 @@ class ARCAService:
         wsfe.Sign = self._sign
         return wsfe
 
-    def emit_receipt(self, tipo_factura_abreviatura: str, importe: float, fecha: date, cuit_receptor: str, condicion_iva_receptor_id: int) -> dict:
-        receipt_type_code = RECEIPT_TYPE_CODES.get(tipo_factura_abreviatura)
-        if receipt_type_code is None:
-            raise WSFEInvalidReceiptTypeError(
-                f"Tipo de factura '{tipo_factura_abreviatura}' no tiene código AFIP asignado."
-            )
-
+    def emit_receipt(self, tipo_cbte: int, importe: float, fecha: date, cuit_receptor: str, condicion_iva_receptor_id: int) -> dict:
         wsfe = self._get_wsfe()
 
         try:
-            last_receipt_number = wsfe.CompUltimoAutorizado(receipt_type_code, PUNTO_VENTA)
+            last_receipt_number = wsfe.CompUltimoAutorizado(tipo_cbte, PUNTO_VENTA)
             receipt_number = int(last_receipt_number) + 1
 
             date_str = fecha.strftime("%Y%m%d")
-            # Alícuota 10.5% (id=4) — frutas y verduras tienen tasa reducida
             net_amount = round(float(importe) / 1.105, 2)
             vat_amount = round(float(importe) - net_amount, 2)
 
@@ -125,7 +112,7 @@ class ARCAService:
                 concepto=1,
                 tipo_doc=80,
                 nro_doc=cuit_receptor.replace("-", ""),
-                tipo_cbte=receipt_type_code,
+                tipo_cbte=tipo_cbte,
                 punto_vta=PUNTO_VENTA,
                 cbt_desde=receipt_number,
                 cbt_hasta=receipt_number,
