@@ -69,6 +69,11 @@ class ARCAService:
     def _authenticate(self) -> None:
         if self._load_cached_token():
             return
+        if WSAA is None:
+            raise WSAAAuthenticationError(
+                "La librería pyafipws no está instalada. "
+                "No es posible autenticarse en WSAA en este entorno."
+            )
         wsaa = WSAA()
         try:
             tra = wsaa.CreateTRA(service="wsfe")
@@ -87,7 +92,12 @@ class ARCAService:
                 ) from e
             raise WSAAAuthenticationError(f"Error al autenticarse en WSAA: {e}") from e
 
-    def _get_wsfe(self) -> WSFEv1:
+    def _get_wsfe(self):
+        if WSFEv1 is None:
+            raise WSFEEmissionError(
+                "La librería pyafipws no está instalada. "
+                "No es posible emitir comprobantes electrónicos en este entorno."
+            )
         if not self._token:
             self._authenticate()
         wsfe = WSFEv1()

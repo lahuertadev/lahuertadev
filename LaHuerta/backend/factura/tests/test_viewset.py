@@ -23,7 +23,7 @@ from tipo_venta.models import TipoVenta
 
 from factura.views import BillViewSet
 from factura.interfaces import IBillRepository
-from factura.exceptions import BillNotFoundException, BillHasPaymentsException, PriceNotFoundError
+from factura.exceptions import BillNotFoundException, BillHasPaymentsException, BillAlreadyEmittedException, PriceNotFoundError
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 
 
@@ -256,6 +256,15 @@ def test_patch_not_found(factory, viewset, mock_service):
     assert response.status_code == 404
 
 
+def test_patch_already_emitted_returns_409(factory, viewset, mock_service):
+    mock_service.update_bill.side_effect = BillAlreadyEmittedException("ya emitida")
+
+    request = factory.patch("/bill/1/", {"fecha": str(date.today())}, format="json")
+    response = viewset.partial_update(Request(request, parsers=[JSONParser()]), pk=1)
+    assert response.status_code == 409
+    assert "afip" in response.data["detail"].lower()
+
+
 @pytest.mark.django_db
 def test_patch_ok(factory, viewset, mock_service, fk_data):
     cliente, bill_type, *_ = fk_data
@@ -286,6 +295,15 @@ def test_destroy_not_found(factory, viewset, mock_service):
     request = factory.delete("/bill/999/")
     response = viewset.destroy(Request(request, parsers=[JSONParser()]), pk=999)
     assert response.status_code == 404
+
+
+def test_destroy_already_emitted_returns_409(factory, viewset, mock_service):
+    mock_service.delete_bill.side_effect = BillAlreadyEmittedException("ya emitida")
+
+    request = factory.delete("/bill/1/")
+    response = viewset.destroy(Request(request, parsers=[JSONParser()]), pk=1)
+    assert response.status_code == 409
+    assert "afip" in response.data["detail"].lower()
 
 
 def test_destroy_has_payments_returns_409(factory, viewset, mock_service):

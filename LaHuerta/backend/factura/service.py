@@ -6,6 +6,7 @@ from lista_precios_producto.interfaces import IProductPriceListRepository
 from .exceptions import (
     BillNotFoundException,
     BillHasPaymentsException,
+    BillAlreadyEmittedException,
     PriceNotFoundError,
     )
 from arca.service import ARCAService
@@ -78,6 +79,11 @@ class BillService:
         if not bill:
             raise BillNotFoundException('Factura no encontrada.')
 
+        if bill.cae:
+            raise BillAlreadyEmittedException(
+                'La factura ya fue emitida por AFIP y no puede modificarse.'
+            )
+
         old_total_amount = bill.importe
         old_client = bill.cliente
 
@@ -112,6 +118,11 @@ class BillService:
         bill = self.bill_repository.get_by_id(bill_id)
         if not bill:
             raise BillNotFoundException('Factura no encontrada.')
+
+        if bill.cae:
+            raise BillAlreadyEmittedException(
+                'La factura ya fue emitida por AFIP y no puede eliminarse.'
+            )
 
         if bill.pagofactura_set.exists():
             raise BillHasPaymentsException(

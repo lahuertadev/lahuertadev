@@ -4,7 +4,7 @@ from decimal import Decimal
 from unittest.mock import Mock
 
 from factura.service import BillService
-from factura.exceptions import BillNotFoundException, BillHasPaymentsException, PriceNotFoundError
+from factura.exceptions import BillNotFoundException, BillHasPaymentsException, BillAlreadyEmittedException, PriceNotFoundError
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 
 
@@ -274,6 +274,17 @@ def test_update_bill_not_found():
 
 
 @pytest.mark.django_db
+def test_update_bill_already_emitted_raises():
+    service, bill_repo, *_ = _make_service()
+    bill = Mock()
+    bill.cae = '12345678901234'
+    bill_repo.get_by_id.return_value = bill
+
+    with pytest.raises(BillAlreadyEmittedException):
+        service.update_bill(1, {'fecha': date.today()})
+
+
+@pytest.mark.django_db
 def test_update_bill_fecha():
     service, bill_repo, _, __, ___, ____ = _make_service()
     client = _make_client()
@@ -318,6 +329,17 @@ def test_delete_bill_not_found():
 
     with pytest.raises(BillNotFoundException):
         service.delete_bill(999)
+
+
+@pytest.mark.django_db
+def test_delete_bill_already_emitted_raises():
+    service, bill_repo, *_ = _make_service()
+    bill = Mock()
+    bill.cae = '12345678901234'
+    bill_repo.get_by_id.return_value = bill
+
+    with pytest.raises(BillAlreadyEmittedException):
+        service.delete_bill(1)
 
 
 @pytest.mark.django_db

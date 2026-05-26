@@ -7,7 +7,7 @@ export const headerOptions = [
     icon: <FaUser />,
     children: [
       { text: 'Clientes', icon: <FaUser />, path: '/client' },
-      { text: 'Facturas / Remitos', icon: <FaReceipt />, path: '/bill' },
+      { text: 'Facturación', icon: <FaReceipt />, path: '/bill' },
       { text: 'Pagos de Clientes', icon: <FaMoneyCheckAlt />, path: '/client-payment' },
       { text: 'Cheques', icon: <FaMoneyCheck />, path: '/check' },
     ],

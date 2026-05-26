@@ -13,7 +13,7 @@ const CATALOGOS = { label: 'Catálogos' };
 
 export const breadcrumbsMap = {
   '/client':           [HOME, { label: 'Clientes' }],
-  '/bill':             [HOME, { label: 'Facturas / Remitos' }],
+  '/bill':             [HOME, { label: 'Facturación' }],
   '/buy':              [HOME, { label: 'Compras' }],
   '/expense':          [HOME, { label: 'Gastos' }],
   '/client-payment':   [HOME, { label: 'Pagos de Clientes' }],
