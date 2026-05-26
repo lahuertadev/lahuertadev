@@ -6,8 +6,11 @@ from lista_precios_producto.interfaces import IProductPriceListRepository
 from .exceptions import (
     BillNotFoundException,
     BillHasPaymentsException,
+    BillAlreadyEmittedException,
     PriceNotFoundError,
     )
+from arca.service import ARCAService
+from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 from decimal import Decimal
 
 
@@ -19,11 +22,13 @@ class BillService:
         bill_product_repository: IBillProductRepository,
         client_repository: IClientRepository,
         price_list_product_repository: IProductPriceListRepository,
+        arca_service: ARCAService = None,
     ):
         self.bill_repository = bill_repository
         self.bill_product_repository = bill_product_repository
         self.client_repository = client_repository
         self.price_list_product_repository = price_list_product_repository
+        self.arca_service = arca_service or ARCAService(homologacion=True)
 
     @transaction.atomic
     def create_bill(self, data: dict):
@@ -33,19 +38,39 @@ class BillService:
         products_with_price = self._resolve_prices(client, products)
         amount = self._calculate_total_amount(products_with_price)
 
-        factura = self.bill_repository.create(
+        bill = self.bill_repository.create(
             client=client,
             bill_type=data['tipo_factura'],
             date=data['fecha'],
             amount=amount
         )
 
-        self.bill_product_repository.create_products(factura, products_with_price)
+        self.bill_product_repository.create_products(bill, products_with_price)
 
         client.cuenta_corriente += amount
         self.client_repository.update_balance(client)
 
-        return factura
+        if data['tipo_factura'].codigo_afip is not None:
+            try:
+                arca_result = self.arca_service.emit_receipt(
+                    tipo_cbte=data['tipo_factura'].codigo_afip,
+                    importe=float(amount),
+                    fecha=data['fecha'],
+                    cuit_receptor=client.cuit,
+                    condicion_iva_receptor_id=client.condicion_IVA.codigo_afip,
+                )
+                bill.numero_comprobante = arca_result['numero_comprobante']
+                bill.cae = arca_result['cae']
+                bill.cae_vto = arca_result['cae_vto']
+                self.bill_repository.save(bill)
+            except (WSAAAuthenticationError, WSFEEmissionError):
+                raise
+        else:
+            last_number = self.bill_repository.get_last_receipt_number(data['tipo_factura'].id)
+            bill.numero_comprobante = last_number + 1
+            self.bill_repository.save(bill)
+
+        return bill
 
     @transaction.atomic
     def update_bill(self, bill_id: int, data: dict):
@@ -53,6 +78,11 @@ class BillService:
         bill = self.bill_repository.get_by_id(bill_id)
         if not bill:
             raise BillNotFoundException('Factura no encontrada.')
+
+        if bill.cae:
+            raise BillAlreadyEmittedException(
+                'La factura ya fue emitida por AFIP y no puede modificarse.'
+            )
 
         old_total_amount = bill.importe
         old_client = bill.cliente
@@ -88,6 +118,11 @@ class BillService:
         bill = self.bill_repository.get_by_id(bill_id)
         if not bill:
             raise BillNotFoundException('Factura no encontrada.')
+
+        if bill.cae:
+            raise BillAlreadyEmittedException(
+                'La factura ya fue emitida por AFIP y no puede eliminarse.'
+            )
 
         if bill.pagofactura_set.exists():
             raise BillHasPaymentsException(
