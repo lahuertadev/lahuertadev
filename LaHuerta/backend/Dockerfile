@@ -13,6 +13,7 @@ RUN apt-get update \
         default-libmysqlclient-dev \
         pkg-config \
         gcc \
+        git \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements.txt primero para aprovechar el cache de Docker
@@ -27,6 +28,7 @@ COPY . .
 # Crear usuario no-root para seguridad
 RUN adduser --disabled-password --gecos '' appuser
 RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /usr/local/lib/python3.11/site-packages/pyafipws
 USER appuser
 
 # Exponer puerto

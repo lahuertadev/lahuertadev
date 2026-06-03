@@ -7,3 +7,6 @@ class BillHasPaymentsException(Exception):
 
 class PriceNotFoundError(Exception):
     pass
+
+class BillAlreadyEmittedException(Exception):
+    pass

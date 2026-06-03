@@ -18,6 +18,7 @@ import {
   saleTypeUrl,
 } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
+import Toast from '../../../components/Toast';
 
 const EMPTY_ITEM = {
   producto: null,
@@ -103,6 +104,7 @@ const FacturaForm = () => {
 
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState({ open: false, message: '' });
 
   // ── Load options ───────────────────────────────────────────────────
   useEffect(() => {
@@ -378,7 +380,7 @@ const FacturaForm = () => {
         error?.response?.data ||
         'Error al guardar la factura.';
 
-      alert(typeof message === 'string' ? message : JSON.stringify(message));
+      setToast({ open: true, message: typeof message === 'string' ? message : JSON.stringify(message) });
     } finally {
       setSaving(false);
     }
@@ -387,6 +389,11 @@ const FacturaForm = () => {
   // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        onClose={() => setToast({ open: false, message: '' })}
+      />
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
         <span
