@@ -1,3 +1,4 @@
+import logging
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .repositories import BillRepository
@@ -12,6 +13,8 @@ from .serializers import (
 from .exceptions import BillNotFoundException, BillHasPaymentsException, BillAlreadyEmittedException, PriceNotFoundError
 from .factory import build_bill_service
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
+
+logger = logging.getLogger(__name__)
 
 class BillViewSet(viewsets.ViewSet):
     '''
@@ -34,13 +37,14 @@ class BillViewSet(viewsets.ViewSet):
 
         try:
             bills = self.repository.get_all(
-                cliente_id=serializer.validated_data.get('cliente_id'),
+                client_id=serializer.validated_data.get('client_id'),
                 cuit=serializer.validated_data.get('cuit'),
-                razon_social=serializer.validated_data.get('razon_social'),
-                importe_min=serializer.validated_data.get('importe_min'),
-                importe_max=serializer.validated_data.get('importe_max'),
-                fecha_desde=serializer.validated_data.get('fecha_desde'),
-                fecha_hasta=serializer.validated_data.get('fecha_hasta'),
+                business_name=serializer.validated_data.get('business_name'),
+                amount_min=serializer.validated_data.get('amount_min'),
+                amount_max=serializer.validated_data.get('amount_max'),
+                date_from=serializer.validated_data.get('date_from'),
+                date_to=serializer.validated_data.get('date_to'),
+                bill_type_id=serializer.validated_data.get('bill_type_id'),
             )
 
             response_serializer = BillResponseSerializer(bills, many=True)
@@ -86,7 +90,11 @@ class BillViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except (WSAAAuthenticationError, WSFEEmissionError) as e:
-            return Response({'detail': str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+            logger.error("Error al emitir comprobante AFIP: %s", e)
+            return Response(
+                {'detail': 'No se pudo emitir el comprobante electrónico. Verificá los datos del cliente y volvé a intentar.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

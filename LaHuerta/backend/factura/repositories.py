@@ -5,23 +5,26 @@ from .interfaces import IBillRepository
 
 class BillRepository(IBillRepository):
 
-    def get_all(self, cliente_id=None, cuit=None, razon_social=None,
-                importe_min=None, importe_max=None, fecha_desde=None, fecha_hasta=None):
+    def get_all(self, client_id=None, cuit=None, business_name=None,
+                amount_min=None, amount_max=None, date_from=None, date_to=None,
+                bill_type_id=None):
         qs = Factura.objects.select_related('cliente', 'tipo_factura').all()
-        if cliente_id:
-            qs = qs.filter(cliente_id=cliente_id)
+        if client_id:
+            qs = qs.filter(cliente_id=client_id)
         if cuit:
             qs = qs.filter(cliente__cuit__icontains=cuit)
-        if razon_social:
-            qs = qs.filter(cliente__razon_social__icontains=razon_social)
-        if importe_min is not None:
-            qs = qs.filter(importe__gte=importe_min)
-        if importe_max is not None:
-            qs = qs.filter(importe__lte=importe_max)
-        if fecha_desde:
-            qs = qs.filter(fecha__gte=fecha_desde)
-        if fecha_hasta:
-            qs = qs.filter(fecha__lte=fecha_hasta)
+        if business_name:
+            qs = qs.filter(cliente__razon_social__icontains=business_name)
+        if amount_min is not None:
+            qs = qs.filter(importe__gte=amount_min)
+        if amount_max is not None:
+            qs = qs.filter(importe__lte=amount_max)
+        if date_from:
+            qs = qs.filter(fecha__gte=date_from)
+        if date_to:
+            qs = qs.filter(fecha__lte=date_to)
+        if bill_type_id:
+            qs = qs.filter(tipo_factura_id=bill_type_id)
         return qs.order_by('-fecha', '-id')
 
     def get_by_id(self, id):
@@ -50,6 +53,6 @@ class BillRepository(IBillRepository):
     def delete(self, bill):
         bill.delete()
 
-    def get_last_receipt_number(self, tipo_factura_id: int) -> int:
-        result = Factura.objects.filter(tipo_factura_id=tipo_factura_id).aggregate(Max('numero_comprobante'))
+    def get_last_receipt_number(self, bill_type_id: int) -> int:
+        result = Factura.objects.filter(tipo_factura_id=bill_type_id).aggregate(Max('numero_comprobante'))
         return result['numero_comprobante__max'] or 0

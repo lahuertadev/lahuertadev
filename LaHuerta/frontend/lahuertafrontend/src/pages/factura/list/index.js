@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import { billUrl } from '../../../constants/urls';
+import axios from 'axios';
+import { billUrl, billTypeUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Factura';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
@@ -21,31 +22,28 @@ const mapBills = (filterFn) => (data) =>
       cae: bill.cae,
     }));
 
-const baseConfig = {
-  fetchUrl: {
-    baseUrl: billUrl,
-    createUrl: '/bill/create',
-    editUrl: '/bill/edit',
-    detailUrl: '/bill/detail',
-  },
-  columns,
-  filtersConfig: [
-    { label: 'CUIT',         name: 'cuit',         type: 'text' },
-    { label: 'Razón Social', name: 'razon_social',  type: 'text' },
-    { label: 'Importe mín.', name: 'importe_min',   type: 'number' },
-    { label: 'Importe máx.', name: 'importe_max',   type: 'number' },
-    { label: 'Fecha desde',  name: 'fecha_desde',   type: 'date' },
-    { label: 'Fecha hasta',  name: 'fecha_hasta',   type: 'date' },
-  ],
-  canDelete: (row) => !row.cae,
-  canEdit: (row) => !row.cae,
-};
-
-const tabsData = [
+const buildTabsData = (facturaOptions, remitoOptions) => [
   {
     label: 'Facturas',
     data: {
-      ...baseConfig,
+      fetchUrl: {
+        baseUrl: billUrl,
+        createUrl: '/bill/create',
+        editUrl: '/bill/edit',
+        detailUrl: '/bill/detail',
+      },
+      columns,
+      filtersConfig: [
+        { label: 'CUIT',         name: 'cuit',          type: 'text' },
+        { label: 'Razón Social', name: 'business_name', type: 'text' },
+        { label: 'Tipo',         name: 'bill_type_id',  type: 'select', options: facturaOptions },
+        { label: 'Importe mín.', name: 'amount_min',    type: 'number' },
+        { label: 'Importe máx.', name: 'amount_max',    type: 'number' },
+        { label: 'Fecha desde',  name: 'date_from',     type: 'date' },
+        { label: 'Fecha hasta',  name: 'date_to',       type: 'date' },
+      ],
+      canDelete: (row) => !row.cae,
+      canEdit: (row) => !row.cae,
       title: 'Facturas',
       newLabelText: 'Nueva Factura',
       mapData: mapBills((bill) => bill.tipo_factura.codigo_afip !== null),
@@ -54,7 +52,24 @@ const tabsData = [
   {
     label: 'Remitos',
     data: {
-      ...baseConfig,
+      fetchUrl: {
+        baseUrl: billUrl,
+        createUrl: '/bill/create',
+        editUrl: '/bill/edit',
+        detailUrl: '/bill/detail',
+      },
+      columns,
+      filtersConfig: [
+        { label: 'CUIT',         name: 'cuit',            type: 'text' },
+        { label: 'Razón Social', name: 'razon_social',    type: 'text' },
+        { label: 'Tipo',         name: 'tipo_factura_id', type: 'select', options: remitoOptions },
+        { label: 'Importe mín.', name: 'importe_min',     type: 'number' },
+        { label: 'Importe máx.', name: 'importe_max',     type: 'number' },
+        { label: 'Fecha desde',  name: 'fecha_desde',     type: 'date' },
+        { label: 'Fecha hasta',  name: 'fecha_hasta',     type: 'date' },
+      ],
+      canDelete: (row) => !row.cae,
+      canEdit: (row) => !row.cae,
       title: 'Remitos',
       newLabelText: 'Nuevo Remito',
       mapData: mapBills((bill) => bill.tipo_factura.codigo_afip === null),
@@ -65,6 +80,19 @@ const tabsData = [
 const BillList = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
+  const [tabsData, setTabsData] = useState(buildTabsData([], []));
+
+  useEffect(() => {
+    axios.get(billTypeUrl).then((res) => {
+      const facturaOptions = res.data
+        .filter((t) => t.codigo_afip !== null)
+        .map((t) => ({ name: t.descripcion, value: t.id }));
+      const remitoOptions = res.data
+        .filter((t) => t.codigo_afip === null)
+        .map((t) => ({ name: t.descripcion, value: t.id }));
+      setTabsData(buildTabsData(facturaOptions, remitoOptions));
+    }).catch(() => {});
+  }, []);
 
   const current = tabsData[activeTab];
 

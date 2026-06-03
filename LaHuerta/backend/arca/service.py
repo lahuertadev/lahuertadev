@@ -110,6 +110,14 @@ class ARCAService:
     def emit_receipt(self, tipo_cbte: int, importe: float, fecha: date, cuit_receptor: str, condicion_iva_receptor_id: int) -> dict:
         wsfe = self._get_wsfe()
 
+        # Consumidor Final (codigo_afip=5) no requiere identificación fiscal
+        if condicion_iva_receptor_id == 5:
+            tipo_doc = 99
+            nro_doc = 0
+        else:
+            tipo_doc = 80
+            nro_doc = cuit_receptor.replace("-", "")
+
         try:
             last_receipt_number = wsfe.CompUltimoAutorizado(tipo_cbte, PUNTO_VENTA)
             receipt_number = int(last_receipt_number) + 1
@@ -120,8 +128,8 @@ class ARCAService:
 
             wsfe.CrearFactura(
                 concepto=1,
-                tipo_doc=80,
-                nro_doc=cuit_receptor.replace("-", ""),
+                tipo_doc=tipo_doc,
+                nro_doc=nro_doc,
                 tipo_cbte=tipo_cbte,
                 punto_vta=PUNTO_VENTA,
                 cbt_desde=receipt_number,
