@@ -28,6 +28,14 @@ def validate_unique_products(items):
         )
 
 
+class AssociatedBillSerializer(serializers.ModelSerializer):
+    tipo_factura = BillTypeSerializer()
+
+    class Meta:
+        model = Factura
+        fields = ['id', 'numero_comprobante', 'fecha', 'subtotal', 'total', 'tipo_factura']
+
+
 class BillResponseSerializer(serializers.ModelSerializer):
     '''
     DTO de lectura: factura con cliente, tipo, e ítems anidados.
@@ -35,11 +43,12 @@ class BillResponseSerializer(serializers.ModelSerializer):
     cliente = ClientResponseSerializer()
     tipo_factura = BillTypeSerializer()
     items = BillItemResponseSerializer(many=True, source='facturaproducto_set')
+    factura_asociada = AssociatedBillSerializer(read_only=True)
 
     class Meta:
         model = Factura
-        fields = ['id', 'fecha', 'importe', 'cliente', 'tipo_factura', 'items',
-                  'numero_comprobante', 'cae', 'cae_vto']
+        fields = ['id', 'fecha', 'subtotal', 'total', 'cliente', 'tipo_factura', 'items',
+                  'numero_comprobante', 'cae', 'cae_vto', 'factura_asociada']
 
 
 class BillCreateSerializer(serializers.Serializer):
@@ -47,11 +56,15 @@ class BillCreateSerializer(serializers.Serializer):
     DTO para crear una factura (POST).
     Recibe ids de cliente y tipo_factura, fecha e ítems.
     El importe total se calcula en el repositorio a partir de los ítems.
+    factura_asociada es requerido solo para Notas de Débito.
     '''
     cliente = serializers.PrimaryKeyRelatedField(queryset=Cliente.objects.all())
     tipo_factura = serializers.PrimaryKeyRelatedField(queryset=TipoFactura.objects.all())
     fecha = serializers.DateField()
     items = BillItemCreateSerializer(many=True)
+    factura_asociada = serializers.PrimaryKeyRelatedField(
+        queryset=Factura.objects.all(), required=False, allow_null=True
+    )
 
     def validate_items(self, items):
         if not items:

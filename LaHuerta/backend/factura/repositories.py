@@ -16,9 +16,9 @@ class BillRepository(IBillRepository):
         if business_name:
             qs = qs.filter(cliente__razon_social__icontains=business_name)
         if amount_min is not None:
-            qs = qs.filter(importe__gte=amount_min)
+            qs = qs.filter(total__gte=amount_min)
         if amount_max is not None:
-            qs = qs.filter(importe__lte=amount_max)
+            qs = qs.filter(total__lte=amount_max)
         if date_from:
             qs = qs.filter(fecha__gte=date_from)
         if date_to:
@@ -35,14 +35,15 @@ class BillRepository(IBillRepository):
             .first()
         )
 
-    def create(self, client, bill_type, date, amount):
-
+    def create(self, client, bill_type, date, subtotal, total, associated_bill=None):
         factura = Factura(
-            cliente = client,
-            tipo_factura = bill_type,
-            fecha = date,
-            importe = amount)
-
+            cliente=client,
+            tipo_factura=bill_type,
+            fecha=date,
+            subtotal=subtotal,
+            total=total,
+            factura_asociada=associated_bill,
+        )
         factura.save()
         return factura
 
