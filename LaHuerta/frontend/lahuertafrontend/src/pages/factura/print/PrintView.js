@@ -43,7 +43,7 @@ const BillPrintView = () => {
   if (loading) return <div className="print-loading">Cargando remito…</div>;
   if (!bill) return <div className="print-loading">Remito no encontrado.</div>;
 
-  const { cliente, tipo_factura, fecha, importe, items = [] } = bill;
+  const { cliente, tipo_factura, fecha, total, items = [] } = bill;
   const billNumber = String(bill.numero_comprobante || bill.id).padStart(8, '0');
   const [serie, numero] = ['00001', billNumber.slice(-4)];
 
@@ -195,7 +195,7 @@ const BillPrintView = () => {
         {/* Total */}
         <div className="remito-total-row">
           <span className="remito-total-label">TOTAL</span>
-          <span className="remito-total-value">$ {parseFloat(importe).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+          <span className="remito-total-value">$ {parseFloat(total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
         </div>
 
         {/* Firma */}

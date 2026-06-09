@@ -18,14 +18,23 @@ import {
   saleTypeUrl,
 } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
+import { formatDate } from '../../../utils/date';
 import Toast from '../../../components/Toast';
+
+const DEBIT_NOTE_CODES = new Set([2, 7, 12, 52]);
+const CREDIT_NOTE_CODES = new Set([3, 8, 13, 53]);
+const MANUAL_PRICE_CODES = new Set([...DEBIT_NOTE_CODES, ...CREDIT_NOTE_CODES]);
+const DEBIT_NOTE_TO_INVOICE_CODE = { 2: 1, 7: 6, 12: 11, 52: 51 };
 
 const EMPTY_ITEM = {
   producto: null,
   cantidad: '',
   tipo_venta: null,
   precio_aplicado: '',
+  iva_rate: '10.5',
 };
+
+const IVA_OPTIONS = ['0', '2.5', '5', '10.5', '21', '27'];
 
 // ── Estilos reutilizables ──────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -102,9 +111,17 @@ const FacturaForm = () => {
 
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
 
+  const [associatedBill, setAssociatedBill] = useState(null);
+  const [associatedBillOptions, setAssociatedBillOptions] = useState([]);
+  const [loadMode, setLoadMode] = useState(null); // null | 'all' | 'individual'
+
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState({ open: false, message: '' });
+
+  const isDebitNote = DEBIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
+  const isManualPrice = MANUAL_PRICE_CODES.has(selectedBillType?.codigo_afip);
+  const isElectronic = selectedBillType?.codigo_afip != null;
 
   // ── Load options ───────────────────────────────────────────────────
   useEffect(() => {
@@ -148,6 +165,39 @@ const FacturaForm = () => {
 
     loadOptions().catch(console.error);
   }, [isEdit]);
+
+  // ── Reset load mode when associated bill or manual-price mode changes ─
+  useEffect(() => {
+    setLoadMode(null);
+    if (!isManualPrice) setItems([{ ...EMPTY_ITEM }]);
+  }, [associatedBill, isManualPrice]);
+
+  // ── Load associated bill options (only for debit notes) ───────────
+  useEffect(() => {
+    if (!isDebitNote || !selectedClient) {
+      setAssociatedBill(null);
+      setAssociatedBillOptions([]);
+      return;
+    }
+
+    const invoiceCode = DEBIT_NOTE_TO_INVOICE_CODE[selectedBillType.codigo_afip];
+    const invoiceType = billTypes.find((bt) => bt.codigo_afip === invoiceCode);
+    if (!invoiceType) return;
+
+    axios
+      .get(billUrl, { params: { client_id: selectedClient.id, bill_type_id: invoiceType.id } })
+      .then((res) => {
+        setAssociatedBillOptions(
+          res.data
+            .filter((b) => b.cae)
+            .map((b) => ({
+              label: `${b.tipo_factura.descripcion} N°${b.numero_comprobante} — ${formatCurrency(b.importe)} — ${formatDate(b.fecha)}`,
+              ...b,
+            }))
+        );
+      })
+      .catch(() => setAssociatedBillOptions([]));
+  }, [isDebitNote, selectedClient, selectedBillType, billTypes]);
 
   // ── Load client prices ─────────────────────────────────────────────
   useEffect(() => {
@@ -209,6 +259,26 @@ const FacturaForm = () => {
       .catch(console.error);
   }, [id, isEdit]);
 
+  // ── Load mode handlers ────────────────────────────────────────────
+  const handleLoadAll = () => {
+    setItems([
+      ...associatedBill.items.map((item) => ({
+        producto: { label: item.producto.descripcion, ...item.producto },
+        cantidad: item.cantidad,
+        tipo_venta: item.tipo_venta?.id ?? null,
+        precio_aplicado: item.precio_aplicado,
+        iva_rate: item.iva_rate ?? '10.5',
+      })),
+      { ...EMPTY_ITEM },
+    ]);
+    setLoadMode('all');
+  };
+
+  const handleLoadIndividual = () => {
+    setItems([{ ...EMPTY_ITEM }]);
+    setLoadMode('individual');
+  };
+
   // ── Item helpers ───────────────────────────────────────────────────
   const addItem = () => setItems((previous) => [...previous, { ...EMPTY_ITEM }]);
 
@@ -245,7 +315,7 @@ const FacturaForm = () => {
     setItems((previous) => {
       const nextItems = [...previous];
       const saleTypeId = nextItems[index].tipo_venta;
-      const price = resolvePrice(product.id, saleTypeId);
+      const price = isManualPrice ? '' : resolvePrice(product.id, saleTypeId);
 
       nextItems[index] = {
         ...nextItems[index],
@@ -261,7 +331,7 @@ const FacturaForm = () => {
     setItems((previous) => {
       const nextItems = [...previous];
       const productId = nextItems[index].producto?.id;
-      const price = resolvePrice(productId, saleTypeId);
+      const price = isManualPrice ? nextItems[index].precio_aplicado : resolvePrice(productId, saleTypeId);
 
       nextItems[index] = {
         ...nextItems[index],
@@ -295,15 +365,24 @@ const FacturaForm = () => {
     return quantity * price;
   };
 
-  const total = items.reduce((sum, item) => sum + (calculateSubtotal(item) ?? 0), 0);
+  const calculateItemTotal = (item) => {
+    const net = calculateSubtotal(item);
+    if (net === null) return null;
+    if (!isElectronic) return net;
+    return net * (1 + parseFloat(item.iva_rate || 10.5) / 100);
+  };
+
+  const total = items.reduce((sum, item) => sum + (calculateItemTotal(item) ?? 0), 0);
 
   // ── Auto-add row ───────────────────────────────────────────────────
   useEffect(() => {
     const lastItem = items[items.length - 1];
-    if (lastItem.producto && parseFloat(lastItem.cantidad) > 0 && lastItem.tipo_venta) {
+    const baseReady = lastItem.producto && parseFloat(lastItem.cantidad) > 0 && lastItem.tipo_venta;
+    const priceReady = isManualPrice ? parseFloat(lastItem.precio_aplicado) > 0 : true;
+    if (baseReady && priceReady) {
       setItems((previous) => [...previous, { ...EMPTY_ITEM }]);
     }
-  }, [items]);
+  }, [items, isManualPrice]);
 
   // ── Validation ─────────────────────────────────────────────────────
   const validate = () => {
@@ -312,6 +391,7 @@ const FacturaForm = () => {
     if (!selectedClient) nextErrors.client = 'Debe seleccionar un cliente';
     if (!selectedBillType) nextErrors.billType = 'Debe seleccionar un tipo de factura';
     if (!fecha) nextErrors.fecha = 'Debe ingresar una fecha';
+    if (isDebitNote && !associatedBill) nextErrors.associatedBill = 'Debe seleccionar la factura a asociar';
 
     const filledItems = items.filter((item) => item.producto !== null);
 
@@ -329,6 +409,10 @@ const FacturaForm = () => {
 
       if (!item.tipo_venta) {
         nextErrors[`item_${index}_tipo_venta`] = 'Requerido';
+      }
+
+      if (isManualPrice && (!item.precio_aplicado || parseFloat(item.precio_aplicado) <= 0)) {
+        nextErrors[`item_${index}_precio`] = 'Requerido';
       }
     });
 
@@ -363,7 +447,10 @@ const FacturaForm = () => {
             producto: item.producto.id,
             cantidad: item.cantidad,
             tipo_venta: item.tipo_venta,
+            ...(isManualPrice && { precio_aplicado: item.precio_aplicado }),
+            ...(isElectronic && { iva_rate: item.iva_rate || '10.5' }),
           })),
+        ...(associatedBill && { factura_asociada: associatedBill.id }),
       };
 
       let response;
@@ -447,12 +534,12 @@ const FacturaForm = () => {
         </div>
 
         {/* Tipo de facturación */}
-        <div className="flex flex-col gap-1">
+        <div className="md:col-span-2 flex flex-col gap-1">
           <label className={labelCls}>Tipo de facturación *</label>
           <Autocomplete
             options={billTypes}
             value={selectedBillType}
-            onChange={(_, value) => setSelectedBillType(value)}
+            onChange={(_, value) => { setSelectedBillType(value); setAssociatedBill(null); }}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -463,9 +550,55 @@ const FacturaForm = () => {
           />
           <FieldError message={errors.billType} />
         </div>
+
+        {/* Factura asociada — solo para Notas de Débito */}
+        {isDebitNote && (
+          <div className="flex flex-col gap-1">
+            <label className={labelCls}>Factura asociada *</label>
+            <Autocomplete
+              options={associatedBillOptions}
+              value={associatedBill}
+              onChange={(_, value) => setAssociatedBill(value)}
+              noOptionsText={selectedClient ? 'Sin facturas emitidas para este cliente' : 'Seleccioná un cliente primero'}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Seleccionar factura..."
+                  sx={autocompleteSx(Boolean(errors.associatedBill))}
+                />
+              )}
+            />
+            <FieldError message={errors.associatedBill} />
+          </div>
+        )}
       </SectionCard>
 
-      {/* 2. Datos del cliente (condicional) */}
+      {/* 2. Prompt de carga — solo para ND/NC con factura asociada seleccionada */}
+      {isManualPrice && associatedBill && loadMode === null && (
+        <div className="bg-surface-card border border-border-subtle rounded-xl shadow-sm p-6 flex flex-col gap-4">
+          <p className="text-sm font-semibold text-on-surface">
+            ¿Cómo querés cargar los productos?
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={handleLoadAll}
+              className="flex-1 px-5 py-3 bg-blue-lahuerta text-white text-sm font-semibold rounded-lg hover:bg-blue-lahuerta/90 transition-colors"
+            >
+              Cargar todos los productos de la factura original
+            </button>
+            <button
+              type="button"
+              onClick={handleLoadIndividual}
+              className="flex-1 px-5 py-3 border border-border-subtle text-on-surface text-sm font-semibold rounded-lg hover:bg-surface-low transition-colors"
+            >
+              Agregar productos individualmente
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Datos del cliente (condicional) */}
       {selectedClient && (
         <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Cliente" cols={2}>
           <div className="flex flex-col gap-1">
@@ -503,8 +636,8 @@ const FacturaForm = () => {
         </SectionCard>
       )}
 
-      {/* 3. Productos */}
-      {selectedClient && (
+      {/* 5. Productos */}
+      {selectedClient && (!isManualPrice || loadMode !== null) && (
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <span className="text-blue-lahuerta">
@@ -546,6 +679,11 @@ const FacturaForm = () => {
                     <th className="px-3 py-2.5 text-right border-b border-border-subtle w-32">
                       <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">Precio</span>
                     </th>
+                    {isElectronic && (
+                      <th className="px-3 py-2.5 text-center border-b border-border-subtle w-24">
+                        <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">IVA</span>
+                      </th>
+                    )}
                     <th className="px-3 py-2.5 text-right border-b border-border-subtle w-32">
                       <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">Subtotal</span>
                     </th>
@@ -624,13 +762,46 @@ const FacturaForm = () => {
                       </td>
 
                       {/* Precio */}
-                      <td className="px-3 py-2 text-right align-middle border-b border-border-subtle text-sm text-on-surface tabular-nums">
-                        {item.precio_aplicado ? (
-                          formatCurrency(parseFloat(item.precio_aplicado))
+                      <td className="px-2 py-2 align-middle border-b border-border-subtle">
+                        {isManualPrice ? (
+                          <TextField
+                            type="number"
+                            size="small"
+                            fullWidth
+                            inputProps={{ min: 0, step: 0.01 }}
+                            value={item.precio_aplicado}
+                            onChange={(e) => updateItem(index, 'precio_aplicado', e.target.value)}
+                            sx={{
+                              ...autocompleteSx(Boolean(errors[`item_${index}_precio`])),
+                              '& input': { textAlign: 'right' },
+                              '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { display: 'none' },
+                              '& input[type=number]': { MozAppearance: 'textfield' },
+                            }}
+                          />
                         ) : (
-                          <span className="text-on-surface-muted">—</span>
+                          <div className="px-1 text-right text-sm text-on-surface tabular-nums">
+                            {item.precio_aplicado ? formatCurrency(parseFloat(item.precio_aplicado)) : <span className="text-on-surface-muted">—</span>}
+                          </div>
                         )}
                       </td>
+
+                      {/* IVA — solo para comprobantes electrónicos */}
+                      {isElectronic && (
+                        <td className="px-2 py-2 align-middle border-b border-border-subtle">
+                          <TextField
+                            select
+                            size="small"
+                            fullWidth
+                            value={item.iva_rate ?? '10.5'}
+                            onChange={(e) => updateItem(index, 'iva_rate', e.target.value)}
+                            sx={autocompleteSx(false)}
+                          >
+                            {IVA_OPTIONS.map((opt) => (
+                              <MenuItem key={opt} value={opt}>{opt}%</MenuItem>
+                            ))}
+                          </TextField>
+                        </td>
+                      )}
 
                       {/* Subtotal */}
                       <td className="px-3 py-2 text-right align-middle border-b border-border-subtle text-sm font-semibold text-on-surface tabular-nums">

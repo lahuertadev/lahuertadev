@@ -37,7 +37,7 @@ const buildAfipQRUrl = (bill) => {
     ptoVta: PUNTO_VENTA,
     tipoCmp: bill.tipo_factura.codigo_afip,
     nroCmp: bill.numero_comprobante,
-    importe: parseFloat(bill.importe) * 1.105,
+    importe: parseFloat(bill.total),
     moneda: 'PES',
     ctz: 1,
     tipoDocRec: 80,
@@ -64,11 +64,20 @@ const InvoicePrintView = () => {
   if (loading) return <div style={{ padding: 24 }}>Cargando factura…</div>;
   if (!bill) return <div style={{ padding: 24 }}>Factura no encontrada.</div>;
 
-  const { cliente, tipo_factura, fecha, importe, items = [], numero_comprobante, cae, cae_vto } = bill;
+  const { cliente, tipo_factura, fecha, subtotal, total, items = [], numero_comprobante, cae, cae_vto } = bill;
 
-  const netAmount = parseFloat(importe);
-  const vatAmount = netAmount * 0.105;
-  const totalAmount = netAmount * 1.105;
+  const netAmount = parseFloat(subtotal);
+  const totalAmount = parseFloat(total);
+
+  // Agrupa IVA por tasa para mostrar en totales
+  const ivaGroups = items.reduce((groups, item) => {
+    const net = (parseFloat(item.cantidad) || 0) * (parseFloat(item.precio_aplicado) || 0);
+    const rate = parseFloat(item.iva_rate || 10.5);
+    if (!groups[rate]) groups[rate] = { base: 0, iva: 0 };
+    groups[rate].base += net;
+    groups[rate].iva += net * rate / 100;
+    return groups;
+  }, {});
 
   const ptoVtaStr = padNumber(PUNTO_VENTA, 5);
   const nroCompStr = padNumber(numero_comprobante, 8);
@@ -189,7 +198,8 @@ const InvoicePrintView = () => {
                   const qty = parseFloat(item.cantidad) || 0;
                   const unitPrice = parseFloat(item.precio_aplicado) || 0;
                   const subtotal = qty * unitPrice;
-                  const subtotalWithVat = subtotal * 1.105;
+                  const ivaRate = parseFloat(item.iva_rate || 10.5) / 100;
+                  const subtotalWithVat = subtotal * (1 + ivaRate);
                   const isBulk = item.tipo_venta?.descripcion?.toLowerCase() === 'bulto';
                   const unitMedida = isBulk
                     ? item.producto?.tipo_contenedor?.descripcion
@@ -202,7 +212,7 @@ const InvoicePrintView = () => {
                       <td>{unitPrice.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
                       <td className="center">0,00</td>
                       <td>{subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
-                      <td className="center">10,5%</td>
+                      <td className="center">{parseFloat(item.iva_rate || 10.5).toLocaleString('es-AR')}%</td>
                       <td>{subtotalWithVat.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</td>
                     </tr>
                   );
@@ -229,10 +239,12 @@ const InvoicePrintView = () => {
               <span>Importe Neto Gravado:</span>
               <span>$ {netAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="invoice-totales-row">
-              <span>IVA 10,5%:</span>
-              <span>$ {vatAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
-            </div>
+            {Object.entries(ivaGroups).map(([rate, { iva }]) => (
+              <div key={rate} className="invoice-totales-row">
+                <span>IVA {parseFloat(rate).toLocaleString('es-AR')}%:</span>
+                <span>$ {iva.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+              </div>
+            ))}
             <div className="invoice-totales-row total-final">
               <span>Importe Total:</span>
               <span>$ {totalAmount.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
