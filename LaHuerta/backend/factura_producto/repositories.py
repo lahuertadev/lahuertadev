@@ -17,6 +17,7 @@ class BillProductRepository(IBillProductRepository):
                 tipo_venta=product['tipo_venta'],
                 cantidad=product['cantidad'],
                 precio_aplicado=product['precio_aplicado'],
+                iva_rate=product.get('iva_rate', 10.5),
             )
 
     def replace_products(self, bill, products):
@@ -29,4 +30,5 @@ class BillProductRepository(IBillProductRepository):
                 tipo_venta=product['tipo_venta'],
                 cantidad=product['cantidad'],
                 precio_aplicado=product['precio_aplicado'],
+                iva_rate=product.get('iva_rate', 10.5),
             )
