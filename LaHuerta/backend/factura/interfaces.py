@@ -12,7 +12,7 @@ class IBillRepository(ABC):
         pass
 
     @abstractmethod
-    def create(self, client, bill_type, date, amount):
+    def create(self, client, bill_type, date, subtotal, total, associated_bill=None):
         pass
 
     @abstractmethod
