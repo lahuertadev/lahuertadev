@@ -64,7 +64,7 @@ const InvoicePrintView = () => {
   if (loading) return <div style={{ padding: 24 }}>Cargando factura…</div>;
   if (!bill) return <div style={{ padding: 24 }}>Factura no encontrada.</div>;
 
-  const { cliente, tipo_factura, fecha, subtotal, total, items = [], numero_comprobante, cae, cae_vto } = bill;
+  const { cliente, tipo_factura, fecha, subtotal, total, items = [], numero_comprobante, cae, cae_vto, factura_asociada } = bill;
 
   const netAmount = parseFloat(subtotal);
   const totalAmount = parseFloat(total);
@@ -177,6 +177,19 @@ const InvoicePrintView = () => {
               </div>
             </div>
           </div>
+
+          {/* Referencia a factura original — solo para ND/NC */}
+          {factura_asociada && (
+            <div className="invoice-fac-asoc">
+              <div className="invoice-receptor-row">
+                <span className="invoice-label">Factura Asociada:</span>
+                <span>
+                  {factura_asociada.tipo_factura?.abreviatura} N°&nbsp;
+                  {String(PUNTO_VENTA).padStart(5, '0')}-{String(factura_asociada.numero_comprobante).padStart(8, '0')}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Tabla productos */}
           <div className="invoice-tabla-wrapper">
