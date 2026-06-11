@@ -155,16 +155,22 @@ const FacturaForm = () => {
 
       setSaleTypes(saleTypesResponse.data);
 
-      if (!isEdit) {
-        const remito = mappedBillTypes.find(
-          (billType) => billType.descripcion?.toLowerCase() === 'remito'
-        );
-        if (remito) setSelectedBillType(remito);
-      }
+      if (isEdit) return;
+      setSelectedBillType(null);
     };
 
     loadOptions().catch(console.error);
   }, [isEdit]);
+
+  // ── Precargar tipo de factura según condición IVA del cliente ─────────
+  useEffect(() => {
+    if (isEdit || !selectedClient || billTypes.length === 0) return;
+
+    const ivaCode = selectedClient.condicion_IVA?.codigo_afip;
+    const targetAbr = ivaCode === 1 ? 'A' : 'B';
+    const billType = billTypes.find((bt) => bt.abreviatura === targetAbr);
+    if (billType) setSelectedBillType(billType);
+  }, [selectedClient, billTypes, isEdit]);
 
   // ── Reset load mode when associated bill or manual-price mode changes ─
   useEffect(() => {
@@ -191,7 +197,7 @@ const FacturaForm = () => {
           res.data
             .filter((b) => b.cae)
             .map((b) => ({
-              label: `${b.tipo_factura.descripcion} N°${b.numero_comprobante} — ${formatCurrency(b.importe)} — ${formatDate(b.fecha)}`,
+              label: `${b.tipo_factura.descripcion} N°${b.numero_comprobante} — ${formatCurrency(b.total)} — ${formatDate(b.fecha)}`,
               ...b,
             }))
         );
@@ -253,6 +259,7 @@ const FacturaForm = () => {
             cantidad: item.cantidad,
             tipo_venta: item.tipo_venta?.id ?? null,
             precio_aplicado: item.precio_aplicado,
+            iva_rate: String(parseFloat(item.iva_rate ?? '10.5')),
           }))
         );
       })
@@ -267,7 +274,7 @@ const FacturaForm = () => {
         cantidad: item.cantidad,
         tipo_venta: item.tipo_venta?.id ?? null,
         precio_aplicado: item.precio_aplicado,
-        iva_rate: item.iva_rate ?? '10.5',
+        iva_rate: String(parseFloat(item.iva_rate ?? '10.5')),
       })),
       { ...EMPTY_ITEM },
     ]);
@@ -506,18 +513,19 @@ const FacturaForm = () => {
       <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de la Factura" cols={3}>
         <div className="md:col-span-2 flex flex-col gap-1">
           <label className={labelCls}>Cliente *</label>
-          <Autocomplete
-            options={clients}
-            value={selectedClient}
-            onChange={(_, value) => setSelectedClient(value)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="CUIT o Razón Social..."
-                sx={autocompleteSx(Boolean(errors.client))}
-              />
-            )}
-          />
+          <select
+            value={selectedClient?.id || ''}
+            onChange={(e) => {
+              const client = clients.find((c) => String(c.id) === e.target.value) || null;
+              setSelectedClient(client);
+            }}
+            className={inputCls(Boolean(errors.client))}
+          >
+            <option value="">Seleccionar cliente...</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
           <FieldError message={errors.client} />
         </div>
 
@@ -536,18 +544,20 @@ const FacturaForm = () => {
         {/* Tipo de facturación */}
         <div className="md:col-span-2 flex flex-col gap-1">
           <label className={labelCls}>Tipo de facturación *</label>
-          <Autocomplete
-            options={billTypes}
-            value={selectedBillType}
-            onChange={(_, value) => { setSelectedBillType(value); setAssociatedBill(null); }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="Seleccionar..."
-                sx={autocompleteSx(Boolean(errors.billType))}
-              />
-            )}
-          />
+          <select
+            value={selectedBillType?.id || ''}
+            onChange={(e) => {
+              const billType = billTypes.find((bt) => String(bt.id) === e.target.value) || null;
+              setSelectedBillType(billType);
+              setAssociatedBill(null);
+            }}
+            className={inputCls(Boolean(errors.billType))}
+          >
+            <option value="">Seleccionar...</option>
+            {billTypes.map((bt) => (
+              <option key={bt.id} value={bt.id}>{bt.label}</option>
+            ))}
+          </select>
           <FieldError message={errors.billType} />
         </div>
 
@@ -555,19 +565,25 @@ const FacturaForm = () => {
         {isDebitNote && (
           <div className="flex flex-col gap-1">
             <label className={labelCls}>Factura asociada *</label>
-            <Autocomplete
-              options={associatedBillOptions}
-              value={associatedBill}
-              onChange={(_, value) => setAssociatedBill(value)}
-              noOptionsText={selectedClient ? 'Sin facturas emitidas para este cliente' : 'Seleccioná un cliente primero'}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Seleccionar factura..."
-                  sx={autocompleteSx(Boolean(errors.associatedBill))}
-                />
+            <select
+              value={associatedBill?.id || ''}
+              onChange={(e) => {
+                const bill = associatedBillOptions.find((b) => String(b.id) === e.target.value) || null;
+                setAssociatedBill(bill);
+              }}
+              className={inputCls(Boolean(errors.associatedBill))}
+              disabled={!selectedClient}
+            >
+              <option value="">
+                {selectedClient ? 'Seleccionar factura...' : 'Seleccioná un cliente primero'}
+              </option>
+              {associatedBillOptions.length === 0 && selectedClient && (
+                <option disabled>Sin facturas emitidas para este cliente</option>
               )}
-            />
+              {associatedBillOptions.map((b) => (
+                <option key={b.id} value={b.id}>{b.label}</option>
+              ))}
+            </select>
             <FieldError message={errors.associatedBill} />
           </div>
         )}

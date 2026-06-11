@@ -45,7 +45,7 @@ const buildAfipQRUrl = (bill) => {
     tipoCodAut: 'E',
     codAut: parseInt(bill.cae, 10),
   };
-  return `https://www.afip.gob.ar/fe/qr/?p=${btoa(JSON.stringify(data))}`;
+  return `https://www.afip.gob.ar/fe/qr/?p=${encodeURIComponent(btoa(JSON.stringify(data)))}`;
 };
 
 const InvoicePrintView = () => {
