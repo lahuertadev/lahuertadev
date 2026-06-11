@@ -107,7 +107,7 @@ class ARCAService:
         wsfe.Sign = self._sign
         return wsfe
 
-    def emit_receipt(self, tipo_cbte: int, importe: float, fecha: date, cuit_receptor: str, condicion_iva_receptor_id: int) -> dict:
+    def emit_receipt(self, tipo_cbte: int, importe_total: float, importe_neto: float, iva_breakdown: list, fecha: date, cuit_receptor: str, condicion_iva_receptor_id: int, cbte_asoc: dict = None) -> dict:
         wsfe = self._get_wsfe()
 
         # Consumidor Final (codigo_afip=5) no requiere identificación fiscal
@@ -119,12 +119,8 @@ class ARCAService:
             nro_doc = cuit_receptor.replace("-", "")
 
         try:
-            last_receipt_number = wsfe.CompUltimoAutorizado(tipo_cbte, PUNTO_VENTA)
-            receipt_number = int(last_receipt_number) + 1
-
-            date_str = fecha.strftime("%Y%m%d")
-            net_amount = round(float(importe) / 1.105, 2)
-            vat_amount = round(float(importe) - net_amount, 2)
+            next_receipt_number = int(wsfe.CompUltimoAutorizado(tipo_cbte, PUNTO_VENTA)) + 1
+            total_iva = round(importe_total - importe_neto, 2)
 
             wsfe.CrearFactura(
                 concepto=1,
@@ -132,21 +128,29 @@ class ARCAService:
                 nro_doc=nro_doc,
                 tipo_cbte=tipo_cbte,
                 punto_vta=PUNTO_VENTA,
-                cbt_desde=receipt_number,
-                cbt_hasta=receipt_number,
-                imp_total=float(importe),
+                cbt_desde=next_receipt_number,
+                cbt_hasta=next_receipt_number,
+                imp_total=importe_total,
                 imp_tot_conc=0,
-                imp_neto=net_amount,
-                imp_iva=vat_amount,
+                imp_neto=importe_neto,
+                imp_iva=total_iva,
                 imp_trib=0,
                 imp_op_ex=0,
-                fecha_cbte=date_str,
+                fecha_cbte=fecha.strftime("%Y%m%d"),
                 moneda_id="PES",
                 moneda_ctz=1,
                 condicion_iva_receptor_id=condicion_iva_receptor_id,
             )
 
-            wsfe.AgregarIva(iva_id=4, base_imp=net_amount, importe=vat_amount)
+            for iva in iva_breakdown:
+                wsfe.AgregarIva(iva_id=iva['iva_id'], base_imp=iva['base_imp'], importe=iva['importe'])
+
+            if cbte_asoc:
+                wsfe.AgregarCmpAsoc(
+                    tipo=cbte_asoc['tipo'],
+                    pto_vta=PUNTO_VENTA,
+                    nro=cbte_asoc['nro'],
+                )
 
             wsfe.CAESolicitar()
 
@@ -154,7 +158,7 @@ class ARCAService:
                 raise WSFEEmissionError(f"AFIP rechazó el comprobante: {wsfe.Obs} | Errores: {wsfe.ErrMsg}")
 
             return {
-                "numero_comprobante": receipt_number,
+                "numero_comprobante": next_receipt_number,
                 "cae": wsfe.CAE,
                 "cae_vto": datetime.strptime(wsfe.Vencimiento, "%Y%m%d").date(),
             }

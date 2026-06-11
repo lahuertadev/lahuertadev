@@ -4,5 +4,5 @@ from .models import TipoCondicionIva
 class ConditionIvaTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TipoCondicionIva
-        fields = ['id', 'descripcion', 'is_system']
+        fields = ['id', 'descripcion', 'codigo_afip', 'is_system']
         read_only_fields = ['is_system']

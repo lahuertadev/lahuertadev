@@ -18,7 +18,7 @@ const mapBills = (filterFn) => (data) =>
       date: formatDate(bill.fecha),
       client: bill.cliente.razon_social,
       billType: bill.tipo_factura.descripcion,
-      amount: formatCurrency(bill.importe),
+      amount: formatCurrency(bill.total),
       cae: bill.cae,
     }));
 

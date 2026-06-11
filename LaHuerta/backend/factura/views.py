@@ -10,7 +10,7 @@ from .serializers import (
     BillUpdateSerializer,
     BillQueryParamsSerializer,
 )
-from .exceptions import BillNotFoundException, BillHasPaymentsException, BillAlreadyEmittedException, PriceNotFoundError
+from .exceptions import BillNotFoundException, BillHasPaymentsException, BillAlreadyEmittedException, PriceNotFoundError, DebitNoteValidationError
 from .factory import build_bill_service
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 
@@ -86,7 +86,7 @@ class BillViewSet(viewsets.ViewSet):
             response_serializer = BillResponseSerializer(bill)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except PriceNotFoundError as e:
+        except (PriceNotFoundError, DebitNoteValidationError) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except (WSAAAuthenticationError, WSFEEmissionError) as e:

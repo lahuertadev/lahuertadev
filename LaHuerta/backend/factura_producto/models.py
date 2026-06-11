@@ -11,6 +11,7 @@ class FacturaProducto(models.Model):
     
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
     precio_aplicado = models.DecimalField(max_digits=10, decimal_places=2)
+    iva_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.5)
     
 
     class Meta:

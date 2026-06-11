@@ -5,9 +5,14 @@ const BILL_TYPE_CONFIG = {
   'B': { bg: '#dcfce7', color: '#166534' },
   'C': { bg: '#fef9c3', color: '#a16207' },
   'M': { bg: '#f3e8ff', color: '#7e22ce' },
+  'ND': { bg: '#ffedd5', color: '#c2410c' },
+  'NC': { bg: '#fce7f3', color: '#9d174d' },
 };
 
 const getBillTypeConfig = (label = '') => {
+  const upper = label.toUpperCase();
+  if (upper.includes('DÉBITO') || upper.includes('DEBITO')) return BILL_TYPE_CONFIG['ND'];
+  if (upper.includes('CRÉDITO') || upper.includes('CREDITO')) return BILL_TYPE_CONFIG['NC'];
   const letter = label.replace(/factura\s*/i, '').trim().toUpperCase();
   return BILL_TYPE_CONFIG[letter] || { bg: '#f0f4f7', color: '#596064' };
 };
