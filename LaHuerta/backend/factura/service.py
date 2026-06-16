@@ -9,11 +9,19 @@ from .exceptions import (
     BillAlreadyEmittedException,
     PriceNotFoundError,
     DebitNoteValidationError,
+    CreditNoteValidationError,
     )
 from arca.service import ARCAService
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 from decimal import Decimal, ROUND_HALF_UP
-from .constants import DEBIT_NOTE_CODES, DEBIT_NOTE_TO_INVOICE_CODE, MANUAL_PRICE_CODES, AFIP_IVA_CODES
+from .constants import (
+    DEBIT_NOTE_CODES, 
+    DEBIT_NOTE_TO_INVOICE_CODE, 
+    CREDIT_NOTE_CODES, 
+    CREDIT_NOTE_TO_INVOICE_CODE, 
+    MANUAL_PRICE_CODES, 
+    AFIP_IVA_CODES
+    )
 from collections import defaultdict
 
 
@@ -42,6 +50,9 @@ class BillService:
         if bill_type.codigo_afip in DEBIT_NOTE_CODES:
             self._validate_debit_note(bill_type, associated_bill)
 
+        if bill_type.codigo_afip in CREDIT_NOTE_CODES:
+            self._validate_credit_note(bill_type, associated_bill)
+
         if bill_type.codigo_afip in MANUAL_PRICE_CODES:
             products_with_price = self._use_manual_prices(products)
         else:
@@ -61,7 +72,10 @@ class BillService:
 
         self.bill_product_repository.create_products(bill, products_with_price)
 
-        client.cuenta_corriente += total
+        if bill_type.codigo_afip in CREDIT_NOTE_CODES:
+            client.cuenta_corriente -= total
+        else:
+            client.cuenta_corriente += total
         self.client_repository.update_balance(client)
 
         if bill_type.codigo_afip is not None:
@@ -173,11 +187,29 @@ class BillService:
             )
         expected_invoice_code = DEBIT_NOTE_TO_INVOICE_CODE.get(bill_type.codigo_afip)
         if associated_bill.tipo_factura.codigo_afip != expected_invoice_code:
+            letter = bill_type.descripcion.split()[-1]
             raise DebitNoteValidationError(
                 f'Tipo incompatible: una {bill_type.descripcion} solo puede asociarse '
-                f'a una factura de tipo {associated_bill.tipo_factura.descripcion}.'
+                f'a una Factura {letter}.'
             )
         
+    def _validate_credit_note(self, bill_type, associated_bill):
+        if not associated_bill:
+            raise CreditNoteValidationError(
+                'Las Notas de Crédito deben referenciar una factura original.'
+            )
+        if not associated_bill.cae:
+            raise CreditNoteValidationError(
+                'La factura asociada debe estar emitida por AFIP.'
+            )
+        expected_invoice_code = CREDIT_NOTE_TO_INVOICE_CODE.get(bill_type.codigo_afip)
+        if associated_bill.tipo_factura.codigo_afip != expected_invoice_code:
+            letter = bill_type.descripcion.split()[-1]
+            raise CreditNoteValidationError(
+                f'Tipo incompatible: una {bill_type.descripcion} solo puede asociarse '
+                f'a una Factura {letter}.'
+            )
+
     def _use_manual_prices(self, products: list[dict]) -> list[dict]:
         for product in products:
             if not product.get('precio_aplicado'):

@@ -25,6 +25,7 @@ const DEBIT_NOTE_CODES = new Set([2, 7, 12, 52]);
 const CREDIT_NOTE_CODES = new Set([3, 8, 13, 53]);
 const MANUAL_PRICE_CODES = new Set([...DEBIT_NOTE_CODES, ...CREDIT_NOTE_CODES]);
 const DEBIT_NOTE_TO_INVOICE_CODE = { 2: 1, 7: 6, 12: 11, 52: 51 };
+const CREDIT_NOTE_TO_INVOICE_CODE = { 3: 1, 8: 6, 13: 11, 53: 51 };
 
 const EMPTY_ITEM = {
   producto: null,
@@ -120,6 +121,8 @@ const FacturaForm = () => {
   const [toast, setToast] = useState({ open: false, message: '' });
 
   const isDebitNote = DEBIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
+  const isCreditNote = CREDIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
+  const isNoteType = isDebitNote || isCreditNote;
   const isManualPrice = MANUAL_PRICE_CODES.has(selectedBillType?.codigo_afip);
   const isElectronic = selectedBillType?.codigo_afip != null;
 
@@ -167,7 +170,7 @@ const FacturaForm = () => {
     if (isEdit || !selectedClient || billTypes.length === 0) return;
 
     const ivaCode = selectedClient.condicion_IVA?.codigo_afip;
-    const targetAbr = ivaCode === 1 ? 'A' : 'B';
+    const targetAbr = [1, 6].includes(ivaCode) ? 'A' : 'B';
     const billType = billTypes.find((bt) => bt.abreviatura === targetAbr);
     if (billType) setSelectedBillType(billType);
   }, [selectedClient, billTypes, isEdit]);
@@ -178,15 +181,16 @@ const FacturaForm = () => {
     if (!isManualPrice) setItems([{ ...EMPTY_ITEM }]);
   }, [associatedBill, isManualPrice]);
 
-  // ── Load associated bill options (only for debit notes) ───────────
+  // ── Load associated bill options (for debit notes and credit notes) ──
   useEffect(() => {
-    if (!isDebitNote || !selectedClient) {
+    if (!isNoteType || !selectedClient) {
       setAssociatedBill(null);
       setAssociatedBillOptions([]);
       return;
     }
 
-    const invoiceCode = DEBIT_NOTE_TO_INVOICE_CODE[selectedBillType.codigo_afip];
+    const mapping = isDebitNote ? DEBIT_NOTE_TO_INVOICE_CODE : CREDIT_NOTE_TO_INVOICE_CODE;
+    const invoiceCode = mapping[selectedBillType.codigo_afip];
     const invoiceType = billTypes.find((bt) => bt.codigo_afip === invoiceCode);
     if (!invoiceType) return;
 
@@ -203,7 +207,7 @@ const FacturaForm = () => {
         );
       })
       .catch(() => setAssociatedBillOptions([]));
-  }, [isDebitNote, selectedClient, selectedBillType, billTypes]);
+  }, [isNoteType, isDebitNote, selectedClient, selectedBillType, billTypes]);
 
   // ── Load client prices ─────────────────────────────────────────────
   useEffect(() => {
@@ -398,7 +402,7 @@ const FacturaForm = () => {
     if (!selectedClient) nextErrors.client = 'Debe seleccionar un cliente';
     if (!selectedBillType) nextErrors.billType = 'Debe seleccionar un tipo de factura';
     if (!fecha) nextErrors.fecha = 'Debe ingresar una fecha';
-    if (isDebitNote && !associatedBill) nextErrors.associatedBill = 'Debe seleccionar la factura a asociar';
+    if (isNoteType && !associatedBill) nextErrors.associatedBill = 'Debe seleccionar la factura a asociar';
 
     const filledItems = items.filter((item) => item.producto !== null);
 
@@ -561,8 +565,8 @@ const FacturaForm = () => {
           <FieldError message={errors.billType} />
         </div>
 
-        {/* Factura asociada — solo para Notas de Débito */}
-        {isDebitNote && (
+        {/* Factura asociada — para Notas de Débito y Notas de Crédito */}
+        {isNoteType && (
           <div className="flex flex-col gap-1">
             <label className={labelCls}>Factura asociada *</label>
             <select

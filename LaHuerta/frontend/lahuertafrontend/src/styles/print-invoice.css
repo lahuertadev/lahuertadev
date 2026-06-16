@@ -136,6 +136,10 @@ body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background:
   font-size: 10px;
   line-height: 1.2;
 }
+.invoice-fac-asoc--hidden {
+  padding: 0 !important;
+  border: none;
+}
 
 /* ── Tabla de productos ── */
 .invoice-tabla-wrapper {

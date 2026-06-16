@@ -1,14 +1,15 @@
 # Facturación
 
 ## Objetivo
-Gestionar la emisión de comprobantes comerciales: Remitos, Facturas electrónicas (A/B/C/M) y Notas de Débito (A/B/C/M) con integración a ARCA/AFIP mediante el servicio WSFEv1.
+Gestionar la emisión de comprobantes comerciales: Remitos, Facturas electrónicas (A/B/C/M), Notas de Débito (A/B/C/M) y Notas de Crédito (A/B/C/M) con integración a ARCA/AFIP mediante el servicio WSFEv1.
 
 ## Alcance
 - Creación, edición y eliminación de Remitos
 - Creación de Facturas electrónicas con CAE (ARCA/AFIP)
 - Creación de Notas de Débito electrónicas asociadas a una Factura original
+- Creación de Notas de Crédito electrónicas asociadas a una Factura original
 - Actualización automática de la cuenta corriente del cliente
-- Vista de impresión para Facturas/ND (con QR AFIP) y para Remitos
+- Vista de impresión para Facturas/ND/NC (con QR AFIP) y para Remitos
 - Listado con tabs separadas (Facturas / Remitos) y filtros
 
 ## Tipos de comprobante
@@ -23,11 +24,15 @@ Gestionar la emisión de comprobantes comerciales: Remitos, Facturas electrónic
 | Nota de Débito B | NDB | 7 | Sí |
 | Nota de Débito C | NDC | 12 | Sí |
 | Nota de Débito M | NDM | 52 | Sí |
+| Nota de Crédito A | NCA | 3 | Sí |
+| Nota de Crédito B | NCB | 8 | Sí |
+| Nota de Crédito C | NCC | 13 | Sí |
+| Nota de Crédito M | NCM | 53 | Sí |
 | Remito | R | null | No |
 
 La regla para la selección automática del tipo de factura según la condición IVA del cliente:
-- Responsable Inscripto (codigo_afip=1) → Factura A
-- Todos los demás → Factura B
+- Responsable Inscripto (codigo_afip=1) y Monotributo (codigo_afip=6) → Factura A
+- Exento, Consumidor Final, No Responsable, No Categorizado → Factura B
 
 ## Flujo de uso — Remito
 
@@ -70,6 +75,20 @@ Una vez emitida (con CAE) la factura **no puede editarse ni eliminarse**.
 6. Confirmar → el sistema valida la compatibilidad de tipos y emite la ND en AFIP con referencia al comprobante original (`CbtesAsoc`)
 7. La cuenta corriente del cliente aumenta en el `total` de la ND — **la ND no reemplaza ni anula la factura original**, ambas coexisten
 
+## Flujo de uso — Nota de Crédito
+
+1. Ir a Facturas → Nueva
+2. Seleccionar cliente y tipo Nota de Crédito A/B/C/M
+3. Seleccionar la factura original asociada (solo facturas del mismo tipo base y con CAE)
+4. Elegir cómo cargar los productos:
+   - **Cargar todos**: pre-popula los ítems de la factura original con precios editables
+   - **Individualmente**: tabla vacía, el usuario ingresa productos y precios manualmente
+5. Los precios siempre son manuales para NC (no se consulta la lista de precios)
+6. Confirmar → el sistema valida la compatibilidad de tipos y emite la NC en AFIP con referencia al comprobante original (`CbtesAsoc`)
+7. La cuenta corriente del cliente **disminuye** en el `total` de la NC
+
+La NC puede acreditar parcialmente (un ítem, una diferencia de precio) o totalmente (mismo importe que la factura original). El sistema no valida si el importe de la NC supera el de la factura original — es responsabilidad del operador.
+
 ## Validaciones importantes
 
 **Remito:**
@@ -87,6 +106,12 @@ Una vez emitida (con CAE) la factura **no puede editarse ni eliminarse**.
 - Todos los ítems deben tener precio ingresado manualmente
 - No se puede eliminar la factura original si tiene NDs asociadas (PROTECT)
 
+**Nota de Crédito:**
+- Debe referenciar una factura original con CAE
+- El tipo debe ser compatible: NC A → Factura A, NC B → Factura B, etc.
+- Todos los ítems deben tener precio ingresado manualmente
+- No se puede eliminar la factura original si tiene NCs asociadas (PROTECT)
+
 ## Cuenta corriente del cliente
 
 La cuenta corriente se actualiza automáticamente:
@@ -96,6 +121,7 @@ La cuenta corriente se actualiza automáticamente:
 - **Eliminación de remito**: disminuye en `total`
 
 Para facturas electrónicas y NDs: no se puede modificar ni eliminar (con CAE), por lo tanto la cuenta corriente solo puede aumentar.
+Para NCs: la cuenta corriente **disminuye** en el `total` de la NC al momento de la creación. No se puede modificar ni eliminar una NC emitida.
 
 ## Cálculo de importes
 

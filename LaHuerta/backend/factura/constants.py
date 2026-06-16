@@ -22,3 +22,10 @@ DEBIT_NOTE_TO_INVOICE_CODE = {
     12: 11,  # ND C → Factura C
     52: 51,  # ND M → Factura M
 }
+
+CREDIT_NOTE_TO_INVOICE_CODE = {
+    3:  1,   # NC A → Factura A
+    8:  6,   # NC B → Factura B
+    13: 11,  # NC C → Factura C
+    53: 51,  # NC M → Factura M
+}

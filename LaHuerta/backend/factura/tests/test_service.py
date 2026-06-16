@@ -7,6 +7,7 @@ from factura.service import BillService
 from factura.exceptions import (
     BillNotFoundException, BillHasPaymentsException,
     BillAlreadyEmittedException, PriceNotFoundError, DebitNoteValidationError,
+    CreditNoteValidationError,
 )
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 
@@ -298,7 +299,6 @@ def test_adjust_balance_cliente_cambia():
 
 # ── create_bill ────────────────────────────────────────────────────────────────
 
-@pytest.mark.django_db
 def test_create_bill_remito_numero_secuencial():
     service, bill_repo, _, __, price_repo, arca = _make_service()
     client = _make_client()
@@ -315,7 +315,6 @@ def test_create_bill_remito_numero_secuencial():
     assert bill_mock.numero_comprobante == 5
 
 
-@pytest.mark.django_db
 def test_create_bill_remito_total_igual_a_subtotal():
     service, bill_repo, _, client_repo, price_repo, __ = _make_service()
     client = _make_client(cuenta_corriente=Decimal("0"))
@@ -333,7 +332,6 @@ def test_create_bill_remito_total_igual_a_subtotal():
     assert kwargs['total'] == Decimal('10000')
 
 
-@pytest.mark.django_db
 def test_create_bill_electronica_total_incluye_iva():
     service, bill_repo, _, client_repo, price_repo, arca = _make_service()
     client = _make_client()
@@ -350,7 +348,6 @@ def test_create_bill_electronica_total_incluye_iva():
     assert kwargs['total'] == Decimal('11050.00')
 
 
-@pytest.mark.django_db
 def test_create_bill_cuenta_corriente_usa_total_con_iva():
     service, bill_repo, _, client_repo, price_repo, __ = _make_service()
     client = _make_client(cuenta_corriente=Decimal("0"))
@@ -365,7 +362,6 @@ def test_create_bill_cuenta_corriente_usa_total_con_iva():
     assert client.cuenta_corriente == Decimal('11050.00')
 
 
-@pytest.mark.django_db
 def test_create_bill_electronica_guarda_cae():
     arca_result = {'numero_comprobante': 42, 'cae': '99887766554433', 'cae_vto': date(2026, 6, 30)}
     service, bill_repo, _, __, price_repo, arca = _make_service(arca_result=arca_result)
@@ -383,7 +379,6 @@ def test_create_bill_electronica_guarda_cae():
     assert bill_mock.numero_comprobante == 42
 
 
-@pytest.mark.django_db
 def test_create_bill_nd_sin_factura_asociada_raises():
     service, bill_repo, _, __, price_repo, ___ = _make_service()
     client = _make_client()
@@ -399,7 +394,6 @@ def test_create_bill_nd_sin_factura_asociada_raises():
         })
 
 
-@pytest.mark.django_db
 def test_create_bill_nd_pasa_cbte_asoc_a_arca():
     arca_result = {'numero_comprobante': 1, 'cae': '11111111111111', 'cae_vto': date(2026, 6, 30)}
     service, bill_repo, _, __, price_repo, arca = _make_service(arca_result=arca_result)
@@ -420,7 +414,6 @@ def test_create_bill_nd_pasa_cbte_asoc_a_arca():
     assert call_kwargs['cbte_asoc']['nro'] == 1
 
 
-@pytest.mark.django_db
 def test_create_bill_arca_auth_error_propagates():
     service, bill_repo, _, __, price_repo, ___ = _make_service(arca_raises=WSAAAuthenticationError("auth"))
     client = _make_client()
@@ -433,7 +426,6 @@ def test_create_bill_arca_auth_error_propagates():
         service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
 
 
-@pytest.mark.django_db
 def test_create_bill_wsfe_error_propagates():
     service, bill_repo, _, __, price_repo, ___ = _make_service(arca_raises=WSFEEmissionError("wsfe"))
     client = _make_client()
@@ -448,7 +440,6 @@ def test_create_bill_wsfe_error_propagates():
 
 # ── update_bill ────────────────────────────────────────────────────────────────
 
-@pytest.mark.django_db
 def test_update_bill_not_found():
     service, bill_repo, *_ = _make_service()
     bill_repo.get_by_id.return_value = None
@@ -456,7 +447,6 @@ def test_update_bill_not_found():
         service.update_bill(999, {})
 
 
-@pytest.mark.django_db
 def test_update_bill_ya_emitida_raises():
     service, bill_repo, *_ = _make_service()
     bill = Mock()
@@ -466,7 +456,6 @@ def test_update_bill_ya_emitida_raises():
         service.update_bill(1, {'fecha': date.today()})
 
 
-@pytest.mark.django_db
 def test_update_bill_fecha():
     service, bill_repo, _, __, ___, ____ = _make_service()
     client = _make_client()
@@ -482,7 +471,6 @@ def test_update_bill_fecha():
     bill_repo.save.assert_called_once()
 
 
-@pytest.mark.django_db
 def test_update_bill_con_items_recalcula_subtotal_y_total():
     service, bill_repo, bill_product_repo, _, price_repo, __ = _make_service()
     client = _make_client()
@@ -507,7 +495,6 @@ def test_update_bill_con_items_recalcula_subtotal_y_total():
 
 # ── delete_bill ────────────────────────────────────────────────────────────────
 
-@pytest.mark.django_db
 def test_delete_bill_not_found():
     service, bill_repo, *_ = _make_service()
     bill_repo.get_by_id.return_value = None
@@ -515,7 +502,6 @@ def test_delete_bill_not_found():
         service.delete_bill(999)
 
 
-@pytest.mark.django_db
 def test_delete_bill_ya_emitida_raises():
     service, bill_repo, *_ = _make_service()
     bill = Mock()
@@ -525,7 +511,6 @@ def test_delete_bill_ya_emitida_raises():
         service.delete_bill(1)
 
 
-@pytest.mark.django_db
 def test_delete_bill_con_pagos_raises():
     service, bill_repo, *_ = _make_service()
     bill = Mock()
@@ -536,7 +521,6 @@ def test_delete_bill_con_pagos_raises():
         service.delete_bill(1)
 
 
-@pytest.mark.django_db
 def test_delete_bill_reduce_cuenta_corriente():
     service, bill_repo, _, client_repo, __, ___ = _make_service()
     client = _make_client(cuenta_corriente=Decimal("3000"))
@@ -552,3 +536,90 @@ def test_delete_bill_reduce_cuenta_corriente():
     assert client.cuenta_corriente == Decimal("2000")
     client_repo.update_balance.assert_called_once()
     bill_repo.delete.assert_called_once_with(bill)
+
+
+# ── _validate_credit_note ──────────────────────────────────────────────────────
+
+def test_validate_credit_note_sin_factura_asociada_raises():
+    service, *_ = _make_service()
+    bill_type = _make_bill_type(codigo_afip=3)
+    with pytest.raises(CreditNoteValidationError, match="referenciar"):
+        service._validate_credit_note(bill_type, None)
+
+
+def test_validate_credit_note_factura_sin_cae_raises():
+    service, *_ = _make_service()
+    bill_type = _make_bill_type(codigo_afip=3)
+    associated = _make_associated_bill(cae=None)
+    with pytest.raises(CreditNoteValidationError, match="emitida"):
+        service._validate_credit_note(bill_type, associated)
+
+
+def test_validate_credit_note_tipo_incompatible_raises():
+    service, *_ = _make_service()
+    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")  # NC A esperaba Factura A (1)
+    associated = _make_associated_bill(invoice_type_code=6)                       # pero viene Factura B (6)
+    with pytest.raises(CreditNoteValidationError, match="incompatible"):
+        service._validate_credit_note(bill_type, associated)
+
+
+def test_validate_credit_note_ok():
+    service, *_ = _make_service()
+    bill_type = _make_bill_type(codigo_afip=3)
+    associated = _make_associated_bill(invoice_type_code=1)  # NC A → Factura A ✓
+    service._validate_credit_note(bill_type, associated)     # no debe lanzar
+
+
+# ── create_bill (Notas de Crédito) ─────────────────────────────────────────────
+
+def test_create_bill_nc_sin_factura_asociada_raises():
+    service, bill_repo, _, __, price_repo, ___ = _make_service()
+    client = _make_client()
+    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
+    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
+    bill_repo.create.return_value = _make_bill_mock()
+
+    with pytest.raises(CreditNoteValidationError):
+        service.create_bill({
+            'cliente': client, 'tipo_factura': bill_type,
+            'fecha': date.today(), 'items': items,
+        })
+
+
+def test_create_bill_nc_resta_cuenta_corriente():
+    service, bill_repo, _, client_repo, __, ___ = _make_service()
+    client = _make_client(cuenta_corriente=Decimal("5000"))
+    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
+    associated = _make_associated_bill(invoice_type_code=1)
+    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
+    bill_repo.create.return_value = _make_bill_mock()
+
+    service.create_bill({
+        'cliente': client, 'tipo_factura': bill_type,
+        'fecha': date.today(), 'items': items,
+        'factura_asociada': associated,
+    })
+
+    # total con IVA 10.5%: 10000 * 1.105 = 11050 → CC: 5000 - 11050 = -6050
+    assert client.cuenta_corriente == Decimal("5000") - Decimal("11050.00")
+    client_repo.update_balance.assert_called_once()
+
+
+def test_create_bill_nc_pasa_cbte_asoc_a_arca():
+    arca_result = {'numero_comprobante': 1, 'cae': '11111111111111', 'cae_vto': date(2026, 6, 30)}
+    service, bill_repo, _, __, price_repo, arca = _make_service(arca_result=arca_result)
+    client = _make_client()
+    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
+    associated = _make_associated_bill(cae='99999999999999', invoice_type_code=1)
+    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
+    bill_repo.create.return_value = _make_bill_mock()
+
+    service.create_bill({
+        'cliente': client, 'tipo_factura': bill_type,
+        'fecha': date.today(), 'items': items,
+        'factura_asociada': associated,
+    })
+
+    call_kwargs = arca.emit_receipt.call_args[1]
+    assert call_kwargs['cbte_asoc']['tipo'] == 1
+    assert call_kwargs['cbte_asoc']['nro'] == 1

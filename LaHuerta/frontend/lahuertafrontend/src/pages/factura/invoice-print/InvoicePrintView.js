@@ -178,9 +178,9 @@ const InvoicePrintView = () => {
             </div>
           </div>
 
-          {/* Referencia a factura original — solo para ND/NC */}
-          {factura_asociada && (
-            <div className="invoice-fac-asoc">
+          {/* Referencia a factura original — solo para ND/NC; siempre en el DOM para mantener el grid */}
+          <div className={`invoice-fac-asoc${!factura_asociada ? ' invoice-fac-asoc--hidden' : ''}`}>
+            {factura_asociada && (
               <div className="invoice-receptor-row">
                 <span className="invoice-label">Factura Asociada:</span>
                 <span>
@@ -188,8 +188,8 @@ const InvoicePrintView = () => {
                   {String(PUNTO_VENTA).padStart(5, '0')}-{String(factura_asociada.numero_comprobante).padStart(8, '0')}
                 </span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Tabla productos */}
           <div className="invoice-tabla-wrapper">
