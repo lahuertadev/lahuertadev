@@ -12,3 +12,6 @@ class BillAlreadyEmittedException(Exception):
 
 class DebitNoteValidationError(Exception):
     pass
+
+class CreditNoteValidationError(Exception):
+    pass
