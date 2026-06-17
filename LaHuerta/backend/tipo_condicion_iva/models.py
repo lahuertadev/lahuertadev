@@ -2,6 +2,9 @@ from django.db import models
 
 class TipoCondicionIva(models.Model):
     descripcion = models.CharField(max_length=20, unique=True)
+    is_system = models.BooleanField(default=False)
+    codigo_afip = models.IntegerField(null=True, blank=True)
+
     class Meta:
         db_table = 'tipo_condicion_iva'
 

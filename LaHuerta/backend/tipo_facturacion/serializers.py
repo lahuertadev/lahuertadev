@@ -7,4 +7,5 @@ class FacturationTypeSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = TipoFacturacion
-        fields = ['id', 'descripcion']
+        fields = ['id', 'descripcion', 'is_system']
+        read_only_fields = ['is_system']

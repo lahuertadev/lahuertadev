@@ -74,6 +74,7 @@ export default function DataGridDemo({
   onDetail,
   canDelete,
   canEdit,
+  isRowSelectable,
   showEdit = true,
   showDelete = true,
   multiSelect = true,
@@ -167,6 +168,7 @@ export default function DataGridDemo({
         }}
         pageSizeOptions={[10, 25, 50]}
         checkboxSelection={multiSelect}
+        isRowSelectable={isRowSelectable ? (params) => isRowSelectable(params.row) : undefined}
         onRowSelectionModelChange={(sel) => onSelectionChange?.(sel)}
         disableRowSelectionOnClick
         disableColumnMenu

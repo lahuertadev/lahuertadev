@@ -1,3 +1,4 @@
+import logging
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .repositories import BillRepository
@@ -9,8 +10,11 @@ from .serializers import (
     BillUpdateSerializer,
     BillQueryParamsSerializer,
 )
-from .exceptions import BillNotFoundException, BillHasPaymentsException
+from .exceptions import BillNotFoundException, BillHasPaymentsException, BillAlreadyEmittedException, PriceNotFoundError, DebitNoteValidationError, CreditNoteValidationError
 from .factory import build_bill_service
+from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
+
+logger = logging.getLogger(__name__)
 
 class BillViewSet(viewsets.ViewSet):
     '''
@@ -33,13 +37,14 @@ class BillViewSet(viewsets.ViewSet):
 
         try:
             bills = self.repository.get_all(
-                cliente_id=serializer.validated_data.get('cliente_id'),
+                client_id=serializer.validated_data.get('client_id'),
                 cuit=serializer.validated_data.get('cuit'),
-                razon_social=serializer.validated_data.get('razon_social'),
-                importe_min=serializer.validated_data.get('importe_min'),
-                importe_max=serializer.validated_data.get('importe_max'),
-                fecha_desde=serializer.validated_data.get('fecha_desde'),
-                fecha_hasta=serializer.validated_data.get('fecha_hasta'),
+                business_name=serializer.validated_data.get('business_name'),
+                amount_min=serializer.validated_data.get('amount_min'),
+                amount_max=serializer.validated_data.get('amount_max'),
+                date_from=serializer.validated_data.get('date_from'),
+                date_to=serializer.validated_data.get('date_to'),
+                bill_type_id=serializer.validated_data.get('bill_type_id'),
             )
 
             response_serializer = BillResponseSerializer(bills, many=True)
@@ -73,17 +78,26 @@ class BillViewSet(viewsets.ViewSet):
         El importe total se calcula automáticamente a partir de cantidad × precio_unitario de cada ítem.
         '''
         serializer = BillCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             bill = self.service.create_bill(serializer.validated_data)
-
             response_serializer = BillResponseSerializer(bill)
-            
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
-        
+
+        except (PriceNotFoundError, DebitNoteValidationError, CreditNoteValidationError) as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except (WSAAAuthenticationError, WSFEEmissionError) as e:
+            logger.error("Error al emitir comprobante AFIP: %s", e)
+            return Response(
+                {'detail': 'No se pudo emitir el comprobante electrónico. Verificá los datos del cliente y volvé a intentar.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         except Exception as e:
-            return Response(str(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
         '''
@@ -92,7 +106,8 @@ class BillViewSet(viewsets.ViewSet):
         La cuenta corriente del cliente se ajusta con la diferencia de importes.
         '''
         serializer = BillUpdateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             bill = self.service.update_bill(
@@ -107,9 +122,12 @@ class BillViewSet(viewsets.ViewSet):
         except BillNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
+        except BillAlreadyEmittedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
+
         except Exception as e:
             return Response(
-                {'detail': 'Error al actualizar la factura.'}, 
+                {'detail': 'Error al actualizar la factura.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -120,7 +138,8 @@ class BillViewSet(viewsets.ViewSet):
         '''
 
         serializer = BillUpdateSerializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             bill = self.service.update_bill(
@@ -135,9 +154,12 @@ class BillViewSet(viewsets.ViewSet):
         except BillNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
+        except BillAlreadyEmittedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
+
         except Exception as e:
             return Response(
-                {'detail': 'Error al actualizar la factura.'}, 
+                {'detail': 'Error al actualizar la factura.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -151,6 +173,9 @@ class BillViewSet(viewsets.ViewSet):
 
         except BillNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except BillAlreadyEmittedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
 
         except BillHasPaymentsException as e:
             return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)

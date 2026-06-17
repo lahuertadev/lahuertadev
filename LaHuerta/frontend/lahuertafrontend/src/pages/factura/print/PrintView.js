@@ -30,18 +30,12 @@ const BillPrintView = () => {
   useEffect(() => {
     axios.get(`${billUrl}${id}/`)
       .then((r) => {
-        console.log('RESPONSE =>', r);
-        console.log('BILL =>', r.data);
-        console.log('TIPO_FACTURA =>', r.data.tipo_factura);
+        if (r.data.cae) {
+          navigate(`/bill/invoice/${id}`, { replace: true });
+          return;
+        }
         setBill(r.data);
       })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [id]);
-
-  useEffect(() => {
-    axios.get(`${billUrl}${id}/`)
-      .then((r) => setBill(r.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
@@ -49,8 +43,8 @@ const BillPrintView = () => {
   if (loading) return <div className="print-loading">Cargando remito…</div>;
   if (!bill) return <div className="print-loading">Remito no encontrado.</div>;
 
-  const { cliente, tipo_factura, fecha, importe, items = [] } = bill;
-  const billNumber = String(bill.id).padStart(8, '0');
+  const { cliente, tipo_factura, fecha, total, items = [] } = bill;
+  const billNumber = String(bill.numero_comprobante || bill.id).padStart(8, '0');
   const [serie, numero] = ['00001', billNumber.slice(-4)];
 
   return (
@@ -201,7 +195,7 @@ const BillPrintView = () => {
         {/* Total */}
         <div className="remito-total-row">
           <span className="remito-total-label">TOTAL</span>
-          <span className="remito-total-value">$ {parseFloat(importe).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+          <span className="remito-total-value">$ {parseFloat(total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
         </div>
 
         {/* Firma */}

@@ -31,7 +31,7 @@ import CloseIcon from '@mui/icons-material/Close';
  *                   si no se pasa, navega a fetchUrl.createUrl
  */
 const GenericList = ({ data, onAdd }) => {
-  const { title, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, showAdd = true, showEdit = true, showDelete = true } = data;
+  const { title, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, isRowSelectable, showAdd = true, showEdit = true, showDelete = true } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -225,6 +225,7 @@ const GenericList = ({ data, onAdd }) => {
               multiSelect={multiSelect}
               canDelete={canDelete}
               canEdit={canEdit}
+              isRowSelectable={isRowSelectable}
               showEdit={showEdit}
               showDelete={showDelete}
             />

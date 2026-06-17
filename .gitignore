@@ -33,4 +33,13 @@ staticfiles/
 notas.md
 PROMPT_FACTURACION_PAGOS.md
 
+# Archivos de ejemplo / documentación externa
+*.pdf
+
 .coverage
+
+# Certificados y tokens ARCA/AFIP (nunca subir al repo)
+**/certs/
+**/*.csr
+**/token_*.json
+.claude/

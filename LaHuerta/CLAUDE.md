@@ -35,3 +35,13 @@ Antes de implementar:
 ## Functional documentation
 - Toda funcionalidad nueva o cambio funcional relevante debe evaluar si requiere crear o actualizar documentación en `docs/funcionalidades/`.
 - Seguir la regla `functional-documentation.md`.
+
+## Ejecución de tests después de cada cambio
+Después de cualquier cambio de código, correr todos los tests del backend para verificar que no se rompió ninguna funcionalidad existente.
+
+Comando desde `backend/`:
+```
+pytest
+```
+
+Esto corre todos los tests de todas las apps (repository, service y view tests). Si algún test falla, el cambio no está completo — hay que corregir la causa antes de dar el trabajo por terminado.
