@@ -19,10 +19,10 @@ import '../../styles/print-reports.css';
 import logoLaHuerta from '../../assets/logo-lahuerta.jpg';
 
 const PERIOD_OPTIONS = [
-  { name: 'Día',    value: 'dia' },
-  { name: 'Semana', value: 'semana' },
-  { name: 'Mes',    value: 'mes' },
-  { name: 'Año',    value: 'anio' },
+  { name: 'Diario',   value: 'dia' },
+  { name: 'Semanal',  value: 'semana' },
+  { name: 'Mensual',  value: 'mes' },
+  { name: 'Anual',    value: 'anio' },
 ];
 
 const today = new Date().toISOString().split('T')[0];
@@ -241,29 +241,54 @@ const ClientReport = () => {
             const periodLabel = PERIOD_OPTIONS.find(o => o.value === report.period)?.name ?? '';
             const totalBilled = parseFloat(report.kpis.total_billed);
             const totalPaid = parseFloat(report.kpis.total_paid);
+            const totalCredited = parseFloat(report.kpis.total_credited);
             const pendingBalance = parseFloat(report.kpis.pending_balance);
-            const paidRatio = totalBilled > 0 ? Math.round((totalPaid / totalBilled) * 100) : 0;
+            const paidRatio = totalBilled > 0 ? Math.round(((totalPaid + totalCredited) / totalBilled) * 1000) / 10 : 0;
 
             return (
               <div className="report-kpis">
                 <Paper className="report-kpi-card" sx={{ p: 3, position: 'relative', overflow: 'hidden' }}>
                   <div className="report-kpi-bg-icon"><ReceiptLongIcon /></div>
-                  <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
-                    Total Facturado
-                  </Typography>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
+                      Total Facturado
+                    </Typography>
+                    <Tooltip title="Suma de facturas y notas de débito emitidas en el período. Las notas de crédito se muestran por separado." placement="top" arrow>
+                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: '#9ca3af', cursor: 'default' }} />
+                    </Tooltip>
+                  </div>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                     en el período · {periodLabel}
                   </Typography>
                   <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 1 }}>
                     {formatCurrency(report.kpis.total_billed)}
                   </Typography>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {parseFloat(report.kpis.total_invoiced) > 0 && (
+                      <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#596064' }}>Facturas</span>
+                        <span style={{ fontWeight: 600, color: '#596064' }}>{formatCurrency(report.kpis.total_invoiced)}</span>
+                      </Typography>
+                    )}
+                    {parseFloat(report.kpis.total_debit_notes) > 0 && (
+                      <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#596064' }}>Notas de Débito</span>
+                        <span style={{ fontWeight: 600, color: '#596064' }}>{formatCurrency(report.kpis.total_debit_notes)}</span>
+                      </Typography>
+                    )}
+                  </div>
                 </Paper>
 
                 <Paper className="report-kpi-card" sx={{ p: 3, position: 'relative', overflow: 'hidden' }}>
                   <div className="report-kpi-bg-icon"><PaymentsIcon /></div>
-                  <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
-                    Total Pagado
-                  </Typography>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
+                      Total Pagado
+                    </Typography>
+                    <Tooltip title="Suma de los pagos en efectivo, cheque u otros medios registrados en el período. No incluye notas de crédito." placement="top" arrow>
+                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: '#9ca3af', cursor: 'default' }} />
+                    </Tooltip>
+                  </div>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                     en el período ·{' '}
                     <span style={{ color: paidRatio >= 80 ? '#16a34a' : paidRatio >= 50 ? '#ca8a04' : '#dc2626', fontWeight: 700 }}>
@@ -280,9 +305,14 @@ const ClientReport = () => {
                   sx={{ p: 3, position: 'relative', overflow: 'hidden', bgcolor: pendingBalance > 0 ? '#fff5f5' : 'background.paper' }}
                 >
                   <div className="report-kpi-bg-icon"><AccountBalanceWalletIcon /></div>
-                  <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
-                    Saldo Pendiente
-                  </Typography>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
+                      Saldo Pendiente
+                    </Typography>
+                    <Tooltip title="Total facturado menos notas de crédito acreditadas y pagos del período. Un valor negativo indica saldo a favor del cliente." placement="top" arrow>
+                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: '#9ca3af', cursor: 'default' }} />
+                    </Tooltip>
+                  </div>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                     en el período
                   </Typography>
@@ -293,16 +323,20 @@ const ClientReport = () => {
                   >
                     {formatCurrency(report.kpis.pending_balance)}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5, pt: 1.5, borderTop: '1px solid #f0f0f0' }}>
-                    Cuenta corriente total
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    fontWeight="bold"
-                    sx={{ color: parseFloat(report.kpis.account_balance) > 0 ? 'error.main' : 'text.primary' }}
-                  >
-                    {formatCurrency(report.kpis.account_balance)}
-                  </Typography>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {parseFloat(report.kpis.total_credited) > 0 && (
+                      <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#596064' }}>NC acreditadas</span>
+                        <span style={{ fontWeight: 600, color: '#16a34a' }}>-{formatCurrency(report.kpis.total_credited)}</span>
+                      </Typography>
+                    )}
+                    <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#596064' }}>Cuenta corriente</span>
+                      <span style={{ fontWeight: 600, color: parseFloat(report.kpis.account_balance) > 0 ? '#dc2626' : 'inherit' }}>
+                        {formatCurrency(report.kpis.account_balance)}
+                      </span>
+                    </Typography>
+                  </div>
                 </Paper>
               </div>
             );
@@ -311,17 +345,33 @@ const ClientReport = () => {
           {/* ── Gráfico ── */}
           <Paper className="no-print" sx={{ p: 3, mb: 3 }}>
             <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
-              Evolución de Pagos vs Facturación
+              Evolución de Facturación vs Cobrado
             </Typography>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={report.chart} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-                <RechartsTooltip formatter={v => formatCurrency(v)} />
+                <RechartsTooltip content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = payload[0]?.payload;
+                  return (
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 6, color: '#374151' }}>{label}</div>
+                      <div style={{ color: '#4a7bc4', marginBottom: 2 }}>Facturado : {formatCurrency(d.billed)}</div>
+                      <div style={{ color: '#6b9fd4', marginBottom: d.credited > 0 ? 2 : 0 }}>Saldado : {formatCurrency(d.settled)}</div>
+                      {parseFloat(d.credited) > 0 && (
+                        <div style={{ paddingLeft: 10, color: '#9ca3af', fontSize: 11 }}>
+                          <div>Pagos: {formatCurrency(d.paid)}</div>
+                          <div>NC: {formatCurrency(d.credited)}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }} />
                 <Legend content={renderLegend} />
                 <Bar dataKey="billed" name="Facturado" fill="#4a7bc4" radius={[4, 4, 0, 0]} hide={!!hiddenBars.billed} />
-                <Bar dataKey="paid" name="Pagado" fill="#a8c4e8" radius={[4, 4, 0, 0]} hide={!!hiddenBars.paid} />
+                <Bar dataKey="settled" name="Cobrado" fill="#a8c4e8" radius={[4, 4, 0, 0]} hide={!!hiddenBars.settled} />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
@@ -357,7 +407,7 @@ const ClientReport = () => {
                           <td className="text-secondary">#{b.id}</td>
                           <td>{formatDate(b.fecha)}</td>
                           <td>{b.tipo_factura?.descripcion ?? '—'}</td>
-                          <td className="text-right font-bold">{formatCurrency(b.importe)}</td>
+                          <td className="text-right font-bold" style={{ color: '#dc2626' }}>{formatCurrency(b.total)}</td>
                         </tr>
                       ))
                     )}
@@ -419,6 +469,47 @@ const ClientReport = () => {
                 </table>
               </Paper>
             </div>
+
+            {/* Notas de Crédito */}
+            {report.credit_notes.length > 0 && (
+              <div>
+                <Typography variant="subtitle1" fontWeight="bold" className="report-section-title" sx={{ mb: 1.5 }}>
+                  Notas de Crédito del período
+                </Typography>
+                <Paper>
+                  <table className="report-table">
+                    <thead>
+                      <tr>
+                        <th>Nro</th>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th className="text-right">Importe</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {report.credit_notes.map(cn => (
+                        <tr key={cn.id}>
+                          <td className="text-secondary">#{cn.id}</td>
+                          <td>{formatDate(cn.fecha)}</td>
+                          <td>{cn.tipo_factura?.descripcion ?? '—'}</td>
+                          <td className="text-right font-bold" style={{ color: '#16a34a' }}>
+                            -{formatCurrency(cn.total)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tbody>
+                      <tr className="report-subtotal-row print-only">
+                        <td>Total Acreditado</td>
+                        <td></td>
+                        <td></td>
+                        <td className="text-right">{formatCurrency(report.kpis.total_credited)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Paper>
+              </div>
+            )}
           </div>
 
                 </td>
