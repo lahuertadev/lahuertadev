@@ -67,8 +67,16 @@ git push -u origin <rama-actual>
 
 ### 4. Crear PR apuntando a `dev`
 
+El título del PR siempre sigue este formato:
+
+```
+feature/DEV-XXX --> descripción de la funcionalidad
+```
+
+Donde `XXX` es el número del ticket Jira extraído del nombre de la rama (ej. rama `feature/DEV-88` → título `feature/DEV-88 --> Corregir sección de Reportes`).
+
 ```bash
-gh pr create --base dev --head <rama-actual> --title "título del PR" --body "$(cat <<'EOF'
+gh pr create --base dev --head <rama-actual> --title "feature/DEV-XXX --> descripción de la funcionalidad" --body "$(cat <<'EOF'
 ## Resumen
 
 - Bullet 1
