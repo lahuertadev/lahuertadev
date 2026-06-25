@@ -16,7 +16,7 @@ class Factura(models.Model):
     )
 
     def __str__(self):
-        return f'{self.fecha} (Importe: {self.importe})'
+        return f'{self.fecha} (Total: {self.total})'
 
     class Meta:
         db_table = 'factura' 

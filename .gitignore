@@ -42,4 +42,4 @@ PROMPT_FACTURACION_PAGOS.md
 **/certs/
 **/*.csr
 **/token_*.json
-.claude/
+.claude/settings.local.json

@@ -1,15 +1,70 @@
 ---
 name: jira-ticket
-description: Genera tickets de Jira estructurados con Situación Actual, Situación Deseada y Posible Solution Approach. Si las variables de entorno de Jira están configuradas, crea el ticket directamente vía API.
+description: Lee, crea y gestiona tickets de Jira. Puede leer un ticket existente por clave (ej. DEV-88) o generar tickets nuevos estructurados con Situación Actual, Situación Deseada y Posible Solution Approach.
 ---
 
-# Jira Ticket Generator
+# Jira Ticket Manager
 
 Usar esta skill cuando el usuario pida:
+- leer un ticket de Jira (ej. "lee el ticket DEV-88", "leé el ticket", "mirá el ticket X")
 - crear un ticket de Jira
 - generar un ticket
 - documentar una tarea o funcionalidad para Jira
 - /jira-ticket
+
+## Lectura de tickets
+
+Cuando el usuario pida leer un ticket (con o sin número explícito), usar la API de Jira para obtenerlo y mostrarlo formateado.
+
+Las credenciales están en `/Users/pablogermanantunez/.claude/settings.json` bajo `env`.
+
+```bash
+JIRA_BASE_URL="https://lahuertadesarrollo.atlassian.net"
+JIRA_EMAIL="pablooantunez@gmail.com"
+JIRA_API_TOKEN="<token del settings.json>"
+
+curl -s -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
+  -H "Accept: application/json" \
+  "${JIRA_BASE_URL}/rest/api/3/issue/DEV-XX" | python3 -c "
+import sys, json
+
+data = json.load(sys.stdin)
+fields = data.get('fields', {})
+
+print('KEY:', data.get('key'))
+print('TÍTULO:', fields.get('summary'))
+print('ESTADO:', fields.get('status', {}).get('name'))
+print('TIPO:', fields.get('issuetype', {}).get('name'))
+print('PRIORIDAD:', fields.get('priority', {}).get('name'))
+print()
+
+desc = fields.get('description')
+if desc and isinstance(desc, dict):
+    def extract_text(node):
+        if not node:
+            return ''
+        t = node.get('type', '')
+        if t == 'text':
+            return node.get('text', '')
+        result = ''
+        for child in node.get('content', []):
+            result += extract_text(child)
+        if t in ('paragraph', 'heading', 'listItem', 'bulletList', 'orderedList'):
+            result += '\n'
+        if t == 'heading':
+            level = node.get('attrs', {}).get('level', 2)
+            result = '#' * level + ' ' + result.strip() + '\n'
+        return result
+    print('DESCRIPCIÓN:')
+    print(extract_text(desc))
+elif desc:
+    print('DESCRIPCIÓN:', desc)
+else:
+    print('(sin descripción)')
+"
+```
+
+Mostrar al usuario el contenido del ticket de forma clara y luego preguntar si desea implementarlo.
 
 ## Procedimiento
 

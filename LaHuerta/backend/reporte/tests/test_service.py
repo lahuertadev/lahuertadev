@@ -3,6 +3,8 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import Mock
 
+from factura.models import Factura
+from pago_cliente.models import PagoCliente
 from reporte.interfaces import IReportRepository
 from reporte.service import ReportService, get_date_range, build_chart
 from reporte.exceptions import ClientNotFoundException
@@ -11,9 +13,10 @@ from reporte.exceptions import ClientNotFoundException
 # ── Fake repos ────────────────────────────────────────────────────────────────
 
 class FakeReportRepo(IReportRepository):
-    def __init__(self, bills=None, payments=None):
+    def __init__(self, bills=None, payments=None, credit_notes=None):
         self._bills = bills or []
         self._payments = payments or []
+        self._credit_notes = credit_notes or []
 
     def get_bills(self, client_id, date_from, date_to):
         return self._bills
@@ -21,17 +24,25 @@ class FakeReportRepo(IReportRepository):
     def get_payments(self, client_id, date_from, date_to):
         return self._payments
 
+    def get_credit_notes(self, client_id, date_from, date_to):
+        return self._credit_notes
 
-def make_bill(fecha, importe):
-    b = Mock()
+
+def make_bill(fecha, total, codigo_afip=1):
+    b = Mock(spec=Factura)
     b.fecha = fecha
-    b.importe = Decimal(str(importe))
+    b.total = Decimal(str(total))
     b.tipo_factura = Mock()
+    b.tipo_factura.codigo_afip = codigo_afip
     return b
 
 
+def make_debit_note(fecha, total):
+    return make_bill(fecha, total, codigo_afip=7)
+
+
 def make_payment(fecha_pago, importe):
-    p = Mock()
+    p = Mock(spec=PagoCliente)
     p.fecha_pago = fecha_pago
     p.importe = Decimal(str(importe))
     p.tipo_pago = Mock()
@@ -45,10 +56,10 @@ def make_client(id=1):
     return c
 
 
-def make_service(client=None, bills=None, payments=None):
+def make_service(client=None, bills=None, payments=None, credit_notes=None):
     client_repo = Mock()
     client_repo.get_client_by_id.return_value = client or make_client()
-    report_repo = FakeReportRepo(bills=bills, payments=payments)
+    report_repo = FakeReportRepo(bills=bills, payments=payments, credit_notes=credit_notes)
     return ReportService(report_repository=report_repo, client_repository=client_repo)
 
 
@@ -94,28 +105,33 @@ class TestGetDateRange:
 
 class TestBuildChart:
     def test_dia_sin_datos(self):
-        chart = build_chart('dia', date(2025, 3, 15), date(2025, 3, 15), [], [])
+        chart = build_chart('dia', date(2025, 3, 15), date(2025, 3, 15), [], [], [])
         assert len(chart) == 1
         assert chart[0]['billed'] == Decimal('0')
         assert chart[0]['paid'] == Decimal('0')
+        assert chart[0]['credited'] == Decimal('0')
+        assert chart[0]['settled'] == Decimal('0')
 
     def test_dia_con_datos(self):
         bills = [make_bill(date(2025, 3, 15), '500')]
         payments = [make_payment(date(2025, 3, 15), '300')]
-        chart = build_chart('dia', date(2025, 3, 15), date(2025, 3, 15), bills, payments)
+        credit_notes = [make_bill(date(2025, 3, 15), '100')]
+        chart = build_chart('dia', date(2025, 3, 15), date(2025, 3, 15), bills, payments, credit_notes)
         assert chart[0]['billed'] == Decimal('500')
         assert chart[0]['paid'] == Decimal('300')
+        assert chart[0]['credited'] == Decimal('100')
+        assert chart[0]['settled'] == Decimal('400')
 
     def test_semana_tiene_7_puntos(self):
-        chart = build_chart('semana', date(2025, 3, 17), date(2025, 3, 23), [], [])
+        chart = build_chart('semana', date(2025, 3, 17), date(2025, 3, 23), [], [], [])
         assert len(chart) == 7
 
     def test_mes_tiene_dias_del_mes(self):
-        chart = build_chart('mes', date(2025, 3, 1), date(2025, 3, 31), [], [])
+        chart = build_chart('mes', date(2025, 3, 1), date(2025, 3, 31), [], [], [])
         assert len(chart) == 31
 
     def test_anio_tiene_12_puntos(self):
-        chart = build_chart('anio', date(2025, 1, 1), date(2025, 12, 31), [], [])
+        chart = build_chart('anio', date(2025, 1, 1), date(2025, 12, 31), [], [], [])
         assert len(chart) == 12
 
     def test_anio_agrupa_por_mes(self):
@@ -124,7 +140,7 @@ class TestBuildChart:
             make_bill(date(2025, 3, 20), '500'),
             make_bill(date(2025, 7, 1), '2000'),
         ]
-        chart = build_chart('anio', date(2025, 1, 1), date(2025, 12, 31), bills, [])
+        chart = build_chart('anio', date(2025, 1, 1), date(2025, 12, 31), bills, [], [])
         march = next(c for c in chart if c['label'] == 'Mar')
         july = next(c for c in chart if c['label'] == 'Jul')
         assert march['billed'] == Decimal('1500')
@@ -136,10 +152,19 @@ class TestBuildChart:
             make_bill(date(2025, 3, 10), '100'),
         ]
         payments = [make_payment(date(2025, 3, 10), '200')]
-        chart = build_chart('mes', date(2025, 3, 1), date(2025, 3, 31), bills, payments)
+        chart = build_chart('mes', date(2025, 3, 1), date(2025, 3, 31), bills, payments, [])
         day_10 = next(c for c in chart if c['label'] == '10')
         assert day_10['billed'] == Decimal('500')
         assert day_10['paid'] == Decimal('200')
+
+    def test_nc_acumula_en_credited_y_settled(self):
+        bills = [make_bill(date(2025, 3, 10), '1000')]
+        payments = [make_payment(date(2025, 3, 10), '200')]
+        credit_notes = [make_bill(date(2025, 3, 10), '300')]
+        chart = build_chart('mes', date(2025, 3, 1), date(2025, 3, 31), bills, payments, credit_notes)
+        day_10 = next(c for c in chart if c['label'] == '10')
+        assert day_10['credited'] == Decimal('300')
+        assert day_10['settled'] == Decimal('500')  # 200 pagado + 300 NC
 
 
 # ── ReportService ─────────────────────────────────────────────────────────────
@@ -191,7 +216,76 @@ class TestReportService:
         report = service.get_client_report(client_id=1, period='mes', ref_date=date(2025, 3, 1))
 
         assert report['kpis']['total_billed'] == Decimal('0')
+        assert report['kpis']['total_invoiced'] == Decimal('0')
+        assert report['kpis']['total_debit_notes'] == Decimal('0')
         assert report['kpis']['total_paid'] == Decimal('0')
+        assert report['kpis']['total_credited'] == Decimal('0')
         assert report['kpis']['pending_balance'] == Decimal('0')
         assert report['bills'] == []
         assert report['payments'] == []
+        assert report['credit_notes'] == []
+
+    def test_breakdown_facturas_y_nd(self):
+        bills = [
+            make_bill(date(2025, 3, 5), '1000'),
+            make_debit_note(date(2025, 3, 10), '200'),
+        ]
+        service = make_service(bills=bills)
+
+        report = service.get_client_report(client_id=1, period='mes', ref_date=date(2025, 3, 1))
+
+        assert report['kpis']['total_billed'] == Decimal('1200')
+        assert report['kpis']['total_invoiced'] == Decimal('1000')
+        assert report['kpis']['total_debit_notes'] == Decimal('200')
+
+    def test_nc_descuenta_del_pending_balance(self):
+        bills = [make_bill(date(2025, 3, 5), '1000')]
+        credit_notes = [make_bill(date(2025, 3, 10), '300')]
+        service = make_service(bills=bills, credit_notes=credit_notes)
+
+        report = service.get_client_report(client_id=1, period='mes', ref_date=date(2025, 3, 1))
+
+        assert report['kpis']['total_billed'] == Decimal('1000')
+        assert report['kpis']['total_credited'] == Decimal('300')
+        assert report['kpis']['pending_balance'] == Decimal('700')
+
+    def test_nc_en_periodo_diferente_no_afecta_facturas_de_otro_periodo(self):
+        # NC del período sin facturas del mismo período → pending_balance negativo
+        credit_notes = [make_bill(date(2025, 4, 5), '500')]
+        service = make_service(credit_notes=credit_notes)
+
+        report = service.get_client_report(client_id=1, period='mes', ref_date=date(2025, 4, 1))
+
+        assert report['kpis']['total_billed'] == Decimal('0')
+        assert report['kpis']['total_credited'] == Decimal('500')
+        assert report['kpis']['pending_balance'] == Decimal('-500')
+
+    def test_nc_y_pagos_acumulan_en_pending_balance(self):
+        bills = [make_bill(date(2025, 3, 5), '2000')]
+        payments = [make_payment(date(2025, 3, 10), '500')]
+        credit_notes = [make_bill(date(2025, 3, 15), '300')]
+        service = make_service(bills=bills, payments=payments, credit_notes=credit_notes)
+
+        report = service.get_client_report(client_id=1, period='mes', ref_date=date(2025, 3, 1))
+
+        assert report['kpis']['pending_balance'] == Decimal('1200')
+
+    def test_credit_notes_se_devuelven_en_el_reporte(self):
+        cn1 = make_bill(date(2025, 3, 5), '100')
+        cn2 = make_bill(date(2025, 3, 10), '200')
+        service = make_service(credit_notes=[cn1, cn2])
+
+        report = service.get_client_report(client_id=1, period='mes', ref_date=date(2025, 3, 1))
+
+        assert report['credit_notes'] == [cn1, cn2]
+        assert report['kpis']['total_credited'] == Decimal('300')
+
+    def test_solo_nd_sin_facturas(self):
+        bills = [make_debit_note(date(2025, 3, 5), '500')]
+        service = make_service(bills=bills)
+
+        report = service.get_client_report(client_id=1, period='mes', ref_date=date(2025, 3, 1))
+
+        assert report['kpis']['total_billed'] == Decimal('500')
+        assert report['kpis']['total_invoiced'] == Decimal('0')
+        assert report['kpis']['total_debit_notes'] == Decimal('500')
