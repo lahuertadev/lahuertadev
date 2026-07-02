@@ -118,7 +118,6 @@ const GenericList = ({ data, onAdd }) => {
           }
         }
       }
-      fetchItems();
     } catch (err) {
       console.error('Error eliminando:', err);
       const msg =
@@ -128,6 +127,7 @@ const GenericList = ({ data, onAdd }) => {
         'Error inesperado al eliminar';
       setToast({ open: true, message: msg });
     } finally {
+      fetchItems();
       handleCloseConfirmDialog();
     }
   };

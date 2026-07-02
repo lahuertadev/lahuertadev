@@ -8,7 +8,6 @@ from localidad.serializers import DistrictResponseSerializer
 from tipo_facturacion.serializers import FacturationTypeSerializer
 from tipo_condicion_iva.serializers import ConditionIvaTypeSerializer
 from lista_precios.serializers import PricesListSerializer
-from .exceptions import CuitAlreadyExistsException, BusinessNameAlreadyExistsException
 
 class ClientCreateSerializer(serializers.ModelSerializer):
     '''
@@ -19,6 +18,17 @@ class ClientCreateSerializer(serializers.ModelSerializer):
         regex=r'^\d{11}$',
         error_messages={
             'invalid': 'El CUIT debe contener exactamente 11 números.'
+        }
+    )
+
+    cuenta_corriente = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        error_messages={
+            'invalid': 'Ingresá un número válido.',
+            'max_digits': 'El número es demasiado grande.',
+            'max_decimal_places': 'Máximo 2 decimales permitidos.',
         }
     )
 
@@ -47,15 +57,13 @@ class ClientCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_cuit(self, value):
-
         if Cliente.objects.filter(cuit=value).exists():
-            raise CuitAlreadyExistsException('El cuit ya se encuentra registrado')
+            raise serializers.ValidationError('El CUIT ya se encuentra registrado.')
         return value
 
     def validate_razon_social(self, value):
-        
         if Cliente.objects.filter(razon_social=value).exists():
-            raise BusinessNameAlreadyExistsException('La razon social ya se encuentra registrada')
+            raise serializers.ValidationError('La razón social ya se encuentra registrada.')
         return value
   
 class ClientUpdateSerializer(serializers.ModelSerializer):
@@ -70,6 +78,17 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
         }
     )
 
+    cuenta_corriente = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        error_messages={
+            'invalid': 'Ingresá un número válido.',
+            'max_digits': 'El número es demasiado grande.',
+            'max_decimal_places': 'Máximo 2 decimales permitidos.',
+        }
+    )
+
     localidad = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all())
     tipo_facturacion = serializers.PrimaryKeyRelatedField(queryset=TipoFacturacion.objects.all())
     condicion_IVA = serializers.PrimaryKeyRelatedField(queryset=TipoCondicionIva.objects.all())
@@ -77,9 +96,10 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cliente
         fields = [
-            'id', 
+            'id',
             'cuit',
             'razon_social',
+            'cuenta_corriente',
             'domicilio',
             'localidad',
             'tipo_facturacion',
@@ -92,17 +112,13 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_cuit(self, cuit):
-        instance = self.instance
-
-        if Cliente.objects.filter(cuit=cuit).exclude(id=instance.id).exists():
-            raise CuitAlreadyExistsException('El cuit ya se encuentra registrado')
+        if Cliente.objects.filter(cuit=cuit).exclude(id=self.instance.id).exists():
+            raise serializers.ValidationError('El CUIT ya se encuentra registrado.')
         return cuit
 
     def validate_razon_social(self, razon_social):
-        instance = self.instance
-
-        if Cliente.objects.filter(razon_social=razon_social).exclude(id=instance.id).exists():
-            raise BusinessNameAlreadyExistsException('La razon social ya se encuentra registrada')
+        if Cliente.objects.filter(razon_social=razon_social).exclude(id=self.instance.id).exists():
+            raise serializers.ValidationError('La razón social ya se encuentra registrada.')
         return razon_social
 
 class ClientQueryParamsSerializer(serializers.Serializer):
