@@ -23,15 +23,15 @@ Si no está instalado:
 brew install gh
 ```
 
-Verificar autenticación:
+### Autenticación con token guardado
+
+Antes de cualquier comando `gh`, cargar el token desde `settings.local.json`:
+
 ```bash
-gh auth status
+export GH_TOKEN=$(python3 -c "import json; print(json.load(open('LaHuerta/.claude/settings.local.json'))['env']['GH_TOKEN'])")
 ```
 
-Si no está autenticado:
-```bash
-gh auth login
-```
+Con `GH_TOKEN` exportado, `gh` funciona sin necesidad de `gh auth login`.
 
 ## Flujo completo
 
