@@ -37,12 +37,8 @@ class ClientRepository(IClientRepository):
         return client
 
     def modify_client(self, client, data):
-        safe_data = data.copy()
-        safe_data.pop('cuenta_corriente', None)
-
-        for key, value in safe_data.items():
+        for key, value in data.items():
             setattr(client, key, value)
-
         client.save()
         return client
 

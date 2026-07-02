@@ -312,11 +312,15 @@ export default function MiniDrawer({title, menuOptions}) {
             });
 
             if (isGroup) {
+              const groupClickHandler = item.path
+                ? () => handleNavigate(item.path)
+                : () => toggleGroup(item.text);
+
               return (
                 <React.Fragment key={item.text}>
                   <ListItem disablePadding sx={{ display: 'block' }}>
                     <ListItemButton
-                      onClick={() => toggleGroup(item.text)}
+                      onClick={groupClickHandler}
                       sx={itemSx(groupHasActiveChild)}
                     >
                       <ListItemIcon
@@ -332,7 +336,15 @@ export default function MiniDrawer({title, menuOptions}) {
                         primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
                         sx={[open ? { opacity: 1 } : { opacity: 0 }]}
                       />
-                      {open ? (isGroupOpen ? <ExpandLess sx={{ color: 'inherit' }} /> : <ExpandMore sx={{ color: 'inherit' }} />) : null}
+                      {open ? (
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); toggleGroup(item.text); }}
+                          sx={{ color: 'inherit', p: 0.5 }}
+                        >
+                          {isGroupOpen ? <ExpandLess /> : <ExpandMore />}
+                        </IconButton>
+                      ) : null}
                     </ListItemButton>
                   </ListItem>
 
