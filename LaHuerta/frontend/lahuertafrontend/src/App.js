@@ -20,7 +20,7 @@ function App() {
         title='La Huerta'
         menuOptions={headerOptions}
       />
-      <main className="flex-grow px-8 py-6">
+      <main className="flex-grow px-4 sm:px-8 py-6">
         <Outlet />
       </main>
       <Footer

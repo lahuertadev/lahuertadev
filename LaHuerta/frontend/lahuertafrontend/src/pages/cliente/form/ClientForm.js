@@ -487,7 +487,7 @@ const ClientForm = () => {
           </SectionCard>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border-subtle">
             <button
               type="button"
               onClick={() => navigate('/client')}
