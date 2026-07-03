@@ -15,7 +15,6 @@ const mapClientData = (data) => {
       businessName: client.razon_social,
       checkingAccount: formatCurrency(client.cuenta_corriente),
       address: `${client.domicilio}, ${client.localidad.nombre}, ${client.localidad.municipio.nombre}`,
-      billingType: client.tipo_facturacion.descripcion,
       ivaCondition: client.condicion_IVA.descripcion,
       phone: client.telefono,
       salesStartDate: formatDate(client.fecha_inicio_ventas),

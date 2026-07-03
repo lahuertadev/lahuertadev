@@ -11,7 +11,6 @@ class Migration(migrations.Migration):
     dependencies = [
         ('localidad', '0001_initial'),
         ('tipo_condicion_iva', '0001_initial'),
-        ('tipo_facturacion', '0001_initial'),
     ]
 
     operations = [
@@ -29,7 +28,8 @@ class Migration(migrations.Migration):
                 ('estado', models.BooleanField(default=True)),
                 ('condicion_IVA', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tipo_condicion_iva.tipocondicioniva')),
                 ('localidad', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='localidad.localidad')),
-                ('tipo_facturacion', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='tipo_facturacion.tipofacturacion')),
+                # tipo_facturacion removed in 0003; stored as IntegerField here to preserve migration graph without app dependency
+                ('tipo_facturacion', models.IntegerField(db_column='tipo_facturacion_id')),
             ],
             options={
                 'db_table': 'cliente',

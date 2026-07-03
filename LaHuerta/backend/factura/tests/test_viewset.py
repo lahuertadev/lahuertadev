@@ -10,7 +10,6 @@ from rest_framework.parsers import JSONParser
 from tipo_factura.models import TipoFactura
 from cliente.models import Cliente
 from tipo_condicion_iva.models import TipoCondicionIva
-from tipo_facturacion.models import TipoFacturacion
 from lista_precios.models import ListaPrecios
 from localidad.models import Localidad
 from municipio.models import Municipio
@@ -101,7 +100,6 @@ def fk_data(db):
     prov = Provincia.objects.create(nombre="Buenos Aires")
     muni = Municipio.objects.create(nombre="La Matanza", provincia=prov)
     localidad = Localidad.objects.create(id="12345678", nombre="Ciudadela", municipio=muni)
-    tipo_facturacion = TipoFacturacion.objects.create(descripcion="Cuenta Corriente")
     condicion_iva = TipoCondicionIva.objects.create(descripcion="Resp. Inscripto", codigo_afip=1)
     lista_precios = ListaPrecios.objects.create(descripcion="Lista General")
     cliente = Cliente.objects.create(
@@ -109,7 +107,6 @@ def fk_data(db):
         razon_social="Test SA",
         cuenta_corriente=Decimal("0.00"),
         localidad=localidad,
-        tipo_facturacion=tipo_facturacion,
         condicion_IVA=condicion_iva,
         telefono="1234567890",
         lista_precios=lista_precios,

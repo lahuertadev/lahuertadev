@@ -11,7 +11,6 @@ from cliente.models import Cliente
 from tipo_pago.models import TipoPago
 from mercado.models import Mercado
 from tipo_condicion_iva.models import TipoCondicionIva
-from tipo_facturacion.models import TipoFacturacion
 from tipo_venta.models import TipoVenta
 from cheque.models import Cheque
 from cheque.repositories import CheckRepository

@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     'autenticacion',
     'gasto',
     'tipo_gasto',
-    'tipo_facturacion',
     'tipo_condicion_iva',
     'dia_entrega',
     'tipo_factura',

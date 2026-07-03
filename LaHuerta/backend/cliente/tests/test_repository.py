@@ -4,7 +4,6 @@ from decimal import Decimal
 from provincia.models import Provincia
 from municipio.models import Municipio
 from localidad.models import Localidad
-from tipo_facturacion.models import TipoFacturacion
 from tipo_condicion_iva.models import TipoCondicionIva
 from cliente.models import Cliente
 from cliente.repositories import ClientRepository
@@ -17,7 +16,6 @@ class TestClientRepository:
         provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
         municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
         self.localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-        self.tipo_fact = TipoFacturacion.objects.create(descripcion='Factura A')
         self.condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
 
     def _make_client(self, cuit='20123456789', razon_social='Cliente Test SA', cuenta_corriente=Decimal('0.00')):
@@ -27,7 +25,6 @@ class TestClientRepository:
             cuenta_corriente=cuenta_corriente,
             telefono='1122334455',
             localidad=self.localidad,
-            tipo_facturacion=self.tipo_fact,
             condicion_IVA=self.condicion_iva,
         )
 
@@ -97,7 +94,6 @@ class TestClientRepository:
             'cuenta_corriente': Decimal('5000.00'),
             'telefono': '1122334455',
             'localidad': self.localidad,
-            'tipo_facturacion': self.tipo_fact,
             'condicion_IVA': self.condicion_iva,
         })
         assert client.id is not None
@@ -111,7 +107,6 @@ class TestClientRepository:
             'cuenta_corriente': Decimal('75000.50'),
             'telefono': '1122334455',
             'localidad': self.localidad,
-            'tipo_facturacion': self.tipo_fact,
             'condicion_IVA': self.condicion_iva,
         })
         assert client.cuenta_corriente == Decimal('75000.50')

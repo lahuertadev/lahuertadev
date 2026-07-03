@@ -5,7 +5,6 @@ from decimal import Decimal
 from provincia.models import Provincia
 from municipio.models import Municipio
 from localidad.models import Localidad
-from tipo_facturacion.models import TipoFacturacion
 from tipo_condicion_iva.models import TipoCondicionIva
 from tipo_factura.models import TipoFactura
 from tipo_pago.models import TipoPago
@@ -20,7 +19,6 @@ def db_setup(db):
     provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
     municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
     localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    tipo_fact = TipoFacturacion.objects.create(descripcion='Factura A')
     condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
     tipo_factura = TipoFactura.objects.create(descripcion='A')
     tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
@@ -30,7 +28,6 @@ def db_setup(db):
         razon_social='Cliente Test SA',
         cuenta_corriente=Decimal('0'),
         localidad=localidad,
-        tipo_facturacion=tipo_fact,
         condicion_IVA=condicion_iva,
     )
     otro_cliente = Cliente.objects.create(
@@ -38,7 +35,6 @@ def db_setup(db):
         razon_social='Otro Cliente SA',
         cuenta_corriente=Decimal('0'),
         localidad=localidad,
-        tipo_facturacion=tipo_fact,
         condicion_IVA=condicion_iva,
     )
     return {

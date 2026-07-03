@@ -27,9 +27,6 @@ export const ConditionIvaTypeUrl = `${API_BASE}/type_condition_iva/`;
 //! Category
 export const categoryUrl = `${API_BASE}/category/`;
 
-//! Facturation Type
-export const billingTypeUrl = `${API_BASE}/type_facturation/`;
-
 //! Expense Type
 export const expenseTypeUrl = `${API_BASE}/type_expense/`;
 

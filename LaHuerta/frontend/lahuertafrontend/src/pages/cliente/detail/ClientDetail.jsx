@@ -117,7 +117,6 @@ const ClientDetail = () => {
 
       {/* 3. Facturación */}
       <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Facturación">
-        <Field label="Tipo de Facturación" value={client.tipo_facturacion?.descripcion} />
         <Field label="Condición IVA" value={client.condicion_IVA?.descripcion} />
         <Field label="Lista de Precios" value={client.lista_precios?.nombre} />
       </SectionCard>
