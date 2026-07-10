@@ -1,11 +1,9 @@
 from rest_framework import serializers
 from .models import Cliente
-from tipo_facturacion.models import TipoFacturacion
 from tipo_condicion_iva.models import TipoCondicionIva
 from localidad.models import Localidad
 from lista_precios.models import ListaPrecios
 from localidad.serializers import DistrictResponseSerializer
-from tipo_facturacion.serializers import FacturationTypeSerializer
 from tipo_condicion_iva.serializers import ConditionIvaTypeSerializer
 from lista_precios.serializers import PricesListSerializer
 
@@ -34,20 +32,18 @@ class ClientCreateSerializer(serializers.ModelSerializer):
 
 
     localidad = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all())
-    tipo_facturacion = serializers.PrimaryKeyRelatedField(queryset=TipoFacturacion.objects.all())
     condicion_IVA = serializers.PrimaryKeyRelatedField(queryset=TipoCondicionIva.objects.all())
     lista_precios = serializers.PrimaryKeyRelatedField(queryset=ListaPrecios.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = Cliente
         fields = [
-            'id', 
+            'id',
             'cuit',
             'razon_social',
             'cuenta_corriente',
             'domicilio',
             'localidad',
-            'tipo_facturacion',
             'condicion_IVA',
             'telefono',
             'fecha_inicio_ventas',
@@ -65,7 +61,7 @@ class ClientCreateSerializer(serializers.ModelSerializer):
         if Cliente.objects.filter(razon_social=value).exists():
             raise serializers.ValidationError('La razón social ya se encuentra registrada.')
         return value
-  
+
 class ClientUpdateSerializer(serializers.ModelSerializer):
     '''
     DTO para la creación o modificación de clientes.
@@ -90,7 +86,6 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
     )
 
     localidad = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all())
-    tipo_facturacion = serializers.PrimaryKeyRelatedField(queryset=TipoFacturacion.objects.all())
     condicion_IVA = serializers.PrimaryKeyRelatedField(queryset=TipoCondicionIva.objects.all())
     lista_precios = serializers.PrimaryKeyRelatedField(queryset=ListaPrecios.objects.all(), required=False, allow_null=True)
     class Meta:
@@ -102,7 +97,6 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
             'cuenta_corriente',
             'domicilio',
             'localidad',
-            'tipo_facturacion',
             'condicion_IVA',
             'telefono',
             'fecha_inicio_ventas',
@@ -133,21 +127,19 @@ class ClientResponseSerializer(serializers.ModelSerializer):
     '''
     DTO para mostrar la información del cliente
     '''
-    localidad = DistrictResponseSerializer()  
-    tipo_facturacion = FacturationTypeSerializer() 
+    localidad = DistrictResponseSerializer()
     condicion_IVA = ConditionIvaTypeSerializer()
     lista_precios = PricesListSerializer(read_only=True)
 
     class Meta:
         model = Cliente
         fields = [
-            'id', 
+            'id',
             'cuit',
             'razon_social',
             'cuenta_corriente',
             'domicilio',
             'localidad',
-            'tipo_facturacion',
             'condicion_IVA',
             'telefono',
             'fecha_inicio_ventas',

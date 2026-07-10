@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
-import { clientUrl, billingTypeUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
+import { clientUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -94,7 +94,6 @@ const FieldError = ({ error, touched }) =>
 // ── Componente principal ──────────────────────────────────────────────────────
 const ClientForm = () => {
   const [selectOptions, setSelectOptions] = useState({
-    billingType: [],
     ivaCondition: [],
     provinces: [],
     cities: [],
@@ -110,7 +109,6 @@ const ClientForm = () => {
     city: null,
     district: null,
     address: '',
-    billingType: null,
     ivaCondition: null,
     priceList: null,
     phone: '',
@@ -124,9 +122,6 @@ const ClientForm = () => {
   const [toast, setToast] = useState({ open: false, message: '' });
 
   const loadInitialOptions = async () => {
-    const billingType = await loadOptions(billingTypeUrl, (data) =>
-      data.map((item) => ({ name: item.descripcion, value: item.id }))
-    );
     const ivaCondition = await loadOptions(ConditionIvaTypeUrl, (data) =>
       data.map((item) => ({ name: item.descripcion, value: item.id }))
     );
@@ -138,7 +133,7 @@ const ClientForm = () => {
     const priceLists = await loadOptions(priceListUrl, (data) =>
       data.map((item) => ({ name: item.nombre, value: item.id }))
     );
-    setSelectOptions({ billingType, ivaCondition, provinces, cities: [], districts: [], priceLists });
+    setSelectOptions({ ivaCondition, provinces, cities: [], districts: [], priceLists });
   };
 
   const loadCitiesByProvinceId = async (province) => {
@@ -186,7 +181,6 @@ const ClientForm = () => {
         city,
         district,
         address: data.domicilio,
-        billingType: { name: data.tipo_facturacion.descripcion, value: data.tipo_facturacion.id },
         ivaCondition: { name: data.condicion_IVA.descripcion, value: data.condicion_IVA.id },
         priceList: data.lista_precios ? { name: data.lista_precios.nombre, value: data.lista_precios.id } : null,
         phone: data.telefono,
@@ -205,7 +199,6 @@ const ClientForm = () => {
     province: Yup.object().nullable().required('La provincia es obligatoria'),
     city: Yup.object().nullable().required('El municipio es obligatorio'),
     district: Yup.object().nullable().required('La localidad es obligatoria'),
-    billingType: Yup.object().nullable().required('El Tipo de Facturación es obligatorio'),
     ivaCondition: Yup.object().nullable().required('La Condición de IVA es obligatoria'),
     salesStartDate: Yup.string().nullable().required('Fecha de inicio de ventas es obligatoria'),
   });
@@ -223,7 +216,6 @@ const ClientForm = () => {
       },
     },
     domicilio: values.address,
-    tipo_facturacion: values.billingType?.value,
     condicion_IVA: values.ivaCondition?.value,
     lista_precios: values.priceList?.value || null,
     telefono: values.phone,
@@ -397,23 +389,6 @@ const ClientForm = () => {
 
           {/* 3. Datos de Facturación */}
           <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de Facturación">
-            <div className="flex flex-col gap-1">
-              <label className={labelCls}>Tipo de Facturación</label>
-              <select
-                value={values.billingType?.value || ''}
-                onChange={(e) => {
-                  const selected = selectOptions.billingType.find(o => String(o.value) === e.target.value) || null;
-                  setFieldValue('billingType', selected);
-                }}
-                className={inputCls(touched.billingType && errors.billingType)}
-              >
-                <option value="">Seleccionar...</option>
-                {selectOptions.billingType.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.name}</option>
-                ))}
-              </select>
-              <FieldError error={errors.billingType} touched={touched.billingType} />
-            </div>
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Condición de IVA</label>
               <select

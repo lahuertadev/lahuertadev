@@ -9,7 +9,6 @@ from rest_framework.parsers import JSONParser
 from provincia.models import Provincia
 from municipio.models import Municipio
 from localidad.models import Localidad
-from tipo_facturacion.models import TipoFacturacion
 from tipo_condicion_iva.models import TipoCondicionIva
 from tipo_pago.models import TipoPago
 from cliente.models import Cliente
@@ -31,7 +30,6 @@ def db_setup(db):
     provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
     municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
     localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    tipo_fact = TipoFacturacion.objects.create(descripcion='Factura A')
     condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
     tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
     cliente = Cliente.objects.create(
@@ -40,7 +38,6 @@ def db_setup(db):
         cuenta_corriente=Decimal('10000.00'),
         telefono='1122334455',
         localidad=localidad,
-        tipo_facturacion=tipo_fact,
         condicion_IVA=condicion_iva,
     )
     return {'cliente': cliente, 'tipo_pago': tipo_pago}
@@ -162,7 +159,6 @@ def test_list_filter_by_client_id(factory, db_setup):
         cuenta_corriente=Decimal('0.00'),
         telefono='9988776655',
         localidad=db_setup['cliente'].localidad,
-        tipo_facturacion=db_setup['cliente'].tipo_facturacion,
         condicion_IVA=db_setup['cliente'].condicion_IVA,
     )
     vs, repo = _make_viewset()

@@ -8,7 +8,6 @@ from rest_framework.parsers import JSONParser
 from provincia.models import Provincia
 from municipio.models import Municipio
 from localidad.models import Localidad
-from tipo_facturacion.models import TipoFacturacion
 from tipo_condicion_iva.models import TipoCondicionIva
 from lista_precios.models import ListaPrecios
 from cliente.models import Cliente
@@ -33,7 +32,6 @@ def db_setup(db):
     provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
     municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
     localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    tipo_fact = TipoFacturacion.objects.create(descripcion='Factura A')
     condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
     cliente = Cliente.objects.create(
         cuit='20123456789',
@@ -41,13 +39,11 @@ def db_setup(db):
         cuenta_corriente=Decimal('10000.00'),
         telefono='1122334455',
         localidad=localidad,
-        tipo_facturacion=tipo_fact,
         condicion_IVA=condicion_iva,
     )
     return {
         'cliente': cliente,
         'localidad': localidad,
-        'tipo_fact': tipo_fact,
         'condicion_iva': condicion_iva,
     }
 
@@ -102,7 +98,6 @@ def _base_payload(db_setup, **overrides):
         'cuenta_corriente': '0.00',
         'telefono': '1133445566',
         'localidad': db_setup['localidad'].id,
-        'tipo_facturacion': db_setup['tipo_fact'].id,
         'condicion_IVA': db_setup['condicion_iva'].id,
         'fecha_inicio_ventas': '2024-01-01',
         'estado': True,
