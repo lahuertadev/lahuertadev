@@ -2,6 +2,7 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
 import { DataGrid } from '@mui/x-data-grid';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -80,11 +81,17 @@ export default function DataGridDemo({
   multiSelect = true,
   pageSize = 10,
 }) {
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const columnVisibilityModel = isMobile
+    ? Object.fromEntries(columns.filter(c => c.hiddenOnMobile).map(c => [c.field, false]))
+    : {};
+  const actionColWidth = isMobile ? 48 : 120;
+
   const detailColumn = onDetail
     ? {
         field: 'detail',
         headerName: 'Detalle',
-        width: 120,
+        width: actionColWidth,
         sortable: false,
         headerAlign: 'center',
         align: 'center',
@@ -106,7 +113,7 @@ export default function DataGridDemo({
   const editColumn = {
     field: 'edit',
     headerName: 'Editar',
-    width: 120,
+    width: actionColWidth,
     sortable: false,
     headerAlign: 'center',
     align: 'center',
@@ -130,7 +137,7 @@ export default function DataGridDemo({
   const deleteColumn = {
     field: 'delete',
     headerName: 'Eliminar',
-    width: 120,
+    width: actionColWidth,
     sortable: false,
     headerAlign: 'center',
     align: 'center',
@@ -151,12 +158,29 @@ export default function DataGridDemo({
     },
   };
 
-  const actionColumns = [
+  const processedColumns = isMobile && onDetail
+    ? columns.map(col => col.mobileClickable
+        ? {
+            ...col,
+            renderCell: (params) => (
+              <span
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                onClick={() => onDetail(params.row.id)}
+              >
+                {params.value}
+                <span style={{ color: '#acb3b7', fontSize: '0.75rem' }}>›</span>
+              </span>
+            ),
+          }
+        : col)
+    : columns;
+
+  const actionColumns = isMobile ? [] : [
     detailColumn,
     showEdit ? editColumn : null,
     showDelete ? deleteColumn : null,
   ].filter(Boolean);
-  const adjustedColumns = calculateColumnWidths(rows, columns).concat(actionColumns);
+  const adjustedColumns = calculateColumnWidths(rows, processedColumns).concat(actionColumns);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -167,7 +191,8 @@ export default function DataGridDemo({
           pagination: { paginationModel: { pageSize } },
         }}
         pageSizeOptions={[10, 25, 50]}
-        checkboxSelection={multiSelect}
+        columnVisibilityModel={columnVisibilityModel}
+        checkboxSelection={multiSelect && !isMobile}
         isRowSelectable={isRowSelectable ? (params) => isRowSelectable(params.row) : undefined}
         onRowSelectionModelChange={(sel) => onSelectionChange?.(sel)}
         disableRowSelectionOnClick

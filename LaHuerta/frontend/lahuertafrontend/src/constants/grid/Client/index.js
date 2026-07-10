@@ -13,12 +13,13 @@ const badgeStyle = (active) => ({
 });
 
 export const columns = [
-  { field: 'cuit', headerName: 'CUIT' },
-  { field: 'businessName', headerName: 'Razón social' },
+  { field: 'cuit', headerName: 'CUIT', hiddenOnMobile: true },
+  { field: 'businessName', headerName: 'Razón social', mobileClickable: true },
   { field: 'checkingAccount', headerName: 'Cuenta corriente' },
   {
     field: 'state',
     headerName: 'Estado',
+    hiddenOnMobile: true,
     width: 110,
     align: 'center',
     headerAlign: 'center',

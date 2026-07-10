@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { clientUrl } from '../../../constants/urls';
 import { formatCuit } from '../../../utils/cuit';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import AlertDialog from '../../../components/DialogAlert';
 import BusinessIcon from '@mui/icons-material/Business';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
@@ -13,6 +15,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PhoneIcon from '@mui/icons-material/Phone';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -46,9 +49,16 @@ const formatTelefono = (raw = '') => {
 const ClientDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width:600px)');
   const [client, setClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const handleDelete = async () => {
+    await axios.delete(`${clientUrl}${id}/`);
+    navigate('/client');
+  };
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -153,22 +163,60 @@ const ClientDetail = () => {
       </SectionCard>
 
       {/* Action Bar */}
-      <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
-        <button
-          type="button"
-          onClick={() => navigate('/client')}
-          className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate(`/client/edit/${id}`)}
-          className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
-        >
-          <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
-        </button>
+      <div className="pt-6 border-t border-border-subtle">
+        {isMobile ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(true)}
+                className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/client/edit/${id}`)}
+                className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
+              >
+                <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/client')}
+              className="w-full py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center justify-center gap-2"
+            >
+              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-4">
+            <button
+              type="button"
+              onClick={() => navigate('/client')}
+              className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
+            >
+              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/client/edit/${id}`)}
+              className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
+            >
+              <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+            </button>
+          </div>
+        )}
       </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        title="Eliminar cliente"
+        message={`¿Estás seguro que querés eliminar a ${client?.razon_social}? Esta acción no se puede deshacer.`}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+      />
 
     </div>
   );
