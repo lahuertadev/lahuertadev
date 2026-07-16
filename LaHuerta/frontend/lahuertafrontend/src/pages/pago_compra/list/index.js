@@ -22,6 +22,7 @@ const data = {
   fetchUrl: {
     baseUrl: purchasePaymentUrl,
     createUrl: '/purchase-payment/create',
+    detailUrl: '/purchase-payment/detail',
   },
   columns,
   mapData: mapPaymentData,

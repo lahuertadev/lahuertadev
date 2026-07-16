@@ -136,7 +136,7 @@ const OwnCheckForm = () => {
 
           {/* Breadcrumbs */}
           <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Home</span>
+            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
             <span className="text-xs">›</span>
             <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
             <span className="text-xs">›</span>

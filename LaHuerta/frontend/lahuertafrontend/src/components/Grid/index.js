@@ -29,7 +29,11 @@ import RoundedCheckbox from '../RoundedCheckbox';
 // contra el contenido más largo. El mayor determina el mínimo.
 // Se aplica a todas las columnas sin ancho fijo (width), tanto si tienen flex
 // explícito como si no, para evitar que se achiquen por debajo del texto.
-function calculateColumnWidths(rows, columns) {
+function calculateColumnWidths(rows, columns, isMobile = false) {
+  const contentCharWidth = isMobile ? 7 : 9;
+  const headerCharWidth = 9; // headers siempre en uppercase con letter-spacing
+  const padding = isMobile ? 16 : 24;
+
   return columns.map((column) => {
     // Columnas con ancho fijo: no tocar
     if (column.width != null) return column;
@@ -38,17 +42,18 @@ function calculateColumnWidths(rows, columns) {
     const contentLengths = rows.length
       ? rows.map((row) => (row[column.field] != null ? String(row[column.field]).length : 0))
       : [0];
-    const maxContentLength = Math.max(titleLength, ...contentLengths);
-    const charWidth = 9;  // 9px/char cubre uppercase + letter-spacing del header
-    const padding = 24;   // 12px a cada lado, igual que el padding '0 12px' del header en el sx
-    const minWidth = Math.max(maxContentLength * charWidth + padding, column.minWidth || 80);
+    const maxContentLength = Math.max(...contentLengths);
+    const minWidthFloor = isMobile ? 60 : (column.minWidth || 80);
+    const minWidth = Math.max(
+      titleLength * headerCharWidth + padding,
+      maxContentLength * contentCharWidth + padding,
+      minWidthFloor
+    );
 
-    if (column.flex != null) {
-      // Tiene flex explícito: agregar minWidth calculado, mantener el flex
+    if (column.flex != null && !isMobile) {
       return { ...column, minWidth };
     }
 
-    // Sin flex ni width: calcular ambos (peso proporcional al contenido)
     return { ...column, minWidth, flex: minWidth };
   });
 }
@@ -158,10 +163,14 @@ export default function DataGridDemo({
     },
   };
 
-  const processedColumns = isMobile && onDetail
-    ? columns.map(col => col.mobileClickable
-        ? {
-            ...col,
+  const processedColumns = isMobile
+    ? columns.map(col => {
+        const base = col.mobileHeaderName
+          ? { ...col, headerName: col.mobileHeaderName, sortable: false }
+          : { ...col, sortable: false };
+        if (base.mobileClickable && onDetail) {
+          return {
+            ...base,
             renderCell: (params) => (
               <span
                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
@@ -171,8 +180,10 @@ export default function DataGridDemo({
                 <span style={{ color: '#acb3b7', fontSize: '0.75rem' }}>›</span>
               </span>
             ),
-          }
-        : col)
+          };
+        }
+        return base;
+      })
     : columns;
 
   const actionColumns = isMobile ? [] : [
@@ -180,7 +191,7 @@ export default function DataGridDemo({
     showEdit ? editColumn : null,
     showDelete ? deleteColumn : null,
   ].filter(Boolean);
-  const adjustedColumns = calculateColumnWidths(rows, processedColumns).concat(actionColumns);
+  const adjustedColumns = calculateColumnWidths(rows, processedColumns, isMobile).concat(actionColumns);
 
   return (
     <Box sx={{ width: '100%' }}>

@@ -7,14 +7,15 @@ const PAYMENT_TYPE_CONFIG = {
 };
 
 export const columns = [
-  { field: 'paymentDate', headerName: 'Fecha pago',        minWidth: 130 },
-  { field: 'supplier',    headerName: 'Proveedor',         minWidth: 150 },
-  { field: 'buyDate',     headerName: 'Fecha compra',      minWidth: 130 },
+  { field: 'paymentDate', headerName: 'Fecha pago',        minWidth: 130, hiddenOnMobile: true },
+  { field: 'supplier',    headerName: 'Proveedor',         minWidth: 150, mobileClickable: true },
+  { field: 'buyDate',     headerName: 'Fecha compra',      minWidth: 130, hiddenOnMobile: true },
   { field: 'amount',      headerName: 'Importe',           minWidth: 120 },
   {
     field: 'paymentType',
     headerName: 'Tipo pago',
     minWidth: 140,
+    hiddenOnMobile: true,
     renderCell: (params) => {
       const cfg = PAYMENT_TYPE_CONFIG[params.value] || { bg: '#f0f4f7', color: '#596064' };
       return (
@@ -34,5 +35,5 @@ export const columns = [
       );
     },
   },
-  { field: 'cheque', headerName: 'Cheque Nro.', minWidth: 120 },
+  { field: 'cheque', headerName: 'Cheque Nro.', minWidth: 120, hiddenOnMobile: true },
 ];

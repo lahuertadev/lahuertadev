@@ -2,18 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { clientUrl } from '../../../constants/urls';
-import { formatCuit } from '../../../utils/cuit';
+import { supplierUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
-import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
 import BusinessIcon from '@mui/icons-material/Business';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import PhoneIcon from '@mui/icons-material/Phone';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -39,41 +33,34 @@ const Field = ({ label, value }) => (
   </div>
 );
 
-const formatTelefono = (raw = '') => {
-  const digits = String(raw).replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-};
-
-const ClientDetail = () => {
+const SupplierDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
-  const [client, setClient] = useState(null);
+  const [supplier, setSupplier] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleDelete = async () => {
-    await axios.delete(`${clientUrl}${id}/`);
-    navigate('/client');
+    await axios.delete(`${supplierUrl}${id}/`);
+    navigate('/supplier');
   };
 
   useEffect(() => {
-    const fetchClient = async () => {
+    const fetchSupplier = async () => {
       try {
-        const response = await axios.get(`${clientUrl}${id}/`);
-        setClient(response.data);
+        const response = await axios.get(`${supplierUrl}${id}/`);
+        setSupplier(response.data);
       } catch (err) {
-        console.error('Error cargando cliente:', err);
+        console.error('Error cargando proveedor:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchClient();
+    if (id) fetchSupplier();
   }, [id]);
 
   if (loading) {
@@ -84,12 +71,12 @@ const ClientDetail = () => {
     );
   }
 
-  if (error || !client) {
+  if (error || !supplier) {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
-        <p className="text-sm text-red-500">Error al cargar el cliente.</p>
+        <p className="text-sm text-red-500">Error al cargar el proveedor.</p>
         <button
-          onClick={() => navigate('/client')}
+          onClick={() => navigate('/supplier')}
           className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-blue-lahuerta transition-colors"
         >
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
@@ -98,6 +85,8 @@ const ClientDetail = () => {
     );
   }
 
+  const cc = parseFloat(supplier.cuenta_corriente) || 0;
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
@@ -105,60 +94,33 @@ const ClientDetail = () => {
       <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
         <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
         <span className="text-xs">›</span>
-        <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+        <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/supplier')}>Proveedores</span>
         <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{client.razon_social}</span>
+        <span className="text-on-surface font-semibold">{supplier.nombre}</span>
       </nav>
 
-      {/* 1. Datos de la Empresa */}
-      <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
-        <Field label="CUIT" value={formatCuit(client.cuit)} />
-        <Field label="Razón Social" value={client.razon_social} />
-        <Field label="Nombre Fantasía" value={client.nombre_fantasia} />
+      {/* 1. Datos del proveedor */}
+      <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos del Proveedor">
+        <Field label="Nombre" value={supplier.nombre} />
+        <Field label="Nombre Fantasía" value={supplier.nombre_fantasia} />
+        <Field label="Teléfono" value={supplier.telefono} />
       </SectionCard>
 
-      {/* 2. Datos de Dirección */}
-      <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Datos de Dirección">
-        <Field label="Provincia" value={client.localidad?.municipio?.provincia?.nombre} />
-        <Field label="Municipio" value={client.localidad?.municipio?.nombre} />
-        <Field label="Localidad" value={client.localidad?.nombre} />
-        <Field label="Dirección" value={client.domicilio} />
+      {/* 2. Ubicación */}
+      <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Ubicación">
+        <Field label="Mercado" value={supplier.mercado?.descripcion} />
+        <Field label="Puesto" value={supplier.puesto} />
+        <Field label="Nave" value={supplier.nave} />
       </SectionCard>
 
-      {/* 3. Facturación */}
-      <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Facturación">
-        <Field label="Condición IVA" value={client.condicion_IVA?.descripcion} />
-        <Field label="Lista de Precios" value={client.lista_precios?.nombre} />
-      </SectionCard>
-
-      {/* 4. Cuenta Corriente */}
-      <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente" cols={2}>
+      {/* 3. Cuenta corriente */}
+      <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente" cols={1}>
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Saldo</span>
-          <span className={`text-sm font-semibold ${parseFloat(client.cuenta_corriente) < 0 ? 'text-green-600' : parseFloat(client.cuenta_corriente) > 0 ? 'text-red-500' : 'text-on-surface'}`}>
-            {formatCurrency(client.cuenta_corriente)}
+          <span className={`text-sm font-semibold ${cc > 0 ? 'text-red-500' : cc < 0 ? 'text-green-600' : 'text-on-surface'}`}>
+            {formatCurrency(supplier.cuenta_corriente)}
           </span>
-          <p className="mt-1 text-xs text-on-surface-muted">Positivo: el cliente tiene deuda. Negativo: el cliente tiene saldo a favor.</p>
-        </div>
-      </SectionCard>
-
-      {/* 5. Fecha de Inicio de Ventas */}
-      <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fecha de inicio de ventas" cols={2}>
-        <Field label="Fecha de inicio" value={formatDate(client.fecha_inicio_ventas)} />
-      </SectionCard>
-
-      {/* 6. Contacto */}
-      <SectionCard icon={<PhoneIcon sx={{ fontSize: 20 }} />} title="Contacto">
-        <Field label="Teléfono" value={formatTelefono(client.telefono)} />
-      </SectionCard>
-
-      {/* 7. Estado */}
-      <SectionCard icon={<VerifiedUserIcon sx={{ fontSize: 20 }} />} title="Estado" cols={2}>
-        <div className="flex flex-col gap-1">
-          <span className={labelCls}>Estado del cliente</span>
-          <span className={`inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${client.estado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-            {client.estado ? 'Activo' : 'Inactivo'}
-          </span>
+          <p className="mt-1 text-xs text-on-surface-muted">Positivo: La Huerta le debe al proveedor. Negativo: el proveedor tiene saldo a favor de La Huerta.</p>
         </div>
       </SectionCard>
 
@@ -176,15 +138,15 @@ const ClientDetail = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate(`/client/edit/${id}`)}
+                onClick={() => navigate(`/supplier/edit/${id}`)}
                 className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
               >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+                <EditIcon sx={{ fontSize: 16 }} /> Editar
               </button>
             </div>
             <button
               type="button"
-              onClick={() => navigate('/client')}
+              onClick={() => navigate('/supplier')}
               className="w-full py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center justify-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
@@ -194,17 +156,17 @@ const ClientDetail = () => {
           <div className="flex items-center justify-end gap-4">
             <button
               type="button"
-              onClick={() => navigate('/client')}
+              onClick={() => navigate('/supplier')}
               className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>
             <button
               type="button"
-              onClick={() => navigate(`/client/edit/${id}`)}
+              onClick={() => navigate(`/supplier/edit/${id}`)}
               className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
             >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+              <EditIcon sx={{ fontSize: 16 }} /> Editar proveedor
             </button>
           </div>
         )}
@@ -212,8 +174,8 @@ const ClientDetail = () => {
 
       <AlertDialog
         open={confirmOpen}
-        title="Eliminar cliente"
-        message={`¿Estás seguro que querés eliminar a ${client?.razon_social}? Esta acción no se puede deshacer.`}
+        title="Eliminar proveedor"
+        message={`¿Estás seguro que querés eliminar a ${supplier?.nombre}? Esta acción no se puede deshacer.`}
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />
@@ -222,4 +184,4 @@ const ClientDetail = () => {
   );
 };
 
-export default ClientDetail;
+export default SupplierDetail;

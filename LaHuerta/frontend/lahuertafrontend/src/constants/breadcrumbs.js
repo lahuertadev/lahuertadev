@@ -8,18 +8,20 @@
  * El último item no lleva `path` (es la página actual).
  */
 
-const HOME = { label: 'Home', path: '/' };
+export const HOME = { label: 'Inicio', path: '/' };
+export const PROVEEDORES = { label: 'Proveedores', path: '/supplier' };
 const CATALOGOS = { label: 'Catálogos' };
 
 export const breadcrumbsMap = {
   '/client':           [HOME, { label: 'Clientes' }],
   '/bill':             [HOME, { label: 'Facturación' }],
-  '/buy':              [HOME, { label: 'Compras' }],
+  '/buy':              [HOME, PROVEEDORES, { label: 'Compras' }],
   '/expense':          [HOME, { label: 'Gastos' }],
   '/client-payment':   [HOME, { label: 'Pagos de Clientes' }],
   '/product':          [HOME, { label: 'Productos' }],
   '/price-list':       [HOME, { label: 'Listas de Precios' }],
-  '/supplier':         [HOME, CATALOGOS, { label: 'Proveedores' }],
+  '/supplier':         [HOME, { label: 'Proveedores' }],
+  '/purchase-payment': [HOME, PROVEEDORES, { label: 'Pagos de Compras' }],
   '/market':           [HOME, CATALOGOS, { label: 'Mercados' }],
   '/condition-iva-type': [HOME, CATALOGOS, { label: 'Condición de IVA' }],
   '/category':         [HOME, CATALOGOS, { label: 'Categorías' }],

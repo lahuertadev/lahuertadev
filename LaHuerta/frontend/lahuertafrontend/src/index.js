@@ -23,15 +23,18 @@ import PriceListEdit from "./pages/lista_precios/form/PriceListEdit";
 import PriceListForm from "./pages/lista_precios/form/PriceListForm";
 import ClientPaymentList from "./pages/pago_cliente/list";
 import ClientPaymentForm from "./pages/pago_cliente/form/ClientPaymentForm";
+import ClientPaymentDetail from "./pages/pago_cliente/detail/ClientPaymentDetail";
 import ProductForm from "./pages/producto/form/productForm";
 import ProductsList from "./pages/producto/list";
 import ProductDetail from "./pages/producto/detail";  
 import SupplierList from "./pages/proveedor/list";
+import SupplierDetail from "./pages/proveedor/detail/SupplierDetail";
 import ProveedorForm from "./pages/proveedor/form/ProveedorForm";
 import MarketList from "./pages/mercado/list";
 import BankList from "./pages/banco";
 import CheckList from "./pages/cheque/list";
 import CheckForm from "./pages/cheque/form/CheckForm";
+import CheckDetail from "./pages/cheque/detail/CheckDetail";
 import OwnCheckList from "./pages/cheque_propio/list";
 import OwnCheckForm from "./pages/cheque_propio/form/OwnCheckForm";
 import MercadoForm from "./pages/mercado/form/MercadoForm";
@@ -41,8 +44,10 @@ import BillPrintView from "./pages/factura/print/PrintView";
 import InvoicePrintView from "./pages/factura/invoice-print/InvoicePrintView";
 import BuyList from "./pages/compra/list";
 import CompraForm from "./pages/compra/form/CompraForm";
+import CompraDetail from "./pages/compra/detail/CompraDetail";
 import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
+import PurchasePaymentDetail from "./pages/pago_compra/detail/PurchasePaymentDetail";
 import ClientReport from "./pages/reporte";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
@@ -179,6 +184,10 @@ const router = createBrowserRouter([
         element: <ClientPaymentForm />
       },
       {
+        path: 'client-payment/detail/:id',
+        element: <ClientPaymentDetail />
+      },
+      {
         path: 'supplier',
         element: <SupplierList />,
       },
@@ -189,6 +198,10 @@ const router = createBrowserRouter([
       {
         path: 'supplier/edit/:id',
         element: <ProveedorForm />,
+      },
+      {
+        path: 'supplier/detail/:id',
+        element: <SupplierDetail />,
       },
       {
         path: 'market',
@@ -235,12 +248,20 @@ const router = createBrowserRouter([
         element: <CompraForm />,
       },
       {
+        path: 'buy/detail/:id',
+        element: <CompraDetail />,
+      },
+      {
         path: 'purchase-payment',
         element: <PurchasePaymentList />,
       },
       {
         path: 'purchase-payment/create',
         element: <PurchasePaymentForm />,
+      },
+      {
+        path: 'purchase-payment/detail/:id',
+        element: <PurchasePaymentDetail />,
       },
       {
         path: 'bank',
@@ -257,6 +278,10 @@ const router = createBrowserRouter([
       {
         path: 'check/edit/:id',
         element: <CheckForm />,
+      },
+      {
+        path: 'check/detail/:id',
+        element: <CheckDetail />,
       },
       {
         path: 'own-check',

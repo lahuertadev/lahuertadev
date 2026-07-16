@@ -26,6 +26,7 @@ const data = {
     baseUrl: supplierUrl,
     createUrl: '/supplier/create',
     editUrl: '/supplier/edit',
+    detailUrl: '/supplier/detail',
   },
   columns: columns,
   mapData: mapSupplierData,
