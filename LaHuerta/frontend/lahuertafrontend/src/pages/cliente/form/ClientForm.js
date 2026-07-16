@@ -269,10 +269,10 @@ const ClientForm = () => {
           />
 
           {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+          <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
             <span className="text-xs">›</span>
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
             <span className="text-xs">›</span>
             <span className="text-on-surface font-semibold">{id ? 'Editar Cliente' : 'Nuevo Cliente'}</span>
           </nav>

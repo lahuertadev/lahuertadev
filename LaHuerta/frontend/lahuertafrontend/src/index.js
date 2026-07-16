@@ -37,6 +37,7 @@ import CheckForm from "./pages/cheque/form/CheckForm";
 import CheckDetail from "./pages/cheque/detail/CheckDetail";
 import OwnCheckList from "./pages/cheque_propio/list";
 import OwnCheckForm from "./pages/cheque_propio/form/OwnCheckForm";
+import OwnCheckDetail from "./pages/cheque_propio/detail/OwnCheckDetail";
 import MercadoForm from "./pages/mercado/form/MercadoForm";
 import BillList from "./pages/factura/list";
 import FacturaForm from "./pages/factura/form/FacturaForm";
@@ -294,6 +295,10 @@ const router = createBrowserRouter([
       {
         path: 'own-check/edit/:id',
         element: <OwnCheckForm />,
+      },
+      {
+        path: 'own-check/detail/:id',
+        element: <OwnCheckDetail />,
       },
       {
         path: 'report',
