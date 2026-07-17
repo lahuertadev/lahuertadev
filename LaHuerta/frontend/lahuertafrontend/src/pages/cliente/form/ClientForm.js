@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
-import { clientUrl, billingTypeUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
+import { clientUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -13,6 +13,58 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import PhoneIcon from '@mui/icons-material/Phone';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import AmountInput from '../../../components/AmountInput';
+
+// ── Utilidades ───────────────────────────────────────────────────────────────
+
+const formatTelefono = (raw = '') => {
+  const digits = raw.replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+};
+
+const formatCuit = (raw = '') => {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 10) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 10)}-${digits.slice(10)}`;
+};
+
+const BACKEND_TO_FORM_FIELD = {
+  cuit: 'cuit',
+  razon_social: 'businessName',
+  cuenta_corriente: 'checkingAccount',
+  telefono: 'phone',
+  domicilio: 'address',
+  nombre_fantasia: 'fantasyName',
+};
+
+const extractErrorMessage = (error) => {
+  const data = error?.response?.data;
+  if (!data) return 'Error al guardar. Verificá los datos e intentá de nuevo.';
+  if (typeof data === 'string') return data;
+  if (data.detail) return data.detail;
+  if (data.error) return data.error;
+  const fieldErrors = Object.values(data).flat().filter((v) => typeof v === 'string');
+  if (fieldErrors.length) return fieldErrors[0];
+  return 'Error al guardar. Verificá los datos e intentá de nuevo.';
+};
+
+const extractFieldErrors = (error) => {
+  const data = error?.response?.data;
+  if (!data || typeof data !== 'object') return {};
+  const result = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'detail' || key === 'error') continue;
+    const formField = BACKEND_TO_FORM_FIELD[key];
+    if (formField && Array.isArray(value) && value.length) {
+      result[formField] = value[0];
+    }
+  }
+  return result;
+};
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -42,7 +94,6 @@ const FieldError = ({ error, touched }) =>
 // ── Componente principal ──────────────────────────────────────────────────────
 const ClientForm = () => {
   const [selectOptions, setSelectOptions] = useState({
-    billingType: [],
     ivaCondition: [],
     provinces: [],
     cities: [],
@@ -58,13 +109,12 @@ const ClientForm = () => {
     city: null,
     district: null,
     address: '',
-    billingType: null,
     ivaCondition: null,
     priceList: null,
     phone: '',
     salesStartDate: null,
     state: true,
-    checkingAccount: 0,
+    checkingAccount: '',
   });
 
   const { id } = useParams();
@@ -72,9 +122,6 @@ const ClientForm = () => {
   const [toast, setToast] = useState({ open: false, message: '' });
 
   const loadInitialOptions = async () => {
-    const billingType = await loadOptions(billingTypeUrl, (data) =>
-      data.map((item) => ({ name: item.descripcion, value: item.id }))
-    );
     const ivaCondition = await loadOptions(ConditionIvaTypeUrl, (data) =>
       data.map((item) => ({ name: item.descripcion, value: item.id }))
     );
@@ -86,7 +133,7 @@ const ClientForm = () => {
     const priceLists = await loadOptions(priceListUrl, (data) =>
       data.map((item) => ({ name: item.nombre, value: item.id }))
     );
-    setSelectOptions({ billingType, ivaCondition, provinces, cities: [], districts: [], priceLists });
+    setSelectOptions({ ivaCondition, provinces, cities: [], districts: [], priceLists });
   };
 
   const loadCitiesByProvinceId = async (province) => {
@@ -134,7 +181,6 @@ const ClientForm = () => {
         city,
         district,
         address: data.domicilio,
-        billingType: { name: data.tipo_facturacion.descripcion, value: data.tipo_facturacion.id },
         ivaCondition: { name: data.condicion_IVA.descripcion, value: data.condicion_IVA.id },
         priceList: data.lista_precios ? { name: data.lista_precios.nombre, value: data.lista_precios.id } : null,
         phone: data.telefono,
@@ -150,7 +196,9 @@ const ClientForm = () => {
   const validationSchema = Yup.object({
     cuit: Yup.string().required('CUIT es obligatorio'),
     businessName: Yup.string().required('Razón Social es obligatoria'),
-    billingType: Yup.object().nullable().required('El Tipo de Facturación es obligatorio'),
+    province: Yup.object().nullable().required('La provincia es obligatoria'),
+    city: Yup.object().nullable().required('El municipio es obligatorio'),
+    district: Yup.object().nullable().required('La localidad es obligatoria'),
     ivaCondition: Yup.object().nullable().required('La Condición de IVA es obligatoria'),
     salesStartDate: Yup.string().nullable().required('Fecha de inicio de ventas es obligatoria'),
   });
@@ -168,17 +216,16 @@ const ClientForm = () => {
       },
     },
     domicilio: values.address,
-    tipo_facturacion: values.billingType?.value,
     condicion_IVA: values.ivaCondition?.value,
     lista_precios: values.priceList?.value || null,
     telefono: values.phone,
     fecha_inicio_ventas: values.salesStartDate,
     nombre_fantasia: values.fantasyName,
     estado: values.state,
-    cuenta_corriente: values.checkingAccount ?? 0,
+    cuenta_corriente: values.checkingAccount !== '' ? values.checkingAccount : '0',
   });
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async (values, { setFieldError, setFieldTouched }) => {
     try {
       const mappedValues = mapFormDataToBackend(values);
       if (id) {
@@ -189,8 +236,12 @@ const ClientForm = () => {
       navigate('/client');
     } catch (error) {
       console.error('Error enviando el formulario:', error);
-      const msg = error?.response?.data?.error || error?.response?.data?.detail || 'Error al guardar. Verificá que los datos no estén duplicados.';
-      setToast({ open: true, message: msg });
+      const fieldErrors = extractFieldErrors(error);
+      Object.entries(fieldErrors).forEach(([field, message]) => {
+        setFieldError(field, message);
+        setFieldTouched(field, true, false);
+      });
+      setToast({ open: true, message: extractErrorMessage(error) });
     }
   };
 
@@ -209,7 +260,7 @@ const ClientForm = () => {
       enableReinitialize
       onSubmit={handleSubmit}
     >
-      {({ values, errors, touched, handleChange, setFieldValue }) => (
+      {({ values, errors, touched, handleChange, setFieldValue, setFieldTouched, setValues, setTouched }) => (
         <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
           <Toast
             open={toast.open}
@@ -218,12 +269,12 @@ const ClientForm = () => {
           />
 
           {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Home</span>
+          <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
             <span className="text-xs">›</span>
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
             <span className="text-xs">›</span>
-            <span className="text-on-surface font-semibold">{id ? 'Editar' : 'Nuevo'}</span>
+            <span className="text-on-surface font-semibold">{id ? 'Editar Cliente' : 'Nuevo Cliente'}</span>
           </nav>
 
           {/* 1. Datos de la Empresa */}
@@ -232,8 +283,11 @@ const ClientForm = () => {
               <label className={labelCls}>CUIT</label>
               <input
                 name="cuit"
-                value={values.cuit}
-                onChange={handleChange}
+                value={formatCuit(values.cuit)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  setFieldValue('cuit', raw);
+                }}
                 placeholder="20-XXXXXXXX-X"
                 className={inputCls(touched.cuit && errors.cuit)}
               />
@@ -270,18 +324,18 @@ const ClientForm = () => {
                 value={values.province?.value || ''}
                 onChange={async (e) => {
                   const selected = selectOptions.provinces.find(o => String(o.value) === e.target.value) || null;
+                  setValues(prev => ({ ...prev, province: selected, city: null, district: null }));
+                  setTouched(prev => ({ ...prev, city: false, district: false }), false);
                   await loadCitiesByProvinceId(selected);
-                  setFieldValue('province', selected);
-                  setFieldValue('city', null);
-                  setFieldValue('district', null);
                 }}
-                className={inputCls(false)}
+                className={inputCls(touched.province && errors.province)}
               >
                 <option value="">Seleccionar...</option>
                 {selectOptions.provinces.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.name}</option>
                 ))}
               </select>
+              <FieldError error={errors.province} touched={touched.province} />
             </div>
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Municipio</label>
@@ -289,11 +343,11 @@ const ClientForm = () => {
                 value={values.city?.value || ''}
                 onChange={async (e) => {
                   const selected = selectOptions.cities.find(o => String(o.value) === e.target.value) || null;
+                  setValues(prev => ({ ...prev, city: selected, district: null }));
+                  setTouched(prev => ({ ...prev, district: false }), false);
                   await loadDistrictsByCityId(selected);
-                  setFieldValue('city', selected);
-                  setFieldValue('district', null);
                 }}
-                className={inputCls(false)}
+                className={inputCls(touched.city && errors.city)}
                 disabled={!selectOptions.cities.length}
               >
                 <option value="">Seleccionar...</option>
@@ -301,6 +355,7 @@ const ClientForm = () => {
                   <option key={opt.value} value={opt.value}>{opt.name}</option>
                 ))}
               </select>
+              <FieldError error={errors.city} touched={touched.city} />
             </div>
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Localidad</label>
@@ -310,7 +365,7 @@ const ClientForm = () => {
                   const selected = selectOptions.districts.find(o => String(o.value) === e.target.value) || null;
                   setFieldValue('district', selected);
                 }}
-                className={inputCls(false)}
+                className={inputCls(touched.district && errors.district)}
                 disabled={!selectOptions.districts.length}
               >
                 <option value="">Seleccionar...</option>
@@ -318,6 +373,7 @@ const ClientForm = () => {
                   <option key={opt.value} value={opt.value}>{opt.name}</option>
                 ))}
               </select>
+              <FieldError error={errors.district} touched={touched.district} />
             </div>
             <div className="flex flex-col gap-1 md:col-span-1">
               <label className={labelCls}>Dirección</label>
@@ -333,23 +389,6 @@ const ClientForm = () => {
 
           {/* 3. Datos de Facturación */}
           <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de Facturación">
-            <div className="flex flex-col gap-1">
-              <label className={labelCls}>Tipo de Facturación</label>
-              <select
-                value={values.billingType?.value || ''}
-                onChange={(e) => {
-                  const selected = selectOptions.billingType.find(o => String(o.value) === e.target.value) || null;
-                  setFieldValue('billingType', selected);
-                }}
-                className={inputCls(touched.billingType && errors.billingType)}
-              >
-                <option value="">Seleccionar...</option>
-                {selectOptions.billingType.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.name}</option>
-                ))}
-              </select>
-              <FieldError error={errors.billingType} touched={touched.billingType} />
-            </div>
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Condición de IVA</label>
               <select
@@ -385,7 +424,22 @@ const ClientForm = () => {
             </div>
           </SectionCard>
 
-          {/* 4. Fecha de inicio de ventas */}
+          {/* 4. Saldo de cuenta corriente */}
+          <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente" cols={2}>
+            <div className="flex flex-col gap-1">
+              <label className={labelCls}>Saldo inicial</label>
+              <AmountInput
+                name="checkingAccount"
+                value={values.checkingAccount}
+                onChange={(raw) => setFieldValue('checkingAccount', raw)}
+                hasError={touched.checkingAccount && Boolean(errors.checkingAccount)}
+                allowNegative
+              />
+              <p className="mt-1 text-xs text-on-surface-muted">Positivo: el cliente tiene deuda. Negativo: el cliente tiene saldo a favor.</p>
+            </div>
+          </SectionCard>
+
+          {/* 5. Fecha de Inicio de Ventas */}
           <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fecha de inicio de ventas">
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Fecha de inicio</label>
@@ -405,9 +459,12 @@ const ClientForm = () => {
               <input
                 name="phone"
                 type="tel"
-                value={values.phone}
-                onChange={handleChange}
-                placeholder="+54 11 XXXX-XXXX"
+                value={formatTelefono(values.phone)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setFieldValue('phone', raw);
+                }}
+                placeholder="11-XXXX-XXXX"
                 className={inputCls(false)}
               />
             </div>
@@ -430,11 +487,11 @@ const ClientForm = () => {
           </SectionCard>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border-subtle">
             <button
               type="button"
               onClick={() => navigate('/client')}
-              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted hover:bg-surface-low rounded-lg transition-colors"
+              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
             >
               Cancelar
             </button>

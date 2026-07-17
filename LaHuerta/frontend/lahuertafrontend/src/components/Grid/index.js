@@ -2,6 +2,7 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
 import { DataGrid } from '@mui/x-data-grid';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import SearchIcon from '@mui/icons-material/Search';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -28,7 +29,11 @@ import RoundedCheckbox from '../RoundedCheckbox';
 // contra el contenido más largo. El mayor determina el mínimo.
 // Se aplica a todas las columnas sin ancho fijo (width), tanto si tienen flex
 // explícito como si no, para evitar que se achiquen por debajo del texto.
-function calculateColumnWidths(rows, columns) {
+function calculateColumnWidths(rows, columns, isMobile = false) {
+  const contentCharWidth = isMobile ? 7 : 9;
+  const headerCharWidth = 9; // headers siempre en uppercase con letter-spacing
+  const padding = isMobile ? 8 : 24;
+
   return columns.map((column) => {
     // Columnas con ancho fijo: no tocar
     if (column.width != null) return column;
@@ -37,18 +42,19 @@ function calculateColumnWidths(rows, columns) {
     const contentLengths = rows.length
       ? rows.map((row) => (row[column.field] != null ? String(row[column.field]).length : 0))
       : [0];
-    const maxContentLength = Math.max(titleLength, ...contentLengths);
-    const charWidth = 9;  // 9px/char cubre uppercase + letter-spacing del header
-    const padding = 24;   // 12px a cada lado, igual que el padding '0 12px' del header en el sx
-    const minWidth = Math.max(maxContentLength * charWidth + padding, column.minWidth || 80);
+    const maxContentLength = Math.max(...contentLengths);
+    const minWidthFloor = column.minWidth || (isMobile ? 60 : 80);
+    const minWidth = Math.max(
+      titleLength * headerCharWidth + padding,
+      maxContentLength * contentCharWidth + padding,
+      minWidthFloor
+    );
 
     if (column.flex != null) {
-      // Tiene flex explícito: agregar minWidth calculado, mantener el flex
       return { ...column, minWidth };
     }
 
-    // Sin flex ni width: calcular ambos (peso proporcional al contenido)
-    return { ...column, minWidth, flex: minWidth };
+    return { ...column, minWidth, flex: isMobile ? 1 : minWidth };
   });
 }
 
@@ -80,11 +86,15 @@ export default function DataGridDemo({
   multiSelect = true,
   pageSize = 10,
 }) {
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const columnVisibilityModel = {};
+  const actionColWidth = isMobile ? 48 : 120;
+
   const detailColumn = onDetail
     ? {
         field: 'detail',
         headerName: 'Detalle',
-        width: 120,
+        width: actionColWidth,
         sortable: false,
         headerAlign: 'center',
         align: 'center',
@@ -106,7 +116,7 @@ export default function DataGridDemo({
   const editColumn = {
     field: 'edit',
     headerName: 'Editar',
-    width: 120,
+    width: actionColWidth,
     sortable: false,
     headerAlign: 'center',
     align: 'center',
@@ -130,7 +140,7 @@ export default function DataGridDemo({
   const deleteColumn = {
     field: 'delete',
     headerName: 'Eliminar',
-    width: 120,
+    width: actionColWidth,
     sortable: false,
     headerAlign: 'center',
     align: 'center',
@@ -151,12 +161,23 @@ export default function DataGridDemo({
     },
   };
 
-  const actionColumns = [
+  const processedColumns = isMobile
+    ? columns
+        .filter(col => !col.hiddenOnMobile)
+        .map(col => {
+          const base = col.mobileHeaderName
+            ? { ...col, headerName: col.mobileHeaderName, sortable: false }
+            : { ...col, sortable: false };
+          return { ...base, flex: 1, minWidth: undefined };
+        })
+    : columns;
+
+  const actionColumns = isMobile ? [] : [
     detailColumn,
     showEdit ? editColumn : null,
     showDelete ? deleteColumn : null,
   ].filter(Boolean);
-  const adjustedColumns = calculateColumnWidths(rows, columns).concat(actionColumns);
+  const adjustedColumns = calculateColumnWidths(rows, processedColumns, isMobile).concat(actionColumns);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -167,9 +188,11 @@ export default function DataGridDemo({
           pagination: { paginationModel: { pageSize } },
         }}
         pageSizeOptions={[10, 25, 50]}
-        checkboxSelection={multiSelect}
+        columnVisibilityModel={columnVisibilityModel}
+        checkboxSelection={multiSelect && !isMobile}
         isRowSelectable={isRowSelectable ? (params) => isRowSelectable(params.row) : undefined}
         onRowSelectionModelChange={(sel) => onSelectionChange?.(sel)}
+        onRowClick={isMobile && onDetail ? (params) => onDetail(params.row.id) : undefined}
         disableRowSelectionOnClick
         disableColumnMenu
         autoHeight
@@ -204,6 +227,7 @@ export default function DataGridDemo({
 
           // ── Filas ──────────────────────────────────────────────
           '& .MuiDataGrid-row': {
+            cursor: isMobile && onDetail ? 'pointer' : 'default',
             '&:hover': { backgroundColor: '#f0f4f7' },
             '&.Mui-selected': {
               backgroundColor: 'rgba(93,137,200,0.05)',
@@ -215,6 +239,13 @@ export default function DataGridDemo({
             color: '#2c3437',
             borderBottom: '1px solid #e3e9ed',
             '&:focus, &:focus-within': { outline: 'none' },
+          },
+          '& .MuiDataGrid-cell--textCenter': {
+            justifyContent: 'center !important',
+          },
+          '& .MuiDataGrid-cell--textCenter .MuiDataGrid-cellContent': {
+            textAlign: 'center',
+            width: '100%',
           },
 
           // ── Checkbox ───────────────────────────────────────────

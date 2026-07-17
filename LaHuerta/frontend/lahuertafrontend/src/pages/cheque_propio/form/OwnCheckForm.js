@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
 import { ownCheckUrl, bankUrl } from '../../../constants/urls';
+import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
@@ -135,12 +136,14 @@ const OwnCheckForm = () => {
           />
 
           {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Home</span>
+          <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
             <span className="text-xs">›</span>
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
             <span className="text-xs">›</span>
-            <span className="text-on-surface font-semibold">{id ? 'Editar cheque emitido' : 'Nuevo cheque emitido'}</span>
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
+            <span className="text-xs">›</span>
+            <span className="text-on-surface font-semibold">{id ? 'Editar cheque' : 'Nuevo cheque'}</span>
           </nav>
 
           {/* 1. Datos del cheque */}

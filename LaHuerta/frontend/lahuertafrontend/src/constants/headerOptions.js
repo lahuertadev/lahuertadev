@@ -5,6 +5,7 @@ export const headerOptions = [
   {
     text: 'Clientes',
     icon: <FaUser />,
+    path: '/client',
     children: [
       { text: 'Clientes', icon: <FaUser />, path: '/client' },
       { text: 'Facturación', icon: <FaReceipt />, path: '/bill' },

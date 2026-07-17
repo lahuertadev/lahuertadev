@@ -11,13 +11,11 @@ from .serializers import (
 from .repositories import ClientRepository
 from .interfaces import IClientRepository
 from localidad.services import DistrictService
-from .exceptions import (
-    ClientNotFoundException,
-    CuitAlreadyExistsException,
-    BusinessNameAlreadyExistsException,
-)
+from .exceptions import ClientNotFoundException
 from lista_precios_producto.models import ListaPreciosProducto
 from lista_precios_producto.serializers import PriceListProductSerializer
+from factura.models import Factura
+from pago_cliente.models import PagoCliente
 from django.db import IntegrityError
 
 
@@ -135,11 +133,11 @@ class ClientViewSet(ViewSet):
         Actualiza un cliente. Busca primero; si no existe, 404.
         El objeto encontrado se pasa al repositorio sin segunda búsqueda.
         '''
-        client = self.client_repository.get_client_by_id(pk)
-        if not client:
-            raise ClientNotFoundException('Cliente no encontrado.')
-    
         try:
+            client = self.client_repository.get_client_by_id(pk)
+            if not client:
+                raise ClientNotFoundException('Cliente no encontrado.')
+
             data, district = self._resolve_localidad(dict(request.data))
             if isinstance(request.data.get('localidad'), dict) and not district:
                 return Response(
@@ -162,12 +160,6 @@ class ClientViewSet(ViewSet):
         except ClientNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except CuitAlreadyExistsException as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        except BusinessNameAlreadyExistsException as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
         except IntegrityError:
             return Response({'detail': 'El cuit o razón social ya se encuentra registrado.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -181,11 +173,11 @@ class ClientViewSet(ViewSet):
         '''
         Actualiza parcialmente un cliente.
         '''
-        client = self.client_repository.get_client_by_id(pk)
-        if not client:
-            raise ClientNotFoundException('Cliente no encontrado.')
-        
         try:
+            client = self.client_repository.get_client_by_id(pk)
+            if not client:
+                raise ClientNotFoundException('Cliente no encontrado.')
+
             data, district = self._resolve_localidad(request.data.copy())
 
             serializer = ClientUpdateSerializer(client, data=data, partial=True)
@@ -200,16 +192,10 @@ class ClientViewSet(ViewSet):
         
         except ClientNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        
-        except CuitAlreadyExistsException as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-        except BusinessNameAlreadyExistsException as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         except IntegrityError:
             return Response({'detail': 'El cuit o razón social ya se encuentra registrado.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         except Exception:
             return Response(
                 {'detail': 'Ocurrió un error al actualizar el cliente.'},
@@ -219,11 +205,17 @@ class ClientViewSet(ViewSet):
     def destroy(self, request, pk=None):
         '''
         Elimina un cliente. Busca primero; si no existe, 404.
-        El objeto encontrado se pasa directamente al repositorio.
+        Bloquea la eliminación si el cliente tiene facturas o pagos asociados.
         '''
         client = self.client_repository.get_client_by_id(pk)
         if not client:
             return Response({'detail': 'Cliente no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if Factura.objects.filter(cliente=client).exists() or PagoCliente.objects.filter(cliente=client).exists():
+            return Response(
+                {'detail': 'No se puede eliminar el cliente porque tiene facturas o pagos asociados. Podés marcarlo como inactivo desde la edición.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             self.client_repository.delete_client(client)

@@ -12,7 +12,10 @@ class ReportQueryParamsSerializer(serializers.Serializer):
 
 class KpiSerializer(serializers.Serializer):
     total_billed = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_invoiced = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_debit_notes = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_credited = serializers.DecimalField(max_digits=12, decimal_places=2)
     pending_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
     account_balance = serializers.DecimalField(max_digits=12, decimal_places=2)
 
@@ -21,6 +24,8 @@ class ChartEntrySerializer(serializers.Serializer):
     label = serializers.CharField()
     billed = serializers.DecimalField(max_digits=12, decimal_places=2)
     paid = serializers.DecimalField(max_digits=12, decimal_places=2)
+    credited = serializers.DecimalField(max_digits=12, decimal_places=2)
+    settled = serializers.DecimalField(max_digits=12, decimal_places=2)
 
 
 class ClientReportResponseSerializer(serializers.Serializer):
@@ -32,3 +37,4 @@ class ClientReportResponseSerializer(serializers.Serializer):
     chart = ChartEntrySerializer(many=True)
     bills = BillResponseSerializer(many=True)
     payments = ClientPaymentResponseSerializer(many=True)
+    credit_notes = BillResponseSerializer(many=True)

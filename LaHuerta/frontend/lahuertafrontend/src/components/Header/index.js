@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { styled, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Box from '@mui/material/Box';
 import MuiDrawer from '@mui/material/Drawer';
 import MuiAppBar from '@mui/material/AppBar';
@@ -135,6 +136,7 @@ const isPathActive = (path, currentPath) => {
 
 export default function MiniDrawer({title, menuOptions}) {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
   const [open, setOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -211,10 +213,134 @@ export default function MiniDrawer({title, menuOptions}) {
     }
   };
 
+  const drawerMenuContent = (
+    <>
+      <DrawerHeader>
+        <IconButton onClick={handleDrawerClose} sx={{ color: '#596064' }}>
+          {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        </IconButton>
+      </DrawerHeader>
+      <Divider />
+      <List>
+        {menuOptions.map((item) => {
+          const isGroup = Array.isArray(item.children) && item.children.length > 0;
+          const isGroupOpen = Boolean(openGroups[item.text]);
+          const groupHasActiveChild = isGroup && item.children.some(c => isPathActive(c.path, location.pathname));
+          const itemActive = !isGroup && isPathActive(item.path, location.pathname);
+
+          const itemSx = (active) => ({
+            minHeight: 50,
+            px: 1.5,
+            mx: 1,
+            borderRadius: '8px',
+            color: active ? BLUE : '#596064',
+            backgroundColor: active ? `rgba(74,123,196,0.10)` : 'transparent',
+            '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE },
+            justifyContent: open ? 'initial' : 'center',
+          });
+
+          if (isGroup) {
+            const groupClickHandler = item.path
+              ? () => handleNavigate(item.path)
+              : () => toggleGroup(item.text);
+
+            return (
+              <React.Fragment key={item.text}>
+                <ListItem disablePadding sx={{ display: 'block' }}>
+                  <ListItemButton
+                    onClick={groupClickHandler}
+                    sx={itemSx(groupHasActiveChild)}
+                  >
+                    <ListItemIcon
+                      sx={[
+                        { minWidth: 0, justifyContent: 'center', color: 'inherit' },
+                        open ? { mr: 3 } : { mr: 'auto' },
+                      ]}
+                    >
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={item.text}
+                      primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
+                      sx={[open ? { opacity: 1 } : { opacity: 0 }]}
+                    />
+                    {open ? (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); toggleGroup(item.text); }}
+                        sx={{ color: 'inherit', p: 0.5 }}
+                      >
+                        {isGroupOpen ? <ExpandLess /> : <ExpandMore />}
+                      </IconButton>
+                    ) : null}
+                  </ListItemButton>
+                </ListItem>
+
+                <Collapse in={isGroupOpen && open} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding sx={{ ml: 1, pl: 1, borderLeft: '1px solid rgba(74,123,196,0.15)' }}>
+                    {item.children.map((child) => {
+                      const childActive = isPathActive(child.path, location.pathname);
+                      return (
+                        <ListItem key={child.text} disablePadding sx={{ display: 'block' }}>
+                          <ListItemButton
+                            onClick={() => handleNavigate(child.path)}
+                            sx={{
+                              minHeight: 40,
+                              pl: 3,
+                              pr: 2,
+                              mx: 1,
+                              borderRadius: '8px',
+                              color: childActive ? BLUE : '#596064',
+                              backgroundColor: childActive ? 'rgba(74,123,196,0.06)' : 'transparent',
+                              fontWeight: childActive ? 600 : 400,
+                              '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE },
+                            }}
+                          >
+                            <ListItemText
+                              primary={child.text}
+                              primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: childActive ? 600 : 400 }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            );
+          }
+
+          return (
+            <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
+              <ListItemButton
+                onClick={() => handleNavigate(item.path)}
+                sx={itemSx(itemActive)}
+              >
+                <ListItemIcon
+                  sx={[
+                    { minWidth: 0, justifyContent: 'center', color: 'inherit' },
+                    open ? { mr: 3 } : { mr: 'auto' },
+                  ]}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
+                  sx={[open ? { opacity: 1 } : { opacity: 0 }]}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </>
+  );
+
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar position="fixed" open={open}>
+      <AppBar position="fixed" open={!isMobile && open}>
         <Toolbar>
           <IconButton
             aria-label="open drawer"
@@ -286,115 +412,21 @@ export default function MiniDrawer({title, menuOptions}) {
           </Menu>
         </Toolbar>
       </AppBar>
-      <Drawer variant="permanent" open={open}>
-        <DrawerHeader>
-          <IconButton onClick={handleDrawerClose} sx={{ color: '#596064' }}>
-            {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
-          {menuOptions.map((item) => {
-            const isGroup = Array.isArray(item.children) && item.children.length > 0;
-            const isGroupOpen = Boolean(openGroups[item.text]);
-            const groupHasActiveChild = isGroup && item.children.some(c => isPathActive(c.path, location.pathname));
-            const itemActive = !isGroup && isPathActive(item.path, location.pathname);
-
-            const itemSx = (active) => ({
-              minHeight: 50,
-              px: 1.5,
-              mx: 1,
-              borderRadius: '8px',
-              color: active ? BLUE : '#596064',
-              backgroundColor: active ? `rgba(74,123,196,0.10)` : 'transparent',
-              '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE },
-              justifyContent: open ? 'initial' : 'center',
-            });
-
-            if (isGroup) {
-              return (
-                <React.Fragment key={item.text}>
-                  <ListItem disablePadding sx={{ display: 'block' }}>
-                    <ListItemButton
-                      onClick={() => toggleGroup(item.text)}
-                      sx={itemSx(groupHasActiveChild)}
-                    >
-                      <ListItemIcon
-                        sx={[
-                          { minWidth: 0, justifyContent: 'center', color: 'inherit' },
-                          open ? { mr: 3 } : { mr: 'auto' },
-                        ]}
-                      >
-                        {item.icon}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={item.text}
-                        primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                        sx={[open ? { opacity: 1 } : { opacity: 0 }]}
-                      />
-                      {open ? (isGroupOpen ? <ExpandLess sx={{ color: 'inherit' }} /> : <ExpandMore sx={{ color: 'inherit' }} />) : null}
-                    </ListItemButton>
-                  </ListItem>
-
-                  <Collapse in={isGroupOpen && open} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding sx={{ ml: 1, pl: 1, borderLeft: '1px solid rgba(74,123,196,0.15)' }}>
-                      {item.children.map((child) => {
-                        const childActive = isPathActive(child.path, location.pathname);
-                        return (
-                          <ListItem key={child.text} disablePadding sx={{ display: 'block' }}>
-                            <ListItemButton
-                              onClick={() => handleNavigate(child.path)}
-                              sx={{
-                                minHeight: 40,
-                                pl: 3,
-                                pr: 2,
-                                mx: 1,
-                                borderRadius: '8px',
-                                color: childActive ? BLUE : '#596064',
-                                backgroundColor: childActive ? 'rgba(74,123,196,0.06)' : 'transparent',
-                                fontWeight: childActive ? 600 : 400,
-                                '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE },
-                              }}
-                            >
-                              <ListItemText
-                                primary={child.text}
-                                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: childActive ? 600 : 400 }}
-                              />
-                            </ListItemButton>
-                          </ListItem>
-                        );
-                      })}
-                    </List>
-                  </Collapse>
-                </React.Fragment>
-              );
-            }
-
-            return (
-              <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
-                <ListItemButton
-                  onClick={() => handleNavigate(item.path)}
-                  sx={itemSx(itemActive)}
-                >
-                  <ListItemIcon
-                    sx={[
-                      { minWidth: 0, justifyContent: 'center', color: 'inherit' },
-                      open ? { mr: 3 } : { mr: 'auto' },
-                    ]}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.text}
-                    primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                    sx={[open ? { opacity: 1 } : { opacity: 0 }]}
-                  />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
-      </Drawer>
+      {isMobile ? (
+        <MuiDrawer
+          variant="temporary"
+          open={open}
+          onClose={handleDrawerClose}
+          ModalProps={{ keepMounted: true }}
+          sx={{ '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box', backgroundColor: '#f0f4f7', borderRight: '1px solid #e3e9ed' } }}
+        >
+          {drawerMenuContent}
+        </MuiDrawer>
+      ) : (
+        <Drawer variant="permanent" open={open}>
+          {drawerMenuContent}
+        </Drawer>
+      )}
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />
       </Box>

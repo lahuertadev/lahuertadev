@@ -18,12 +18,13 @@ const getBillTypeConfig = (label = '') => {
 };
 
 export const columns = [
-  { field: 'number',   headerName: 'N° Comprobante', flex: 1, align: 'center', headerAlign: 'center' },
-  { field: 'date',     headerName: 'Fecha',          flex: 1, align: 'center', headerAlign: 'center' },
+  { field: 'number',   headerName: 'N° Comprobante', flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'date',     headerName: 'Fecha',          flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'client',   headerName: 'Cliente',        flex: 2, align: 'center', headerAlign: 'center' },
   {
     field: 'billType',
     headerName: 'Tipo',
+    hiddenOnMobile: true,
     flex: 1,
     align: 'center',
     headerAlign: 'center',

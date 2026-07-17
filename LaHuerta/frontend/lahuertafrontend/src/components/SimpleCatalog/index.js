@@ -6,6 +6,7 @@ import AlertDialog from '../DialogAlert';
 import RoundedCheckbox from '../RoundedCheckbox';
 import Toast from '../Toast';
 import { useNavigate } from 'react-router-dom';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -35,6 +36,8 @@ const SimpleCatalog = ({
   multiSelect = true,
 }) => {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const formRef = React.useRef(null);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -81,7 +84,10 @@ const SimpleCatalog = ({
     }
   };
 
-  const handleEdit = (id) => setEditingId(id);
+  const handleEdit = (id) => {
+    setEditingId(id);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
+  };
 
   const handleCancel = (resetForm) => {
     setEditingId(null);
@@ -115,6 +121,7 @@ const SimpleCatalog = ({
     } finally {
       setOpenConfirmDialog(false);
       setItemToDelete(null);
+      setEditingId(null);
     }
   };
 
@@ -155,7 +162,7 @@ const SimpleCatalog = ({
       )}
 
       {/* Card: formulario */}
-      <div className="bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle">
+      <div ref={formRef} className="bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle">
         <h2 className="text-lg font-semibold text-on-surface mb-4">
           {editingId ? `Editar ${title}` : `Nueva ${title}`}
         </h2>
@@ -171,38 +178,80 @@ const SimpleCatalog = ({
                 <label className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1 group-focus-within:text-blue-lahuerta transition-colors">
                   {fieldLabel}
                 </label>
-                <div className="flex gap-3">
-                  <input
-                    name={fieldName}
-                    type="text"
-                    value={values[fieldName]}
-                    onChange={handleChange}
-                    placeholder={placeholder}
-                    className={`flex-1 h-10 bg-surface-low px-4 rounded-lg border focus:outline-none focus:ring-2 transition-all text-sm text-on-surface placeholder:text-gray-400 ${
-                      touched[fieldName] && errors[fieldName]
-                        ? 'border-red-400 ring-2 ring-red-100 focus:border-red-400 focus:ring-red-100'
-                        : 'border-transparent focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
-                    }`}
-                  />
-                  <div className="flex gap-2 shrink-0">
+                {isMobile ? (
+                  <div className="flex flex-col gap-3">
+                    <input
+                      name={fieldName}
+                      type="text"
+                      value={values[fieldName]}
+                      onChange={handleChange}
+                      placeholder={placeholder}
+                      className={`w-full h-11 bg-surface-low px-4 rounded-lg border focus:outline-none focus:ring-2 transition-all text-sm text-on-surface placeholder:text-gray-400 ${
+                        touched[fieldName] && errors[fieldName]
+                          ? 'border-red-400 ring-2 ring-red-100 focus:border-red-400 focus:ring-red-100'
+                          : 'border-transparent focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+                      }`}
+                    />
                     <button
                       type="submit"
-                      className="h-10 flex items-center gap-2 bg-blue-lahuerta text-white px-6 rounded-lg font-semibold text-sm hover:bg-blue-lahuerta/90 active:scale-95 transition-all shadow-sm"
+                      className="w-full h-11 flex items-center justify-center gap-2 bg-blue-lahuerta text-white rounded-lg font-semibold text-sm hover:bg-blue-lahuerta/90 active:scale-95 transition-all shadow-sm"
                     >
-                      <AddIcon fontSize="small" />
+                      {!editingId && <AddIcon fontSize="small" />}
                       {editingId ? 'Actualizar' : 'Agregar'}
                     </button>
                     {editingId && (
-                      <button
-                        type="button"
-                        onClick={() => handleCancel(resetForm)}
-                        className="h-10 px-5 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:bg-surface-low transition-all"
-                      >
-                        Cancelar
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleCancel(resetForm)}
+                          className="flex-1 h-11 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:bg-surface-low transition-all"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setItemToDelete(editingId); setOpenConfirmDialog(true); }}
+                          className="flex-1 h-11 rounded-lg border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-all"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     )}
                   </div>
-                </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <input
+                      name={fieldName}
+                      type="text"
+                      value={values[fieldName]}
+                      onChange={handleChange}
+                      placeholder={placeholder}
+                      className={`flex-1 h-10 bg-surface-low px-4 rounded-lg border focus:outline-none focus:ring-2 transition-all text-sm text-on-surface placeholder:text-gray-400 ${
+                        touched[fieldName] && errors[fieldName]
+                          ? 'border-red-400 ring-2 ring-red-100 focus:border-red-400 focus:ring-red-100'
+                          : 'border-transparent focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+                      }`}
+                    />
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="submit"
+                        className="h-10 flex items-center gap-2 bg-blue-lahuerta text-white px-6 rounded-lg font-semibold text-sm hover:bg-blue-lahuerta/90 active:scale-95 transition-all shadow-sm"
+                      >
+                        {!editingId && <AddIcon fontSize="small" />}
+                        {editingId ? 'Actualizar' : 'Agregar'}
+                      </button>
+                      {editingId && (
+                        <button
+                          type="button"
+                          onClick={() => handleCancel(resetForm)}
+                          className="h-10 px-5 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:bg-surface-low transition-all"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {touched[fieldName] && errors[fieldName] && (
                   <p className="mt-1 text-xs text-red-500">{errors[fieldName]}</p>
                 )}
@@ -227,7 +276,7 @@ const SimpleCatalog = ({
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-surface-low/50">
-                  {multiSelect && (
+                  {multiSelect && !isMobile && (
                     <th className="px-4 py-4 w-10">
                       <RoundedCheckbox
                         checked={selectableRows.length > 0 && selectedIds.length === selectableRows.length}
@@ -236,24 +285,29 @@ const SimpleCatalog = ({
                       />
                     </th>
                   )}
-                  <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">
+                  <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center">
                     {fieldLabel}
                   </th>
-                  <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center w-24">
-                    Editar
-                  </th>
-                  <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center w-24">
-                    Eliminar
-                  </th>
+                  {!isMobile && (
+                    <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center w-24">
+                      Editar
+                    </th>
+                  )}
+                  {!isMobile && (
+                    <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center w-24">
+                      Eliminar
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-subtle">
                 {rows.map(row => (
                   <tr
                     key={row.id}
-                    className={`hover:bg-surface-low transition-colors duration-150 ${multiSelect && selectedIds.includes(row.id) ? 'bg-blue-lahuerta/5' : ''}`}
+                    onClick={isMobile && !row.isSystem ? () => handleEdit(row.id) : undefined}
+                    className={`hover:bg-surface-low transition-colors duration-150 ${isMobile && !row.isSystem ? 'cursor-pointer' : ''} ${multiSelect && selectedIds.includes(row.id) ? 'bg-blue-lahuerta/5' : ''}`}
                   >
-                    {multiSelect && (
+                    {multiSelect && !isMobile && (
                       <td className="px-4 py-4 w-10">
                         <RoundedCheckbox
                           checked={selectedIds.includes(row.id)}
@@ -262,29 +316,33 @@ const SimpleCatalog = ({
                         />
                       </td>
                     )}
-                    <td className="px-6 py-4 text-sm text-on-surface">{row[fieldName]}</td>
-                    <td className="px-6 py-4 text-center">
-                      {!row.isSystem && (
-                        <button
-                          onClick={() => handleEdit(row.id)}
-                          className="p-2 text-on-surface-muted hover:text-blue-lahuerta hover:bg-blue-lahuerta/10 rounded-lg transition-all"
-                          title="Editar"
-                        >
-                          <EditIcon fontSize="small" />
-                        </button>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {!row.isSystem && (
-                        <button
-                          onClick={() => { setItemToDelete(row.id); setOpenConfirmDialog(true); }}
-                          className="p-2 text-on-surface-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          title="Eliminar"
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </button>
-                      )}
-                    </td>
+                    <td className="px-6 py-4 text-sm text-on-surface text-center">{row[fieldName]}</td>
+                    {!isMobile && (
+                      <td className="px-6 py-4 text-center">
+                        {!row.isSystem && (
+                          <button
+                            onClick={() => handleEdit(row.id)}
+                            className="p-2 text-on-surface-muted hover:text-blue-lahuerta hover:bg-blue-lahuerta/10 rounded-lg transition-all"
+                            title="Editar"
+                          >
+                            <EditIcon fontSize="small" />
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    {!isMobile && (
+                      <td className="px-6 py-4 text-center">
+                        {!row.isSystem && (
+                          <button
+                            onClick={() => { setItemToDelete(row.id); setOpenConfirmDialog(true); }}
+                            className="p-2 text-on-surface-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            title="Eliminar"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {rows.length === 0 && (

@@ -13,8 +13,8 @@ const mapPriceListData = (data) => {
 };
 
 const columns = [
-  { field: 'titulo', headerName: 'Título' },
-  { field: 'fecha_ultima_actualizacion', headerName: 'Última Actualización' },
+  { field: 'titulo', headerName: 'Título', flex: 1, align: 'center', headerAlign: 'center' },
+  { field: 'fecha_ultima_actualizacion', headerName: 'Última Actualización', flex: 1, align: 'center', headerAlign: 'center', mobileHeaderName: 'Ult. Actualización' },
 ];
 
 const data = {
@@ -30,7 +30,7 @@ const data = {
   filtersConfig: [
     { label: 'Nombre', name: 'nombre', type: 'text' },
   ],
-  newLabelText: 'Nueva lista de precios', 
+  newLabelText: 'Nueva lista',
 };
 
 const PriceListList = () => {

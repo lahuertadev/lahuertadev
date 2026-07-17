@@ -4,7 +4,6 @@ from decimal import Decimal
 from provincia.models import Provincia
 from municipio.models import Municipio
 from localidad.models import Localidad
-from tipo_facturacion.models import TipoFacturacion
 from tipo_condicion_iva.models import TipoCondicionIva
 from tipo_pago.models import TipoPago
 from cliente.models import Cliente
@@ -18,7 +17,6 @@ class TestClientPaymentRepository:
         provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
         municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
         localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-        tipo_fact = TipoFacturacion.objects.create(descripcion='Factura A')
         condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
         self.tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
         self.cliente = Cliente.objects.create(
@@ -27,7 +25,6 @@ class TestClientPaymentRepository:
             cuenta_corriente=Decimal('10000.00'),
             telefono='1122334455',
             localidad=localidad,
-            tipo_facturacion=tipo_fact,
             condicion_IVA=condicion_iva,
         )
 
@@ -52,7 +49,6 @@ class TestClientPaymentRepository:
 
     def test_get_all_filter_by_client_id(self):
         localidad = Localidad.objects.get(id='0642701009')
-        tipo_fact = TipoFacturacion.objects.first()
         condicion_iva = TipoCondicionIva.objects.first()
         otro_cliente = Cliente.objects.create(
             cuit='27987654321',
@@ -60,7 +56,6 @@ class TestClientPaymentRepository:
             cuenta_corriente=Decimal('0.00'),
             telefono='9988776655',
             localidad=localidad,
-            tipo_facturacion=tipo_fact,
             condicion_IVA=condicion_iva,
         )
         self._make_payment(cliente=self.cliente)

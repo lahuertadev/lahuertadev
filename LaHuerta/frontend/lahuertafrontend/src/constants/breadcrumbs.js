@@ -8,21 +8,26 @@
  * El último item no lleva `path` (es la página actual).
  */
 
-const HOME = { label: 'Home', path: '/' };
+export const HOME = { label: 'Inicio', path: '/' };
+export const PROVEEDORES = { label: 'Proveedores', path: '/supplier' };
+export const FINANZAS = { label: 'Finanzas' };
 const CATALOGOS = { label: 'Catálogos' };
 
 export const breadcrumbsMap = {
+  '/report':           [HOME, { label: 'Reportes' }],
   '/client':           [HOME, { label: 'Clientes' }],
   '/bill':             [HOME, { label: 'Facturación' }],
-  '/buy':              [HOME, { label: 'Compras' }],
-  '/expense':          [HOME, { label: 'Gastos' }],
+  '/buy':              [HOME, PROVEEDORES, { label: 'Compras' }],
+  '/expense':          [HOME, FINANZAS, { label: 'Gastos' }],
   '/client-payment':   [HOME, { label: 'Pagos de Clientes' }],
-  '/product':          [HOME, { label: 'Productos' }],
-  '/price-list':       [HOME, { label: 'Listas de Precios' }],
-  '/supplier':         [HOME, CATALOGOS, { label: 'Proveedores' }],
+  '/product':          [HOME, CATALOGOS, { label: 'Productos' }],
+  '/price-list':       [HOME, FINANZAS, { label: 'Listas de Precios' }],
+  '/supplier':         [HOME, { label: 'Proveedores' }],
+  '/purchase-payment': [HOME, PROVEEDORES, { label: 'Pagos de Compras' }],
   '/market':           [HOME, CATALOGOS, { label: 'Mercados' }],
   '/condition-iva-type': [HOME, CATALOGOS, { label: 'Condición de IVA' }],
   '/category':         [HOME, CATALOGOS, { label: 'Categorías' }],
   '/bank':             [HOME, CATALOGOS, { label: 'Bancos' }],
   '/check':            [HOME, { label: 'Cheques' }],
+  '/own-check':        [HOME, PROVEEDORES, { label: 'Cheques emitidos' }],
 };

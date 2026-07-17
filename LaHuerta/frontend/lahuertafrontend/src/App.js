@@ -6,7 +6,6 @@ import { Outlet } from 'react-router-dom';
 import { headerOptions } from './constants/headerOptions';
 import { authCsrfUrl } from './constants/urls';
 import './App.css';
-import { FaLinkedin } from 'react-icons/fa';
 
 function App() {
   // Fuerza Django para que cree la cookie csrftoken apenas arranca la app.
@@ -20,13 +19,10 @@ function App() {
         title='La Huerta'
         menuOptions={headerOptions}
       />
-      <main className="flex-grow px-8 py-6">
+      <main className="flex-grow px-4 sm:px-8 py-6">
         <Outlet />
       </main>
       <Footer
-        linkedinUrl="https://www.linkedin.com/in/pabloantunez/"
-        title="La Huerta. Todos los derechos reservados."
-        icon={<FaLinkedin size={24} />}
       />
     </div>
   );

@@ -11,3 +11,7 @@ class IReportRepository(ABC):
     @abstractmethod
     def get_payments(self, client_id: int, date_from: date, date_to: date):
         pass
+
+    @abstractmethod
+    def get_credit_notes(self, client_id: int, date_from: date, date_to: date):
+        pass

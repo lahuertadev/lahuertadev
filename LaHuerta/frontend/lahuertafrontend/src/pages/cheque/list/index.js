@@ -80,6 +80,7 @@ const CheckList = () => {
   const actionsColumn = {
     field: 'stateAction',
     headerName: 'Acción',
+    hiddenOnMobile: true,
     width: 170,
     sortable: false,
     headerAlign: 'center',
@@ -113,7 +114,7 @@ const CheckList = () => {
 
   const data = {
     title: 'Cheques',
-    fetchUrl: { baseUrl: checkUrl },
+    fetchUrl: { baseUrl: checkUrl, detailUrl: '/check/detail' },
     columns: [...columns, actionsColumn],
     mapData: mapCheckData,
     multiSelect: false,
