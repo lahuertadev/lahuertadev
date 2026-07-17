@@ -12,6 +12,7 @@ from tipo_unidad.interfaces import IUnitTypeRepository
 
 def _mock_model_instance(model_cls, **attrs):
     mock_obj = Mock(spec=model_cls)
+    mock_obj.is_system = False
     for k, v in attrs.items():
         setattr(mock_obj, k, v)
     if "id" in attrs:
@@ -100,7 +101,7 @@ def test_retrieve_success(factory, viewset):
 # ------------------------- CREATE --------------------------
 @pytest.mark.django_db
 def test_create_success(factory, viewset):
-    request = factory.post("/unit_type/", {"descripcion": "Docena"}, format="json")
+    request = factory.post("/unit_type/", {"descripcion": "Docena", "abreviacion": "doc", "tipo_medicion": "CANTIDAD"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
     response = viewset.create(drf_request)
 
@@ -145,7 +146,7 @@ def test_update_not_found(factory, viewset):
 def test_update_success(factory, viewset):
     created = viewset.repository.create_unit_type({"descripcion": "Old"})
 
-    request = factory.put(f"/unit_type/{created.id}/", {"descripcion": "New"}, format="json")
+    request = factory.put(f"/unit_type/{created.id}/", {"descripcion": "New", "abreviacion": "new", "tipo_medicion": "CANTIDAD"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
     response = viewset.update(drf_request, pk=created.id)
 

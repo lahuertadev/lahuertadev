@@ -16,6 +16,8 @@ def _create_mock_model_instance(id, descripcion):
     mock_obj = Mock(spec=TipoCondicionIva)
     mock_obj.id = id
     mock_obj.descripcion = descripcion
+    mock_obj.is_system = False
+    mock_obj.codigo_afip = None
 
     # Configurar _meta para que el serializer lo reconozca como instancia del modelo
     mock_obj._meta = Mock()
