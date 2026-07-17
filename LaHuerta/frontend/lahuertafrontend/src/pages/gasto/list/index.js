@@ -21,6 +21,7 @@ const data = {
     baseUrl : expenseUrl,
     createUrl : '/expense/create',
     editUrl: '/expense/edit',
+    detailUrl: '/expense/edit',
   },
   columns: columns,
   mapData: mapExpenseData,

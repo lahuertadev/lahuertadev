@@ -493,16 +493,16 @@ const FacturaForm = () => {
         onClose={() => setToast({ open: false, message: '' })}
       />
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
+      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
         <span
-          className="hover:text-blue-lahuerta cursor-pointer transition-colors"
+          className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors"
           onClick={() => navigate('/')}
         >
           Home
         </span>
         <span className="text-xs">›</span>
         <span
-          className="hover:text-blue-lahuerta cursor-pointer transition-colors"
+          className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors"
           onClick={() => navigate('/bill')}
         >
           Facturas

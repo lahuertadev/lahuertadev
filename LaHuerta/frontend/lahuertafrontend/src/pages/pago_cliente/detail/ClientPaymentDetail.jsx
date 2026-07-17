@@ -2,18 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { clientUrl } from '../../../constants/urls';
-import { formatCuit } from '../../../utils/cuit';
+import { clientPaymentUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
-import BusinessIcon from '@mui/icons-material/Business';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import PhoneIcon from '@mui/icons-material/Phone';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import PersonIcon from '@mui/icons-material/Person';
+import PaymentsIcon from '@mui/icons-material/Payments';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -39,41 +34,34 @@ const Field = ({ label, value }) => (
   </div>
 );
 
-const formatTelefono = (raw = '') => {
-  const digits = String(raw).replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-};
-
-const ClientDetail = () => {
+const ClientPaymentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
-  const [client, setClient] = useState(null);
+  const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleDelete = async () => {
-    await axios.delete(`${clientUrl}${id}/`);
-    navigate('/client');
+    await axios.delete(`${clientPaymentUrl}${id}/`);
+    navigate('/client-payment');
   };
 
   useEffect(() => {
-    const fetchClient = async () => {
+    const fetchPayment = async () => {
       try {
-        const response = await axios.get(`${clientUrl}${id}/`);
-        setClient(response.data);
+        const response = await axios.get(`${clientPaymentUrl}${id}/`);
+        setPayment(response.data);
       } catch (err) {
-        console.error('Error cargando cliente:', err);
+        console.error('Error cargando pago:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchClient();
+    if (id) fetchPayment();
   }, [id]);
 
   if (loading) {
@@ -84,12 +72,12 @@ const ClientDetail = () => {
     );
   }
 
-  if (error || !client) {
+  if (error || !payment) {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
-        <p className="text-sm text-red-500">Error al cargar el cliente.</p>
+        <p className="text-sm text-red-500">Error al cargar el pago.</p>
         <button
-          onClick={() => navigate('/client')}
+          onClick={() => navigate('/client-payment')}
           className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-blue-lahuerta transition-colors"
         >
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
@@ -105,62 +93,40 @@ const ClientDetail = () => {
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
         <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
         <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{client.razon_social}</span>
+        <span className="text-on-surface font-semibold">{payment.cliente.razon_social}</span>
       </nav>
 
-      {/* 1. Datos de la Empresa */}
-      <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
-        <Field label="CUIT" value={formatCuit(client.cuit)} />
-        <Field label="Razón Social" value={client.razon_social} />
-        <Field label="Nombre Fantasía" value={client.nombre_fantasia} />
+      {/* 1. Cliente */}
+      <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Cliente" cols={1}>
+        <Field label="Razón Social" value={payment.cliente.razon_social} />
       </SectionCard>
 
-      {/* 2. Datos de Dirección */}
-      <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Datos de Dirección">
-        <Field label="Provincia" value={client.localidad?.municipio?.provincia?.nombre} />
-        <Field label="Municipio" value={client.localidad?.municipio?.nombre} />
-        <Field label="Localidad" value={client.localidad?.nombre} />
-        <Field label="Dirección" value={client.domicilio} />
-      </SectionCard>
-
-      {/* 3. Facturación */}
-      <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Facturación">
-        <Field label="Condición IVA" value={client.condicion_IVA?.descripcion} />
-        <Field label="Lista de Precios" value={client.lista_precios?.nombre} />
-      </SectionCard>
-
-      {/* 4. Cuenta Corriente */}
-      <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente" cols={2}>
+      {/* 2. Datos del pago */}
+      <SectionCard icon={<PaymentsIcon sx={{ fontSize: 20 }} />} title="Datos del Pago">
+        <Field label="Fecha" value={formatDate(payment.fecha_pago)} />
         <div className="flex flex-col gap-1">
-          <span className={labelCls}>Saldo</span>
-          <span className={`text-sm font-semibold ${parseFloat(client.cuenta_corriente) < 0 ? 'text-green-600' : parseFloat(client.cuenta_corriente) > 0 ? 'text-red-500' : 'text-on-surface'}`}>
-            {formatCurrency(client.cuenta_corriente)}
-          </span>
-          <p className="mt-1 text-xs text-on-surface-muted">Positivo: el cliente tiene deuda. Negativo: el cliente tiene saldo a favor.</p>
+          <span className={labelCls}>Importe</span>
+          <span className="text-sm font-semibold text-on-surface">{formatCurrency(payment.importe)}</span>
         </div>
+        <Field label="Tipo de pago" value={payment.tipo_pago.descripcion} />
+        {payment.observaciones && (
+          <div className="md:col-span-3 flex flex-col gap-1">
+            <span className={labelCls}>Observaciones</span>
+            <span className="text-sm text-on-surface">{payment.observaciones}</span>
+          </div>
+        )}
       </SectionCard>
 
-      {/* 5. Fecha de Inicio de Ventas */}
-      <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fecha de inicio de ventas" cols={2}>
-        <Field label="Fecha de inicio" value={formatDate(client.fecha_inicio_ventas)} />
-      </SectionCard>
-
-      {/* 6. Contacto */}
-      <SectionCard icon={<PhoneIcon sx={{ fontSize: 20 }} />} title="Contacto">
-        <Field label="Teléfono" value={formatTelefono(client.telefono)} />
-      </SectionCard>
-
-      {/* 7. Estado */}
-      <SectionCard icon={<VerifiedUserIcon sx={{ fontSize: 20 }} />} title="Estado" cols={2}>
-        <div className="flex flex-col gap-1">
-          <span className={labelCls}>Estado del cliente</span>
-          <span className={`inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${client.estado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-            {client.estado ? 'Activo' : 'Inactivo'}
-          </span>
-        </div>
-      </SectionCard>
+      {/* 3. Datos del cheque (si aplica) */}
+      {payment.cheque && (
+        <SectionCard icon={<CreditCardIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
+          <Field label="N° de cheque" value={payment.cheque.numero} />
+          <Field label="Fecha de emisión" value={formatDate(payment.cheque.fecha_emision)} />
+          <Field label="Fecha de depósito" value={formatDate(payment.cheque.fecha_deposito)} />
+        </SectionCard>
+      )}
 
       {/* Action Bar */}
       <div className="pt-6 border-t border-border-subtle">
@@ -176,15 +142,15 @@ const ClientDetail = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate(`/client/edit/${id}`)}
+                onClick={() => navigate(`/client-payment/edit/${id}`)}
                 className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
               >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+                <EditIcon sx={{ fontSize: 16 }} /> Editar pago
               </button>
             </div>
             <button
               type="button"
-              onClick={() => navigate('/client')}
+              onClick={() => navigate('/client-payment')}
               className="w-full py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center justify-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
@@ -194,17 +160,17 @@ const ClientDetail = () => {
           <div className="flex items-center justify-end gap-4">
             <button
               type="button"
-              onClick={() => navigate('/client')}
+              onClick={() => navigate('/client-payment')}
               className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>
             <button
               type="button"
-              onClick={() => navigate(`/client/edit/${id}`)}
+              onClick={() => navigate(`/client-payment/edit/${id}`)}
               className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
             >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+              <EditIcon sx={{ fontSize: 16 }} /> Editar pago
             </button>
           </div>
         )}
@@ -212,8 +178,8 @@ const ClientDetail = () => {
 
       <AlertDialog
         open={confirmOpen}
-        title="Eliminar cliente"
-        message={`¿Estás seguro que querés eliminar a ${client?.razon_social}? Esta acción no se puede deshacer.`}
+        title="Eliminar pago"
+        message={`¿Estás seguro que querés eliminar este pago de ${payment?.cliente?.razon_social}? Esta acción no se puede deshacer.`}
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />
@@ -222,4 +188,4 @@ const ClientDetail = () => {
   );
 };
 
-export default ClientDetail;
+export default ClientPaymentDetail;

@@ -7,14 +7,15 @@ const PAYMENT_STATUS_CONFIG = {
 };
 
 export const columns = [
-  { field: 'number',    headerName: 'N° Compra',   flex: 1, align: 'center', headerAlign: 'center' },
-  { field: 'date',      headerName: 'Fecha',        flex: 1, align: 'center', headerAlign: 'center' },
-  { field: 'supplier',  headerName: 'Proveedor',    flex: 2, align: 'center', headerAlign: 'center' },
-  { field: 'senia',     headerName: 'Seña',         flex: 1, align: 'center', headerAlign: 'center' },
+  { field: 'number',    headerName: 'N° Compra',   flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'date',      headerName: 'Fecha',        flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'supplier',  headerName: 'Proveedor',    mobileHeaderName: 'Nombre', flex: 2, align: 'center', headerAlign: 'center', mobileClickable: true },
+  { field: 'senia',     headerName: 'Seña',         flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'amount',    headerName: 'Importe',      flex: 1, align: 'center', headerAlign: 'center' },
   {
     field: 'paymentStatus',
     headerName: 'Estado pago',
+    mobileHeaderName: 'Estado',
     flex: 1,
     minWidth: 160,
     align: 'center',
@@ -38,5 +39,5 @@ export const columns = [
       );
     },
   },
-  { field: 'outstandingBalance', headerName: 'Saldo', flex: 1, align: 'center', headerAlign: 'center' },
+  { field: 'outstandingBalance', headerName: 'Saldo', flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
 ];

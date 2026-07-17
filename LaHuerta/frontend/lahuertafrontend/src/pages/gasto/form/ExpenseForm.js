@@ -3,9 +3,10 @@ import * as Yup from 'yup';
 import axios from 'axios';
 import GenericForm from '../../../components/Form';
 import { expenseUrl } from '../../../constants/urls';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { loadOptions } from '../../../utils/selectOptions';
 import { expenseTypeUrl } from '../../../constants/urls';
+import { HOME, FINANZAS } from '../../../constants/breadcrumbs';
 
 const ExpenseForm = () => {
   const [selectOptions, setSelectOptions] = useState({});
@@ -16,6 +17,7 @@ const ExpenseForm = () => {
   });
   const { state } = useLocation();
   const { id } = useParams();
+  const navigate = useNavigate();
 
   //* Función para cargar opciones de select
   const loadInitialOptions = async () => {
@@ -97,15 +99,26 @@ const ExpenseForm = () => {
   };
 
   return (
-    <GenericForm
-      fields={fields} 
-      initialValues={initialValues} 
-      validationSchema={validationSchema} 
-      selectOptions={selectOptions} 
-      urls={urls} 
-      mapFormDataToBackend={mapFormDataToBackend} 
-      onSubmitCallback={() => console.log('Formulario enviado con éxito')} 
-    />
+    <div className="w-full max-w-5xl mx-auto space-y-6 pb-12">
+      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+        <span className="text-xs">›</span>
+        <span className="whitespace-nowrap text-on-surface-muted">{FINANZAS.label}</span>
+        <span className="text-xs">›</span>
+        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/expense')}>Gastos</span>
+        <span className="text-xs">›</span>
+        <span className="whitespace-nowrap text-on-surface font-semibold">{id ? 'Editar gasto' : 'Nuevo gasto'}</span>
+      </nav>
+      <GenericForm
+        fields={fields}
+        initialValues={initialValues}
+        validationSchema={validationSchema}
+        selectOptions={selectOptions}
+        urls={urls}
+        mapFormDataToBackend={mapFormDataToBackend}
+        onSubmitCallback={() => console.log('Formulario enviado con éxito')}
+      />
+    </div>
   );
 };
 

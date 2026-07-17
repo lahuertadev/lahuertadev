@@ -22,6 +22,7 @@ const data = {
     baseUrl: clientPaymentUrl,
     createUrl: '/client-payment/create',
     editUrl: '/client-payment/edit',
+    detailUrl: '/client-payment/detail',
   },
   columns: columns,
   mapData: mapClientPaymentData,

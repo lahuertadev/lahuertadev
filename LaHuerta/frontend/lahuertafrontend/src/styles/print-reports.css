@@ -29,6 +29,13 @@
   align-items: center;
 }
 
+@media (max-width: 600px) {
+  .report-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 @media (max-width: 768px) {
   .report-filters-grid {
     grid-template-columns: 1fr;

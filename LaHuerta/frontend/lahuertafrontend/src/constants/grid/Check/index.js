@@ -11,13 +11,13 @@ const STATE_CONFIG = {
 };
 
 export const columns = [
-  { field: 'numero',    headerName: 'Número',         align: 'center', headerAlign: 'center' },
-  { field: 'bank',      headerName: 'Banco',           align: 'center', headerAlign: 'center' },
-  { field: 'amount',    headerName: 'Importe',         align: 'center', headerAlign: 'center' },
-  { field: 'issueDate', headerName: 'Fecha emisión',   align: 'center', headerAlign: 'center', minWidth: 140 },
+  { field: 'numero',    headerName: 'Número',         align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'bank',      headerName: 'Banco',           align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'amount',    headerName: 'Importe',         align: 'center', headerAlign: 'center', mobileClickable: true },
+  { field: 'issueDate', headerName: 'Fecha emisión',   align: 'center', headerAlign: 'center', minWidth: 140, hiddenOnMobile: true },
   {
     field: 'depositDate',
-    headerName: 'Fecha depósito',
+    headerName: 'Depósito',
     minWidth: 160,
     align: 'center',
     headerAlign: 'center',
@@ -61,5 +61,5 @@ export const columns = [
       );
     },
   },
-  { field: 'endorsed', headerName: 'Endosado', align: 'center', headerAlign: 'center' },
+  { field: 'endorsed', headerName: 'Endosado', align: 'center', headerAlign: 'center', hiddenOnMobile: true },
 ];

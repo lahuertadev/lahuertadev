@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, Paper, Typography, Button, CircularProgress, Tooltip } from '@mui/material';
+import { Box, Paper, Typography, Button, CircularProgress, Tooltip, useMediaQuery } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -13,6 +13,8 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import BasicSelect from '../../components/Select';
 import BasicDatePicker from '../../components/DatePicker';
 import { clientUrl, clientReportUrl } from '../../constants/urls';
+import { useNavigate } from 'react-router-dom';
+import { breadcrumbsMap } from '../../constants/breadcrumbs';
 import { formatCurrency } from '../../utils/currency';
 import { formatDate } from '../../utils/date';
 import '../../styles/print-reports.css';
@@ -28,6 +30,9 @@ const PERIOD_OPTIONS = [
 const today = new Date().toISOString().split('T')[0];
 
 const ClientReport = () => {
+  const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const breadcrumbs = breadcrumbsMap['/report'];
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState({ name: 'Mes', value: 'mes' });
@@ -109,6 +114,25 @@ const ClientReport = () => {
   return (
     <div className="report-page">
 
+      {/* ── Breadcrumb ── */}
+      <nav
+        className="no-print"
+        style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.875rem', fontWeight: 500, color: '#596064', marginBottom: '16px' }}
+      >
+        {breadcrumbs.map((crumb, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <span style={{ fontSize: '0.75rem', color: '#596064' }}>›</span>}
+            {crumb.path ? (
+              <span style={{ whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => navigate(crumb.path)}>
+                {crumb.label}
+              </span>
+            ) : (
+              <span style={{ whiteSpace: 'nowrap', fontWeight: 700, color: '#2c3437' }}>{crumb.label}</span>
+            )}
+          </React.Fragment>
+        ))}
+      </nav>
+
       {/* ── Header ── */}
       <div className="report-header no-print">
         <div>
@@ -124,9 +148,9 @@ const ClientReport = () => {
           startIcon={<PrintIcon />}
           onClick={() => window.print()}
           disabled={!report}
-          sx={{ fontWeight: 600 }}
+          sx={{ fontWeight: 600, whiteSpace: 'nowrap', ...(isMobile && { width: '100%', py: 1.5 }) }}
         >
-          Imprimir Reporte
+          {isMobile ? 'Guardar PDF' : 'Imprimir Reporte'}
         </Button>
       </div>
 
@@ -388,7 +412,7 @@ const ClientReport = () => {
                 <table className="report-table">
                   <thead>
                     <tr>
-                      <th>Nro</th>
+                      {!isMobile && <th>Nro</th>}
                       <th>Fecha</th>
                       <th>Tipo</th>
                       <th className="text-right">Importe</th>
@@ -397,14 +421,14 @@ const ClientReport = () => {
                   <tbody>
                     {report.bills.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="text-center text-secondary">
+                        <td colSpan={isMobile ? 3 : 4} className="text-center text-secondary">
                           Sin facturas en el período
                         </td>
                       </tr>
                     ) : (
                       report.bills.map(b => (
                         <tr key={b.id}>
-                          <td className="text-secondary">#{b.id}</td>
+                          {!isMobile && <td className="text-secondary">#{b.id}</td>}
                           <td>{formatDate(b.fecha)}</td>
                           <td>{b.tipo_factura?.descripcion ?? '—'}</td>
                           <td className="text-right font-bold" style={{ color: '#dc2626' }}>{formatCurrency(b.total)}</td>
@@ -480,7 +504,7 @@ const ClientReport = () => {
                   <table className="report-table">
                     <thead>
                       <tr>
-                        <th>Nro</th>
+                        {!isMobile && <th>Nro</th>}
                         <th>Fecha</th>
                         <th>Tipo</th>
                         <th className="text-right">Importe</th>
@@ -489,7 +513,7 @@ const ClientReport = () => {
                     <tbody>
                       {report.credit_notes.map(cn => (
                         <tr key={cn.id}>
-                          <td className="text-secondary">#{cn.id}</td>
+                          {!isMobile && <td className="text-secondary">#{cn.id}</td>}
                           <td>{formatDate(cn.fecha)}</td>
                           <td>{cn.tipo_factura?.descripcion ?? '—'}</td>
                           <td className="text-right font-bold" style={{ color: '#16a34a' }}>

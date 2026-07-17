@@ -269,10 +269,10 @@ const ClientForm = () => {
           />
 
           {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Home</span>
+          <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
             <span className="text-xs">›</span>
-            <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
             <span className="text-xs">›</span>
             <span className="text-on-surface font-semibold">{id ? 'Editar Cliente' : 'Nuevo Cliente'}</span>
           </nav>
@@ -487,7 +487,7 @@ const ClientForm = () => {
           </SectionCard>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border-subtle">
             <button
               type="button"
               onClick={() => navigate('/client')}

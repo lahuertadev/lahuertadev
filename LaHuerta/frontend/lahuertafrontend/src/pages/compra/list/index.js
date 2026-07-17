@@ -23,6 +23,7 @@ const data = {
     baseUrl: buyUrl,
     createUrl: '/buy/create',
     editUrl: '/buy/edit',
+    detailUrl: '/buy/detail',
   },
   columns: columns,
   mapData: mapBuyData,

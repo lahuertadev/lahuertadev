@@ -19,10 +19,10 @@ const badgeStyle = (cfg) => ({
 });
 
 export const columns = [
-  { field: 'nombre',  headerName: 'Nombre',  flex: 2, align: 'center', headerAlign: 'center' },
-  { field: 'market',  headerName: 'Mercado', flex: 1, align: 'center', headerAlign: 'center' },
-  { field: 'puesto',  headerName: 'Puesto',  flex: 1, align: 'center', headerAlign: 'center' },
-  { field: 'nave',    headerName: 'Nave',    flex: 1, align: 'center', headerAlign: 'center' },
+  { field: 'nombre',  headerName: 'Nombre',  flex: 2, align: 'center', headerAlign: 'center', mobileClickable: true },
+  { field: 'market',  headerName: 'Mercado', flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'puesto',  headerName: 'Puesto',  flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'nave',    headerName: 'Nave',    flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   {
     field: 'checkingAccount',
     headerName: 'Cuenta corriente',

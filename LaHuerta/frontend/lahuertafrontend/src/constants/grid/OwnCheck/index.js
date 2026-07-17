@@ -4,24 +4,31 @@ const STATE_CONFIG = {
   'ANULADO': { label: 'Anulado', bg: '#ffebee', color: '#c62828' },
 };
 
-export const formatCompras = (ids) => {
-  if (!ids || ids.length === 0) return '—';
-  const MAX = 2;
-  const formatted = ids.map((id) => `#${String(id).padStart(8, '0')}`);
-  if (formatted.length <= MAX) return formatted.join(', ');
-  return formatted.slice(0, MAX).join(', ') + '...';
-};
 
 export const columns = [
-  { field: 'numero',    headerName: 'Número',            flex: 0.6, align: 'center', headerAlign: 'center' },
-  { field: 'supplier',  headerName: 'Proveedor',         flex: 1.1, align: 'center', headerAlign: 'center' },
-  { field: 'purchases', headerName: 'Compras',           flex: 1.1, align: 'center', headerAlign: 'center',
-    renderCell: (params) => <span title={params.row.purchasesRaw?.map((id) => `#${String(id).padStart(8, '0')}`).join(', ')}>{params.value}</span>
+  { field: 'numero',    headerName: 'Número',            flex: 0.6, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'supplier',  headerName: 'Proveedor',         flex: 1.1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'bank',      headerName: 'Banco',             flex: 0.9, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'amount',    headerName: 'Importe',           flex: 0.8, align: 'center', headerAlign: 'center', mobileClickable: true },
+  { field: 'issueDate', headerName: 'Fecha emisión',     flex: 0.9, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  {
+    field: 'dueDate',
+    headerName: 'Válido hasta',
+    flex: 0.9,
+    align: 'center',
+    headerAlign: 'center',
+    hiddenOnMobile: true,
+    renderCell: (params) => {
+      const isOverdue = params.row.stateRaw === 'EMITIDO'
+        && params.row.dueDateRaw
+        && new Date(params.row.dueDateRaw) < new Date();
+      return (
+        <span style={{ color: isOverdue ? '#ef4444' : 'inherit', fontWeight: isOverdue ? 600 : 'inherit' }}>
+          {params.value}
+        </span>
+      );
+    },
   },
-  { field: 'bank',      headerName: 'Banco',             flex: 0.9, align: 'center', headerAlign: 'center' },
-  { field: 'amount',    headerName: 'Importe',           flex: 0.8, align: 'center', headerAlign: 'center' },
-  { field: 'issueDate', headerName: 'Fecha emisión',     flex: 0.9, align: 'center', headerAlign: 'center' },
-  { field: 'dueDate',   headerName: 'Fecha vencimiento', flex: 0.9, align: 'center', headerAlign: 'center' },
   {
     field: 'state',
     headerName: 'Estado',
