@@ -13,9 +13,9 @@ const badgeStyle = (active) => ({
 });
 
 export const columns = [
-  { field: 'cuit', headerName: 'CUIT', hiddenOnMobile: true },
-  { field: 'businessName', headerName: 'Razón social', mobileClickable: true },
-  { field: 'checkingAccount', headerName: 'Cuenta corriente' },
+  { field: 'cuit',           headerName: 'CUIT',             align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'businessName',   headerName: 'Razón social',     align: 'center', headerAlign: 'center', mobileClickable: true },
+  { field: 'checkingAccount',headerName: 'Cuenta corriente', align: 'center', headerAlign: 'center' },
   {
     field: 'state',
     headerName: 'Estado',

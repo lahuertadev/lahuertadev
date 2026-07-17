@@ -32,7 +32,7 @@ import RoundedCheckbox from '../RoundedCheckbox';
 function calculateColumnWidths(rows, columns, isMobile = false) {
   const contentCharWidth = isMobile ? 7 : 9;
   const headerCharWidth = 9; // headers siempre en uppercase con letter-spacing
-  const padding = isMobile ? 16 : 24;
+  const padding = isMobile ? 8 : 24;
 
   return columns.map((column) => {
     // Columnas con ancho fijo: no tocar
@@ -43,18 +43,18 @@ function calculateColumnWidths(rows, columns, isMobile = false) {
       ? rows.map((row) => (row[column.field] != null ? String(row[column.field]).length : 0))
       : [0];
     const maxContentLength = Math.max(...contentLengths);
-    const minWidthFloor = isMobile ? 60 : (column.minWidth || 80);
+    const minWidthFloor = column.minWidth || (isMobile ? 60 : 80);
     const minWidth = Math.max(
       titleLength * headerCharWidth + padding,
       maxContentLength * contentCharWidth + padding,
       minWidthFloor
     );
 
-    if (column.flex != null && !isMobile) {
+    if (column.flex != null) {
       return { ...column, minWidth };
     }
 
-    return { ...column, minWidth, flex: minWidth };
+    return { ...column, minWidth, flex: isMobile ? 1 : minWidth };
   });
 }
 
@@ -87,9 +87,7 @@ export default function DataGridDemo({
   pageSize = 10,
 }) {
   const isMobile = useMediaQuery('(max-width:600px)');
-  const columnVisibilityModel = isMobile
-    ? Object.fromEntries(columns.filter(c => c.hiddenOnMobile).map(c => [c.field, false]))
-    : {};
+  const columnVisibilityModel = {};
   const actionColWidth = isMobile ? 48 : 120;
 
   const detailColumn = onDetail
@@ -164,26 +162,14 @@ export default function DataGridDemo({
   };
 
   const processedColumns = isMobile
-    ? columns.map(col => {
-        const base = col.mobileHeaderName
-          ? { ...col, headerName: col.mobileHeaderName, sortable: false }
-          : { ...col, sortable: false };
-        if (base.mobileClickable && onDetail) {
-          return {
-            ...base,
-            renderCell: (params) => (
-              <span
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                onClick={() => onDetail(params.row.id)}
-              >
-                {params.value}
-                <span style={{ color: '#acb3b7', fontSize: '0.75rem' }}>›</span>
-              </span>
-            ),
-          };
-        }
-        return base;
-      })
+    ? columns
+        .filter(col => !col.hiddenOnMobile)
+        .map(col => {
+          const base = col.mobileHeaderName
+            ? { ...col, headerName: col.mobileHeaderName, sortable: false }
+            : { ...col, sortable: false };
+          return { ...base, flex: 1, minWidth: undefined };
+        })
     : columns;
 
   const actionColumns = isMobile ? [] : [
@@ -206,6 +192,7 @@ export default function DataGridDemo({
         checkboxSelection={multiSelect && !isMobile}
         isRowSelectable={isRowSelectable ? (params) => isRowSelectable(params.row) : undefined}
         onRowSelectionModelChange={(sel) => onSelectionChange?.(sel)}
+        onRowClick={isMobile && onDetail ? (params) => onDetail(params.row.id) : undefined}
         disableRowSelectionOnClick
         disableColumnMenu
         autoHeight
@@ -240,6 +227,7 @@ export default function DataGridDemo({
 
           // ── Filas ──────────────────────────────────────────────
           '& .MuiDataGrid-row': {
+            cursor: isMobile && onDetail ? 'pointer' : 'default',
             '&:hover': { backgroundColor: '#f0f4f7' },
             '&.Mui-selected': {
               backgroundColor: 'rgba(93,137,200,0.05)',
@@ -251,6 +239,13 @@ export default function DataGridDemo({
             color: '#2c3437',
             borderBottom: '1px solid #e3e9ed',
             '&:focus, &:focus-within': { outline: 'none' },
+          },
+          '& .MuiDataGrid-cell--textCenter': {
+            justifyContent: 'center !important',
+          },
+          '& .MuiDataGrid-cell--textCenter .MuiDataGrid-cellContent': {
+            textAlign: 'center',
+            width: '100%',
           },
 
           // ── Checkbox ───────────────────────────────────────────

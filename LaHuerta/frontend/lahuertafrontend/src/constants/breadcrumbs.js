@@ -10,16 +10,18 @@
 
 export const HOME = { label: 'Inicio', path: '/' };
 export const PROVEEDORES = { label: 'Proveedores', path: '/supplier' };
+export const FINANZAS = { label: 'Finanzas' };
 const CATALOGOS = { label: 'Catálogos' };
 
 export const breadcrumbsMap = {
+  '/report':           [HOME, { label: 'Reportes' }],
   '/client':           [HOME, { label: 'Clientes' }],
   '/bill':             [HOME, { label: 'Facturación' }],
   '/buy':              [HOME, PROVEEDORES, { label: 'Compras' }],
-  '/expense':          [HOME, { label: 'Gastos' }],
+  '/expense':          [HOME, FINANZAS, { label: 'Gastos' }],
   '/client-payment':   [HOME, { label: 'Pagos de Clientes' }],
-  '/product':          [HOME, { label: 'Productos' }],
-  '/price-list':       [HOME, { label: 'Listas de Precios' }],
+  '/product':          [HOME, CATALOGOS, { label: 'Productos' }],
+  '/price-list':       [HOME, FINANZAS, { label: 'Listas de Precios' }],
   '/supplier':         [HOME, { label: 'Proveedores' }],
   '/purchase-payment': [HOME, PROVEEDORES, { label: 'Pagos de Compras' }],
   '/market':           [HOME, CATALOGOS, { label: 'Mercados' }],

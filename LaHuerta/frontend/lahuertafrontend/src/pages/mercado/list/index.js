@@ -10,7 +10,7 @@ const mapMarketData = (data) => {
   }));
 };
 
-const columns = [{ field: 'descripcion', headerName: 'Descripción' }];
+const columns = [{ field: 'descripcion', headerName: 'Descripción', flex: 1, align: 'center', headerAlign: 'center' }];
 
 const data = {
   title: 'Mercados',

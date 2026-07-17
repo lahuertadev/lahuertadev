@@ -153,19 +153,19 @@ const GenericList = ({ data, onAdd }) => {
 
       {/* Breadcrumbs */}
       {resolvedBreadcrumbs && (
-        <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
+        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
           {resolvedBreadcrumbs.map((crumb, i) => (
             <React.Fragment key={i}>
               {i > 0 && <span className="text-on-surface-muted text-xs">›</span>}
               {crumb.path ? (
                 <span
-                  className="hover:text-blue-lahuerta cursor-pointer transition-colors"
+                  className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors"
                   onClick={() => navigate(crumb.path)}
                 >
                   {crumb.label}
                 </span>
               ) : (
-                <span className="text-on-surface font-semibold">{crumb.label}</span>
+                <span className="whitespace-nowrap text-on-surface font-semibold">{crumb.label}</span>
               )}
             </React.Fragment>
           ))}

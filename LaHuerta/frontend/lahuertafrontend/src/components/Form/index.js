@@ -9,6 +9,7 @@ import Toast from '../Toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../../styles/forms.css';
 import { Grid } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import axios from 'axios';
 
 const GenericForm = ({
@@ -26,6 +27,7 @@ const GenericForm = ({
   const [toast, setToast] = useState({ open: false, message: '' });
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   //* Manejo del envío del formulario
   const handleSubmit = async (values) => {
@@ -95,9 +97,9 @@ const GenericForm = ({
           <Form
             className="custom-form"
             style={{
-              width: getFormWidth(), 
-              maxWidth: '100%', 
-              margin: '0 auto', 
+              width: isMobile ? '90%' : getFormWidth(),
+              maxWidth: '100%',
+              margin: '0 auto',
             }}
           >
             <Grid container spacing={3} justifyContent="center" sx={{ width: '100%' }}>
