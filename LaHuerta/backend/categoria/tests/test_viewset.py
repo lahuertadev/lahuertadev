@@ -12,6 +12,7 @@ from categoria.interfaces import ICategoryRepository
 
 def _mock_model_instance(model_cls, **attrs):
     mock_obj = Mock(spec=model_cls)
+    mock_obj.is_system = False
     for k, v in attrs.items():
         setattr(mock_obj, k, v)
     if "id" in attrs:
