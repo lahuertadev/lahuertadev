@@ -202,7 +202,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'apikey'  # SendGrid requiere 'apikey' como username
 EMAIL_HOST_PASSWORD = config('SENDGRID_API_KEY', default='')
 
-DEFAULT_FROM_EMAIL = "La Huerta <lahuerta.desarrollo@gmail.com>"
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='La Huerta <no-reply@lahuerta-app.com>')
 
 #TODO URL del frontend para el link de reset (ajusta según tu frontend)
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
