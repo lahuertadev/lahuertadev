@@ -121,6 +121,7 @@ const PasswordResetRequest = () => {
                   color="primary"
                   variant="contained"
                   size="large"
+                  type="submit"
                   disabled={loading || !formData.email}
                   className="w-full !justify-center"
                 />
