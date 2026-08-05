@@ -16,6 +16,7 @@ from .serializers import (
 from .interfaces import IUserRepository
 from .repositories import UserRepository
 from .permissions import IsSuperuser
+from .models import Usuario
 from .utils import (
     send_password_reset_email,
     send_welcome_email_with_verification_code,
@@ -407,7 +408,6 @@ class CurrentUserView(APIView):
             "last_name": request.user.last_name,
         }, status=status.HTTP_200_OK)
 
-
 class UserListView(APIView):
     """
     Lista todos los usuarios del sistema. Solo accesible para superusuarios.
@@ -424,7 +424,6 @@ class UserListView(APIView):
             UserResponseSerializer(users, many=True).data,
             status=status.HTTP_200_OK
         )
-
 
 class ToggleUserActiveView(APIView):
     """
@@ -453,6 +452,47 @@ class ToggleUserActiveView(APIView):
             )
 
         updated_user = self.repository.set_active_status(pk, not target_user.is_active)
+
+        return Response(
+            UserResponseSerializer(updated_user).data,
+            status=status.HTTP_200_OK
+        )
+
+class UpdateUserRoleView(APIView):
+    """
+    Cambia el rol de un usuario entre administrator y employee. Solo accesible para superusuarios.
+    El rol superuser no se otorga ni se modifica por esta vía: esa asignación se hace fuera de la API.
+    """
+    permission_classes = [IsSuperuser]
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
+
+    def patch(self, request, pk):
+        new_role = request.data.get('role')
+
+        if new_role not in [Usuario.ADMINISTRATOR, Usuario.EMPLOYEE]:
+            return Response(
+                {'detail': 'Rol inválido. Debe ser "administrator" o "employee".'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        target_user = self.repository.get_user_by_id(pk)
+
+        if not target_user:
+            return Response(
+                {'detail': 'Usuario no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if target_user.role == Usuario.SUPERUSER:
+            return Response(
+                {'detail': 'No se puede modificar el rol de un superusuario desde la API.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        updated_user = self.repository.set_user_role(pk, new_role)
 
         return Response(
             UserResponseSerializer(updated_user).data,
