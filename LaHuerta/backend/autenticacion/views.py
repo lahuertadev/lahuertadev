@@ -1,11 +1,11 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import login, logout
 from .serializers import (
-    UserRegisterSerializer, 
-    UserLoginSerializer, 
+    UserRegisterSerializer,
+    UserLoginSerializer,
     UserResponseSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
@@ -15,6 +15,7 @@ from .serializers import (
 )
 from .interfaces import IUserRepository
 from .repositories import UserRepository
+from .permissions import IsSuperuser
 from .utils import (
     send_password_reset_email,
     send_welcome_email_with_verification_code,
@@ -23,12 +24,14 @@ from .utils import (
     is_verification_code_expired
 )
 from django.middleware.csrf import get_token
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 
 class RegisterView(APIView):
     """
     Servicio para registrar nuevos usuarios
     """
+    permission_classes = [AllowAny]
+
     def __init__(self, repository: IUserRepository = None, **kwargs):
         super().__init__(**kwargs)
         self.repository = repository or UserRepository()
@@ -72,6 +75,8 @@ class LoginView(APIView):
     """
     Servicio para login de usuarios
     """
+    permission_classes = [AllowAny]
+
     def __init__(self, repository: IUserRepository = None, **kwargs):
         super().__init__(**kwargs)
         self.repository = repository or UserRepository()
@@ -134,6 +139,8 @@ class PasswordResetRequestView(APIView):
     Servicio para solicitar reset de contraseña
     Envía un token al email del usuario
     """
+    permission_classes = [AllowAny]
+
     def __init__(self, repository: IUserRepository = None, **kwargs):
         super().__init__(**kwargs)
         self.repository = repository or UserRepository()
@@ -166,6 +173,8 @@ class PasswordResetConfirmView(APIView):
     """
     Servicio para confirmar reset de contraseña con token
     """
+    permission_classes = [AllowAny]
+
     def __init__(self, repository: IUserRepository = None, **kwargs):
         super().__init__(**kwargs)
         self.repository = repository or UserRepository()
@@ -261,6 +270,8 @@ class EmailVerificationView(APIView):
     """
     Servicio para verificar código de email
     """
+    permission_classes = [AllowAny]
+
     def __init__(self, repository: IUserRepository = None, **kwargs):
         super().__init__(**kwargs)
         self.repository = repository or UserRepository()
@@ -322,6 +333,8 @@ class ResendVerificationCodeView(APIView):
     """
     Servicio para reenviar código de verificación de email
     """
+    permission_classes = [AllowAny]
+
     def __init__(self, repository: IUserRepository = None, **kwargs):
         super().__init__(**kwargs)
         self.repository = repository or UserRepository()
@@ -395,7 +408,60 @@ class CurrentUserView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class UserListView(APIView):
+    """
+    Lista todos los usuarios del sistema. Solo accesible para superusuarios.
+    """
+    permission_classes = [IsSuperuser]
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
+
+    def get(self, request):
+        users = self.repository.get_all_users()
+        return Response(
+            UserResponseSerializer(users, many=True).data,
+            status=status.HTTP_200_OK
+        )
+
+
+class ToggleUserActiveView(APIView):
+    """
+    Habilita o deshabilita un usuario. Solo accesible para superusuarios.
+    Un superusuario no puede deshabilitarse a sí mismo.
+    """
+    permission_classes = [IsSuperuser]
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
+
+    def patch(self, request, pk):
+        target_user = self.repository.get_user_by_id(pk)
+
+        if not target_user:
+            return Response(
+                {'detail': 'Usuario no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if target_user.id == request.user.id:
+            return Response(
+                {'detail': 'No podés deshabilitarte a vos mismo.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        updated_user = self.repository.set_active_status(pk, not target_user.is_active)
+
+        return Response(
+            UserResponseSerializer(updated_user).data,
+            status=status.HTTP_200_OK
+        )
+
+
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def csrf(request):
     """
     Devuelve el token y setea la cookie csrfToken automáticamente

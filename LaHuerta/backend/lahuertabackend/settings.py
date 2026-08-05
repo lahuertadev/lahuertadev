@@ -79,6 +79,14 @@ MIDDLEWARE = [
 
 AUTH_USER_MODEL = 'autenticacion.Usuario'
 
+#* Piso global: por defecto toda la API exige sesión iniciada.
+#  Las vistas públicas (register, login, password reset, etc.) declaran AllowAny explícito.
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 ROOT_URLCONF = 'lahuertabackend.urls'
 
 TEMPLATES = [
