@@ -41,6 +41,26 @@ def inactive_user():
     return user
 
 
+@pytest.fixture
+def superuser():
+    return Usuario.objects.create_user(
+        email='superuser@test.com',
+        username='superuser',
+        password='Testpass123!',
+        role=Usuario.SUPERUSER
+    )
+
+
+@pytest.fixture
+def administrator():
+    return Usuario.objects.create_user(
+        email='administrator@test.com',
+        username='administrator',
+        password='Testpass123!',
+        role=Usuario.ADMINISTRATOR
+    )
+
+
 # ==================== REGISTER VIEW TESTS ====================
 
 @pytest.mark.django_db
@@ -55,11 +75,28 @@ def test_register_view_success(api_client):
     }
     
     response = api_client.post('/auth/register/', data)
-    
+
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data['message'] == 'Usuario registrado exitosamente. Se ha enviado un código de verificación a tu email.'
     assert Usuario.objects.filter(email=data['email']).exists()
     assert 'user' in response.data
+
+@pytest.mark.django_db
+def test_register_view_ignores_privileged_role(api_client):
+    """El autoregistro nunca puede asignar rol superuser/administrator, aunque se envíe en el body"""
+    data = {
+        'email': 'wannabe-superuser@test.com',
+        'username': 'wannabesuperuser',
+        'password': 'Newtestpass123!',
+        'password_confirm': 'Newtestpass123!',
+        'role': Usuario.SUPERUSER
+    }
+
+    response = api_client.post('/api/auth/register/', data)
+
+    assert response.status_code == status.HTTP_201_CREATED
+    created_user = Usuario.objects.get(email=data['email'])
+    assert created_user.role == Usuario.EMPLOYEE
 
 @pytest.mark.django_db
 def test_register_view_duplicate_email(api_client, test_user):
@@ -702,7 +739,199 @@ def test_password_change_missing_fields(api_client, test_user):
 def test_csrf_view_success(api_client):
     """Test de obtención de token CSRF exitoso"""
     response = api_client.get('/auth/csrf/')
-    
+
     assert response.status_code == status.HTTP_200_OK
     assert 'csrfToken' in response.data
     assert response.data['csrfToken'] is not None
+
+
+# ==================== USER LIST VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_user_list_view_allows_superuser(api_client, superuser, administrator):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.get('/api/auth/users/')
+
+    assert response.status_code == status.HTTP_200_OK
+    emails = [user['email'] for user in response.data]
+    assert superuser.email in emails
+    assert administrator.email in emails
+
+@pytest.mark.django_db
+def test_user_list_view_denies_administrator(api_client, administrator):
+    api_client.force_authenticate(user=administrator)
+
+    response = api_client.get('/api/auth/users/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_user_list_view_denies_unauthenticated(api_client):
+    response = api_client.get('/api/auth/users/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ==================== TOGGLE USER ACTIVE VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_toggle_user_active_disables_user(api_client, superuser, test_user):
+    api_client.force_authenticate(user=superuser)
+    assert test_user.is_active is True
+
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['is_active'] is False
+    test_user.refresh_from_db()
+    assert test_user.is_active is False
+
+@pytest.mark.django_db
+def test_toggle_user_active_enables_user(api_client, superuser, inactive_user):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(f'/api/auth/users/{inactive_user.id}/toggle-active/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['is_active'] is True
+    inactive_user.refresh_from_db()
+    assert inactive_user.is_active is True
+
+@pytest.mark.django_db
+def test_toggle_user_active_self_lockout_blocked(api_client, superuser):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(f'/api/auth/users/{superuser.id}/toggle-active/')
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    superuser.refresh_from_db()
+    assert superuser.is_active is True
+
+@pytest.mark.django_db
+def test_toggle_user_active_not_found(api_client, superuser):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch('/api/auth/users/999999/toggle-active/')
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.django_db
+def test_toggle_user_active_denies_administrator(api_client, administrator, test_user):
+    api_client.force_authenticate(user=administrator)
+
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_toggle_user_active_denies_unauthenticated(api_client, test_user):
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ==================== UPDATE USER ROLE VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_update_user_role_promotes_to_administrator(api_client, superuser, test_user):
+    api_client.force_authenticate(user=superuser)
+    assert test_user.role == Usuario.EMPLOYEE
+
+    response = api_client.patch(
+        f'/api/auth/users/{test_user.id}/role/',
+        {'role': Usuario.ADMINISTRATOR}
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['role'] == Usuario.ADMINISTRATOR
+    test_user.refresh_from_db()
+    assert test_user.role == Usuario.ADMINISTRATOR
+
+@pytest.mark.django_db
+def test_update_user_role_demotes_to_employee(api_client, superuser, administrator):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(
+        f'/api/auth/users/{administrator.id}/role/',
+        {'role': Usuario.EMPLOYEE}
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['role'] == Usuario.EMPLOYEE
+    administrator.refresh_from_db()
+    assert administrator.role == Usuario.EMPLOYEE
+
+@pytest.mark.django_db
+def test_update_user_role_rejects_superuser_role(api_client, superuser, test_user):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(
+        f'/api/auth/users/{test_user.id}/role/',
+        {'role': Usuario.SUPERUSER}
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    test_user.refresh_from_db()
+    assert test_user.role == Usuario.EMPLOYEE
+
+@pytest.mark.django_db
+def test_update_user_role_rejects_invalid_role(api_client, superuser, test_user):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(
+        f'/api/auth/users/{test_user.id}/role/',
+        {'role': 'not-a-role'}
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+@pytest.mark.django_db
+def test_update_user_role_cannot_target_superuser(api_client, superuser, administrator):
+    other_superuser = Usuario.objects.create_user(
+        email='other-superuser@test.com',
+        username='othersuperuser',
+        password='Testpass123!',
+        role=Usuario.SUPERUSER
+    )
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(
+        f'/api/auth/users/{other_superuser.id}/role/',
+        {'role': Usuario.ADMINISTRATOR}
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    other_superuser.refresh_from_db()
+    assert other_superuser.role == Usuario.SUPERUSER
+
+@pytest.mark.django_db
+def test_update_user_role_not_found(api_client, superuser):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(
+        '/api/auth/users/999999/role/',
+        {'role': Usuario.ADMINISTRATOR}
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.django_db
+def test_update_user_role_denies_administrator(api_client, administrator, test_user):
+    api_client.force_authenticate(user=administrator)
+
+    response = api_client.patch(
+        f'/api/auth/users/{test_user.id}/role/',
+        {'role': Usuario.ADMINISTRATOR}
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_update_user_role_denies_unauthenticated(api_client, test_user):
+    response = api_client.patch(
+        f'/api/auth/users/{test_user.id}/role/',
+        {'role': Usuario.ADMINISTRATOR}
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN

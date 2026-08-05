@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import Mock
 
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from provincia.models import Provincia
 from municipio.models import Municipio
@@ -14,6 +14,7 @@ from tipo_pago.models import TipoPago
 from cliente.models import Cliente
 from factura.models import Factura
 from pago_cliente.models import PagoCliente
+from autenticacion.models import Usuario
 from reporte.views import ClientReportViewSet
 from reporte.exceptions import ClientNotFoundException
 
@@ -21,6 +22,16 @@ from reporte.exceptions import ClientNotFoundException
 @pytest.fixture
 def factory():
     return APIRequestFactory()
+
+
+@pytest.fixture
+def authenticated_user(db):
+    return Usuario.objects.create_user(
+        email='reporte-tester@test.com',
+        username='reportetester',
+        password='Testpass123!',
+        role=Usuario.ADMINISTRATOR
+    )
 
 
 @pytest.fixture
@@ -51,7 +62,7 @@ def make_view():
 
 
 class TestClientReportViewSet:
-    def test_reporte_exitoso(self, factory, db_setup):
+    def test_reporte_exitoso(self, factory, db_setup, authenticated_user):
         cliente = db_setup['cliente']
         tipo_factura = db_setup['tipo_factura']
         tipo_pago = db_setup['tipo_pago']
@@ -60,6 +71,7 @@ class TestClientReportViewSet:
         PagoCliente.objects.create(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 15), importe=Decimal('600'))
 
         request = factory.get(f'/api/reportes/clientes/{cliente.id}/', {'period': 'mes', 'date': '2025-03-01'})
+        force_authenticate(request, user=authenticated_user)
         view = make_view()
         response = view(request, pk=cliente.id)
 
@@ -71,42 +83,47 @@ class TestClientReportViewSet:
         assert len(response.data['bills']) == 1
         assert len(response.data['payments']) == 1
 
-    def test_cliente_no_encontrado_retorna_404(self, factory, db):
+    def test_cliente_no_encontrado_retorna_404(self, factory, authenticated_user):
         service = Mock()
         service.get_client_report.side_effect = ClientNotFoundException('Cliente no encontrado.')
 
         request = factory.get('/api/reportes/clientes/999/', {'period': 'mes', 'date': '2025-03-01'})
+        force_authenticate(request, user=authenticated_user)
         view = ClientReportViewSet.as_view({'get': 'retrieve'}, service=service)
         response = view(request, pk=999)
 
         assert response.status_code == 404
         assert 'no encontrado' in response.data['detail'].lower()
 
-    def test_period_invalido_retorna_400(self, factory, db):
+    def test_period_invalido_retorna_400(self, factory, authenticated_user):
         request = factory.get('/api/reportes/clientes/1/', {'period': 'bimestre', 'date': '2025-03-01'})
+        force_authenticate(request, user=authenticated_user)
         view = make_view()
         response = view(request, pk=1)
 
         assert response.status_code == 400
 
-    def test_date_invalida_retorna_400(self, factory, db):
+    def test_date_invalida_retorna_400(self, factory, authenticated_user):
         request = factory.get('/api/reportes/clientes/1/', {'period': 'mes', 'date': 'no-es-fecha'})
+        force_authenticate(request, user=authenticated_user)
         view = make_view()
         response = view(request, pk=1)
 
         assert response.status_code == 400
 
-    def test_sin_params_retorna_400(self, factory, db):
+    def test_sin_params_retorna_400(self, factory, authenticated_user):
         request = factory.get('/api/reportes/clientes/1/')
+        force_authenticate(request, user=authenticated_user)
         view = make_view()
         response = view(request, pk=1)
 
         assert response.status_code == 400
 
-    def test_chart_tiene_estructura_correcta(self, factory, db_setup):
+    def test_chart_tiene_estructura_correcta(self, factory, db_setup, authenticated_user):
         cliente = db_setup['cliente']
 
         request = factory.get(f'/api/reportes/clientes/{cliente.id}/', {'period': 'mes', 'date': '2025-03-01'})
+        force_authenticate(request, user=authenticated_user)
         view = make_view()
         response = view(request, pk=cliente.id)
 
@@ -117,10 +134,11 @@ class TestClientReportViewSet:
             assert 'billed' in entry
             assert 'paid' in entry
 
-    def test_chart_anio_tiene_12_puntos(self, factory, db_setup):
+    def test_chart_anio_tiene_12_puntos(self, factory, db_setup, authenticated_user):
         cliente = db_setup['cliente']
 
         request = factory.get(f'/api/reportes/clientes/{cliente.id}/', {'period': 'anio', 'date': '2025-06-15'})
+        force_authenticate(request, user=authenticated_user)
         view = make_view()
         response = view(request, pk=cliente.id)
 
