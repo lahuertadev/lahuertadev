@@ -11,7 +11,8 @@ from .serializers import (
     PasswordResetConfirmSerializer,
     PasswordChangeSerializer,
     EmailVerificationSerializer,
-    ResendVerificationCodeSerializer
+    ResendVerificationCodeSerializer,
+    UpdateUserRoleSerializer
 )
 from .interfaces import IUserRepository
 from .repositories import UserRepository
@@ -470,13 +471,15 @@ class UpdateUserRoleView(APIView):
         self.repository = repository or UserRepository()
 
     def patch(self, request, pk):
-        new_role = request.data.get('role')
+        serializer = UpdateUserRoleSerializer(data=request.data)
 
-        if new_role not in [Usuario.ADMINISTRATOR, Usuario.EMPLOYEE]:
+        if not serializer.is_valid():
             return Response(
-                {'detail': 'Rol inválido. Debe ser "administrator" o "employee".'},
+                serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        new_role = serializer.validated_data['role']
 
         target_user = self.repository.get_user_by_id(pk)
 
