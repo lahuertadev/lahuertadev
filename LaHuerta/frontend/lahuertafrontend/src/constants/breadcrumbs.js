@@ -30,4 +30,5 @@ export const breadcrumbsMap = {
   '/bank':             [HOME, CATALOGOS, { label: 'Bancos' }],
   '/check':            [HOME, { label: 'Cheques' }],
   '/own-check':        [HOME, PROVEEDORES, { label: 'Cheques emitidos' }],
+  '/user':             [HOME, { label: 'Usuarios' }],
 };

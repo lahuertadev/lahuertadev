@@ -205,7 +205,7 @@ export default function DataGridDemo({
 
           // ── Headers ────────────────────────────────────────────
           '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: 'rgba(240,244,247,0.5)',
+            backgroundColor: '#f0f4f7',
             borderBottom: '1px solid #e3e9ed',
             borderRadius: 0,
           },

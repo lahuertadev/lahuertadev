@@ -50,11 +50,13 @@ import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
 import PurchasePaymentDetail from "./pages/pago_compra/detail/PurchasePaymentDetail";
 import ClientReport from "./pages/reporte";
+import UsersList from "./pages/usuario/list";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
 import PasswordResetConfirm from "./pages/authentication/PasswordResetConfirm";
 import RequireAuth from "./components/RequireAuth";
+import RequireRole from "./components/RequireRole";
 
 
 const router = createBrowserRouter([
@@ -303,6 +305,14 @@ const router = createBrowserRouter([
       {
         path: 'report',
         element: <ClientReport />,
+      },
+      {
+        path: 'user',
+        element: (
+          <RequireRole roles={['superuser']}>
+            <UsersList />
+          </RequireRole>
+        ),
       },
     ],
   }

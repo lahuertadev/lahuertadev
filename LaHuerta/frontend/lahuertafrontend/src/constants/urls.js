@@ -15,6 +15,9 @@ export const authVerifyEmailUrl = `${API_BASE}/auth/verify-email/`;
 export const authResendVerificationCodeUrl = `${API_BASE}/auth/resend-verification-code/`;
 export const authCsrfUrl = `${API_BASE}/auth/csrf/`;
 
+//! Auth - Users (gestión de usuarios, solo Socio)
+export const authUsersUrl = `${API_BASE}/auth/users/`;
+
 //! Expense
 export const expenseUrl = `${API_BASE}/expense/`;
 
