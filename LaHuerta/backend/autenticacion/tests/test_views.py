@@ -74,7 +74,7 @@ def test_register_view_success(api_client):
         'role': Usuario.EMPLOYEE
     }
     
-    response = api_client.post('/auth/register/', data)
+    response = api_client.post('/api/auth/register/', data)
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.data['message'] == 'Usuario registrado exitosamente. Se ha enviado un código de verificación a tu email.'
@@ -109,7 +109,7 @@ def test_register_view_duplicate_email(api_client, test_user):
         'role': Usuario.EMPLOYEE
     }
     
-    response = api_client.post('/auth/register/', data)
+    response = api_client.post('/api/auth/register/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'email' in response.data
@@ -125,7 +125,7 @@ def test_register_view_duplicate_username(api_client, test_user):
         'role': Usuario.EMPLOYEE
     }
     
-    response = api_client.post('/auth/register/', data)
+    response = api_client.post('/api/auth/register/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'username' in response.data
@@ -141,7 +141,7 @@ def test_register_view_weak_password(api_client):
         'role': Usuario.EMPLOYEE
     }
     
-    response = api_client.post('/auth/register/', data)
+    response = api_client.post('/api/auth/register/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'password' in response.data
@@ -157,7 +157,7 @@ def test_register_view_password_mismatch(api_client):
         'role': Usuario.EMPLOYEE
     }
     
-    response = api_client.post('/auth/register/', data)
+    response = api_client.post('/api/auth/register/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'password' in response.data
@@ -169,7 +169,7 @@ def test_register_view_missing_fields(api_client):
         'email': 'newuser@test.com',
     }
     
-    response = api_client.post('/auth/register/', data)
+    response = api_client.post('/api/auth/register/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -184,7 +184,7 @@ def test_login_view_success(api_client, test_user):
         'password': 'Testpass123!'
     }
     
-    response = api_client.post('/auth/login/', data)
+    response = api_client.post('/api/auth/login/', data)
     
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'Login exitoso'
@@ -198,7 +198,7 @@ def test_login_view_invalid_credentials(api_client, test_user):
         'password': 'WrongPassword123!'
     }
 
-    response = api_client.post('/auth/login/', data)
+    response = api_client.post('/api/auth/login/', data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'non_field_errors' in response.data
@@ -211,7 +211,7 @@ def test_login_view_inactive_user(api_client, inactive_user):
         'password': 'Testpass123!'
     }
 
-    response = api_client.post('/auth/login/', data)
+    response = api_client.post('/api/auth/login/', data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'non_field_errors' in response.data
@@ -224,7 +224,7 @@ def test_login_view_nonexistent_email(api_client):
         'password': 'Testpass123!'
     }
 
-    response = api_client.post('/auth/login/', data)
+    response = api_client.post('/api/auth/login/', data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'non_field_errors' in response.data
@@ -237,7 +237,7 @@ def test_login_view_missing_fields(api_client):
         'email': 'testuser@test.com'
     }
     
-    response = api_client.post('/auth/login/', data)
+    response = api_client.post('/api/auth/login/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -250,7 +250,7 @@ def test_logout_view_success(api_client, test_user):
     """
     api_client.force_authenticate(user=test_user)
 
-    response = api_client.post('/auth/logout/')
+    response = api_client.post('/api/auth/logout/')
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'Cierre de sesión exitoso'
@@ -260,7 +260,7 @@ def test_logout_view_unauthorized(api_client):
     """
     Logout sin estar autenticado debe devolver 403
     """
-    response = api_client.post('/auth/logout/')
+    response = api_client.post('/api/auth/logout/')
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -271,12 +271,12 @@ def test_logout_invalidates_session(api_client, test_user):
     """
     api_client.force_authenticate(user=test_user)
 
-    response = api_client.post('/auth/logout/')
+    response = api_client.post('/api/auth/logout/')
     assert response.status_code == status.HTTP_200_OK
 
     new_client = APIClient()
 
-    response = new_client.post('/auth/logout/')
+    response = new_client.post('/api/auth/logout/')
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -290,7 +290,7 @@ def test_me_view_success(api_client, test_user):
     """
     api_client.force_authenticate(user=test_user)
 
-    response = api_client.get('/auth/me/')
+    response = api_client.get('/api/auth/me/')
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['id'] == test_user.id
@@ -302,21 +302,21 @@ def test_me_view_unauthorized(api_client):
     """
     GET /auth/me/ sin estar autenticado devuelve 403.
     """
-    response = api_client.get('/auth/me/')
+    response = api_client.get('/api/auth/me/')
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 @pytest.mark.django_db
 def test_me_view_returns_only_expected_fields(api_client, test_user):
     """
-    GET /auth/me/ devuelve únicamente id, email y role.
+    GET /auth/me/ devuelve únicamente id, email, role, first_name y last_name.
     """
     api_client.force_authenticate(user=test_user)
 
-    response = api_client.get('/auth/me/')
+    response = api_client.get('/api/auth/me/')
 
     assert response.status_code == status.HTTP_200_OK
-    assert set(response.data.keys()) == {'id', 'email', 'role'}
+    assert set(response.data.keys()) == {'id', 'email', 'role', 'first_name', 'last_name'}
 
 
 # ==================== EMAIL VERIFICATION (VERIFY-EMAIL) VIEW TESTS ====================
@@ -329,7 +329,7 @@ def test_verify_email_success(api_client, test_user):
     code = create_verification_code_for_user(test_user)
     data = {'email': test_user.email, 'code': code}
 
-    response = api_client.post('/auth/verify-email/', data)
+    response = api_client.post('/api/auth/verify-email/', data)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'Email verificado exitosamente. Tu cuenta está activa.'
@@ -344,7 +344,7 @@ def test_verify_email_user_not_found(api_client):
     """
     data = {'email': 'noexiste@test.com', 'code': '123456'}
 
-    response = api_client.post('/auth/verify-email/', data)
+    response = api_client.post('/api/auth/verify-email/', data)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.data['detail'] == 'Usuario no encontrado.'
@@ -359,7 +359,7 @@ def test_verify_email_already_verified(api_client, test_user):
     code = create_verification_code_for_user(test_user)
     data = {'email': test_user.email, 'code': code}
 
-    response = api_client.post('/auth/verify-email/', data)
+    response = api_client.post('/api/auth/verify-email/', data)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'El email ya está verificado.'
@@ -372,7 +372,7 @@ def test_verify_email_invalid_code(api_client, test_user):
     create_verification_code_for_user(test_user)
     data = {'email': test_user.email, 'code': '000000'}
 
-    response = api_client.post('/auth/verify-email/', data)
+    response = api_client.post('/api/auth/verify-email/', data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['detail'] == 'Código de verificación inválido.'
@@ -387,7 +387,7 @@ def test_verify_email_expired_code(api_client, test_user):
     test_user.save()
     data = {'email': test_user.email, 'code': test_user.email_verification_code}
 
-    response = api_client.post('/auth/verify-email/', data)
+    response = api_client.post('/api/auth/verify-email/', data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['detail'] == 'Código de verificación expirado. Solicita uno nuevo.'
@@ -397,7 +397,7 @@ def test_verify_email_invalid_serializer_missing_fields(api_client):
     """
     POST /auth/verify-email/ sin email o código devuelve 400.
     """
-    response = api_client.post('/auth/verify-email/', {})
+    response = api_client.post('/api/auth/verify-email/', {})
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -408,7 +408,7 @@ def test_verify_email_invalid_serializer_code_not_numeric(api_client, test_user)
     """
     data = {'email': test_user.email, 'code': 'abc123'}
 
-    response = api_client.post('/auth/verify-email/', data)
+    response = api_client.post('/api/auth/verify-email/', data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'code' in response.data
@@ -424,7 +424,7 @@ def test_resend_verification_code_success(mock_send_email, api_client, test_user
     """
     data = {'email': test_user.email}
 
-    response = api_client.post('/auth/resend-verification-code/', data)
+    response = api_client.post('/api/auth/resend-verification-code/', data)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'Se ha enviado un nuevo código de verificación a tu email.'
@@ -438,7 +438,7 @@ def test_resend_verification_code_user_not_found(mock_send_email, api_client):
     """
     data = {'email': 'noexiste@test.com'}
 
-    response = api_client.post('/auth/resend-verification-code/', data)
+    response = api_client.post('/api/auth/resend-verification-code/', data)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'Si el email existe y no está verificado, se ha enviado un nuevo código de verificación.'
@@ -454,7 +454,7 @@ def test_resend_verification_code_already_verified(mock_send_email, api_client, 
     test_user.save()
     data = {'email': test_user.email}
 
-    response = api_client.post('/auth/resend-verification-code/', data)
+    response = api_client.post('/api/auth/resend-verification-code/', data)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'El email ya está verificado.'
@@ -467,7 +467,7 @@ def test_resend_verification_code_invalid_email(api_client):
     """
     data = {'email': 'invalid-email'}
 
-    response = api_client.post('/auth/resend-verification-code/', data)
+    response = api_client.post('/api/auth/resend-verification-code/', data)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'email' in response.data
@@ -477,7 +477,7 @@ def test_resend_verification_code_missing_email(api_client):
     """
     POST /auth/resend-verification-code/ sin email devuelve 400.
     """
-    response = api_client.post('/auth/resend-verification-code/', {})
+    response = api_client.post('/api/auth/resend-verification-code/', {})
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -492,7 +492,7 @@ def test_password_reset_request_success(mock_send_email, api_client, test_user):
         'email': 'testuser@test.com'
     }
     
-    response = api_client.post('/auth/password-reset/', data)
+    response = api_client.post('/api/auth/password-reset/', data)
     
     assert response.status_code == status.HTTP_200_OK
     assert 'message' in response.data
@@ -506,7 +506,7 @@ def test_password_reset_request_nonexistent_email(mock_send_email, api_client):
         'email': 'nonexistent@test.com'
     }
     
-    response = api_client.post('/auth/password-reset/', data)
+    response = api_client.post('/api/auth/password-reset/', data)
     
     assert response.status_code == status.HTTP_200_OK
     assert 'message' in response.data
@@ -519,7 +519,7 @@ def test_password_reset_request_invalid_email(api_client):
         'email': 'invalid-email'
     }
     
-    response = api_client.post('/auth/password-reset/', data)
+    response = api_client.post('/api/auth/password-reset/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'email' in response.data
@@ -529,7 +529,7 @@ def test_password_reset_request_missing_email(api_client):
     """Test de solicitud de reset sin email"""
     data = {}
     
-    response = api_client.post('/auth/password-reset/', data)
+    response = api_client.post('/api/auth/password-reset/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -549,7 +549,7 @@ def test_password_reset_confirm_success(api_client, test_user):
         'new_password_confirm': 'NewPassword123!'
     }
     
-    response = api_client.post('/auth/password-reset-confirm/', data)
+    response = api_client.post('/api/auth/password-reset-confirm/', data)
     
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'Contraseña restablecida exitosamente.'
@@ -570,7 +570,7 @@ def test_password_reset_confirm_invalid_token(api_client, test_user):
         'new_password_confirm': 'NewPassword123!'
     }
     
-    response = api_client.post('/auth/password-reset-confirm/', data)
+    response = api_client.post('/api/auth/password-reset-confirm/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['detail'] == 'Token inválido o expirado.'
@@ -585,7 +585,7 @@ def test_password_reset_confirm_invalid_uid(api_client):
         'new_password_confirm': 'NewPassword123!'
     }
     
-    response = api_client.post('/auth/password-reset-confirm/', data)
+    response = api_client.post('/api/auth/password-reset-confirm/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -602,7 +602,7 @@ def test_password_reset_confirm_weak_password(api_client, test_user):
         'new_password_confirm': 'weak'
     }
     
-    response = api_client.post('/auth/password-reset-confirm/', data)
+    response = api_client.post('/api/auth/password-reset-confirm/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
@@ -620,7 +620,7 @@ def test_password_reset_confirm_password_mismatch(api_client, test_user):
         'new_password_confirm': 'DifferentPassword123!'
     }
     
-    response = api_client.post('/auth/password-reset-confirm/', data)
+    response = api_client.post('/api/auth/password-reset-confirm/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
@@ -632,7 +632,7 @@ def test_password_reset_confirm_missing_fields(api_client):
         'uid': 'some-uid',
     }
     
-    response = api_client.post('/auth/password-reset-confirm/', data)
+    response = api_client.post('/api/auth/password-reset-confirm/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -650,7 +650,7 @@ def test_password_change_success(api_client, test_user):
         'new_password_confirm': 'NewPassword123!'
     }
     
-    response = api_client.post('/auth/password-change/', data)
+    response = api_client.post('/api/auth/password-change/', data)
     
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'Contraseña cambiada exitosamente.'
@@ -667,7 +667,7 @@ def test_password_change_unauthorized(api_client):
             'new_password_confirm': 'NewPassword123!'
         }
 
-    response = api_client.post('/auth/password-change/', data)
+    response = api_client.post('/api/auth/password-change/', data)
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -682,7 +682,7 @@ def test_password_change_wrong_old_password(api_client, test_user):
         'new_password_confirm': 'NewPassword123!'
     }
     
-    response = api_client.post('/auth/password-change/', data)
+    response = api_client.post('/api/auth/password-change/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.data['detail'] == 'La contraseña actual es incorrecta.'
@@ -698,7 +698,7 @@ def test_password_change_weak_new_password(api_client, test_user):
         'new_password_confirm': 'weak'
     }
     
-    response = api_client.post('/auth/password-change/', data)
+    response = api_client.post('/api/auth/password-change/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
@@ -714,7 +714,7 @@ def test_password_change_password_mismatch(api_client, test_user):
         'new_password_confirm': 'DifferentPassword123!'
     }
     
-    response = api_client.post('/auth/password-change/', data)
+    response = api_client.post('/api/auth/password-change/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert 'new_password' in response.data
@@ -729,7 +729,7 @@ def test_password_change_missing_fields(api_client, test_user):
         # Falta new_password
     }
     
-    response = api_client.post('/auth/password-change/', data)
+    response = api_client.post('/api/auth/password-change/', data)
     
     assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -738,7 +738,7 @@ def test_password_change_missing_fields(api_client, test_user):
 
 def test_csrf_view_success(api_client):
     """Test de obtención de token CSRF exitoso"""
-    response = api_client.get('/auth/csrf/')
+    response = api_client.get('/api/auth/csrf/')
 
     assert response.status_code == status.HTTP_200_OK
     assert 'csrfToken' in response.data
