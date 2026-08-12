@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    RegisterView, 
+    RegisterView,
     LoginView,
     LogoutView,
     CurrentUserView,
@@ -9,7 +9,10 @@ from .views import (
     PasswordResetConfirmView,
     PasswordChangeView,
     EmailVerificationView,
-    ResendVerificationCodeView
+    ResendVerificationCodeView,
+    UserListView,
+    ToggleUserActiveView,
+    UpdateUserRoleView
 )
 
 urlpatterns = [
@@ -23,5 +26,8 @@ urlpatterns = [
     path('password-change/', PasswordChangeView.as_view(), name='password-change'),
     path('verify-email/', EmailVerificationView.as_view(), name='verify-email'),
     path('resend-verification-code/', ResendVerificationCodeView.as_view(), name='resend-verification-code'),
+    path('users/', UserListView.as_view(), name='user-list'),
+    path('users/<int:pk>/toggle-active/', ToggleUserActiveView.as_view(), name='user-toggle-active'),
+    path('users/<int:pk>/role/', UpdateUserRoleView.as_view(), name='user-update-role'),
 ]
 

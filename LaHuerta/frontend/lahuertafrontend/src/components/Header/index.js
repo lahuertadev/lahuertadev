@@ -30,6 +30,7 @@ import axios from 'axios';
 import { authLogoutUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
 import { useAuth } from '../../context/AuthContext';
+import { ROLE_CONFIG } from '../../constants/roles';
 import logoLaHuerta from '../../assets/logo-lahuerta-sin-fondo.png';
 
 const drawerWidth = 240;
@@ -366,9 +367,23 @@ export default function MiniDrawer({title, menuOptions}) {
                 <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'inherit' }}>
                   {[user.first_name, user.last_name].filter(Boolean).join(' ') || user.email}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#596064', lineHeight: 1.2 }}>
-                  {user.role}
-                </Typography>
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'inline-block',
+                    mt: 0.4,
+                    px: 1.1,
+                    py: 0.15,
+                    borderRadius: '999px',
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    lineHeight: '16px',
+                    backgroundColor: (ROLE_CONFIG[user.role] || {}).bg || '#f0f4f7',
+                    color: (ROLE_CONFIG[user.role] || {}).color || '#596064',
+                  }}
+                >
+                  {(ROLE_CONFIG[user.role] || {}).label || user.role}
+                </Box>
               </Box>
             )}
             <IconButton

@@ -217,3 +217,78 @@ def test_change_password_wrong_old_password(repository, active_user):
     )
 
     assert result is False
+
+#? ==================== GET ALL USERS TESTS ====================
+
+@pytest.mark.django_db
+def test_get_all_users_includes_inactive(repository, active_user, inactive_user):
+    users = repository.get_all_users()
+
+    ids = [user.id for user in users]
+    assert active_user.id in ids
+    assert inactive_user.id in ids
+
+#? ==================== GET USER BY ID TESTS ====================
+
+@pytest.mark.django_db
+def test_get_user_by_id_success(repository, active_user):
+    user = repository.get_user_by_id(active_user.id)
+
+    assert user is not None
+    assert user.pk == active_user.pk
+
+@pytest.mark.django_db
+def test_get_user_by_id_includes_inactive(repository, inactive_user):
+    user = repository.get_user_by_id(inactive_user.id)
+
+    assert user is not None
+    assert user.pk == inactive_user.pk
+
+@pytest.mark.django_db
+def test_get_user_by_id_not_found(repository):
+    user = repository.get_user_by_id(999999)
+
+    assert user is None
+
+#? ==================== SET ACTIVE STATUS TESTS ====================
+
+@pytest.mark.django_db
+def test_set_active_status_disable(repository, active_user):
+    user = repository.set_active_status(active_user.id, False)
+
+    assert user is not None
+    assert user.is_active is False
+    active_user.refresh_from_db()
+    assert active_user.is_active is False
+
+@pytest.mark.django_db
+def test_set_active_status_enable(repository, inactive_user):
+    user = repository.set_active_status(inactive_user.id, True)
+
+    assert user is not None
+    assert user.is_active is True
+    inactive_user.refresh_from_db()
+    assert inactive_user.is_active is True
+
+@pytest.mark.django_db
+def test_set_active_status_not_found(repository):
+    user = repository.set_active_status(999999, False)
+
+    assert user is None
+
+#? ==================== SET USER ROLE TESTS ====================
+
+@pytest.mark.django_db
+def test_set_user_role_success(repository, active_user):
+    user = repository.set_user_role(active_user.id, Usuario.ADMINISTRATOR)
+
+    assert user is not None
+    assert user.role == Usuario.ADMINISTRATOR
+    active_user.refresh_from_db()
+    assert active_user.role == Usuario.ADMINISTRATOR
+
+@pytest.mark.django_db
+def test_set_user_role_not_found(repository):
+    user = repository.set_user_role(999999, Usuario.ADMINISTRATOR)
+
+    assert user is None

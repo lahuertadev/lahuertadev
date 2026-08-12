@@ -29,3 +29,19 @@ class IUserRepository(ABC):
     @abstractmethod
     def change_password(self, user, old_password, new_password):
         pass
+
+    @abstractmethod
+    def get_all_users(self):
+        pass
+
+    @abstractmethod
+    def get_user_by_id(self, user_id):
+        pass
+
+    @abstractmethod
+    def set_active_status(self, user_id, is_active):
+        pass
+
+    @abstractmethod
+    def set_user_role(self, user_id, role):
+        pass

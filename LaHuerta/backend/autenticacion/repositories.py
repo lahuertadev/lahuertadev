@@ -77,7 +77,33 @@ class UserRepository(IUserRepository):
         """
         if not user.check_password(old_password):
             return False
-        
+
         user.set_password(new_password)
         user.save()
         return True
+
+    def get_all_users(self):
+        """Obtiene todos los usuarios, incluyendo deshabilitados"""
+        return Usuario.objects.all().order_by('-date_joined')
+
+    def get_user_by_id(self, user_id):
+        """Obtiene un usuario por su id, incluyendo deshabilitados"""
+        return Usuario.objects.filter(pk=user_id).first()
+
+    def set_active_status(self, user_id, is_active):
+        """Habilita o deshabilita un usuario. Retorna el usuario actualizado o None si no existe"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            return None
+        user.is_active = is_active
+        user.save()
+        return user
+
+    def set_user_role(self, user_id, role):
+        """Cambia el rol de un usuario. Retorna el usuario actualizado o None si no existe"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            return None
+        user.role = role
+        user.save()
+        return user

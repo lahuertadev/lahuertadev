@@ -24,6 +24,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'username': {'required': True},
             'first_name': {'required': False},
             'last_name': {'required': False},
+            'role': {'read_only': True},
         }
 
     def validate_email(self, value):
@@ -163,3 +164,16 @@ class ResendVerificationCodeSerializer(serializers.Serializer):
     DTO para reenviar código de verificación
     """
     email = serializers.EmailField(required=True)
+
+class UpdateUserRoleSerializer(serializers.Serializer):
+    """
+    DTO para cambiar el rol de un usuario. No admite superuser: esa
+    asignación se hace fuera de la API.
+    """
+    role = serializers.ChoiceField(
+        choices=[Usuario.ADMINISTRATOR, Usuario.EMPLOYEE],
+        error_messages={
+            'invalid_choice': 'Rol inválido. Debe ser "administrator" o "employee".',
+            'required': 'Debe indicar el nuevo rol.',
+        }
+    )
