@@ -4,7 +4,7 @@ import string
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
-from datetime import timedelta
+from datetime import date, timedelta
 from rest_framework import serializers
 from .models import Usuario
 
@@ -252,4 +252,75 @@ def verify_user_email(user, code):
         user.save()
         return True
     return False
+
+
+# ==================== CUMPLEAÑOS Y ANIVERSARIOS LABORALES ====================
+
+CELEBRATIONS_WINDOW_DAYS = 7
+
+
+def _next_occurrence(month, day, today):
+    """
+    Próxima fecha (a partir de hoy, inclusive) en la que se repite un mes/día
+    dado (cumpleaños, aniversario). Si el 29 de febrero cae en un año no
+    bisiesto, se usa el 28 de febrero como aproximación.
+    """
+    try:
+        candidate = date(today.year, month, day)
+    except ValueError:
+        candidate = date(today.year, 2, 28)
+
+    if candidate < today:
+        try:
+            candidate = date(today.year + 1, month, day)
+        except ValueError:
+            candidate = date(today.year + 1, 2, 28)
+
+    return candidate
+
+
+def get_upcoming_celebrations(users, within_days=CELEBRATIONS_WINDOW_DAYS):
+    """
+    A partir de una lista de usuarios, arma los cumpleaños (birth_date) y
+    aniversarios laborales (date_joined) que caen hoy o dentro de los
+    próximos `within_days` días. No expone el año de nacimiento: solo
+    cuántos días faltan.
+
+    Retorna una lista de dicts ordenada por días restantes:
+        {user_id, first_name, last_name, type: 'birthday'|'anniversary', days_until, years}
+    'years' solo está presente en las entradas de tipo 'anniversary'.
+    """
+    today = timezone.localdate()
+    celebrations = []
+
+    for user in users:
+        if user.birth_date:
+            next_date = _next_occurrence(user.birth_date.month, user.birth_date.day, today)
+            days_until = (next_date - today).days
+            if days_until <= within_days:
+                celebrations.append({
+                    'user_id': user.id,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'type': 'birthday',
+                    'days_until': days_until,
+                })
+
+        if user.date_joined:
+            join_date = timezone.localtime(user.date_joined).date()
+            next_date = _next_occurrence(join_date.month, join_date.day, today)
+            days_until = (next_date - today).days
+            years = next_date.year - join_date.year
+            if years >= 1 and days_until <= within_days:
+                celebrations.append({
+                    'user_id': user.id,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'type': 'anniversary',
+                    'days_until': days_until,
+                    'years': years,
+                })
+
+    celebrations.sort(key=lambda c: c['days_until'])
+    return celebrations
 
