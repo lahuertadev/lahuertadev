@@ -524,7 +524,8 @@ class UserListView(APIView):
 class ToggleUserActiveView(APIView):
     """
     Habilita o deshabilita un usuario. Solo accesible para superusuarios.
-    Un superusuario no puede deshabilitarse a sí mismo.
+    Un superusuario no puede deshabilitarse a sí mismo, ni deshabilitar a
+    otro superusuario: esa acción se hace fuera de la API.
     """
     permission_classes = [IsSuperuser]
 
@@ -545,6 +546,12 @@ class ToggleUserActiveView(APIView):
             if target_user.id == request.user.id:
                 return Response(
                     {'detail': 'No podés deshabilitarte a vos mismo.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if target_user.role == Usuario.SUPERUSER:
+                return Response(
+                    {'detail': 'No se puede habilitar/deshabilitar a un superusuario desde la API.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 

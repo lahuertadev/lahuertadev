@@ -1064,6 +1064,26 @@ def test_toggle_user_active_self_lockout_blocked(api_client, superuser):
     assert superuser.is_active is True
 
 @pytest.mark.django_db
+def test_toggle_user_active_cannot_target_superuser(api_client, superuser):
+    """
+    Un superusuario no puede habilitar/deshabilitar a otro superusuario:
+    esa acción se hace fuera de la API.
+    """
+    other_superuser = Usuario.objects.create_user(
+        email='other-superuser@test.com',
+        username='othersuperuser',
+        password='Testpass123!',
+        role=Usuario.SUPERUSER
+    )
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(f'/api/auth/users/{other_superuser.id}/toggle-active/')
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    other_superuser.refresh_from_db()
+    assert other_superuser.is_active is True
+
+@pytest.mark.django_db
 def test_toggle_user_active_not_found(api_client, superuser):
     api_client.force_authenticate(user=superuser)
 
