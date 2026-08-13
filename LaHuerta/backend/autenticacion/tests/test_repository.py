@@ -292,3 +292,47 @@ def test_set_user_role_not_found(repository):
     user = repository.set_user_role(999999, Usuario.ADMINISTRATOR)
 
     assert user is None
+
+#? ==================== UPDATE PROFILE TESTS ====================
+
+@pytest.mark.django_db
+def test_update_profile_updates_given_fields(repository, active_user):
+    user = repository.update_profile(active_user, {
+        'first_name': 'Nuevo',
+        'address': 'Calle Falsa 123',
+    })
+
+    assert user.first_name == 'Nuevo'
+    assert user.address == 'Calle Falsa 123'
+    active_user.refresh_from_db()
+    assert active_user.first_name == 'Nuevo'
+    assert active_user.address == 'Calle Falsa 123'
+
+@pytest.mark.django_db
+def test_update_profile_ignores_unset_fields(repository, active_user):
+    active_user.last_name = 'Original'
+    active_user.save()
+
+    user = repository.update_profile(active_user, {'first_name': 'Nuevo'})
+
+    assert user.last_name == 'Original'
+
+#? ==================== SET AVATAR TESTS ====================
+
+@pytest.mark.django_db
+def test_set_avatar_updates_field(repository, active_user):
+    from io import BytesIO
+    from PIL import Image
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    buffer = BytesIO()
+    Image.new('RGB', (10, 10)).save(buffer, format='PNG')
+    buffer.seek(0)
+    avatar = SimpleUploadedFile('avatar.png', buffer.read(), content_type='image/png')
+
+    user = repository.set_avatar(active_user, avatar)
+
+    assert bool(user.avatar)
+    active_user.refresh_from_db()
+    assert bool(active_user.avatar)
+    active_user.avatar.delete(save=False)

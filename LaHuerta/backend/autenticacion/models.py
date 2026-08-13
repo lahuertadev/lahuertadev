@@ -17,6 +17,10 @@ class Usuario(AbstractUser):
     email_verified = models.BooleanField(default=False, verbose_name='Email verificado')
     email_verification_code = models.CharField(max_length=6, null=True, blank=True, verbose_name='Código de verificación')
     email_verification_code_expires = models.DateTimeField(null=True, blank=True, verbose_name='Expiración del código')
+    birth_date = models.DateField(null=True, blank=True, verbose_name='Fecha de nacimiento')
+    address = models.CharField(max_length=255, null=True, blank=True, verbose_name='Domicilio')
+    phone = models.CharField(max_length=30, null=True, blank=True, verbose_name='Teléfono')
+    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True, verbose_name='Foto de perfil')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']

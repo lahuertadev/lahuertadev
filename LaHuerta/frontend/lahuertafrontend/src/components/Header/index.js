@@ -14,6 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -187,9 +188,7 @@ export default function MiniDrawer({title, menuOptions}) {
 
   const handleProfileClick = () => {
     handleUserMenuClose();
-    // TODO: Navegar a la página de perfil cuando esté implementada
-    // navigate('/profile');
-    alert('Página de perfil próximamente');
+    navigate('/profile');
   };
 
   const handleLogout = async () => {
@@ -365,7 +364,10 @@ export default function MiniDrawer({title, menuOptions}) {
             {user && (
               <Box sx={{ textAlign: 'right' }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'inherit' }}>
-                  {[user.first_name, user.last_name].filter(Boolean).join(' ') || user.email}
+                  {(isMobile
+                    ? user.first_name
+                    : [user.first_name, user.last_name].filter(Boolean).join(' ')
+                  ) || user.email}
                 </Typography>
                 <Box
                   component="span"
@@ -395,7 +397,11 @@ export default function MiniDrawer({title, menuOptions}) {
               onClick={handleUserMenuOpen}
               sx={{ color: '#596064' }}
             >
-              <AccountCircle />
+              {user?.avatar ? (
+                <Avatar src={user.avatar} sx={{ width: 32, height: 32 }} />
+              ) : (
+                <AccountCircle />
+              )}
             </IconButton>
           </Box>
           <Menu

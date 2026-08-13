@@ -51,6 +51,7 @@ import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
 import PurchasePaymentDetail from "./pages/pago_compra/detail/PurchasePaymentDetail";
 import ClientReport from "./pages/reporte";
 import UsersList from "./pages/usuario/list";
+import Profile from "./pages/profile";
 import Login from "./pages/authentication/Login";
 import Register from "./pages/authentication/Register";
 import PasswordResetRequest from "./pages/authentication/PasswordResetRequest";
@@ -313,6 +314,10 @@ const router = createBrowserRouter([
             <UsersList />
           </RequireRole>
         ),
+      },
+      {
+        path: '/profile',
+        element: <Profile />,
       },
     ],
   }

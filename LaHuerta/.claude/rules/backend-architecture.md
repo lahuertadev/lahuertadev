@@ -30,6 +30,7 @@ Cuando aplique, seguir esta separación:
 - Deben ser delgadas.
 - Deben coordinar request, serializer, repository/service y response.
 - No deben contener lógica de negocio compleja.
+- No declarar `permission_classes = [IsAuthenticated]` en una view: `REST_FRAMEWORK.DEFAULT_PERMISSION_CLASSES` en `settings.py` ya lo aplica a toda la API por default. Declarar `permission_classes` solo cuando una view necesita algo **distinto** del default (ej. `AllowAny` en endpoints públicos, `IsSuperuser` en gestión de usuarios) — repetir el default es código duplicado (DRY).
 
 ## Cuándo usar service
 No todo endpoint debe pasar por `service.py`.
