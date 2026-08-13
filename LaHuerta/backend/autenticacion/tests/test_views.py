@@ -309,14 +309,255 @@ def test_me_view_unauthorized(api_client):
 @pytest.mark.django_db
 def test_me_view_returns_only_expected_fields(api_client, test_user):
     """
-    GET /auth/me/ devuelve únicamente id, email, role, first_name y last_name.
+    GET /auth/me/ devuelve id, email, username, first_name, last_name, role,
+    date_joined y los campos de perfil extendido (birth_date, address, phone, avatar).
     """
     api_client.force_authenticate(user=test_user)
 
     response = api_client.get('/api/auth/me/')
 
     assert response.status_code == status.HTTP_200_OK
-    assert set(response.data.keys()) == {'id', 'email', 'role', 'first_name', 'last_name'}
+    assert set(response.data.keys()) == {
+        'id', 'email', 'username', 'first_name', 'last_name', 'role',
+        'date_joined', 'birth_date', 'address', 'phone', 'avatar',
+    }
+    assert response.data['username'] == test_user.username
+    assert response.data['avatar'] is None
+
+@pytest.mark.django_db
+def test_me_view_patch_success(api_client, test_user):
+    """
+    PATCH /auth/me/ actualiza los datos personales del propio usuario.
+    """
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.patch('/api/auth/me/', {
+        'first_name': 'Nuevo',
+        'last_name': 'Apellido',
+        'birth_date': '1990-05-20',
+        'address': 'Calle Falsa 123',
+        'phone': '+54 9 11 1234-5678',
+    })
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['first_name'] == 'Nuevo'
+    assert response.data['last_name'] == 'Apellido'
+    assert response.data['birth_date'] == '1990-05-20'
+    assert response.data['address'] == 'Calle Falsa 123'
+    assert response.data['phone'] == '+54 9 11 1234-5678'
+
+    test_user.refresh_from_db()
+    assert test_user.first_name == 'Nuevo'
+    assert test_user.address == 'Calle Falsa 123'
+
+@pytest.mark.django_db
+def test_me_view_patch_partial(api_client, test_user):
+    """
+    PATCH /auth/me/ admite actualización parcial (solo algunos campos).
+    """
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.patch('/api/auth/me/', {'phone': '11-2222-3333'})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['phone'] == '11-2222-3333'
+
+@pytest.mark.django_db
+def test_me_view_patch_unauthorized(api_client):
+    """
+    PATCH /auth/me/ sin estar autenticado devuelve 403.
+    """
+    response = api_client.patch('/api/auth/me/', {'first_name': 'Nuevo'})
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_me_view_patch_cannot_change_role(api_client, test_user):
+    """
+    PATCH /auth/me/ ignora campos no permitidos como role (self-service, no admin).
+    """
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.patch('/api/auth/me/', {'role': Usuario.SUPERUSER})
+
+    assert response.status_code == status.HTTP_200_OK
+    test_user.refresh_from_db()
+    assert test_user.role == Usuario.EMPLOYEE
+
+@pytest.mark.django_db
+@patch('autenticacion.views.ProfileSerializer')
+def test_me_view_get_returns_500_on_unexpected_error(mock_serializer, api_client, test_user):
+    """
+    GET /auth/me/ devuelve 500 si ocurre un error inesperado al armar el perfil.
+    """
+    mock_serializer.side_effect = Exception('boom')
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.get('/api/auth/me/')
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al obtener el perfil.'
+
+@pytest.mark.django_db
+@patch('autenticacion.views.UserRepository')
+def test_me_view_patch_returns_500_on_unexpected_error(mock_repository_class, api_client, test_user):
+    """
+    PATCH /auth/me/ devuelve 500 si el repository falla inesperadamente.
+    """
+    mock_repository_class.return_value.update_profile.side_effect = Exception('boom')
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.patch('/api/auth/me/', {'first_name': 'Nuevo'})
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al actualizar el perfil.'
+
+
+# ==================== AVATAR UPLOAD VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_avatar_upload_success(api_client, test_user):
+    """
+    POST /auth/me/avatar/ con una imagen válida actualiza el avatar del usuario.
+    """
+    from io import BytesIO
+    from PIL import Image
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    api_client.force_authenticate(user=test_user)
+
+    buffer = BytesIO()
+    Image.new('RGB', (10, 10)).save(buffer, format='PNG')
+    buffer.seek(0)
+    avatar = SimpleUploadedFile('avatar.png', buffer.read(), content_type='image/png')
+
+    response = api_client.post('/api/auth/me/avatar/', {'avatar': avatar}, format='multipart')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['avatar'] is not None
+
+    test_user.refresh_from_db()
+    assert bool(test_user.avatar)
+    test_user.avatar.delete(save=False)
+
+@pytest.mark.django_db
+def test_avatar_upload_unauthorized(api_client):
+    """
+    POST /auth/me/avatar/ sin estar autenticado devuelve 403.
+    """
+    response = api_client.post('/api/auth/me/avatar/', {}, format='multipart')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_avatar_upload_missing_file(api_client, test_user):
+    """
+    POST /auth/me/avatar/ sin archivo devuelve 400.
+    """
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.post('/api/auth/me/avatar/', {}, format='multipart')
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+@pytest.mark.django_db
+@patch('autenticacion.views.UserRepository')
+def test_avatar_upload_returns_500_on_unexpected_error(mock_repository_class, api_client, test_user):
+    """
+    POST /auth/me/avatar/ devuelve 500 si el repository falla inesperadamente al guardar.
+    """
+    from io import BytesIO
+    from PIL import Image
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    mock_repository_class.return_value.set_avatar.side_effect = Exception('boom')
+    api_client.force_authenticate(user=test_user)
+
+    buffer = BytesIO()
+    Image.new('RGB', (10, 10)).save(buffer, format='PNG')
+    buffer.seek(0)
+    avatar = SimpleUploadedFile('avatar.png', buffer.read(), content_type='image/png')
+
+    response = api_client.post('/api/auth/me/avatar/', {'avatar': avatar}, format='multipart')
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al subir la foto de perfil.'
+
+
+# ==================== CELEBRATIONS VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_celebrations_view_unauthorized(api_client):
+    """
+    GET /auth/celebrations/ sin estar autenticado devuelve 403.
+    """
+    response = api_client.get('/api/auth/celebrations/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_celebrations_view_returns_todays_birthday(api_client, test_user):
+    """
+    GET /auth/celebrations/ incluye a un usuario cuyo cumpleaños es hoy.
+    """
+    today = timezone.localdate()
+    test_user.birth_date = today.replace(year=today.year - 25)
+    test_user.save()
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.get('/api/auth/celebrations/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) == 1
+    assert response.data[0]['type'] == 'birthday'
+    assert response.data[0]['days_until'] == 0
+    assert response.data[0]['user_id'] == test_user.id
+
+@pytest.mark.django_db
+def test_celebrations_view_visible_to_any_authenticated_role(api_client, administrator):
+    """
+    GET /auth/celebrations/ no requiere un rol específico: cualquier usuario
+    autenticado puede verlo (a diferencia de la gestión de usuarios).
+    """
+    today = timezone.localdate()
+    administrator.birth_date = today.replace(year=today.year - 40)
+    administrator.save()
+    api_client.force_authenticate(user=administrator)
+
+    response = api_client.get('/api/auth/celebrations/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) == 1
+
+@pytest.mark.django_db
+def test_celebrations_view_excludes_inactive_users(api_client, test_user, inactive_user):
+    """
+    GET /auth/celebrations/ no incluye a usuarios deshabilitados, aunque
+    cumplan años hoy.
+    """
+    today = timezone.localdate()
+    inactive_user.birth_date = today
+    inactive_user.save()
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.get('/api/auth/celebrations/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data == []
+
+@pytest.mark.django_db
+@patch('autenticacion.views.UserRepository')
+def test_celebrations_view_returns_500_on_unexpected_error(mock_repository_class, api_client, test_user):
+    """
+    GET /auth/celebrations/ devuelve 500 si el repository falla inesperadamente.
+    """
+    mock_repository_class.return_value.get_active_users.side_effect = Exception('boom')
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.get('/api/auth/celebrations/')
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al obtener los próximos cumpleaños y aniversarios.'
 
 
 # ==================== EMAIL VERIFICATION (VERIFY-EMAIL) VIEW TESTS ====================
@@ -772,6 +1013,20 @@ def test_user_list_view_denies_unauthenticated(api_client):
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
+@pytest.mark.django_db
+@patch('autenticacion.views.UserRepository')
+def test_user_list_view_returns_500_on_unexpected_error(mock_repository_class, api_client, superuser):
+    """
+    GET /auth/users/ devuelve 500 si el repository falla inesperadamente.
+    """
+    mock_repository_class.return_value.get_all_users.side_effect = Exception('boom')
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.get('/api/auth/users/')
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al listar los usuarios.'
+
 
 # ==================== TOGGLE USER ACTIVE VIEW TESTS ====================
 
@@ -829,6 +1084,20 @@ def test_toggle_user_active_denies_unauthenticated(api_client, test_user):
     response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+@patch('autenticacion.views.UserRepository')
+def test_toggle_user_active_returns_500_on_unexpected_error(mock_repository_class, api_client, superuser, test_user):
+    """
+    PATCH /auth/users/<id>/toggle-active/ devuelve 500 si el repository falla inesperadamente.
+    """
+    mock_repository_class.return_value.get_user_by_id.side_effect = Exception('boom')
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al actualizar el estado del usuario.'
 
 
 # ==================== UPDATE USER ROLE VIEW TESTS ====================
@@ -935,3 +1204,20 @@ def test_update_user_role_denies_unauthenticated(api_client, test_user):
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+@patch('autenticacion.views.UserRepository')
+def test_update_user_role_returns_500_on_unexpected_error(mock_repository_class, api_client, superuser, test_user):
+    """
+    PATCH /auth/users/<id>/role/ devuelve 500 si el repository falla inesperadamente.
+    """
+    mock_repository_class.return_value.get_user_by_id.side_effect = Exception('boom')
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(
+        f'/api/auth/users/{test_user.id}/role/',
+        {'role': Usuario.ADMINISTRATOR}
+    )
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al actualizar el rol del usuario.'

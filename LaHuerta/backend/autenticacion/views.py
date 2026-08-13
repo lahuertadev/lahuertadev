@@ -1,7 +1,8 @@
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import login, logout
 from .serializers import (
     UserRegisterSerializer,
@@ -12,7 +13,10 @@ from .serializers import (
     PasswordChangeSerializer,
     EmailVerificationSerializer,
     ResendVerificationCodeSerializer,
-    UpdateUserRoleSerializer
+    UpdateUserRoleSerializer,
+    ProfileSerializer,
+    ProfileUpdateSerializer,
+    AvatarUploadSerializer
 )
 from .interfaces import IUserRepository
 from .repositories import UserRepository
@@ -23,7 +27,8 @@ from .utils import (
     send_welcome_email_with_verification_code,
     create_verification_code_for_user,
     verify_user_email,
-    is_verification_code_expired
+    is_verification_code_expired,
+    get_upcoming_celebrations
 )
 from django.middleware.csrf import get_token
 from rest_framework.decorators import api_view, permission_classes
@@ -124,10 +129,9 @@ class LogoutView(APIView):
     Servicio para logout de usuarios
     Cierra la sesión y limpia las cookies
     """
-    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        logout(request)  
+        logout(request)
         
         return Response(
             {
@@ -223,8 +227,7 @@ class PasswordChangeView(APIView):
     """
     Servicio para cambiar contraseña (requiere autenticación)
     """
-    permission_classes = [IsAuthenticated]
-    
+
     def __init__(self, repository: IUserRepository = None, **kwargs):
         super().__init__(**kwargs)
         self.repository = repository or UserRepository()
@@ -395,19 +398,104 @@ class ResendVerificationCodeView(APIView):
 
 class CurrentUserView(APIView):
     """
-    Devuelve el usuario actual si la sesión está autenticada.
-    No crea sesión, solo la verifica. Usado por el frontend para proteger rutas.
+    Devuelve el usuario actual si la sesión está autenticada, y permite editar
+    los datos personales del propio perfil.
+    Usado por el frontend para proteger rutas y para la pantalla de Perfil.
     """
-    permission_classes = [IsAuthenticated]
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
 
     def get(self, request):
-        return Response({
-            "id": request.user.id,
-            "email": request.user.email,
-            "role": request.user.role,
-            "first_name": request.user.first_name,
-            "last_name": request.user.last_name,
-        }, status=status.HTTP_200_OK)
+        try:
+            return Response(
+                ProfileSerializer(request.user, context={'request': request}).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            print(f"Error al obtener el perfil: {e}")
+            return Response(
+                {'detail': 'Error al obtener el perfil.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(data=request.data, partial=True)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            updated_user = self.repository.update_profile(request.user, serializer.validated_data)
+            return Response(
+                ProfileSerializer(updated_user, context={'request': request}).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            print(f"Error al actualizar el perfil: {e}")
+            return Response(
+                {'detail': 'Error al actualizar el perfil.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class AvatarUploadView(APIView):
+    """
+    Sube o reemplaza la foto de perfil del usuario autenticado.
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
+
+    def post(self, request):
+        serializer = AvatarUploadSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            updated_user = self.repository.set_avatar(request.user, serializer.validated_data['avatar'])
+            return Response(
+                ProfileSerializer(updated_user, context={'request': request}).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            print(f"Error al subir el avatar: {e}")
+            return Response(
+                {'detail': 'Error al subir la foto de perfil.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class CelebrationsView(APIView):
+    """
+    Devuelve los cumpleaños y aniversarios laborales de usuarios activos que
+    caen hoy o dentro de los próximos días (ver CELEBRATIONS_WINDOW_DAYS).
+    Visible para cualquier usuario autenticado, sin restricción de rol.
+    """
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
+
+    def get(self, request):
+        try:
+            users = self.repository.get_active_users()
+            celebrations = get_upcoming_celebrations(users)
+            return Response(celebrations, status=status.HTTP_200_OK)
+        except Exception as e:
+            print(f"Error al obtener cumpleaños y aniversarios: {e}")
+            return Response(
+                {'detail': 'Error al obtener los próximos cumpleaños y aniversarios.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class UserListView(APIView):
     """
@@ -420,11 +508,18 @@ class UserListView(APIView):
         self.repository = repository or UserRepository()
 
     def get(self, request):
-        users = self.repository.get_all_users()
-        return Response(
-            UserResponseSerializer(users, many=True).data,
-            status=status.HTTP_200_OK
-        )
+        try:
+            users = self.repository.get_all_users()
+            return Response(
+                UserResponseSerializer(users, many=True).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            print(f"Error al listar usuarios: {e}")
+            return Response(
+                {'detail': 'Error al listar los usuarios.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ToggleUserActiveView(APIView):
     """
@@ -438,26 +533,33 @@ class ToggleUserActiveView(APIView):
         self.repository = repository or UserRepository()
 
     def patch(self, request, pk):
-        target_user = self.repository.get_user_by_id(pk)
+        try:
+            target_user = self.repository.get_user_by_id(pk)
 
-        if not target_user:
+            if not target_user:
+                return Response(
+                    {'detail': 'Usuario no encontrado.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            if target_user.id == request.user.id:
+                return Response(
+                    {'detail': 'No podés deshabilitarte a vos mismo.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            updated_user = self.repository.set_active_status(pk, not target_user.is_active)
+
             return Response(
-                {'detail': 'Usuario no encontrado.'},
-                status=status.HTTP_404_NOT_FOUND
+                UserResponseSerializer(updated_user).data,
+                status=status.HTTP_200_OK
             )
-
-        if target_user.id == request.user.id:
+        except Exception as e:
+            print(f"Error al habilitar/deshabilitar usuario: {e}")
             return Response(
-                {'detail': 'No podés deshabilitarte a vos mismo.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'detail': 'Error al actualizar el estado del usuario.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-        updated_user = self.repository.set_active_status(pk, not target_user.is_active)
-
-        return Response(
-            UserResponseSerializer(updated_user).data,
-            status=status.HTTP_200_OK
-        )
 
 class UpdateUserRoleView(APIView):
     """
@@ -481,26 +583,33 @@ class UpdateUserRoleView(APIView):
 
         new_role = serializer.validated_data['role']
 
-        target_user = self.repository.get_user_by_id(pk)
+        try:
+            target_user = self.repository.get_user_by_id(pk)
 
-        if not target_user:
+            if not target_user:
+                return Response(
+                    {'detail': 'Usuario no encontrado.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            if target_user.role == Usuario.SUPERUSER:
+                return Response(
+                    {'detail': 'No se puede modificar el rol de un superusuario desde la API.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            updated_user = self.repository.set_user_role(pk, new_role)
+
             return Response(
-                {'detail': 'Usuario no encontrado.'},
-                status=status.HTTP_404_NOT_FOUND
+                UserResponseSerializer(updated_user).data,
+                status=status.HTTP_200_OK
             )
-
-        if target_user.role == Usuario.SUPERUSER:
+        except Exception as e:
+            print(f"Error al actualizar el rol del usuario: {e}")
             return Response(
-                {'detail': 'No se puede modificar el rol de un superusuario desde la API.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'detail': 'Error al actualizar el rol del usuario.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-        updated_user = self.repository.set_user_role(pk, new_role)
-
-        return Response(
-            UserResponseSerializer(updated_user).data,
-            status=status.HTTP_200_OK
-        )
 
 
 @api_view(['GET'])
