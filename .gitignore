@@ -29,7 +29,7 @@ yarn-error.log*
 staticfiles/
 
 # Archivos subidos por usuarios (avatares, etc.)
-backend/media/
+LaHuerta/backend/media/
 
 # Archivos de anotaciones
 *.txt
