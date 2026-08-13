@@ -69,12 +69,13 @@ const RoleCell = ({ params, onChangeRole, busyId }) => {
 // Mismo switch (checkbox + estilos) que "Cliente activo" en ClientForm.js.
 const StatusCell = ({ params, onToggleActive, currentUserId, busyId }) => {
   const isSelf = params.row.id === currentUserId;
+  const isSuperuser = params.row.role === 'superuser';
   const isBusy = busyId === params.row.id;
   const isActive = Boolean(params.value);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: '100%' }}>
-      {isSelf ? (
+      {isSelf || isSuperuser ? (
         <span className={`text-xs font-semibold ${isActive ? 'text-green-700' : 'text-red-600'}`}>
           {isActive ? 'Activo' : 'Inactivo'}
         </span>

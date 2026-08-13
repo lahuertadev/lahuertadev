@@ -364,7 +364,10 @@ export default function MiniDrawer({title, menuOptions}) {
             {user && (
               <Box sx={{ textAlign: 'right' }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'inherit' }}>
-                  {[user.first_name, user.last_name].filter(Boolean).join(' ') || user.email}
+                  {(isMobile
+                    ? user.first_name
+                    : [user.first_name, user.last_name].filter(Boolean).join(' ')
+                  ) || user.email}
                 </Typography>
                 <Box
                   component="span"

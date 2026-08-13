@@ -69,7 +69,9 @@ const SectionCard = ({ icon, title, children, cols = 2 }) => (
 const ReadOnlyField = ({ label, value }) => (
   <div className="flex flex-col gap-1">
     <label className={labelCls}>{label}</label>
-    <p className="text-sm text-on-surface py-2.5">{value || '—'}</p>
+    <p className="w-full bg-surface-low px-3 py-2.5 rounded-lg border border-border-subtle text-sm text-on-surface-muted cursor-not-allowed">
+      {value || '—'}
+    </p>
   </div>
 );
 
@@ -348,7 +350,7 @@ const Profile = () => {
                   helperText={touched.address ? errors.address : ''}
                 />
               </div>
-              <div className="md:col-span-2 flex justify-end">
+              <div className="md:col-span-2 flex justify-center sm:justify-end">
                 <Button
                   type="submit"
                   label={isSubmitting ? 'Guardando...' : 'Guardar datos personales'}
@@ -404,7 +406,7 @@ const Profile = () => {
             />
             <PasswordMatchHint password={passwordData.new_password} confirmValue={passwordData.new_password_confirm} />
           </div>
-          <div className="md:col-span-2 flex justify-end">
+          <div className="md:col-span-2 flex justify-center sm:justify-end">
             <Button
               type="submit"
               label={passwordLoading ? 'Guardando...' : 'Cambiar contraseña'}
