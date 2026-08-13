@@ -45,3 +45,15 @@ class IUserRepository(ABC):
     @abstractmethod
     def set_user_role(self, user_id, role):
         pass
+
+    @abstractmethod
+    def get_active_users(self):
+        pass
+
+    @abstractmethod
+    def update_profile(self, user, data):
+        pass
+
+    @abstractmethod
+    def set_avatar(self, user, avatar_file):
+        pass
