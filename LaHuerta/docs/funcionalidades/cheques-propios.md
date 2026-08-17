@@ -22,12 +22,24 @@ Gestionar los cheques emitidos por La Huerta para el pago de compras a proveedor
 
 Solo los cheques en estado **EMITIDO** pueden editarse, eliminarse, cobrarse o anularse.
 
+## Fecha de depósito (cheques diferidos)
+
+Los cheques emitidos por La Huerta suelen entregarse al proveedor antes de que puedan cobrarse (cheques diferidos, comunes a 30/60/90 días). El campo **fecha de depósito** (`fecha_deposito`) registra desde cuándo el proveedor puede efectivamente depositar el cheque.
+
+- Es un campo **opcional**: puede dejarse vacío si el cheque no es diferido o si aún no se acordó la fecha. En ese caso, el cheque se considera a la vista y no tiene restricción para cobrarse.
+- Se ingresa y edita en el formulario de creación/edición, y se muestra en el detalle entre la fecha de emisión y la fecha de vencimiento.
+- Si está cargada, condiciona cuándo el cheque puede marcarse como COBRADO (ver "Cobrar un cheque" más abajo).
+- El detalle y el listado muestran un indicador visual:
+  - Si la fecha de depósito es **futura** y el cheque sigue EMITIDO, se marca como "todavía en espera".
+  - Si la fecha de depósito **ya llegó o pasó** y el cheque sigue EMITIDO, se marca como "disponible" para depositar/cobrar.
+- El naming (`fecha_deposito`) se alinea con el campo homónimo del modelo `Cheque` (cheques recibidos de clientes, app `cheque`), que ya cumple el mismo rol para esa entidad.
+
 ## Flujo de uso
 
 ### Crear un cheque propio
 1. Acceder a **Cheques emitidos** desde el menú.
 2. Hacer clic en **Nuevo cheque**.
-3. Ingresar número de cheque, banco, importe, fecha de emisión y fecha de vencimiento.
+3. Ingresar número de cheque, banco, importe, fecha de emisión, fecha de depósito (opcional) y fecha de vencimiento.
 4. Confirmar. El cheque queda en estado EMITIDO.
 
 ### Usar un cheque como medio de pago
@@ -39,8 +51,10 @@ Solo los cheques en estado **EMITIDO** pueden editarse, eliminarse, cobrarse o a
 6. Confirmar. El pago queda registrado, la cuenta corriente del proveedor se actualiza y el estado de la compra cambia a PARCIAL o ABONADO según corresponda.
 
 ### Cobrar un cheque
-1. Desde el listado de cheques, hacer clic en **Cobrar** en un cheque EMITIDO que tenga al menos un pago asociado.
-2. El estado pasa a COBRADO. No tiene efectos sobre pagos ni cuenta corriente.
+1. Desde el detalle de un cheque EMITIDO, hacer clic en **Cobrar**.
+   - El botón aparece deshabilitado (con explicación al pasar el mouse) si el cheque tiene fecha de depósito cargada y todavía no llegó.
+2. El sistema valida, en este orden: que el cheque esté EMITIDO, que tenga al menos un pago asociado, y que la fecha de depósito (si tiene) ya se haya cumplido.
+3. El estado pasa a COBRADO. No tiene efectos sobre pagos ni cuenta corriente.
 
 ### Anular un cheque
 1. Desde el listado de cheques, hacer clic en **Anular** en un cheque EMITIDO.
@@ -58,11 +72,13 @@ Solo los cheques en estado **EMITIDO** pueden editarse, eliminarse, cobrarse o a
 - **Un cheque, un proveedor**: una vez que un cheque es utilizado para pagar una compra de un proveedor, solo puede usarse para pagar compras de ese mismo proveedor.
 - **Saldo parcial**: el importe abonado con el cheque puede ser menor a su importe total. El saldo restante puede aplicarse a otras compras del mismo proveedor.
 - **No se puede cobrar un cheque sin pagos**: un cheque debe tener al menos un pago asociado para poder marcarse como COBRADO.
+- **No se puede cobrar antes de la fecha de depósito**: si el cheque tiene fecha de depósito cargada y todavía no llegó, no puede marcarse como COBRADO. Si no tiene fecha de depósito cargada, se considera a la vista y no aplica esta restricción.
 - **Eliminación protegida**: no se puede eliminar un cheque que tenga pagos asociados. Primero deben eliminarse los pagos o anular el cheque.
 - **COBRADO y ANULADO son estados finales**: no se pueden editar, eliminar, cobrar ni anular nuevamente.
 
 ## Validaciones importantes
 - El número de cheque es único. No pueden existir dos cheques con el mismo número.
+- Si se informa fecha de depósito, no puede ser posterior a la fecha de vencimiento (validada en frontend y backend). No aplica si el cheque no tiene fecha de depósito cargada.
 - El importe abonado no puede superar el saldo restante del cheque.
 - El importe abonado no puede superar el saldo pendiente de la compra.
 - Solo aparecen como disponibles los cheques EMITIDO con saldo > 0 y sin pagos a otro proveedor.

@@ -12,6 +12,7 @@ class OwnCheck(models.Model):
     numero = models.IntegerField(primary_key=True)
     importe = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_emision = models.DateField()
+    fecha_deposito = models.DateField(blank=True, null=True)
     fecha_vencimiento = models.DateField()
     banco = models.ForeignKey(Banco, on_delete=models.PROTECT)
     estado = models.CharField(max_length=20, choices=State.choices, default=State.EMITIDO)

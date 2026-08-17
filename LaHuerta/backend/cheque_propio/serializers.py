@@ -14,7 +14,7 @@ class OwnCheckCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OwnCheck
-        fields = ['numero', 'importe', 'fecha_emision', 'fecha_vencimiento', 'banco', 'observaciones']
+        fields = ['numero', 'importe', 'fecha_emision', 'fecha_deposito', 'fecha_vencimiento', 'banco', 'observaciones']
         extra_kwargs = {
             'numero': {'validators': []}
         }
@@ -23,6 +23,15 @@ class OwnCheckCreateSerializer(serializers.ModelSerializer):
         if OwnCheck.objects.filter(numero=value).exists():
             raise serializers.ValidationError('Ya existe un cheque con ese número.')
         return value
+
+    def validate(self, data):
+        fecha_deposito = data.get('fecha_deposito')
+        fecha_vencimiento = data.get('fecha_vencimiento')
+        if fecha_deposito and fecha_vencimiento and fecha_deposito > fecha_vencimiento:
+            raise serializers.ValidationError({
+                'fecha_deposito': 'La fecha de depósito no puede ser posterior a la fecha de vencimiento.'
+            })
+        return data
 
 
 class OwnCheckUpdateSerializer(serializers.ModelSerializer):
@@ -34,10 +43,19 @@ class OwnCheckUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OwnCheck
-        fields = ['numero', 'importe', 'fecha_emision', 'fecha_vencimiento', 'banco', 'observaciones']
+        fields = ['numero', 'importe', 'fecha_emision', 'fecha_deposito', 'fecha_vencimiento', 'banco', 'observaciones']
         extra_kwargs = {
             'numero': {'validators': []}
         }
+
+    def validate(self, data):
+        fecha_deposito = data.get('fecha_deposito', getattr(self.instance, 'fecha_deposito', None))
+        fecha_vencimiento = data.get('fecha_vencimiento', getattr(self.instance, 'fecha_vencimiento', None))
+        if fecha_deposito and fecha_vencimiento and fecha_deposito > fecha_vencimiento:
+            raise serializers.ValidationError({
+                'fecha_deposito': 'La fecha de depósito no puede ser posterior a la fecha de vencimiento.'
+            })
+        return data
 
 
 class OwnCheckResponseSerializer(serializers.ModelSerializer):
@@ -55,6 +73,7 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
             'numero',
             'importe',
             'fecha_emision',
+            'fecha_deposito',
             'fecha_vencimiento',
             'banco',
             'supplier_name',

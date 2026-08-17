@@ -28,8 +28,9 @@ const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted upperca
  *   error    — mensaje de error (string)
  *   hasError — bool para borde rojo (sin mensaje, ej. desde ClientForm)
  *   width    — ancho del campo (default '100%')
+ *   clearable — bool, muestra una "X" para vaciar el campo (default false)
  */
-export default function BasicDatePicker({ label, name, value, onChange, error, hasError, width }) {
+export default function BasicDatePicker({ label, name, value, onChange, error, hasError, width, clearable = false }) {
   const handleDateChange = (newValue) => {
     const formatted = newValue ? dayjs.utc(newValue).format('YYYY-MM-DD') : null;
     onChange(formatted);
@@ -47,6 +48,10 @@ export default function BasicDatePicker({ label, name, value, onChange, error, h
           onChange={handleDateChange}
           format="DD/MM/YYYY"
           slotProps={{
+            field: {
+              clearable,
+              onClear: () => onChange(null),
+            },
             textField: {
               size: 'small',
               error: isError,

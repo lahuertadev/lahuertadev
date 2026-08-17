@@ -13,7 +13,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import BusinessIcon from '@mui/icons-material/Business';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import EditIcon from '@mui/icons-material/Edit';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
@@ -103,7 +103,14 @@ const OwnCheckDetail = () => {
   const stateCfg = STATE_CONFIG[check.estado] || { label: check.estado || '—', bg: '#f0f4f7', color: '#596064' };
   const isEmitido = check.estado === 'EMITIDO';
   const isOverdue = isEmitido && check.fecha_vencimiento && new Date(check.fecha_vencimiento) < new Date();
+  const isWaitingDeposit = isEmitido && check.fecha_deposito && new Date(check.fecha_deposito) > new Date();
+  const isReadyToDeposit = isEmitido && check.fecha_deposito && new Date(check.fecha_deposito) <= new Date();
   const hasNoPurchases = !check.purchases || check.purchases.length === 0;
+  const cashDisabledReason = hasNoPurchases
+    ? 'No se puede cobrar un cheque que no está asociado a ningún pago.'
+    : isWaitingDeposit
+    ? 'No se puede cobrar antes de la fecha de depósito.'
+    : '';
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
@@ -163,8 +170,34 @@ const OwnCheckDetail = () => {
       </SectionCard>
 
       {/* 2. Fechas */}
-      <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fechas" cols={2}>
+      <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fechas" cols={3}>
         <Field label="Fecha de emisión" value={formatDate(check.fecha_emision)} />
+        <div className="flex flex-col gap-1">
+          <span className={labelCls}>Fecha de depósito</span>
+          <span className={`flex items-center gap-1.5 text-sm font-medium ${isWaitingDeposit ? 'text-amber-600' : 'text-on-surface'}`}>
+            {check.fecha_deposito ? formatDate(check.fecha_deposito) : '—'}
+            {isWaitingDeposit && (
+              <Tooltip title="Todavía no puede depositarse: la fecha de pago es posterior a hoy." placement="top" arrow>
+                <InfoOutlinedIcon sx={{ fontSize: 15, color: '#d97706' }} />
+              </Tooltip>
+            )}
+            {isReadyToDeposit && (
+              <Tooltip title="La fecha de pago ya llegó: el cheque puede depositarse." placement="top" arrow>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '1px 8px',
+                  borderRadius: '6px',
+                  fontSize: '0.6875rem',
+                  fontWeight: 600,
+                  backgroundColor: '#dcfce7',
+                  color: '#166534',
+                }}>
+                  Disponible
+                </span>
+              </Tooltip>
+            )}
+          </span>
+        </div>
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Válido hasta</span>
           <span className={`flex items-center gap-1.5 text-sm font-medium ${isOverdue ? 'text-red-500' : 'text-on-surface'}`}>
@@ -179,28 +212,32 @@ const OwnCheckDetail = () => {
       </SectionCard>
 
       {/* 3. Proveedor / Compras */}
-      {check.supplier_name && (
-        <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Proveedor" cols={2}>
-          <Field label="Nombre" value={check.supplier_name} />
-          {check.purchases?.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <span className={labelCls}>Compras asociadas</span>
-              <div className="flex flex-wrap gap-2">
-                {check.purchases.map((pid) => (
-                  <button
-                    key={pid}
-                    type="button"
-                    onClick={() => navigate(`/buy/detail/${pid}`)}
-                    className="text-sm text-blue-lahuerta hover:underline font-medium"
-                  >
-                    #{String(pid).padStart(8, '0')}
-                  </button>
-                ))}
+      <SectionCard icon={<LocalShippingOutlinedIcon sx={{ fontSize: 20 }} />} title="Proveedor" cols={2}>
+        {check.supplier_name ? (
+          <>
+            <Field label="Nombre" value={check.supplier_name} />
+            {check.purchases?.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <span className={labelCls}>Compras asociadas</span>
+                <div className="flex flex-wrap gap-2">
+                  {check.purchases.map((pid) => (
+                    <button
+                      key={pid}
+                      type="button"
+                      onClick={() => navigate(`/buy/detail/${pid}`)}
+                      className="text-sm text-blue-lahuerta hover:underline font-medium"
+                    >
+                      #{String(pid).padStart(8, '0')}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </SectionCard>
-      )}
+            )}
+          </>
+        ) : (
+          <span className="md:col-span-2 text-sm text-on-surface-muted">Todavía no se encuentra asociado a ningún pago.</span>
+        )}
+      </SectionCard>
 
       {/* Action Bar */}
       <div className="pt-6 border-t border-border-subtle">
@@ -208,13 +245,18 @@ const OwnCheckDetail = () => {
           <div className="flex flex-col gap-3">
             {isEmitido && (
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleStateChange('cash')}
-                  className="flex-1 py-2.5 rounded-lg border border-green-300 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
-                >
-                  Cobrar
-                </button>
+                <Tooltip title={cashDisabledReason} placement="top" arrow>
+                  <span className="flex-1">
+                    <button
+                      type="button"
+                      onClick={() => handleStateChange('cash')}
+                      disabled={Boolean(cashDisabledReason)}
+                      className="w-full py-2.5 rounded-lg border border-green-300 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    >
+                      Cobrar
+                    </button>
+                  </span>
+                </Tooltip>
                 <button
                   type="button"
                   onClick={() => setCancelConfirm(true)}
@@ -266,13 +308,18 @@ const OwnCheckDetail = () => {
                 >
                   Anular
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleStateChange('cash')}
-                  className="px-5 py-2.5 rounded-lg border border-green-300 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors flex items-center gap-2"
-                >
-                  Cobrar
-                </button>
+                <Tooltip title={cashDisabledReason} placement="top" arrow>
+                  <span>
+                    <button
+                      type="button"
+                      onClick={() => handleStateChange('cash')}
+                      disabled={Boolean(cashDisabledReason)}
+                      className="px-5 py-2.5 rounded-lg border border-green-300 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    >
+                      Cobrar
+                    </button>
+                  </span>
+                </Tooltip>
               </>
             )}
           </div>
