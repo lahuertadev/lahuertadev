@@ -11,6 +11,8 @@ import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import Tooltip from '@mui/material/Tooltip';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -19,8 +21,6 @@ const inputCls = (hasError) =>
       ? 'border-red-400 ring-2 ring-red-100'
       : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
   }`;
-
-const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
 const SectionCard = ({ icon, title, children, cols = 3 }) => (
   <section className="space-y-3">
@@ -37,6 +37,15 @@ const SectionCard = ({ icon, title, children, cols = 3 }) => (
 const FieldError = ({ error, touched }) =>
   touched && error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null;
 
+const FieldLabel = ({ text, help, required = false }) => (
+  <div className="flex items-center gap-1.5 mb-1.5">
+    <label className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">{text}{required && ' *'}</label>
+    <Tooltip title={help} placement="top" arrow>
+      <InfoOutlinedIcon sx={{ fontSize: 14, color: '#9ca3af', cursor: 'help', '&:hover': { color: '#4a7bc4' } }} />
+    </Tooltip>
+  </div>
+);
+
 // ── Componente principal ──────────────────────────────────────────────────────
 const OwnCheckForm = () => {
   const [banks, setBanks] = useState([]);
@@ -45,6 +54,7 @@ const OwnCheckForm = () => {
     bank: '',
     amount: '',
     issueDate: null,
+    depositDate: null,
     dueDate: null,
     observaciones: '',
   });
@@ -69,6 +79,7 @@ const OwnCheckForm = () => {
             bank: data.banco.id,
             amount: data.importe,
             issueDate: data.fecha_emision,
+            depositDate: data.fecha_deposito || null,
             dueDate: data.fecha_vencimiento,
             observaciones: data.observaciones || '',
           });
@@ -90,6 +101,15 @@ const OwnCheckForm = () => {
       .required('Requerido')
       .positive('El importe debe ser mayor a cero'),
     issueDate: Yup.date().nullable().required('Requerido'),
+    depositDate: Yup.date().nullable().test(
+      'deposit-before-due',
+      'No puede ser posterior a la fecha de vencimiento.',
+      function (value) {
+        const { dueDate } = this.parent;
+        if (!value || !dueDate) return true;
+        return new Date(value) <= new Date(dueDate);
+      }
+    ),
     dueDate: Yup.date().nullable().required('Requerido'),
   });
 
@@ -99,6 +119,7 @@ const OwnCheckForm = () => {
         numero: values.numero,
         importe: values.amount,
         fecha_emision: values.issueDate,
+        fecha_deposito: values.depositDate || null,
         fecha_vencimiento: values.dueDate,
         banco: values.bank,
         observaciones: values.observaciones || null,
@@ -114,6 +135,7 @@ const OwnCheckForm = () => {
       const data = error?.response?.data;
       const msg =
         data?.numero?.[0] ||
+        data?.fecha_deposito?.[0] ||
         data?.detail ||
         'Error al guardar el cheque.';
       setToast({ open: true, message: msg });
@@ -149,7 +171,7 @@ const OwnCheckForm = () => {
           {/* 1. Datos del cheque */}
           <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Número</label>
+              <FieldLabel text="Número" help="Número correlativo del cheque, impreso en la parte superior derecha." required />
               <input
                 name="numero"
                 type="number"
@@ -163,7 +185,7 @@ const OwnCheckForm = () => {
               <FieldError error={errors.numero} touched={touched.numero} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Banco</label>
+              <FieldLabel text="Banco" help="Banco emisor de la cuenta contra la que se libra el cheque, indicado en el membrete superior." required />
               <select
                 value={values.bank}
                 onChange={(e) => setFieldValue('bank', e.target.value)}
@@ -177,7 +199,7 @@ const OwnCheckForm = () => {
               <FieldError error={errors.bank} touched={touched.bank} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Importe</label>
+              <FieldLabel text="Importe" help="Monto del cheque, tal como figura escrito en números y en letras en el cuerpo del cheque." required />
               <AmountInput
                 name="amount"
                 value={values.amount}
@@ -191,7 +213,7 @@ const OwnCheckForm = () => {
           {/* 2. Fechas */}
           <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fechas" cols={3}>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Fecha de emisión</label>
+              <FieldLabel text="Fecha de emisión" help="Fecha en la que se libra el cheque, escrita en el campo 'Fecha' del cheque." required />
               <BasicDatePicker
                 value={values.issueDate}
                 onChange={(date) => setFieldValue('issueDate', date)}
@@ -200,7 +222,17 @@ const OwnCheckForm = () => {
               <FieldError error={errors.issueDate} touched={touched.issueDate} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Fecha de vencimiento</label>
+              <FieldLabel text="Fecha de depósito" help="Fecha desde la cual el cheque puede depositarse (cheque diferido). Si el cheque es a la vista, dejar vacío." />
+              <BasicDatePicker
+                value={values.depositDate}
+                onChange={(date) => setFieldValue('depositDate', date)}
+                hasError={touched.depositDate && Boolean(errors.depositDate)}
+                clearable
+              />
+              <FieldError error={errors.depositDate} touched={touched.depositDate} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <FieldLabel text="Fecha de vencimiento" help="Fecha límite para cobrar el cheque, generalmente 30 días corridos después de la fecha de pago según la ley de cheques." required />
               <BasicDatePicker
                 value={values.dueDate}
                 onChange={(date) => setFieldValue('dueDate', date)}
@@ -209,7 +241,7 @@ const OwnCheckForm = () => {
               <FieldError error={errors.dueDate} touched={touched.dueDate} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Observaciones</label>
+              <FieldLabel text="Observaciones" help="Nota interna opcional para este cheque. No forma parte del cheque físico." />
               <input
                 name="observaciones"
                 type="text"

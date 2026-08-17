@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import CustomInput from '../../components/Input';
-import BasicSelect from '../../components/Select';
 import Button from '../../components/Button';
+import PasswordRequirements from '../../components/PasswordRequirements';
+import PasswordMatchHint from '../../components/PasswordMatchHint';
 import AuthMarketingPanel from '../../components/AuthMarketingPanel';
 import { authRegisterUrl, authVerifyEmailUrl, authResendVerificationCodeUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
@@ -18,7 +19,6 @@ const Register = () => {
     last_name: '',
     password: '',
     password_confirm: '',
-    role: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -31,29 +31,9 @@ const Register = () => {
   const [verificationError, setVerificationError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
 
-  // Opciones de roles
-  const roleOptions = [
-    { value: 'employee', name: 'Empleado' },
-    { value: 'administrator', name: 'Administración' },
-    { value: 'superuser', name: 'Superusuario' },
-  ];
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (fieldErrors[name]) {
-      setFieldErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
-
-  const handleSelectChange = (e) => {
-    const { name, value } = e.target;
-    const selectedValue = value?.value || value || '';
-    setFormData((prev) => ({ ...prev, [name]: selectedValue }));
     if (fieldErrors[name]) {
       setFieldErrors((prev) => {
         const newErrors = { ...prev };
@@ -80,7 +60,6 @@ const Register = () => {
           last_name: formData.last_name,
           password: formData.password,
           password_confirm: formData.password_confirm,
-          role: formData.role,
         },
         {
           withCredentials: true,
@@ -222,8 +201,8 @@ const Register = () => {
                   }}
                   placeholder="123456"
                   maxLength={6}
-                  helperText={verificationError || 'Ingresá el código de 6 dígitos que recibiste por email'}
-                  error={!!verificationError}
+                  helperText={verificationError}
+                  hint="Ingresá el código de 6 dígitos que recibiste por email"
                 />
                 <div className="mt-6">
                   <Button
@@ -259,6 +238,7 @@ const Register = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                autoComplete="off"
                 helperText={fieldErrors.email ? (Array.isArray(fieldErrors.email) ? fieldErrors.email[0] : fieldErrors.email) : ''}
               />
             </div>
@@ -272,6 +252,7 @@ const Register = () => {
                 value={formData.username}
                 onChange={handleChange}
                 required
+                autoComplete="off"
                 helperText={fieldErrors.username ? (Array.isArray(fieldErrors.username) ? fieldErrors.username[0] : fieldErrors.username) : ''}
               />
             </div>
@@ -300,22 +281,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Role */}
-            <div>
-              <BasicSelect
-                name="role"
-                label="Rol"
-                value={formData.role ? { value: formData.role, name: roleOptions.find(r => r.value === formData.role)?.name || '' } : { value: '', name: '' }}
-                onChange={handleSelectChange}
-                options={roleOptions}
-              />
-              {fieldErrors.role && (
-                <p className="text-red-600 text-xs mt-1">
-                  {Array.isArray(fieldErrors.role) ? fieldErrors.role[0] : fieldErrors.role}
-                </p>
-              )}
-            </div>
-
             {/* Password */}
             <div>
               <CustomInput
@@ -325,8 +290,10 @@ const Register = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                helperText={fieldErrors.password ? (Array.isArray(fieldErrors.password) ? fieldErrors.password[0] : fieldErrors.password) : 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial'}
+                autoComplete="new-password"
+                helperText={fieldErrors.password ? (Array.isArray(fieldErrors.password) ? fieldErrors.password[0] : fieldErrors.password) : ''}
               />
+              <PasswordRequirements value={formData.password} />
             </div>
 
             {/* Password Confirm */}
@@ -338,8 +305,10 @@ const Register = () => {
                 value={formData.password_confirm}
                 onChange={handleChange}
                 required
+                autoComplete="new-password"
                 helperText={fieldErrors.password_confirm ? (Array.isArray(fieldErrors.password_confirm) ? fieldErrors.password_confirm[0] : fieldErrors.password_confirm) : ''}
               />
+              <PasswordMatchHint password={formData.password} confirmValue={formData.password_confirm} />
             </div>
 
             {/* Error general */}
@@ -356,7 +325,7 @@ const Register = () => {
                 color="primary"
                 variant="contained"
                 size="large"
-                disabled={loading || !csrfToken || !formData.email || !formData.username || !formData.password || !formData.password_confirm || !formData.role}
+                disabled={loading || !csrfToken || !formData.email || !formData.username || !formData.password || !formData.password_confirm}
                 className="w-full !justify-center"
               />
             </div>

@@ -1,3 +1,7 @@
+import React from 'react';
+import Tooltip from '@mui/material/Tooltip';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+
 const STATE_CONFIG = {
   'EMITIDO': { label: 'Emitido', bg: '#e8f0fb', color: '#4a7bc4' },
   'COBRADO': { label: 'Cobrado', bg: '#dcfce7', color: '#166534' },
@@ -11,6 +15,31 @@ export const columns = [
   { field: 'bank',      headerName: 'Banco',             flex: 0.9, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'amount',    headerName: 'Importe',           flex: 0.8, align: 'center', headerAlign: 'center', mobileClickable: true },
   { field: 'issueDate', headerName: 'Fecha emisión',     flex: 0.9, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  {
+    field: 'depositDate',
+    headerName: 'Fecha depósito',
+    flex: 0.9,
+    align: 'center',
+    headerAlign: 'center',
+    hiddenOnMobile: true,
+    renderCell: (params) => {
+      const { depositDateRaw, stateRaw } = params.row;
+      if (!depositDateRaw) {
+        return <span>{params.value}</span>;
+      }
+      const readyToDeposit = stateRaw === 'EMITIDO' && new Date(depositDateRaw) <= new Date();
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+          <span>{params.value}</span>
+          {readyToDeposit && (
+            <Tooltip title="La fecha de pago ya llegó: el cheque puede depositarse" arrow>
+              <CheckCircleIcon sx={{ fontSize: 15, color: '#16a34a' }} />
+            </Tooltip>
+          )}
+        </div>
+      );
+    },
+  },
   {
     field: 'dueDate',
     headerName: 'Válido hasta',

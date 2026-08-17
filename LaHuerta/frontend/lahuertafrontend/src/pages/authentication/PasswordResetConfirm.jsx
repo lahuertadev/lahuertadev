@@ -4,6 +4,8 @@ import axios from 'axios';
 import CustomInput from '../../components/Input';
 import Button from '../../components/Button';
 import AuthMarketingPanel from '../../components/AuthMarketingPanel';
+import PasswordRequirements from '../../components/PasswordRequirements';
+import PasswordMatchHint from '../../components/PasswordMatchHint';
 import { authPasswordResetConfirmUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
 
@@ -133,8 +135,10 @@ const PasswordResetConfirm = () => {
                 value={formData.new_password}
                 onChange={handleChange}
                 required
-                helperText={fieldErrors.new_password ? (Array.isArray(fieldErrors.new_password) ? fieldErrors.new_password[0] : fieldErrors.new_password) : 'Mínimo 8 caracteres, 1 mayúscula, 1 número y 1 carácter especial'}
+                autoComplete="new-password"
+                helperText={fieldErrors.new_password ? (Array.isArray(fieldErrors.new_password) ? fieldErrors.new_password[0] : fieldErrors.new_password) : ''}
               />
+              <PasswordRequirements value={formData.new_password} />
             </div>
 
             <div>
@@ -145,8 +149,10 @@ const PasswordResetConfirm = () => {
                 value={formData.new_password_confirm}
                 onChange={handleChange}
                 required
+                autoComplete="new-password"
                 helperText={fieldErrors.new_password_confirm ? (Array.isArray(fieldErrors.new_password_confirm) ? fieldErrors.new_password_confirm[0] : fieldErrors.new_password_confirm) : ''}
               />
+              <PasswordMatchHint password={formData.new_password} confirmValue={formData.new_password_confirm} />
             </div>
 
             {error && (

@@ -77,7 +77,51 @@ class UserRepository(IUserRepository):
         """
         if not user.check_password(old_password):
             return False
-        
+
         user.set_password(new_password)
         user.save()
         return True
+
+    def get_all_users(self):
+        """Obtiene todos los usuarios, incluyendo deshabilitados"""
+        return Usuario.objects.all().order_by('-date_joined')
+
+    def get_user_by_id(self, user_id):
+        """Obtiene un usuario por su id, incluyendo deshabilitados"""
+        return Usuario.objects.filter(pk=user_id).first()
+
+    def get_active_users(self):
+        """Obtiene los usuarios habilitados"""
+        return Usuario.objects.filter(is_active=True)
+
+    def set_active_status(self, user_id, is_active):
+        """Habilita o deshabilita un usuario. Retorna el usuario actualizado o None si no existe"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            return None
+        user.is_active = is_active
+        user.save()
+        return user
+
+    def set_user_role(self, user_id, role):
+        """Cambia el rol de un usuario. Retorna el usuario actualizado o None si no existe"""
+        user = self.get_user_by_id(user_id)
+        if not user:
+            return None
+        user.role = role
+        user.save()
+        return user
+
+    def update_profile(self, user, data):
+        """Actualiza los datos personales del propio usuario (self-service)"""
+        for field in ['first_name', 'last_name', 'birth_date', 'address', 'phone']:
+            if field in data:
+                setattr(user, field, data[field])
+        user.save()
+        return user
+
+    def set_avatar(self, user, avatar_file):
+        """Reemplaza la foto de perfil del usuario autenticado"""
+        user.avatar = avatar_file
+        user.save()
+        return user

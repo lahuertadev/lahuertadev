@@ -24,6 +24,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'username': {'required': True},
             'first_name': {'required': False},
             'last_name': {'required': False},
+            'role': {'read_only': True},
         }
 
     def validate_email(self, value):
@@ -163,3 +164,61 @@ class ResendVerificationCodeSerializer(serializers.Serializer):
     DTO para reenviar código de verificación
     """
     email = serializers.EmailField(required=True)
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """
+    DTO de solo lectura con los datos completos de perfil del usuario autenticado
+    """
+    avatar = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'email', 'username', 'first_name', 'last_name', 'role',
+            'date_joined', 'birth_date', 'address', 'phone', 'avatar',
+        ]
+        read_only_fields = fields
+
+    def get_avatar(self, obj):
+        if not obj.avatar:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    DTO para editar los datos personales del propio usuario (self-service)
+    """
+    class Meta:
+        model = Usuario
+        fields = ['first_name', 'last_name', 'birth_date', 'address', 'phone']
+        extra_kwargs = {
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+            'birth_date': {'required': False},
+            'address': {'required': False},
+            'phone': {'required': False},
+        }
+
+class AvatarUploadSerializer(serializers.ModelSerializer):
+    """
+    DTO para subir o reemplazar la foto de perfil del usuario autenticado
+    """
+    avatar = serializers.ImageField(required=True)
+
+    class Meta:
+        model = Usuario
+        fields = ['avatar']
+
+class UpdateUserRoleSerializer(serializers.Serializer):
+    """
+    DTO para cambiar el rol de un usuario. No admite superuser: esa
+    asignación se hace fuera de la API.
+    """
+    role = serializers.ChoiceField(
+        choices=[Usuario.ADMINISTRATOR, Usuario.EMPLOYEE],
+        error_messages={
+            'invalid_choice': 'Rol inválido. Debe ser "administrator" o "employee".',
+            'required': 'Debe indicar el nuevo rol.',
+        }
+    )

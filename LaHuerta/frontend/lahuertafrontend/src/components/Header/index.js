@@ -14,6 +14,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AccountCircle from '@mui/icons-material/AccountCircle';
+import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
@@ -30,6 +31,7 @@ import axios from 'axios';
 import { authLogoutUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
 import { useAuth } from '../../context/AuthContext';
+import { ROLE_CONFIG } from '../../constants/roles';
 import logoLaHuerta from '../../assets/logo-lahuerta-sin-fondo.png';
 
 const drawerWidth = 240;
@@ -186,9 +188,7 @@ export default function MiniDrawer({title, menuOptions}) {
 
   const handleProfileClick = () => {
     handleUserMenuClose();
-    // TODO: Navegar a la página de perfil cuando esté implementada
-    // navigate('/profile');
-    alert('Página de perfil próximamente');
+    navigate('/profile');
   };
 
   const handleLogout = async () => {
@@ -364,11 +364,28 @@ export default function MiniDrawer({title, menuOptions}) {
             {user && (
               <Box sx={{ textAlign: 'right' }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'inherit' }}>
-                  {[user.first_name, user.last_name].filter(Boolean).join(' ') || user.email}
+                  {(isMobile
+                    ? user.first_name
+                    : [user.first_name, user.last_name].filter(Boolean).join(' ')
+                  ) || user.email}
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#596064', lineHeight: 1.2 }}>
-                  {user.role}
-                </Typography>
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'inline-block',
+                    mt: 0.4,
+                    px: 1.1,
+                    py: 0.15,
+                    borderRadius: '999px',
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    lineHeight: '16px',
+                    backgroundColor: (ROLE_CONFIG[user.role] || {}).bg || '#f0f4f7',
+                    color: (ROLE_CONFIG[user.role] || {}).color || '#596064',
+                  }}
+                >
+                  {(ROLE_CONFIG[user.role] || {}).label || user.role}
+                </Box>
               </Box>
             )}
             <IconButton
@@ -380,7 +397,11 @@ export default function MiniDrawer({title, menuOptions}) {
               onClick={handleUserMenuOpen}
               sx={{ color: '#596064' }}
             >
-              <AccountCircle />
+              {user?.avatar ? (
+                <Avatar src={user.avatar} sx={{ width: 32, height: 32 }} />
+              ) : (
+                <AccountCircle />
+              )}
             </IconButton>
           </Box>
           <Menu

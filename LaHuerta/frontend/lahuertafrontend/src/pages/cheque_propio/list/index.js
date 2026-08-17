@@ -14,6 +14,8 @@ const mapOwnCheckData = (data) =>
     bank: check.banco?.descripcion || '-',
     amount: formatCurrency(check.importe),
     issueDate: formatDate(check.fecha_emision),
+    depositDate: check.fecha_deposito ? formatDate(check.fecha_deposito) : '-',
+    depositDateRaw: check.fecha_deposito || null,
     dueDate: formatDate(check.fecha_vencimiento),
     dueDateRaw: check.fecha_vencimiento,
     state: check.estado || '-',

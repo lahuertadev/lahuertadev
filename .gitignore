@@ -28,6 +28,9 @@ yarn-error.log*
 # Archivos estáticos generados por Django collectstatic
 staticfiles/
 
+# Archivos subidos por usuarios (avatares, etc.)
+LaHuerta/backend/media/
+
 # Archivos de anotaciones
 *.txt
 notas.md

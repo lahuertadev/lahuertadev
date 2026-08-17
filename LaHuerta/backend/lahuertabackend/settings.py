@@ -79,6 +79,14 @@ MIDDLEWARE = [
 
 AUTH_USER_MODEL = 'autenticacion.Usuario'
 
+#* Piso global: por defecto toda la API exige sesión iniciada.
+#  Las vistas públicas (register, login, password reset, etc.) declaran AllowAny explícito.
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
 ROOT_URLCONF = 'lahuertabackend.urls'
 
 TEMPLATES = [
@@ -186,6 +194,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files (uploaded content, e.g. avatares de usuario)
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

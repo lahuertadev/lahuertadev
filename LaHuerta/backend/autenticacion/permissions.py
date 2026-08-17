@@ -63,6 +63,19 @@ class RoleBasedPermission(permissions.BasePermission):
         return False
 
 
+class IsSuperuser(permissions.BasePermission):
+    """
+    Permiso estricto: solo usuarios con rol superuser pueden acceder,
+    tanto para lectura como para escritura.
+    """
+    def has_permission(self, request, view):
+        return (
+            request.user and
+            request.user.is_authenticated and
+            request.user.role == Usuario.SUPERUSER
+        )
+
+
 class HasRolePermission(permissions.BasePermission):
     """
     Permiso que verifica si el usuario tiene un rol específico.

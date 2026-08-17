@@ -9,11 +9,17 @@ export const authLoginUrl = `${API_BASE}/auth/login/`;
 export const authRegisterUrl = `${API_BASE}/auth/register/`;
 export const authLogoutUrl = `${API_BASE}/auth/logout/`;
 export const authMeUrl = `${API_BASE}/auth/me/`;
+export const authMeAvatarUrl = `${API_BASE}/auth/me/avatar/`;
+export const authPasswordChangeUrl = `${API_BASE}/auth/password-change/`;
+export const authCelebrationsUrl = `${API_BASE}/auth/celebrations/`;
 export const authPasswordResetUrl = `${API_BASE}/auth/password-reset/`;
 export const authPasswordResetConfirmUrl = `${API_BASE}/auth/password-reset-confirm/`;
 export const authVerifyEmailUrl = `${API_BASE}/auth/verify-email/`;
 export const authResendVerificationCodeUrl = `${API_BASE}/auth/resend-verification-code/`;
 export const authCsrfUrl = `${API_BASE}/auth/csrf/`;
+
+//! Auth - Users (gestión de usuarios, solo Socio)
+export const authUsersUrl = `${API_BASE}/auth/users/`;
 
 //! Expense
 export const expenseUrl = `${API_BASE}/expense/`;

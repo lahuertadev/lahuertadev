@@ -3,7 +3,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 from django.contrib.auth import get_user_model
-from autenticacion.permissions import IsAdministratorOrReadOnly, IsSuperuserOrReadOnly, RoleBasedPermission
+from autenticacion.permissions import IsAdministratorOrReadOnly, IsSuperuserOrReadOnly, RoleBasedPermission, IsSuperuser
 from tipo_condicion_iva.views import ConditionIvaTypeViewSet
 
 Usuario = get_user_model()
@@ -181,9 +181,56 @@ def test_viewset_create_denies_employee(factory, viewset, employee):
     )
     force_authenticate(request, user=employee)
     drf_request = Request(request, parsers=[JSONParser()])
-    
+
     # El permiso debería bloquear antes de llegar al método create
     permission = IsAdministratorOrReadOnly()
     has_permission = permission.has_permission(drf_request, viewset)
     assert has_permission == False
+
+
+# ============================================================================
+# Tests para IsSuperuser
+# ============================================================================
+
+@pytest.mark.django_db
+def test_is_superuser_allows_superuser(factory, viewset, superuser):
+    """Superusuario tiene permiso, incluso para lectura"""
+    request = factory.get('/users/')
+    force_authenticate(request, user=superuser)
+    drf_request = Request(request, parsers=[JSONParser()])
+
+    permission = IsSuperuser()
+    assert permission.has_permission(drf_request, viewset) == True
+
+
+@pytest.mark.django_db
+def test_is_superuser_denies_administrator(factory, viewset, administrator):
+    """Administrador NO tiene permiso, ni siquiera para lectura"""
+    request = factory.get('/users/')
+    force_authenticate(request, user=administrator)
+    drf_request = Request(request, parsers=[JSONParser()])
+
+    permission = IsSuperuser()
+    assert permission.has_permission(drf_request, viewset) == False
+
+
+@pytest.mark.django_db
+def test_is_superuser_denies_employee(factory, viewset, employee):
+    """Empleado NO tiene permiso"""
+    request = factory.get('/users/')
+    force_authenticate(request, user=employee)
+    drf_request = Request(request, parsers=[JSONParser()])
+
+    permission = IsSuperuser()
+    assert permission.has_permission(drf_request, viewset) == False
+
+
+@pytest.mark.django_db
+def test_is_superuser_denies_unauthenticated(factory, viewset):
+    """Usuario no autenticado NO tiene permiso"""
+    request = factory.get('/users/')
+    drf_request = Request(request, parsers=[JSONParser()])
+
+    permission = IsSuperuser()
+    assert permission.has_permission(drf_request, viewset) == False
 
