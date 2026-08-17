@@ -49,8 +49,8 @@ class OwnCheckUpdateSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
-        fecha_deposito = data.get('fecha_deposito')
-        fecha_vencimiento = data.get('fecha_vencimiento')
+        fecha_deposito = data.get('fecha_deposito', getattr(self.instance, 'fecha_deposito', None))
+        fecha_vencimiento = data.get('fecha_vencimiento', getattr(self.instance, 'fecha_vencimiento', None))
         if fecha_deposito and fecha_vencimiento and fecha_deposito > fecha_vencimiento:
             raise serializers.ValidationError({
                 'fecha_deposito': 'La fecha de depósito no puede ser posterior a la fecha de vencimiento.'

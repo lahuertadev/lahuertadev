@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from .models import OwnCheck
 from .exceptions import OwnCheckInvalidTransitionException
 
@@ -16,6 +17,8 @@ class OwnCheckService:
             raise OwnCheckInvalidTransitionException('Solo se pueden marcar como cobrados los cheques en estado EMITIDO.')
         if not own_check.pagocompra_set.exists():
             raise OwnCheckInvalidTransitionException('No se puede cobrar un cheque que no está asociado a ningún pago.')
+        if own_check.fecha_deposito and own_check.fecha_deposito > timezone.localdate():
+            raise OwnCheckInvalidTransitionException('No se puede cobrar un cheque antes de su fecha de depósito.')
         self.own_check_repository.update(own_check, {'estado': OwnCheck.State.COBRADO})
         return own_check
 
