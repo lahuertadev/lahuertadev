@@ -236,41 +236,59 @@ const PriceListDetail = () => {
         {/* Tabla de productos - esto sí se imprime. En mobile se oculta en pantalla (ver print-price-list.css)
             pero se mantiene en el DOM para que "Imprimir / Descargar PDF" siga generando el PDF completo. */}
         <Paper className="price-list-products-section" sx={{ border: '1px solid', borderColor: 'divider', position: 'relative' }}>
-          {/* Encabezado para impresión */}
-          <Box className="print-header">
-            <Typography className="print-title-main">
-              LA HUERTA
-            </Typography>
-            <Typography className="print-title-sub">
-              Lista de Precios
-            </Typography>
-          </Box>
-
-          {/* Fecha de impresión - solo visible al imprimir */}
-          <Typography 
-            className="print-date" 
-            sx={{ display: 'none' }}
-          >
-            Fecha de impresión: {new Date().toLocaleDateString('es-AR', { 
-              day: '2-digit', 
-              month: '2-digit', 
-              year: 'numeric' 
-            })}
-          </Typography>
-
           <Box className="no-print" sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
             <Typography variant="h6" fontWeight="bold">
               Productos
             </Typography>
           </Box>
 
-          {products.length === 0 ? (
-            <Box sx={{ p: 4, textAlign: 'center' }}>
-              <Typography color="text.secondary">
-                Esta lista no tiene productos asociados.
-              </Typography>
-            </Box>
-          ) : (() => {
+          {/* Wrapper con thead/tfoot reales: el encabezado (LA HUERTA / Lista de Precios) se repite
+              en cada hoja impresa, y el tfoot reserva el espacio del footer fijo en cada hoja
+              (mismo patrón que la impresión de Reportes). En pantalla es solo un contenedor
+              transparente, sin apariencia de tabla. */}
+          <table className="price-list-print-wrapper">
+            <thead>
+              <tr>
+                <td>
+                  <Box className="print-header">
+                    <Typography className="print-title-main">
+                      LA HUERTA
+                    </Typography>
+                    <Typography className="print-title-sub">
+                      Lista de Precios
+                    </Typography>
+                  </Box>
+                </td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  {/* Fecha de impresión y vigencia - solo visibles al imprimir, una sola vez */}
+                  {(() => {
+                    const printDate = new Date();
+                    const validUntilDate = new Date(printDate);
+                    validUntilDate.setDate(validUntilDate.getDate() + 7);
+                    const fmt = (d) => d.toLocaleDateString('es-AR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    });
+                    return (
+                      <Box className="print-only price-list-print-meta">
+                        <Typography component="span">Fecha de impresión: {fmt(printDate)}</Typography>
+                        <Typography component="span">Vigente hasta: {fmt(validUntilDate)}</Typography>
+                      </Box>
+                    );
+                  })()}
+
+                  {products.length === 0 ? (
+                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                      <Typography color="text.secondary">
+                        Esta lista no tiene productos asociados.
+                      </Typography>
+                    </Box>
+                  ) : (() => {
             // Columnas dinámicas: un tipo_venta por columna
             const tvMap = {};
             products.forEach(item => {
@@ -339,7 +357,7 @@ const PriceListDetail = () => {
                           </TableCell>
                           <TableCell align="center">
                             {row.producto.categoria?.descripcion
-                              ? <span style={categoryBadgeStyle(row.producto.categoria.descripcion)}>{row.producto.categoria.descripcion}</span>
+                              ? <span className="price-list-category-badge" style={categoryBadgeStyle(row.producto.categoria.descripcion)}>{row.producto.categoria.descripcion}</span>
                               : '—'}
                           </TableCell>
                           {tipoVentaColumns.map(tv => (
@@ -361,8 +379,27 @@ const PriceListDetail = () => {
                   </Table>
                 </TableContainer>
               </Box>
-            );
-          })()}
+                    );
+                  })()}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>
+                  {/* Reserva el espacio del footer fijo en cada hoja para que el contenido no lo pise */}
+                  <div className="price-list-print-footer-placeholder" />
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+
+          {/* Footer visual, fijo al pie de cada hoja impresa */}
+          <Box className="print-only price-list-print-footer">
+            <Typography variant="caption">
+              © {new Date().getFullYear()} La Huerta Agro Management · Documento de uso interno
+            </Typography>
+          </Box>
         </Paper>
       </Box>
 

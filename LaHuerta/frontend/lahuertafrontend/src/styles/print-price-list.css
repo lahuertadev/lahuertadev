@@ -15,6 +15,33 @@
   display: none;
 }
 
+/* Wrapper con thead/tfoot reales: permite que el encabezado (LA HUERTA / Lista de Precios)
+   se repita en cada hoja impresa y que el tfoot reserve el espacio del footer fijo en cada
+   hoja, igual que en la impresión de Reportes. En pantalla no debe verse como una tabla. */
+.price-list-print-wrapper {
+  display: block;
+  width: 100%;
+}
+.price-list-print-wrapper > thead,
+.price-list-print-wrapper > tfoot {
+  display: none;
+}
+.price-list-print-wrapper > tbody,
+.price-list-print-wrapper > tbody > tr,
+.price-list-print-wrapper > tbody > tr > td {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+}
+
+/* Fecha de impresión / vigencia y footer fijo: solo se muestran al imprimir */
+.price-list-print-meta,
+.price-list-print-footer,
+.price-list-print-footer-placeholder {
+  display: none;
+}
+
 /* En mobile no se puede editar la lista de precios: solo se ofrece descargar el PDF.
    Se oculta la grilla de productos en pantalla, pero se mantiene en el DOM para
    que el PDF generado por "Imprimir / Descargar PDF" siga incluyendo la tabla completa. */
@@ -153,6 +180,17 @@
     color: #6b7280 !important;
   }
 
+  /* Badge de categoría: en pantalla lleva color por categoría, pero impreso vuelve a texto
+     plano en blanco y negro (como era antes de agregar los badges de color). */
+  .price-list-category-badge {
+    display: inline !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    color: #1f2937 !important;
+    font-weight: 400 !important;
+  }
+
   /* Header de tabla con fondo */
   .MuiTableHead-root .MuiTableCell-root {
     background-color: #e0e0e0 !important;
@@ -160,13 +198,68 @@
     font-size: 10pt !important;
   }
 
-  /* Fecha de impresión personalizada */
-  .print-date {
-    display: block !important;
-    text-align: right !important;
+  /* Wrapper: thead y tfoot repiten en cada hoja de forma nativa del navegador */
+  .price-list-print-wrapper {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 0 !important;
+  }
+
+  .price-list-print-wrapper > thead {
+    display: table-header-group !important;
+  }
+
+  .price-list-print-wrapper > tfoot {
+    display: table-footer-group !important;
+  }
+
+  .price-list-print-wrapper > thead > tr > td,
+  .price-list-print-wrapper > tfoot > tr > td {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+  }
+
+  .price-list-print-wrapper > tbody {
+    display: table-row-group !important;
+  }
+
+  .price-list-print-wrapper > tbody > tr > td {
+    display: table-cell !important;
+    padding: 0 !important;
+    border: none !important;
+  }
+
+  /* Fecha de impresión (izquierda) y vigencia (derecha) - una sola vez, no se repite por hoja */
+  .price-list-print-meta {
+    display: flex !important;
+    justify-content: space-between !important;
     font-size: 9pt !important;
     color: #666 !important;
     margin-bottom: 8px !important;
-    padding-right: 4px !important;
+    padding: 0 4px !important;
+  }
+
+  /* Placeholder invisible en tfoot: reserva el espacio del footer en cada hoja */
+  .price-list-print-footer-placeholder {
+    height: 10mm !important;
+    visibility: hidden !important;
+    display: block !important;
+  }
+
+  /* Footer visual, fijo al pie de cada hoja */
+  .price-list-print-footer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 10mm !important;
+    right: 10mm !important;
+    height: 10mm !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-top: 1px solid #999 !important;
+    background: #fff !important;
+    z-index: 100 !important;
   }
 }
