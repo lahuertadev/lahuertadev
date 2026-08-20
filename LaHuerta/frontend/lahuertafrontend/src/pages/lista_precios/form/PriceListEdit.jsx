@@ -8,14 +8,7 @@ import {
   Paper,
   Typography,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -23,15 +16,44 @@ import {
   Autocomplete,
   Alert,
   Snackbar,
+  useMediaQuery,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SaveIcon from '@mui/icons-material/Save';
-import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
+import SaveIcon from '@mui/icons-material/SaveOutlined';
+import AddIcon from '@mui/icons-material/AddCircleOutline';
+import CustomInput from '../../../components/Input';
+import DataGridDemo from '../../../components/Grid';
+import { getCategoryColor } from '../../../constants/categoryColors';
+
+const categoryBadgeStyle = (categoryName) => {
+  const { bg, color } = getCategoryColor(categoryName);
+  return {
+    display: 'inline-block',
+    padding: '2px 10px',
+    borderRadius: '6px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    lineHeight: '18px',
+    backgroundColor: bg,
+    color,
+    whiteSpace: 'nowrap',
+  };
+};
 
 const PriceListEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width:600px)');
+
+  // La edición de listas de precios (grilla de precios por producto) no entra cómoda en mobile.
+  // Ahí mandamos al detalle, que ya tiene nombre/descripción, tabla de solo lectura y el botón
+  // de descargar PDF — la forma recomendada de consultar la lista desde el celular.
+  useEffect(() => {
+    if (isMobile) {
+      navigate(`/price-list/detail/${id}`, { replace: true });
+    }
+  }, [isMobile, id, navigate]);
+
   const [priceList, setPriceList] = useState(null);
   const [products, setProducts] = useState([]);
   const [originalProducts, setOriginalProducts] = useState([]);
@@ -282,6 +304,11 @@ const PriceListEdit = () => {
     });
   };
 
+  if (isMobile) {
+    // El useEffect de arriba ya está redirigiendo al detalle; no renderizamos el form de escritorio.
+    return null;
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -303,41 +330,54 @@ const PriceListEdit = () => {
       <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
         {/* Header */}
         <Paper sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-            <Box sx={{ flex: 1, mr: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', justifyContent: 'space-between', mb: 2, gap: { xs: 3, md: 0 } }}>
+            <Box sx={{ flex: 1, width: '100%', mr: { xs: 0, md: 3 } }}>
               <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
                 Editar Lista de Precios
               </Typography>
 
-              <TextField
-                label="Nombre de la lista"
-                value={listName}
-                onChange={(e) => setListName(e.target.value)}
-                fullWidth
-                sx={{ mb: 2 }}
-                inputProps={{ maxLength: 30 }}
-                helperText={`${listName.length}/30 caracteres`}
-              />
+              <div className="mb-4">
+                <CustomInput
+                  label="Nombre de la lista"
+                  name="listName"
+                  value={listName}
+                  onChange={(e) => setListName(e.target.value)}
+                  maxLength={30}
+                  hint={`${listName.length}/30 caracteres`}
+                />
+              </div>
 
-              <TextField
+              <CustomInput
                 label="Descripción"
+                name="listDescription"
                 value={listDescription}
                 onChange={(e) => setListDescription(e.target.value)}
-                fullWidth
                 multiline
-                rows={2}
-                inputProps={{ maxLength: 200 }}
-                helperText={`${listDescription.length}/200 caracteres`}
+                maxLength={200}
+                hint={`${listDescription.length}/200 caracteres`}
               />
             </Box>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 200 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', width: { xs: '100%', md: 'auto' }, minWidth: { xs: 0, md: 200 } }}>
+              {/* Espaciadores invisibles (solo en desktop): replican el alto del título y del label de
+                  "Nombre de la lista" para que los botones arranquen justo en el borde superior del
+                  recuadro del input. En mobile los botones van apilados después de los campos, sin espaciador. */}
+              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                <Typography variant="h5" fontWeight="bold" sx={{ mb: 2, visibility: 'hidden' }}>
+                  .
+                </Typography>
+                <label className="block text-[0.6875rem] font-bold uppercase tracking-wider mb-1.5" style={{ visibility: 'hidden' }}>
+                  .
+                </label>
+              </Box>
+
               <Button
                 startIcon={<AddIcon />}
                 onClick={() => setOpenAddDialog(true)}
                 color="primary"
                 variant="contained"
                 fullWidth
+                sx={{ mb: 2 }}
               >
                 Agregar Producto
               </Button>
@@ -349,6 +389,7 @@ const PriceListEdit = () => {
                 variant="contained"
                 disabled={!hasChanges || saving}
                 fullWidth
+                sx={{ mb: 2 }}
               >
                 {saving ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
@@ -396,13 +437,27 @@ const PriceListEdit = () => {
             });
             const tipoVentaColumns = Object.values(tvMap).sort((a, b) => a.id - b.id);
 
+            const getAbreviacion = (producto, tipoVenta) => {
+              const desc = tipoVenta?.descripcion?.toLowerCase();
+              if (desc === 'unidad') return producto?.tipo_unidad?.abreviacion || '';
+              if (desc === 'bulto')  return producto?.tipo_contenedor?.abreviacion || '';
+              return '';
+            };
+
             // Pivot: una fila por producto
             const rowMap = {};
             products.forEach(item => {
               const prodId = item.producto?.id;
               if (!prodId) return;
               if (!rowMap[prodId]) {
-                rowMap[prodId] = { producto: item.producto, items: {} };
+                rowMap[prodId] = {
+                  id: prodId,
+                  producto: item.producto,
+                  descripcion: item.producto.descripcion,
+                  categoria: item.producto.categoria?.descripcion || '—',
+                  pesoAprox: `${item.producto.cantidad_por_bulto || '—'} ${item.producto.tipo_unidad?.abreviacion || ''}`.trim(),
+                  items: {},
+                };
               }
               if (item.tipo_venta) {
                 rowMap[prodId].items[item.tipo_venta.id] = item;
@@ -415,85 +470,64 @@ const PriceListEdit = () => {
               return catCmp !== 0 ? catCmp : a.producto.descripcion.localeCompare(b.producto.descripcion);
             });
 
-            const getAbreviacion = (producto, tipoVenta) => {
-              const desc = tipoVenta?.descripcion?.toLowerCase();
-              if (desc === 'unidad') return producto?.tipo_unidad?.abreviacion || '';
-              if (desc === 'bulto')  return producto?.tipo_contenedor?.abreviacion || '';
-              return '';
-            };
+            const columns = [
+              { field: 'descripcion', headerName: 'Producto', flex: 1, align: 'center', headerAlign: 'center' },
+              {
+                field: 'categoria',
+                headerName: 'Categoría',
+                width: 140,
+                align: 'center',
+                headerAlign: 'center',
+                hiddenOnMobile: true,
+                renderCell: (params) => (
+                  <span style={categoryBadgeStyle(params.value)}>{params.value}</span>
+                ),
+              },
+              ...tipoVentaColumns.map(tv => ({
+                field: `precio_${tv.id}`,
+                headerName: tv.descripcion,
+                minWidth: 180,
+                flex: 1,
+                sortable: false,
+                align: 'center',
+                headerAlign: 'center',
+                renderCell: (params) => {
+                  const entry = params.row.items[tv.id];
+                  if (!entry) return <Typography variant="body2" color="text.disabled">—</Typography>;
+                  return (
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
+                      <TextField
+                        type="text"
+                        value={entry.precio}
+                        onChange={(e) => handlePriceChange(params.row.producto.id, tv.id, e.target.value)}
+                        size="small"
+                        fullWidth
+                        inputProps={{ style: { textAlign: 'right' } }}
+                        InputProps={{
+                          startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
+                          endAdornment: <span style={{ marginLeft: '4px', color: 'var(--color-on-surface-muted)', fontSize: '0.85em', whiteSpace: 'nowrap' }}>{getAbreviacion(params.row.producto, tv)}</span>,
+                        }}
+                      />
+                    </Box>
+                  );
+                },
+              })),
+              { field: 'pesoAprox', headerName: 'Peso Aprox.', width: 120, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+            ];
 
             return (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ bgcolor: 'grey.50' }}>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Producto</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Categoría</TableCell>
-                      {tipoVentaColumns.map(tv => (
-                        <TableCell key={tv.id} sx={{ fontWeight: 'bold' }}>
-                          {tv.descripcion}
-                        </TableCell>
-                      ))}
-                      <TableCell sx={{ fontWeight: 'bold' }}>Peso Aprox.</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', textAlign: 'center' }}>Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row) => {
-                      const changed = hasProductChanged(row.producto.id);
-                      return (
-                        <TableRow
-                          key={row.producto.id}
-                          sx={{
-                            bgcolor: changed ? '#E3F2FD' : 'inherit',
-                            '&:hover': { bgcolor: changed ? '#BBDEFB' : 'grey.50' }
-                          }}
-                        >
-                          <TableCell>{row.producto.descripcion}</TableCell>
-                          <TableCell>{row.producto.categoria?.descripcion || '—'}</TableCell>
-                          {tipoVentaColumns.map(tv => {
-                            const entry = row.items[tv.id];
-                            return (
-                              <TableCell key={tv.id}>
-                                {entry ? (
-                                  <TextField
-                                    type="text"
-                                    value={entry.precio}
-                                    onChange={(e) => handlePriceChange(row.producto.id, tv.id, e.target.value)}
-                                    size="small"
-                                    fullWidth
-                                    inputProps={{ style: { textAlign: 'right' } }}
-                                    InputProps={{
-                                      startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
-                                      endAdornment: <span style={{ marginLeft: '4px', color: '#666', fontSize: '0.85em', whiteSpace: 'nowrap' }}>{getAbreviacion(row.producto, tv)}</span>,
-                                    }}
-                                  />
-                                ) : (
-                                  <Typography variant="body2" color="text.disabled">—</Typography>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell>
-                            <span style={{ color: '#666' }}>
-                              {row.producto.cantidad_por_bulto || '—'} {row.producto.tipo_unidad?.abreviacion || ''}
-                            </span>
-                          </TableCell>
-                          <TableCell align="center">
-                            <IconButton
-                              color="error"
-                              onClick={() => handleDeleteProduct(row.producto.id)}
-                              size="small"
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <div className="overflow-x-auto">
+                <DataGridDemo
+                  rows={rows}
+                  columns={columns}
+                  multiSelect={false}
+                  showEdit={false}
+                  onDelete={handleDeleteProduct}
+                  getRowClassName={(params) => (hasProductChanged(params.row.id) ? 'row-highlighted' : '')}
+                  pageSize={20}
+                  pageSizeOptions={[10, 20, 25, 50]}
+                />
+              </div>
             );
           })()}
         </Paper>

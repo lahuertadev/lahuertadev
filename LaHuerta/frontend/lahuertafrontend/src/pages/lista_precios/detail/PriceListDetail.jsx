@@ -4,18 +4,36 @@ import axios from 'axios';
 import { priceListUrl, priceListProductUrl } from '../../../constants/urls';
 import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
-import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Alert } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PrintIcon from '@mui/icons-material/Print';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Alert, useMediaQuery } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
+import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
 import IconLabelButtons from '../../../components/Button';
+import CustomInput from '../../../components/Input';
+import { getCategoryColor } from '../../../constants/categoryColors';
 import '../../../styles/print-price-list.css';
 import logoLaHuerta from '../../../assets/logo-lahuerta.jpg';
+
+const categoryBadgeStyle = (categoryName) => {
+  const { bg, color } = getCategoryColor(categoryName);
+  return {
+    display: 'inline-block',
+    padding: '2px 10px',
+    borderRadius: '6px',
+    fontSize: '0.75rem',
+    fontWeight: 600,
+    lineHeight: '18px',
+    backgroundColor: bg,
+    color,
+    whiteSpace: 'nowrap',
+  };
+};
 
 
 const PriceListDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width:600px)');
   const [priceList, setPriceList] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +131,12 @@ const PriceListDetail = () => {
     <div className="container mx-auto h-full flex flex-col rounded p-4">
       <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
 
+        {isMobile && (
+          <Alert severity="info" className="no-print" sx={{ mb: 2 }}>
+            La edición y el detalle de la lista de precios no están disponibles en dispositivos móviles en este momento. Por favor, descargue el PDF de la misma.
+          </Alert>
+        )}
+
         {/* HEADER DEL DOCUMENTO - oculto en impresión */}
         <Paper className="no-print" sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider' }}>
 
@@ -120,23 +144,78 @@ const PriceListDetail = () => {
           <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, pb: 2, borderBottom: '1px solid',borderColor: 'divider'}}>
             <Box>
               <Typography variant="h5" fontWeight="bold">
-                La Huerta
+                Detalle
               </Typography>
               <Typography variant="h6">
                 {priceList.nombre}
               </Typography>
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <IconLabelButtons
-                label="Duplicar"
-                icon={<ContentCopyIcon />}
-                onClick={handleDuplicateClick}
-              />
+            {!isMobile && (
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <IconLabelButtons
+                  label="Duplicar"
+                  icon={<ContentCopyIcon />}
+                  onClick={handleDuplicateClick}
+                />
 
+                <IconLabelButtons
+                  label="Imprimir / Descargar PDF"
+                  icon={<PrintOutlinedIcon />}
+                  onClick={handlePrint}
+                />
+
+                <Button
+                  startIcon={<ArrowBackIcon />}
+                  onClick={handleBack}
+                  color="primary"
+                  variant="outlined"
+                >
+                  Volver
+                </Button>
+              </Box>
+            )}
+          </Box>
+
+          <Box className="no-print" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, pt: 1 }}>
+            <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+              <CustomInput
+                readOnly
+                multiline
+                label="Descripción"
+                name="descripcion"
+                value={priceList.descripcion || '—'}
+                onChange={() => {}}
+              />
+            </Box>
+            <CustomInput
+              readOnly
+              label="Fecha de Creación"
+              name="fechaCreacion"
+              value={formatDate(priceList.fecha_creacion)}
+              onChange={() => {}}
+            />
+            <CustomInput
+              readOnly
+              label="Última Actualización"
+              name="fechaActualizacion"
+              value={formatDate(priceList.fecha_actualizacion)}
+              onChange={() => {}}
+            />
+            <CustomInput
+              readOnly
+              label="Cantidad de Productos"
+              name="cantidadProductos"
+              value={String(products.length)}
+              onChange={() => {}}
+            />
+          </Box>
+
+          {isMobile && (
+            <Box className="no-print" sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 3 }}>
               <IconLabelButtons
                 label="Imprimir / Descargar PDF"
-                icon={<PrintIcon />}
+                icon={<PrintOutlinedIcon />}
                 onClick={handlePrint}
               />
 
@@ -149,46 +228,12 @@ const PriceListDetail = () => {
                 Volver
               </Button>
             </Box>
-          </Box>
-
-          <Box className="no-print" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, pt: 1 }}>
-            <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                Descripción
-              </Typography>
-              <Typography variant="body1" sx={{ mt: 0.5 }}>
-                {priceList.descripcion || '—'}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                Fecha de Creación
-              </Typography>
-              <Typography variant="body1" sx={{ mt: 0.5 }}>
-                {formatDate(priceList.fecha_creacion)}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                Última Actualización
-              </Typography>
-              <Typography variant="body1" sx={{ mt: 0.5 }}>
-                {formatDate(priceList.fecha_actualizacion)}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                Cantidad de Productos
-              </Typography>
-              <Typography variant="body1" sx={{ mt: 0.5 }}>
-                {products.length}
-              </Typography>
-            </Box>
-          </Box>
+          )}
         </Paper>
 
-        {/* Tabla de productos - esto sí se imprime */}
-        <Paper sx={{ border: '1px solid', borderColor: 'divider', position: 'relative' }}>
+        {/* Tabla de productos - esto sí se imprime. En mobile se oculta en pantalla (ver print-price-list.css)
+            pero se mantiene en el DOM para que "Imprimir / Descargar PDF" siga generando el PDF completo. */}
+        <Paper className="price-list-products-section" sx={{ border: '1px solid', borderColor: 'divider', position: 'relative' }}>
           {/* Encabezado para impresión */}
           <Box className="print-header">
             <Typography className="print-title-main">
@@ -270,7 +315,7 @@ const PriceListDetail = () => {
                 <TableContainer>
                   <Table aria-label="tabla de productos">
                     <TableHead>
-                      <TableRow sx={{ bgcolor: 'grey.50' }}>
+                      <TableRow sx={{ bgcolor: 'var(--color-surface-low)' }}>
                         <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Producto</TableCell>
                         <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Categoría</TableCell>
                         {tipoVentaColumns.map(tv => (
@@ -285,22 +330,26 @@ const PriceListDetail = () => {
                       {rows.map((row) => (
                         <TableRow
                           key={row.producto.id}
-                          sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { bgcolor: 'grey.50' } }}
+                          sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { bgcolor: 'var(--color-surface-low)' } }}
                         >
                           <TableCell component="th" scope="row">
                             {row.producto.descripcion}
                           </TableCell>
-                          <TableCell>{row.producto.categoria?.descripcion || '—'}</TableCell>
+                          <TableCell>
+                            {row.producto.categoria?.descripcion
+                              ? <span style={categoryBadgeStyle(row.producto.categoria.descripcion)}>{row.producto.categoria.descripcion}</span>
+                              : '—'}
+                          </TableCell>
                           {tipoVentaColumns.map(tv => (
                             <TableCell key={tv.id} align="right">
                               {row.precios[tv.id] != null
-                                ? <>{formatCurrency(row.precios[tv.id])}{' '}<span style={{ color: '#666', fontSize: '0.9em' }}>{getAbreviacion(row.producto, tv)}</span></>
+                                ? <>{formatCurrency(row.precios[tv.id])}{' '}<span style={{ color: 'var(--color-on-surface-muted)', fontSize: '0.9em' }}>{getAbreviacion(row.producto, tv)}</span></>
                                 : '—'
                               }
                             </TableCell>
                           ))}
                           <TableCell align="right">
-                            <span style={{ color: '#666' }}>
+                            <span style={{ color: 'var(--color-on-surface-muted)' }}>
                               {row.producto.cantidad_por_bulto || '—'} {row.producto.tipo_unidad?.abreviacion || ''}
                             </span>
                           </TableCell>

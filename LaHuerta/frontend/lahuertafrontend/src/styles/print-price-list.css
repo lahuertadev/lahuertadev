@@ -15,6 +15,21 @@
   display: none;
 }
 
+/* En mobile no se puede editar la lista de precios: solo se ofrece descargar el PDF.
+   Se oculta la grilla de productos en pantalla, pero se mantiene en el DOM para
+   que el PDF generado por "Imprimir / Descargar PDF" siga incluyendo la tabla completa. */
+@media screen and (max-width: 600px) {
+  .price-list-products-section {
+    display: none;
+  }
+}
+
+@media print {
+  .price-list-products-section {
+    display: block !important;
+  }
+}
+
 @media print {
   /* Ocultar elementos de navegación */
   .no-print {

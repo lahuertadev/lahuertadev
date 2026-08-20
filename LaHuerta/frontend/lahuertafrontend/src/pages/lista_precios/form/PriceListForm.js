@@ -89,16 +89,16 @@ const PriceListForm = () => {
       onSubmit={handleSubmit}
     >
       {({ values, errors, touched, handleChange, isSubmitting }) => (
-        <div className="min-h-screen flex items-start justify-center bg-transparent flex-1 pt-8">
-          <Form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl space-y-8">
+        <div className="w-full max-w-2xl mx-auto pt-8">
+          <Form className="bg-surface-card p-8 rounded-lg shadow-sm border border-border-subtle w-full space-y-8">
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-800">
+              <h2 className="text-3xl font-bold text-on-surface">
                 {id ? 'Editar Lista de Precios' : 'Nueva Lista de Precios'}
               </h2>
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold border-b-2 border-black pb-2">
+              <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">
                 Información General
               </h3>
               
