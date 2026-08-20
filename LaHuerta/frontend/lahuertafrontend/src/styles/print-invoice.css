@@ -12,6 +12,9 @@ body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background:
   justify-content: space-between;
 }
 .btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: #4a7bc4;
   color: #fff;
   border: none;
@@ -37,6 +40,7 @@ body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background:
   width: 210mm;
   min-height: 297mm;
   background: #fff;
+  color: #000;
   padding: 12mm 10mm;
   border: 1px solid #999;
   display: grid;

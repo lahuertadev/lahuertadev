@@ -4,12 +4,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import MenuItem from '@mui/material/MenuItem';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import PersonIcon from '@mui/icons-material/Person';
-import ListAltIcon from '@mui/icons-material/ListAlt';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import ListAltIcon from '@mui/icons-material/ListAltOutlined';
 import {
   billUrl,
   billTypeUrl,
@@ -20,6 +20,7 @@ import {
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import Toast from '../../../components/Toast';
+import CustomInput from '../../../components/Input';
 
 const DEBIT_NOTE_CODES = new Set([2, 7, 12, 52]);
 const CREDIT_NOTE_CODES = new Set([3, 8, 13, 53]);
@@ -38,12 +39,14 @@ const EMPTY_ITEM = {
 const IVA_OPTIONS = ['0', '2.5', '5', '10.5', '21', '27'];
 
 // ── Estilos reutilizables ──────────────────────────────────────────────────────
-const inputCls = (hasError) =>
-  `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
-    hasError
-      ? 'border-red-400 ring-2 ring-red-100'
-      : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
-  }`;
+const inputCls = (hasError, isLocked = false) =>
+  isLocked
+    ? 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed'
+    : `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
+        hasError
+          ? 'border-red-400 ring-2 ring-red-100'
+          : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+      }`;
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -72,12 +75,12 @@ const FieldError = ({ message }) =>
 // sx compartido para MUI Autocomplete
 const autocompleteSx = (hasError) => ({
   '& .MuiOutlinedInput-root': {
-    backgroundColor: '#f0f4f7',
+    backgroundColor: 'var(--color-surface-low)',
     borderRadius: '0.5rem',
     fontSize: '0.875rem',
     padding: '0 !important',
     '& fieldset': {
-      borderColor: hasError ? '#f87171' : '#e3e9ed',
+      borderColor: hasError ? '#f87171' : 'var(--color-border-subtle)',
     },
     '&:hover fieldset': {
       borderColor: hasError ? '#f87171' : '#4a7bc4',
@@ -90,7 +93,7 @@ const autocompleteSx = (hasError) => ({
   '& .MuiInputBase-input': {
     padding: '0.625rem 0.75rem !important',
     fontSize: '0.875rem',
-    color: '#2c3437',
+    color: 'var(--color-on-surface)',
   },
 });
 
@@ -575,7 +578,7 @@ const FacturaForm = () => {
                 const bill = associatedBillOptions.find((b) => String(b.id) === e.target.value) || null;
                 setAssociatedBill(bill);
               }}
-              className={inputCls(Boolean(errors.associatedBill))}
+              className={inputCls(Boolean(errors.associatedBill), !selectedClient)}
               disabled={!selectedClient}
             >
               <option value="">
@@ -621,38 +624,34 @@ const FacturaForm = () => {
       {/* 4. Datos del cliente (condicional) */}
       {selectedClient && (
         <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Cliente" cols={2}>
-          <div className="flex flex-col gap-1">
-            <label className={labelCls}>CUIT</label>
-            <input
-              readOnly
-              value={selectedClient.cuit || ''}
-              className={inputCls(false) + ' opacity-70 cursor-default'}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className={labelCls}>Domicilio</label>
-            <input
-              readOnly
-              value={selectedClient.domicilio || ''}
-              className={inputCls(false) + ' opacity-70 cursor-default'}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className={labelCls}>Localidad</label>
-            <input
-              readOnly
-              value={selectedClient.localidad?.nombre || ''}
-              className={inputCls(false) + ' opacity-70 cursor-default'}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className={labelCls}>Condición IVA</label>
-            <input
-              readOnly
-              value={selectedClient.condicion_IVA?.descripcion || ''}
-              className={inputCls(false) + ' opacity-70 cursor-default'}
-            />
-          </div>
+          <CustomInput
+            readOnly
+            label="CUIT"
+            name="clientCuit"
+            value={selectedClient.cuit || ''}
+            onChange={() => {}}
+          />
+          <CustomInput
+            readOnly
+            label="Domicilio"
+            name="clientDomicilio"
+            value={selectedClient.domicilio || ''}
+            onChange={() => {}}
+          />
+          <CustomInput
+            readOnly
+            label="Localidad"
+            name="clientLocalidad"
+            value={selectedClient.localidad?.nombre || ''}
+            onChange={() => {}}
+          />
+          <CustomInput
+            readOnly
+            label="Condición IVA"
+            name="clientCondicionIva"
+            value={selectedClient.condicion_IVA?.descripcion || ''}
+            onChange={() => {}}
+          />
         </SectionCard>
       )}
 

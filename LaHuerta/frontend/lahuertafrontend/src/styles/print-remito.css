@@ -55,6 +55,9 @@
   }
 
   .btn-print {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: #4a7bc4;
     color: #fff;
     border: none;
