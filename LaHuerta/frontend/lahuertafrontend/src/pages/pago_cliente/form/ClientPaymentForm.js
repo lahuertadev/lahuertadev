@@ -8,8 +8,8 @@ import { clientPaymentUrl, clientUrl, paymentTypeUrl, bankUrl } from '../../../c
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
-import PersonIcon from '@mui/icons-material/Person';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -263,7 +263,12 @@ const ClientPaymentForm = () => {
                     onChange={handleChange}
                     placeholder="Nº de cheque"
                     disabled={!!(id && values.chequeNumero)}
-                    className={inputCls(touched.chequeNumero && errors.chequeNumero) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' + (id && values.chequeNumero ? ' opacity-50 cursor-not-allowed' : '')}
+                    className={
+                      (id && values.chequeNumero
+                        ? 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed'
+                        : inputCls(touched.chequeNumero && errors.chequeNumero)
+                      ) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                    }
                   />
                   <FieldError error={errors.chequeNumero} touched={touched.chequeNumero} />
                 </div>

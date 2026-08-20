@@ -7,10 +7,10 @@ import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
-import BusinessIcon from '@mui/icons-material/Business';
-import PaymentsIcon from '@mui/icons-material/Payments';
-import CreditCardIcon from '@mui/icons-material/CreditCard';
-import DeleteIcon from '@mui/icons-material/Delete';
+import BusinessIcon from '@mui/icons-material/BusinessOutlined';
+import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
+import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
