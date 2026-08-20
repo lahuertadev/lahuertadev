@@ -345,13 +345,13 @@ const PriceListDetail = () => {
                           {tipoVentaColumns.map(tv => (
                             <TableCell key={tv.id} align="center">
                               {row.precios[tv.id] != null
-                                ? <>{formatCurrency(row.precios[tv.id])}{' '}<span style={{ color: 'var(--color-on-surface-muted)', fontSize: '0.9em' }}>{getAbreviacion(row.producto, tv)}</span></>
+                                ? <>{formatCurrency(row.precios[tv.id])}{' '}<span className="price-list-muted-text" style={{ color: 'var(--color-on-surface-muted)', fontSize: '0.9em' }}>{getAbreviacion(row.producto, tv)}</span></>
                                 : '—'
                               }
                             </TableCell>
                           ))}
                           <TableCell align="center">
-                            <span style={{ color: 'var(--color-on-surface-muted)' }}>
+                            <span className="price-list-muted-text" style={{ color: 'var(--color-on-surface-muted)' }}>
                               {row.producto.cantidad_por_bulto || '—'} {row.producto.tipo_unidad?.abreviacion || ''}
                             </span>
                           </TableCell>

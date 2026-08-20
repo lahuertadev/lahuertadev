@@ -31,6 +31,14 @@
 }
 
 @media print {
+  /* La tabla usa los tokens de color del theme (var(--color-on-surface), etc.), que en dark
+     mode resuelven a colores claros. Impreso, siempre debe verse como en modo claro: tinta
+     oscura sobre fondo blanco, sin importar el theme activo en pantalla. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   /* Ocultar elementos de navegación */
   .no-print {
     display: none !important;
@@ -135,6 +143,14 @@
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     background-color: transparent !important;
+    color: #1f2937 !important;
+  }
+
+  /* Texto secundario (abreviación de unidad, peso aprox.): mismo criterio que .MuiTableCell-root,
+     pero forzado en el span porque su color inline (var(--color-on-surface-muted)) tiene
+     prioridad sobre el color heredado de la celda. */
+  .price-list-muted-text {
+    color: #6b7280 !important;
   }
 
   /* Header de tabla con fondo */
@@ -142,8 +158,6 @@
     background-color: #e0e0e0 !important;
     font-weight: bold !important;
     font-size: 10pt !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
   }
 
   /* Fecha de impresión personalizada */
