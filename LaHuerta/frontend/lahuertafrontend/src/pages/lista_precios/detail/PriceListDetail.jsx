@@ -6,7 +6,7 @@ import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
 import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Alert, useMediaQuery } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
-import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
+import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
 import IconLabelButtons from '../../../components/Button';
 import CustomInput from '../../../components/Input';
@@ -160,8 +160,8 @@ const PriceListDetail = () => {
                 />
 
                 <IconLabelButtons
-                  label="Imprimir / Descargar PDF"
-                  icon={<PrintOutlinedIcon />}
+                  label="Descargar PDF"
+                  icon={<DownloadOutlinedIcon />}
                   onClick={handlePrint}
                 />
 
@@ -214,9 +214,10 @@ const PriceListDetail = () => {
           {isMobile && (
             <Box className="no-print" sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 3 }}>
               <IconLabelButtons
-                label="Imprimir / Descargar PDF"
-                icon={<PrintOutlinedIcon />}
+                label="Descargar PDF"
+                icon={<DownloadOutlinedIcon />}
                 onClick={handlePrint}
+                sx={{ width: '100%' }}
               />
 
               <Button
@@ -224,6 +225,7 @@ const PriceListDetail = () => {
                 onClick={handleBack}
                 color="primary"
                 variant="outlined"
+                fullWidth
               >
                 Volver
               </Button>
@@ -316,14 +318,14 @@ const PriceListDetail = () => {
                   <Table aria-label="tabla de productos">
                     <TableHead>
                       <TableRow sx={{ bgcolor: 'var(--color-surface-low)' }}>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Producto</TableCell>
-                        <TableCell sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Categoría</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Producto</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Categoría</TableCell>
                         {tipoVentaColumns.map(tv => (
-                          <TableCell key={tv.id} align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                          <TableCell key={tv.id} align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
                             {tv.descripcion}
                           </TableCell>
                         ))}
-                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Peso Aprox.</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Peso Aprox.</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -332,23 +334,23 @@ const PriceListDetail = () => {
                           key={row.producto.id}
                           sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { bgcolor: 'var(--color-surface-low)' } }}
                         >
-                          <TableCell component="th" scope="row">
+                          <TableCell component="th" scope="row" align="center">
                             {row.producto.descripcion}
                           </TableCell>
-                          <TableCell>
+                          <TableCell align="center">
                             {row.producto.categoria?.descripcion
                               ? <span style={categoryBadgeStyle(row.producto.categoria.descripcion)}>{row.producto.categoria.descripcion}</span>
                               : '—'}
                           </TableCell>
                           {tipoVentaColumns.map(tv => (
-                            <TableCell key={tv.id} align="right">
+                            <TableCell key={tv.id} align="center">
                               {row.precios[tv.id] != null
                                 ? <>{formatCurrency(row.precios[tv.id])}{' '}<span style={{ color: 'var(--color-on-surface-muted)', fontSize: '0.9em' }}>{getAbreviacion(row.producto, tv)}</span></>
                                 : '—'
                               }
                             </TableCell>
                           ))}
-                          <TableCell align="right">
+                          <TableCell align="center">
                             <span style={{ color: 'var(--color-on-surface-muted)' }}>
                               {row.producto.cantidad_por_bulto || '—'} {row.producto.tipo_unidad?.abreviacion || ''}
                             </span>
