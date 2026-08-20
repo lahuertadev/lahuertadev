@@ -192,11 +192,11 @@ const ProductForm = () => {
         const requiresUnitsPerBundle = measurementType === 'CANTIDAD';
 
         return (
-          <div className="min-h-screen flex items-center justify-center bg-transparent flex-1">
-            <Form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl space-y-8">
+          <div className="w-full max-w-3xl mx-auto">
+            <Form className="bg-surface-card p-8 rounded-lg shadow-sm border border-border-subtle w-full space-y-8">
               {/* Datos del producto */}
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold border-b-2 border-black pb-2">
+                <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">
                   Datos del producto
                 </h3>
 
