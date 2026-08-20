@@ -250,7 +250,7 @@ const PriceListDetail = () => {
             <thead>
               <tr>
                 <td>
-                  <Box className="print-only price-list-print-header-top">
+                  <Box className="price-list-print-header-top">
                     <Box component="img" src={logoLaHuerta} alt="La Huerta" className="price-list-print-logo" />
                     <Box className="price-list-print-company">
                       <Typography component="span" className="price-list-print-company-name">La Huerta</Typography>
@@ -283,7 +283,7 @@ const PriceListDetail = () => {
                             Lista de Precios
                           </Typography>
                         </Box>
-                        <Box className="print-only price-list-print-meta">
+                        <Box className="price-list-print-meta">
                           <Typography component="span">Fecha de impresión: {fmt(printDate)}</Typography>
                           <Typography component="span">Vigente hasta: {fmt(validUntilDate)}</Typography>
                         </Box>
@@ -404,7 +404,7 @@ const PriceListDetail = () => {
           </table>
 
           {/* Footer visual, fijo al pie de cada hoja impresa */}
-          <Box className="print-only price-list-print-footer">
+          <Box className="price-list-print-footer">
             <Typography variant="caption">
               © {new Date().getFullYear()} La Huerta Agro Management · Documento de uso interno ·{' '}
               {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}

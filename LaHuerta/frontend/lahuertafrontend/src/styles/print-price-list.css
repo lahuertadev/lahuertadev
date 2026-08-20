@@ -72,11 +72,13 @@
     display: none !important;
   }
 
-  /* Encabezado de impresión */
+  /* Encabezado de impresión - el espacio de arriba ya lo da el margin-bottom de la barra
+     superior (.price-list-print-header-top), que se repite en cada hoja; acá no hace falta
+     padding-top extra o se duplica el espacio en la primera página. */
   .print-header {
     display: block !important;
     text-align: center !important;
-    padding: 20px 0 10px 0 !important;
+    padding: 0 0 10px 0 !important;
     border-bottom: 2px solid #2d5f3f !important;
     margin-bottom: 10px !important;
   }
@@ -240,7 +242,11 @@
     page-break-inside: auto !important;
   }
 
-  /* Barra superior con logo + nombre + contacto - se repite en cada hoja impresa */
+  /* Barra superior con logo + nombre + contacto - se repite en cada hoja impresa.
+     El margin-bottom es el único espacio entre esta barra y el contenido de abajo en TODAS
+     las hojas: en la primera hoja alcanza porque después sigue el título grande (con su propio
+     peso visual); en el resto, es lo que hace que se note el borde inferior antes de que
+     arranque la tabla. */
   .price-list-print-header-top {
     display: flex !important;
     flex-direction: row !important;
@@ -249,7 +255,7 @@
     background: white !important;
     padding: 4mm 0 8px 0 !important;
     border-bottom: 1px solid #e5e7eb !important;
-    margin: 0 !important;
+    margin: 0 0 8px 0 !important;
   }
 
   .price-list-print-logo {
@@ -277,6 +283,7 @@
   /* Fecha de impresión (izquierda) y vigencia (derecha) - una sola vez, no se repite por hoja */
   .price-list-print-meta {
     display: flex !important;
+    width: 100% !important;
     justify-content: space-between !important;
     font-size: 9pt !important;
     color: #666 !important;
