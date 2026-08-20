@@ -78,30 +78,30 @@
   .print-header {
     display: block !important;
     text-align: center !important;
-    padding: 0 0 10px 0 !important;
+    padding: 0 0 8px 0 !important;
     border-bottom: 2px solid #2d5f3f !important;
-    margin-bottom: 10px !important;
+    margin-bottom: 8px !important;
   }
 
   .print-title-main {
     display: block !important;
     font-family: 'Georgia', 'Times New Roman', serif !important;
-    font-size: 32pt !important;
+    font-size: 20pt !important;
     font-weight: bold !important;
     color: #2d5f3f !important;
-    letter-spacing: 4px !important;
-    margin-bottom: 5px !important;
+    letter-spacing: 2px !important;
+    margin-bottom: 4px !important;
   }
 
   .print-title-sub {
     display: block !important;
     font-family: 'Georgia', 'Times New Roman', serif !important;
-    font-size: 14pt !important;
+    font-size: 11pt !important;
     color: #666 !important;
     font-style: italic !important;
     border-top: 1px solid #999 !important;
     border-bottom: 1px solid #999 !important;
-    padding: 5px 0 !important;
+    padding: 4px 0 !important;
     display: inline-block !important;
   }
 
@@ -255,7 +255,7 @@
     background: white !important;
     padding: 4mm 0 8px 0 !important;
     border-bottom: 1px solid #e5e7eb !important;
-    margin: 0 0 8px 0 !important;
+    margin: 0 0 20px 0 !important;
   }
 
   .price-list-print-logo {
