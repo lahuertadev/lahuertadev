@@ -242,21 +242,20 @@ const PriceListDetail = () => {
             </Typography>
           </Box>
 
-          {/* Wrapper con thead/tfoot reales: el encabezado (LA HUERTA / Lista de Precios) se repite
-              en cada hoja impresa, y el tfoot reserva el espacio del footer fijo en cada hoja
+          {/* Wrapper con thead/tfoot reales: la barra superior (logo + La Huerta) se repite en
+              cada hoja impresa, y el tfoot reserva el espacio del footer fijo en cada hoja
               (mismo patrón que la impresión de Reportes). En pantalla es solo un contenedor
               transparente, sin apariencia de tabla. */}
           <table className="price-list-print-wrapper">
             <thead>
               <tr>
                 <td>
-                  <Box className="print-header">
-                    <Typography className="print-title-main">
-                      LA HUERTA
-                    </Typography>
-                    <Typography className="print-title-sub">
-                      Lista de Precios
-                    </Typography>
+                  <Box className="print-only price-list-print-header-top">
+                    <Box component="img" src={logoLaHuerta} alt="La Huerta" className="price-list-print-logo" />
+                    <Box className="price-list-print-company">
+                      <Typography component="span" className="price-list-print-company-name">La Huerta</Typography>
+                      <Typography component="span" className="price-list-print-company-sub">contacto@lahuerta.com.ar</Typography>
+                    </Box>
                   </Box>
                 </td>
               </tr>
@@ -264,7 +263,7 @@ const PriceListDetail = () => {
             <tbody>
               <tr>
                 <td>
-                  {/* Fecha de impresión y vigencia - solo visibles al imprimir, una sola vez */}
+                  {/* Título y fecha/vigencia - solo visibles al imprimir, una sola vez (no se repiten por hoja) */}
                   {(() => {
                     const printDate = new Date();
                     const validUntilDate = new Date(printDate);
@@ -275,10 +274,20 @@ const PriceListDetail = () => {
                       year: 'numeric',
                     });
                     return (
-                      <Box className="print-only price-list-print-meta">
-                        <Typography component="span">Fecha de impresión: {fmt(printDate)}</Typography>
-                        <Typography component="span">Vigente hasta: {fmt(validUntilDate)}</Typography>
-                      </Box>
+                      <>
+                        <Box className="print-header">
+                          <Typography className="print-title-main">
+                            LA HUERTA
+                          </Typography>
+                          <Typography className="print-title-sub">
+                            Lista de Precios
+                          </Typography>
+                        </Box>
+                        <Box className="print-only price-list-print-meta">
+                          <Typography component="span">Fecha de impresión: {fmt(printDate)}</Typography>
+                          <Typography component="span">Vigente hasta: {fmt(validUntilDate)}</Typography>
+                        </Box>
+                      </>
                     );
                   })()}
 
@@ -397,7 +406,8 @@ const PriceListDetail = () => {
           {/* Footer visual, fijo al pie de cada hoja impresa */}
           <Box className="print-only price-list-print-footer">
             <Typography variant="caption">
-              © {new Date().getFullYear()} La Huerta Agro Management · Documento de uso interno
+              © {new Date().getFullYear()} La Huerta Agro Management · Documento de uso interno ·{' '}
+              {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
             </Typography>
           </Box>
         </Paper>

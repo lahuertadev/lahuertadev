@@ -35,7 +35,8 @@
   border: none;
 }
 
-/* Fecha de impresión / vigencia y footer fijo: solo se muestran al imprimir */
+/* Barra superior repetible, fecha de impresión / vigencia y footer fijo: solo se muestran al imprimir */
+.price-list-print-header-top,
 .price-list-print-meta,
 .price-list-print-footer,
 .price-list-print-footer-placeholder {
@@ -229,6 +230,48 @@
     display: table-cell !important;
     padding: 0 !important;
     border: none !important;
+  }
+
+  /* La regla genérica "tr { page-break-inside: avoid }" (para que una fila de producto no se
+     corte a la mitad) no debe aplicarse a esta fila: es una única fila que envuelve TODA la
+     tabla de productos, mucho más alta que una hoja. Forzar "avoid" ahí hacía que el navegador
+     empujara toda la fila a la página siguiente, dejando la primera hoja en blanco. */
+  .price-list-print-wrapper > tbody > tr {
+    page-break-inside: auto !important;
+  }
+
+  /* Barra superior con logo + nombre + contacto - se repite en cada hoja impresa */
+  .price-list-print-header-top {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 14px !important;
+    background: white !important;
+    padding: 4mm 0 8px 0 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    margin: 0 !important;
+  }
+
+  .price-list-print-logo {
+    height: 44px !important;
+    width: auto !important;
+  }
+
+  .price-list-print-company {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .price-list-print-company-name {
+    font-size: 13pt !important;
+    font-weight: 700 !important;
+    color: #1f2937 !important;
+  }
+
+  .price-list-print-company-sub {
+    font-size: 9pt !important;
+    color: #6b7280 !important;
   }
 
   /* Fecha de impresión (izquierda) y vigencia (derecha) - una sola vez, no se repite por hoja */
