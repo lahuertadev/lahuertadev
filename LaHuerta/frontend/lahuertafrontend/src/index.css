@@ -23,6 +23,8 @@
   --color-field-locked-rgb:   236 239 242;
   --color-field-locked-border: #dbe1e6;
   --color-field-locked-border-rgb: 219 225 230;
+  --color-row-highlight:      #4a7bc4;
+  --color-row-highlight-rgb:  74 123 196;
 }
 
 .dark {
@@ -42,6 +44,8 @@
   --color-field-locked-rgb:   38 45 50;
   --color-field-locked-border: #333c42;
   --color-field-locked-border-rgb: 51 60 66;
+  --color-row-highlight:      #93c5fd;
+  --color-row-highlight-rgb:  147 197 253;
 }
 
 body {

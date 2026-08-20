@@ -245,9 +245,11 @@ export default function DataGridDemo({
             },
           },
           // Fila resaltada (ej. con cambios sin guardar) — pasar 'row-highlighted' vía getRowClassName.
+          // Usa --color-row-highlight-rgb, que define un tono más oscuro en claro y uno más
+          // claro en oscuro (ver index.css), para que el contraste se note en ambos temas.
           '& .MuiDataGrid-row.row-highlighted': {
-            backgroundColor: 'rgba(93,137,200,0.08)',
-            '&:hover': { backgroundColor: 'rgba(93,137,200,0.14)' },
+            backgroundColor: 'rgb(var(--color-row-highlight-rgb) / 0.16)',
+            '&:hover': { backgroundColor: 'rgb(var(--color-row-highlight-rgb) / 0.26)' },
           },
           '& .MuiDataGrid-cell': {
             padding: '0 12px',
