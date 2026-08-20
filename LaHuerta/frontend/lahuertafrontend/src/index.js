@@ -2,10 +2,11 @@ import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import theme from "./theme";
+import getTheme from "./theme";
 import "./index.css";
 import "./api/axiosConfig";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeModeProvider } from "./context/ThemeModeContext";
 import App from "./App";
 import Home from './pages/home';
 import ExpenseForm from "./pages/gasto/form/ExpenseForm";
@@ -325,12 +326,18 @@ const router = createBrowserRouter([
 
 // Renderizar el RouterProvider con las rutas definidas
 // AuthProvider guarda el estado de autenticación (user) para toda la app
+// ThemeModeProvider guarda la preferencia de tema (claro/oscuro) y persiste en localStorage.
+// El theme de MUI acá es siempre claro: cubre login/register/recuperar contraseña,
+// que deben verse siempre igual sin importar la preferencia guardada.
+// El modo oscuro dinámico solo se aplica dentro del área autenticada (ver App.js).
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </ThemeProvider>
+    <ThemeModeProvider>
+      <ThemeProvider theme={getTheme('light')}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ThemeProvider>
+    </ThemeModeProvider>
   </React.StrictMode>
 );
