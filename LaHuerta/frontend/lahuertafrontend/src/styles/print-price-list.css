@@ -329,7 +329,7 @@
     height: 10mm !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: space-between !important;
     border-top: 1px solid #999 !important;
     background: #fff !important;
     z-index: 100 !important;

@@ -284,8 +284,8 @@ const PriceListDetail = () => {
                           </Typography>
                         </Box>
                         <Box className="price-list-print-meta">
-                          <Typography component="span">Fecha de impresión: {fmt(printDate)}</Typography>
-                          <Typography component="span">Vigente hasta: {fmt(validUntilDate)}</Typography>
+                          <Typography component="span"><strong>Fecha de impresión:</strong> {fmt(printDate)}</Typography>
+                          <Typography component="span"><strong>Vigente hasta:</strong> {fmt(validUntilDate)}</Typography>
                         </Box>
                       </>
                     );
@@ -405,9 +405,9 @@ const PriceListDetail = () => {
 
           {/* Footer visual, fijo al pie de cada hoja impresa */}
           <Box className="price-list-print-footer">
-            <Typography variant="caption">
-              © {new Date().getFullYear()} La Huerta Agro Management · Documento de uso interno ·{' '}
-              {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+            <Typography variant="caption" component="span">Ciudadela, 3 de Febrero, Bs. As.</Typography>
+            <Typography variant="caption" component="span">
+              Fecha de impresión: {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </Typography>
           </Box>
         </Paper>
