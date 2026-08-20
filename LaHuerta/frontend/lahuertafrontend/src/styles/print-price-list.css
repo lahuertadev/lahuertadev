@@ -135,7 +135,11 @@
   /* Marca de agua del logo */
   .watermark-logo {
     display: block !important;
-    position: absolute !important;
+    /* "fixed" (no "absolute") es lo que hace que se repita centrada en CADA hoja, igual que el
+       footer: con "absolute", el 50% se calculaba sobre el alto total de .table-wrapper (que
+       ahora abarca las N hojas de la tabla), así que solo caía una vez en algún punto del medio
+       del documento en vez de en el centro de cada hoja. */
+    position: fixed !important;
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
