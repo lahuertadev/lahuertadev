@@ -9,7 +9,7 @@ import Toast from '../Toast';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import CloseIcon from '@mui/icons-material/Close';

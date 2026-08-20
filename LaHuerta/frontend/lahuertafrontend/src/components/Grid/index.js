@@ -4,8 +4,8 @@ import Tooltip from '@mui/material/Tooltip';
 import { DataGrid } from '@mui/x-data-grid';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import SearchIcon from '@mui/icons-material/Search';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import RoundedCheckbox from '../RoundedCheckbox';
 
 /**
@@ -23,6 +23,9 @@ import RoundedCheckbox from '../RoundedCheckbox';
  *   onSelectionChange — (ids[]) => void
  *   multiSelect       — bool (default true) — activa checkboxes y selección múltiple
  *   pageSize          — number (default 10)
+ *   pageSizeOptions   — number[] (default [10, 25, 50]) — opciones del selector "Rows per page"
+ *   getRowClassName   — (params) => string — para resaltar filas (ej. devolver 'row-highlighted'
+ *                         cuando la fila tiene cambios sin guardar)
  */
 
 // Calcula el minWidth de cada columna comparando el largo del headerName
@@ -67,7 +70,7 @@ const actionButtonSx = {
   border: 'none',
   background: 'none',
   cursor: 'pointer',
-  color: '#596064',
+  color: 'var(--color-on-surface-muted)',
   transition: 'all 0.15s',
 };
 
@@ -85,6 +88,8 @@ export default function DataGridDemo({
   showDelete = true,
   multiSelect = true,
   pageSize = 10,
+  pageSizeOptions = [10, 25, 50],
+  getRowClassName,
 }) {
   const isMobile = useMediaQuery('(max-width:600px)');
   const columnVisibilityModel = {};
@@ -103,7 +108,7 @@ export default function DataGridDemo({
             <button
               style={actionButtonSx}
               onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
               onClick={() => onDetail(params.row.id)}
             >
               <SearchIcon sx={{ fontSize: 18 }} />
@@ -127,7 +132,7 @@ export default function DataGridDemo({
           <button
             style={actionButtonSx}
             onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
             onClick={() => onEdit(params.row.id)}
           >
             <EditIcon sx={{ fontSize: 18 }} />
@@ -151,7 +156,7 @@ export default function DataGridDemo({
           <button
             style={actionButtonSx}
             onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = '#596064'; e.currentTarget.style.background = 'none'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
             onClick={() => onDelete(params.row.id)}
           >
             <DeleteIcon sx={{ fontSize: 18 }} />
@@ -187,12 +192,13 @@ export default function DataGridDemo({
         initialState={{
           pagination: { paginationModel: { pageSize } },
         }}
-        pageSizeOptions={[10, 25, 50]}
+        pageSizeOptions={pageSizeOptions}
         columnVisibilityModel={columnVisibilityModel}
         checkboxSelection={multiSelect && !isMobile}
         isRowSelectable={isRowSelectable ? (params) => isRowSelectable(params.row) : undefined}
         onRowSelectionModelChange={(sel) => onSelectionChange?.(sel)}
         onRowClick={isMobile && onDetail ? (params) => onDetail(params.row.id) : undefined}
+        getRowClassName={getRowClassName}
         disableRowSelectionOnClick
         disableColumnMenu
         autoHeight
@@ -204,12 +210,16 @@ export default function DataGridDemo({
           fontSize: '0.875rem',
 
           // ── Headers ────────────────────────────────────────────
+          // El !important es necesario: MUI-X DataGrid pinta el fondo del header con una
+          // capa interna propia (ligada a theme.palette.background.paper) por encima del
+          // background-color que le pasamos acá, "lavando" nuestro color si no se fuerza.
           '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: '#f0f4f7',
-            borderBottom: '1px solid #e3e9ed',
+            backgroundColor: 'var(--color-surface-low) !important',
+            borderBottom: '1px solid var(--color-border-subtle)',
             borderRadius: 0,
           },
           '& .MuiDataGrid-columnHeader': {
+            backgroundColor: 'var(--color-surface-low) !important',
             padding: '0 12px',
             '&:focus, &:focus-within': { outline: 'none' },
           },
@@ -221,23 +231,28 @@ export default function DataGridDemo({
             fontWeight: 700,
             textTransform: 'uppercase',
             letterSpacing: '0.05em',
-            color: '#596064',
+            color: 'var(--color-on-surface-muted)',
           },
           '& .MuiDataGrid-columnSeparator': { display: 'none' },
 
           // ── Filas ──────────────────────────────────────────────
           '& .MuiDataGrid-row': {
             cursor: isMobile && onDetail ? 'pointer' : 'default',
-            '&:hover': { backgroundColor: '#f0f4f7' },
+            '&:hover': { backgroundColor: 'var(--color-surface-low)' },
             '&.Mui-selected': {
               backgroundColor: 'rgba(93,137,200,0.05)',
               '&:hover': { backgroundColor: 'rgba(93,137,200,0.08)' },
             },
           },
+          // Fila resaltada (ej. con cambios sin guardar) — pasar 'row-highlighted' vía getRowClassName.
+          '& .MuiDataGrid-row.row-highlighted': {
+            backgroundColor: 'rgba(93,137,200,0.08)',
+            '&:hover': { backgroundColor: 'rgba(93,137,200,0.14)' },
+          },
           '& .MuiDataGrid-cell': {
             padding: '0 12px',
-            color: '#2c3437',
-            borderBottom: '1px solid #e3e9ed',
+            color: 'var(--color-on-surface)',
+            borderBottom: '1px solid var(--color-border-subtle)',
             '&:focus, &:focus-within': { outline: 'none' },
           },
           '& .MuiDataGrid-cell--textCenter': {
@@ -255,22 +270,22 @@ export default function DataGridDemo({
 
           // ── Paginación ─────────────────────────────────────────
           '& .MuiDataGrid-footerContainer': {
-            borderTop: '1px solid #e3e9ed',
-            backgroundColor: 'rgba(240,244,247,0.1)',
+            borderTop: '1px solid var(--color-border-subtle)',
+            backgroundColor: 'var(--color-surface-low)',
             minHeight: '52px',
           },
           '& .MuiTablePagination-root': {
-            color: '#596064',
+            color: 'var(--color-on-surface-muted)',
             fontSize: '0.6875rem',
           },
           '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
             fontSize: '0.6875rem',
-            color: '#596064',
+            color: 'var(--color-on-surface-muted)',
           },
           '& .MuiIconButton-root': {
-            color: '#596064',
+            color: 'var(--color-on-surface-muted)',
             '&:hover': { backgroundColor: 'rgba(93,137,200,0.08)' },
-            '&.Mui-disabled': { color: '#acb3b7' },
+            '&.Mui-disabled': { color: 'var(--color-border-subtle)' },
           },
         }}
       />

@@ -10,8 +10,8 @@ dayjs.extend(customParseFormat);
 dayjs.extend(utc);
 
 // Tokens del proyecto
-const BG   = '#f0f4f7';
-const TEXT = '#2c3437';
+const BG   = 'var(--color-surface-low)';
+const TEXT = 'var(--color-on-surface)';
 const BLUE = '#4a7bc4';
 const RED  = '#f87171';
 
@@ -29,14 +29,18 @@ const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted upperca
  *   hasError — bool para borde rojo (sin mensaje, ej. desde ClientForm)
  *   width    — ancho del campo (default '100%')
  *   clearable — bool, muestra una "X" para vaciar el campo (default false)
+ *   disabled  — campo bloqueado (no editable): se ve grisado y con cursor "no permitido",
+ *               acorde al tema claro/oscuro
  */
-export default function BasicDatePicker({ label, name, value, onChange, error, hasError, width, clearable = false }) {
+export default function BasicDatePicker({ label, name, value, onChange, error, hasError, width, clearable = false, disabled = false }) {
   const handleDateChange = (newValue) => {
     const formatted = newValue ? dayjs.utc(newValue).format('YYYY-MM-DD') : null;
     onChange(formatted);
   };
 
   const isError = Boolean(error) || Boolean(hasError);
+  const fieldBg = disabled ? 'var(--color-field-locked)' : BG;
+  const fieldText = disabled ? 'var(--color-on-surface-muted)' : TEXT;
 
   return (
     <div className="w-full">
@@ -47,6 +51,7 @@ export default function BasicDatePicker({ label, name, value, onChange, error, h
           value={value ? dayjs(value) : null}
           onChange={handleDateChange}
           format="DD/MM/YYYY"
+          disabled={disabled}
           slotProps={{
             field: {
               clearable,
@@ -61,13 +66,19 @@ export default function BasicDatePicker({ label, name, value, onChange, error, h
                 '& .MuiInputLabel-root': { display: 'none' },
                 '& .MuiInputBase-root': {
                   borderRadius: '8px',
-                  backgroundColor: BG,
-                  border: isError ? `1px solid ${RED}` : '1px solid transparent',
+                  backgroundColor: fieldBg,
+                  border: isError
+                    ? `1px solid ${RED}`
+                    : disabled
+                      ? '1px solid var(--color-field-locked-border)'
+                      : '1px solid transparent',
                   fontSize: '0.875rem',
-                  color: TEXT,
+                  color: fieldText,
+                  cursor: disabled ? 'not-allowed' : 'auto',
                   transition: 'border-color 150ms, box-shadow 150ms',
                   boxShadow: isError ? '0 0 0 2px rgba(248,113,113,0.12)' : 'none',
-                  '&:hover': { backgroundColor: BG },
+                  '&:hover': { backgroundColor: fieldBg },
+                  '&.Mui-disabled': { backgroundColor: fieldBg },
                   '&.Mui-focused': {
                     borderColor: isError ? RED : 'rgba(74,123,196,0.4)',
                     boxShadow: isError
@@ -78,11 +89,12 @@ export default function BasicDatePicker({ label, name, value, onChange, error, h
                 '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                 '& .MuiInputBase-input': {
                   padding: '8px 12px',
-                  color: TEXT,
+                  color: fieldText,
                   fontSize: '0.875rem',
+                  WebkitTextFillColor: disabled ? 'var(--color-on-surface-muted)' : undefined,
                 },
                 '& .MuiInputAdornment-root .MuiIconButton-root': {
-                  color: '#596064',
+                  color: 'var(--color-on-surface-muted)',
                   '&:hover': { color: BLUE },
                 },
                 '& .MuiFormHelperText-root': {

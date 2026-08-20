@@ -8,9 +8,9 @@ import Toast from '../Toast';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import AddIcon from '@mui/icons-material/AddCircleOutline';
 
 /**
  * SimpleCatalog — CRUD inline reutilizable para catálogos de un solo campo.

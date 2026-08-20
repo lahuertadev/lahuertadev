@@ -1,5 +1,5 @@
 import React from 'react';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
 // Mismas reglas que backend/autenticacion/utils.py::validate_password_strength
