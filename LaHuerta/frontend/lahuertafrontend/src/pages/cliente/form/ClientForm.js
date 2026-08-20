@@ -7,13 +7,13 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { clientUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
-import BusinessIcon from '@mui/icons-material/Business';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import PhoneIcon from '@mui/icons-material/Phone';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import BusinessIcon from '@mui/icons-material/BusinessOutlined';
+import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
+import PhoneIcon from '@mui/icons-material/PhoneOutlined';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import AmountInput from '../../../components/AmountInput';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
@@ -67,12 +67,14 @@ const extractFieldErrors = (error) => {
 };
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
-const inputCls = (hasError) =>
-  `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
-    hasError
-      ? 'border-red-400 ring-2 ring-red-100'
-      : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
-  }`;
+const inputCls = (hasError, isLocked = false) =>
+  isLocked
+    ? 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed'
+    : `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
+        hasError
+          ? 'border-red-400 ring-2 ring-red-100'
+          : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+      }`;
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -347,7 +349,7 @@ const ClientForm = () => {
                   setTouched(prev => ({ ...prev, district: false }), false);
                   await loadDistrictsByCityId(selected);
                 }}
-                className={inputCls(touched.city && errors.city)}
+                className={inputCls(touched.city && errors.city, !selectOptions.cities.length)}
                 disabled={!selectOptions.cities.length}
               >
                 <option value="">Seleccionar...</option>
@@ -365,7 +367,7 @@ const ClientForm = () => {
                   const selected = selectOptions.districts.find(o => String(o.value) === e.target.value) || null;
                   setFieldValue('district', selected);
                 }}
-                className={inputCls(touched.district && errors.district)}
+                className={inputCls(touched.district && errors.district, !selectOptions.districts.length)}
                 disabled={!selectOptions.districts.length}
               >
                 <option value="">Seleccionar...</option>
