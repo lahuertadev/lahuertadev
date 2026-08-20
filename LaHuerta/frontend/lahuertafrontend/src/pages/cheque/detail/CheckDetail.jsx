@@ -5,7 +5,7 @@ import { checkUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import ReceiptIcon from '@mui/icons-material/Receipt';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const STATE_CONFIG = {

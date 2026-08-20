@@ -7,10 +7,11 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { ownCheckUrl, bankUrl } from '../../../constants/urls';
 import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import Toast from '../../../components/Toast';
+import CustomInput from '../../../components/Input';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 
@@ -172,14 +173,13 @@ const OwnCheckForm = () => {
           <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
             <div className="flex flex-col gap-1">
               <FieldLabel text="Número" help="Número correlativo del cheque, impreso en la parte superior derecha." required />
-              <input
+              <CustomInput
                 name="numero"
                 type="number"
                 min="1"
                 value={values.numero}
                 onChange={handleChange}
                 placeholder="Nº de cheque"
-                className={inputCls(touched.numero && errors.numero) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
                 disabled={!!id}
               />
               <FieldError error={errors.numero} touched={touched.numero} />

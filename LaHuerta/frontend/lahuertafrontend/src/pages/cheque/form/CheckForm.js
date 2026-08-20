@@ -6,10 +6,11 @@ import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
 import { checkUrl, bankUrl, checkStateUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
+import CustomInput from '../../../components/Input';
 import BasicDatePicker from '../../../components/DatePicker';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -155,18 +156,17 @@ const CheckForm = () => {
           {/* 1. Datos del cheque */}
           <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Número</label>
-              <input
+              <CustomInput
+                label="Número"
                 name="numero"
                 type="number"
                 min="1"
                 value={values.numero}
                 onChange={handleChange}
                 placeholder="Nº de cheque"
-                className={inputCls(touched.numero && errors.numero) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
                 disabled={!!id}
+                helperText={touched.numero ? errors.numero : ''}
               />
-              <FieldError error={errors.numero} touched={touched.numero} />
             </div>
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Banco</label>

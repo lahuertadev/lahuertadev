@@ -11,10 +11,10 @@ import Toast from '../../../components/Toast';
 import Tooltip from '@mui/material/Tooltip';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import EditIcon from '@mui/icons-material/Edit';
+import EditIcon from '@mui/icons-material/EditOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const STATE_CONFIG = {
