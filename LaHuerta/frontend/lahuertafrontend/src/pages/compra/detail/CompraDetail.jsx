@@ -7,11 +7,11 @@ import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
-import BusinessIcon from '@mui/icons-material/Business';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import BusinessIcon from '@mui/icons-material/BusinessOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCartOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const PAYMENT_STATUS_CONFIG = {
