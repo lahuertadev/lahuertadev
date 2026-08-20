@@ -315,7 +315,7 @@
 
   /* Placeholder invisible en tfoot: reserva el espacio del footer en cada hoja */
   .price-list-print-footer-placeholder {
-    height: 20mm !important;
+    height: 15mm !important;
     visibility: hidden !important;
     display: block !important;
   }
