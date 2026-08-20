@@ -5,11 +5,11 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { supplierUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import AlertDialog from '../../../components/DialogAlert';
-import BusinessIcon from '@mui/icons-material/Business';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import BusinessIcon from '@mui/icons-material/BusinessOutlined';
+import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';

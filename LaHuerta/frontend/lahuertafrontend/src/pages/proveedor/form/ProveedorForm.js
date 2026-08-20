@@ -10,6 +10,13 @@ import IconLabelButtons from '../../../components/Button';
 import { loadOptions } from '../../../utils/selectOptions';
 import { supplierUrl, marketUrl } from '../../../constants/urls';
 
+const formatTelefono = (raw = '') => {
+  const digits = (raw || '').replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+};
+
 const ProveedorForm = () => {
   const [markets, setMarkets] = useState([]);
   const [initialValues, setInitialValues] = useState({
@@ -98,12 +105,12 @@ const ProveedorForm = () => {
       onSubmit={handleSubmit}
     >
       {({ values, errors, touched, handleChange, setFieldValue }) => (
-        <div className="min-h-screen flex items-center justify-center bg-transparent flex-1">
-          <Form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl space-y-8">
+        <div className="w-full max-w-3xl mx-auto">
+          <Form className="bg-surface-card p-8 rounded-lg shadow-sm border border-border-subtle w-full space-y-8">
 
             {/* Datos del proveedor */}
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Datos del proveedor</h3>
+              <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">Datos del proveedor</h3>
               <div className="grid grid-cols-3 gap-4">
                 <Field
                   as={CustomInput}
@@ -120,20 +127,25 @@ const ProveedorForm = () => {
                   className="col-span-2"
                   onChange={handleChange}
                 />
-                <Field
-                  as={CustomInput}
+                <CustomInput
                   label="Teléfono"
                   name="telefono"
+                  type="tel"
                   required
                   className="col-span-3"
-                  onChange={handleChange}
+                  value={formatTelefono(values.telefono)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setFieldValue('telefono', raw);
+                  }}
+                  placeholder="11-XXXX-XXXX"
                 />
               </div>
             </div>
 
             {/* Ubicación */}
             <div className="space-y-4">
-              <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Ubicación</h3>
+              <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">Ubicación</h3>
               <div className="grid grid-cols-3 gap-4">
                 <BasicSelect
                   label="Mercado"
