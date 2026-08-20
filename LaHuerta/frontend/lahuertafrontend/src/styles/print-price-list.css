@@ -72,6 +72,28 @@
     display: none !important;
   }
 
+  /* App.css tiene un reset global de impresión que aplica "padding: 10mm 8mm !important" a
+     cualquier ".container" o "<main>" (incluyendo el spacer vacío del Drawer en Header/index.js,
+     que también es un <main>). Eso agregaba un bloque de espacio en blanco arriba de todo,
+     antes de la barra superior. Mismo criterio que ya usa print-reports.css. */
+  main {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  /* Header/index.js (el drawer del sitio) tiene un <main> propio, vacío, que solo existe para
+     reservar el alto de la toolbar en pantalla (no tiene contenido real, ese vive en el otro
+     <main> de App.js). No se toca el componente porque afecta a todo el sitio en pantalla, pero
+     en impresión no cumple ningún propósito: solo se lo distingue del <main> real por no tener
+     su clase, y se oculta. */
+  main:not(.flex-grow) {
+    display: none !important;
+  }
+
+  .price-list-detail-page {
+    padding-top: 0 !important;
+  }
+
   /* Encabezado de impresión - el espacio de arriba ya lo da el margin-bottom de la barra
      superior (.price-list-print-header-top), que se repite en cada hoja; acá no hace falta
      padding-top extra o se duplica el espacio en la primera página. */
@@ -311,5 +333,13 @@
     border-top: 1px solid #999 !important;
     background: #fff !important;
     z-index: 100 !important;
+  }
+
+  /* El texto del footer usa el color por defecto del theme de MUI (Typography variant="caption"),
+     que en dark mode resuelve a un gris claro casi invisible sobre el fondo blanco de la hoja.
+     Se fuerza tinta oscura, igual que el resto del contenido impreso. */
+  .price-list-print-footer,
+  .price-list-print-footer * {
+    color: #1f2937 !important;
   }
 }

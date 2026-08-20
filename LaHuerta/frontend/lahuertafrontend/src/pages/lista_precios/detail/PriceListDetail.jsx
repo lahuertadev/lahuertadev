@@ -128,7 +128,7 @@ const PriceListDetail = () => {
   }
 
   return (
-    <div className="container mx-auto h-full flex flex-col rounded p-4">
+    <div className="container mx-auto h-full flex flex-col rounded p-4 price-list-detail-page">
       <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
 
         {isMobile && (
