@@ -4,10 +4,10 @@ import * as Yup from 'yup';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Avatar from '@mui/material/Avatar';
-import BadgeIcon from '@mui/icons-material/Badge';
-import PersonIcon from '@mui/icons-material/Person';
-import LockIcon from '@mui/icons-material/Lock';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import BadgeIcon from '@mui/icons-material/BadgeOutlined';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import LockIcon from '@mui/icons-material/LockOutlined';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCameraOutlined';
 import CustomInput from '../../components/Input';
 import Button from '../../components/Button';
 import Toast from '../../components/Toast';
@@ -69,7 +69,7 @@ const SectionCard = ({ icon, title, children, cols = 2 }) => (
 const ReadOnlyField = ({ label, value }) => (
   <div className="flex flex-col gap-1">
     <label className={labelCls}>{label}</label>
-    <p className="w-full bg-surface-low px-3 py-2.5 rounded-lg border border-border-subtle text-sm text-on-surface-muted cursor-not-allowed">
+    <p className="w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed">
       {value || '—'}
     </p>
   </div>
