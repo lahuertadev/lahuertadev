@@ -206,7 +206,7 @@ const PriceListDetail = () => {
               readOnly
               label="Cantidad de Productos"
               name="cantidadProductos"
-              value={String(products.length)}
+              value={String(new Set(products.map((p) => p.producto.id)).size)}
               onChange={() => {}}
             />
           </Box>
