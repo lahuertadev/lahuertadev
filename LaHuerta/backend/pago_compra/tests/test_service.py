@@ -26,7 +26,7 @@ class FakePurchasePaymentRepo(IPurchasePaymentRepository):
     def get_by_id(self, id):
         return self._items.get(int(id))
 
-    def create(self, compra, importe_abonado, tipo_pago, fecha_pago):
+    def create(self, compra, importe_abonado, tipo_pago, fecha_pago, cheque_propio=None):
         payment = Mock()
         payment.id = self._next_id
         self._next_id += 1
@@ -34,6 +34,7 @@ class FakePurchasePaymentRepo(IPurchasePaymentRepository):
         payment.importe_abonado = importe_abonado
         payment.tipo_pago = tipo_pago
         payment.fecha_pago = fecha_pago
+        payment.cheque_propio = cheque_propio
         payment.cheque_set = Mock()
         payment.cheque_set.first = Mock(return_value=None)
         self._items[payment.id] = payment
