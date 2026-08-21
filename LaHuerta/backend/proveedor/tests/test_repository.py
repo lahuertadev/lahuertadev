@@ -12,14 +12,14 @@ class TestSupplierRepository:
         self.repository = SupplierRepository()
         self.mercado = Mercado.objects.create(descripcion='Belgrano')
 
-    def _make_supplier(self, nombre='Prov1', puesto=1, nave=None, telefono='1234567', nombre_fantasia='Fantasia'):
+    def _make_supplier(self, nombre='Prov1', puesto=1, nave=None, telefono='1234567', nombre_fantasia='Fantasia', cuenta_corriente=Decimal('0.00')):
         return Proveedor.objects.create(
             nombre=nombre,
             puesto=puesto,
             nave=nave,
             telefono=telefono,
             nombre_fantasia=nombre_fantasia,
-            cuenta_corriente=0,
+            cuenta_corriente=cuenta_corriente,
             mercado=self.mercado,
         )
 
@@ -109,19 +109,32 @@ class TestSupplierRepository:
         assert result.nombre == 'Nuevo'
         assert Proveedor.objects.count() == 1
 
-    def test_create_supplier_cuenta_corriente_siempre_cero(self):
+    def test_create_supplier_con_saldo_inicial(self):
         data = {
             'nombre': 'Nuevo',
             'puesto': 5,
             'telefono': '9999999',
             'nombre_fantasia': 'NF',
             'mercado': self.mercado,
-            'cuenta_corriente': 9999,
+            'cuenta_corriente': Decimal('9999.00'),
         }
 
         result = self.repository.create_supplier(data)
 
-        assert result.cuenta_corriente == 0
+        assert result.cuenta_corriente == Decimal('9999.00')
+
+    def test_create_supplier_sin_cuenta_corriente_default_cero(self):
+        data = {
+            'nombre': 'Nuevo',
+            'puesto': 5,
+            'telefono': '9999999',
+            'nombre_fantasia': 'NF',
+            'mercado': self.mercado,
+        }
+
+        result = self.repository.create_supplier(data)
+
+        assert result.cuenta_corriente == Decimal('0.00')
 
     # ------------------------- MODIFY --------------------------
     def test_modify_supplier_ok(self):
@@ -140,20 +153,21 @@ class TestSupplierRepository:
         assert supplier.nombre == 'Modificado'
         assert supplier.puesto == 3
 
-    def test_modify_supplier_ignora_cuenta_corriente(self):
-        supplier = self._make_supplier()
+    def test_modify_supplier_actualiza_cuenta_corriente(self):
+        supplier = self._make_supplier(cuenta_corriente=Decimal('0.00'))
 
-        self.repository.modify_supplier(supplier, {
-            'nombre': 'Prov1',
-            'puesto': 1,
-            'telefono': '1234567',
-            'nombre_fantasia': 'Fantasia',
-            'mercado': self.mercado,
-            'cuenta_corriente': 9999,
-        })
+        self.repository.modify_supplier(supplier, {'cuenta_corriente': Decimal('9999.00')})
 
         supplier.refresh_from_db()
-        assert supplier.cuenta_corriente == 0
+        assert supplier.cuenta_corriente == Decimal('9999.00')
+
+    def test_modify_supplier_acepta_saldo_negativo(self):
+        supplier = self._make_supplier(cuenta_corriente=Decimal('0.00'))
+
+        self.repository.modify_supplier(supplier, {'cuenta_corriente': Decimal('-5000.00')})
+
+        supplier.refresh_from_db()
+        assert supplier.cuenta_corriente == Decimal('-5000.00')
 
     # ------------------------- DELETE --------------------------
     def test_delete_supplier_ok(self):

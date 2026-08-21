@@ -6,9 +6,11 @@ import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
 import { supplierUrl, marketUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
+import AmountInput from '../../../components/AmountInput';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
 import PhoneIcon from '@mui/icons-material/PhoneOutlined';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -26,6 +28,7 @@ const BACKEND_TO_FORM_FIELD = {
   puesto: 'puesto',
   nave: 'nave',
   telefono: 'telefono',
+  cuenta_corriente: 'checkingAccount',
 };
 
 const extractErrorMessage = (error) => {
@@ -90,6 +93,7 @@ const ProveedorForm = () => {
     puesto: '',
     nave: '',
     telefono: '',
+    checkingAccount: '',
   });
 
   const { id } = useParams();
@@ -115,6 +119,7 @@ const ProveedorForm = () => {
         puesto: data.puesto,
         nave: data.nave,
         telefono: data.telefono,
+        checkingAccount: data.cuenta_corriente,
       });
     } catch (error) {
       console.error('Error al cargar el proveedor para la edición: ', error);
@@ -136,6 +141,7 @@ const ProveedorForm = () => {
     puesto: values.puesto,
     nave: values.nave === '' ? null : values.nave,
     telefono: values.telefono,
+    cuenta_corriente: values.checkingAccount !== '' ? values.checkingAccount : '0',
   });
 
   const handleSubmit = async (values, { setFieldError, setFieldTouched }) => {
@@ -276,6 +282,21 @@ const ProveedorForm = () => {
                 className={inputCls(touched.telefono && errors.telefono)}
               />
               <FieldError error={errors.telefono} touched={touched.telefono} />
+            </div>
+          </SectionCard>
+
+          {/* 4. Cuenta Corriente */}
+          <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente" cols={2}>
+            <div className="flex flex-col gap-1">
+              <label className={labelCls}>Saldo inicial</label>
+              <AmountInput
+                name="checkingAccount"
+                value={values.checkingAccount}
+                onChange={(raw) => setFieldValue('checkingAccount', raw)}
+                hasError={touched.checkingAccount && Boolean(errors.checkingAccount)}
+                allowNegative
+              />
+              <p className="mt-1 text-xs text-on-surface-muted">Positivo: La Huerta le debe a este proveedor. Negativo: tenés saldo a favor con este proveedor.</p>
             </div>
           </SectionCard>
 

@@ -11,10 +11,20 @@ class SupplierCreateSerializer(serializers.ModelSerializer):
     '''
     mercado = serializers.PrimaryKeyRelatedField(queryset=Mercado.objects.all())
     nave = serializers.IntegerField(required=False, allow_null=True)
+    cuenta_corriente = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        error_messages={
+            'invalid': 'Ingresá un número válido.',
+            'max_digits': 'El número es demasiado grande.',
+            'max_decimal_places': 'Máximo 2 decimales permitidos.',
+        }
+    )
 
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre', 'puesto', 'nave', 'telefono', 'nombre_fantasia', 'mercado']
+        fields = ['id', 'nombre', 'puesto', 'nave', 'telefono', 'cuenta_corriente', 'nombre_fantasia', 'mercado']
 
     def validate_nombre(self, value):
         if Proveedor.objects.filter(nombre=value).exists():
@@ -28,10 +38,20 @@ class SupplierUpdateSerializer(serializers.ModelSerializer):
     '''
     mercado = serializers.PrimaryKeyRelatedField(queryset=Mercado.objects.all())
     nave = serializers.IntegerField(required=False, allow_null=True)
+    cuenta_corriente = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        error_messages={
+            'invalid': 'Ingresá un número válido.',
+            'max_digits': 'El número es demasiado grande.',
+            'max_decimal_places': 'Máximo 2 decimales permitidos.',
+        }
+    )
 
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre', 'puesto', 'nave', 'telefono', 'nombre_fantasia', 'mercado']
+        fields = ['id', 'nombre', 'puesto', 'nave', 'telefono', 'cuenta_corriente', 'nombre_fantasia', 'mercado']
 
     def validate_nombre(self, value):
         instance = self.instance

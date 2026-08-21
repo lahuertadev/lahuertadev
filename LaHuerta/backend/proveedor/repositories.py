@@ -24,15 +24,11 @@ class SupplierRepository(ISupplierRepository):
 
     def create_supplier(self, data):
         supplier = Proveedor(**data)
-        supplier.cuenta_corriente = 0
         supplier.save()
         return supplier
 
     def modify_supplier(self, supplier, data):
-        safe_data = data.copy()
-        safe_data.pop('cuenta_corriente', None)
-
-        for key, value in safe_data.items():
+        for key, value in data.items():
             setattr(supplier, key, value)
 
         supplier.save()
