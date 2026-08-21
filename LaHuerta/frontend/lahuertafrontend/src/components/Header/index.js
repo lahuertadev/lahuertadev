@@ -198,7 +198,9 @@ export default function MiniDrawer({title, menuOptions}) {
 
   const handleNavigate = (path) => {
     if (!path) return;
-    if (!pinned) handleDrawerClose();
+    // En mobile el menú siempre se cierra al navegar, sin importar el ancla: no tiene
+    // sentido dejarlo fijo abierto tapando la pantalla en una vista chica.
+    if (isMobile || !pinned) handleDrawerClose();
     navigate(path);
   };
 
@@ -250,13 +252,16 @@ export default function MiniDrawer({title, menuOptions}) {
   const drawerMenuContent = (
     <>
       <DrawerHeader>
-        <IconButton
-          onClick={handleTogglePin}
-          aria-label={pinned ? 'Desanclar menú' : 'Anclar menú'}
-          sx={{ color: pinned ? BLUE : 'var(--color-on-surface-muted)' }}
-        >
-          {pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
-        </IconButton>
+        {/* Anclar el menú no aplica en mobile: ahí siempre se cierra al elegir una opción. */}
+        {!isMobile && (
+          <IconButton
+            onClick={handleTogglePin}
+            aria-label={pinned ? 'Desanclar menú' : 'Anclar menú'}
+            sx={{ color: pinned ? BLUE : 'var(--color-on-surface-muted)' }}
+          >
+            {pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+          </IconButton>
+        )}
         <IconButton onClick={handleDrawerClose} sx={{ color: 'var(--color-on-surface-muted)' }}>
           {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
