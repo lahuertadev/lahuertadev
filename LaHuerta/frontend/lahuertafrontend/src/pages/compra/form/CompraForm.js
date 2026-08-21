@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -391,6 +390,11 @@ const CompraForm = () => {
     }
   };
 
+  // El botón Confirmar queda habilitado recién cuando el formulario está completo:
+  // proveedor + fecha cargados y al menos un producto con cantidad y precio válidos.
+  // Los vacíos son opcionales, así que no forman parte de esta validación.
+  const isFormComplete = Object.keys(validate()).length === 0;
+
   // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="container mx-auto py-6 px-4 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-5xl">
@@ -425,26 +429,22 @@ const CompraForm = () => {
       {/* Fila 1: Proveedor + Fecha */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="md:col-span-2">
-          <label className="block text-sm font-semibold text-on-surface mb-1">Proveedor *</label>
-          <Autocomplete
-            options={suppliers}
-            value={selectedSupplier}
-            onChange={(_, value) => setSelectedSupplier(value)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="Buscar proveedor..."
-                error={Boolean(errors.supplier)}
-                helperText={errors.supplier}
-                sx={autocompleteSx(Boolean(errors.supplier))}
-              />
-            )}
+          <BasicSelect
+            label="Proveedor *"
+            name="supplier"
+            value={selectedSupplier ? { name: selectedSupplier.nombre, value: selectedSupplier.id } : null}
+            options={suppliers.map((s) => ({ name: s.nombre, value: s.id }))}
+            onChange={(e) => {
+              const supplierId = e.target.value?.value;
+              setSelectedSupplier(suppliers.find((s) => s.id === supplierId) || null);
+            }}
+            error={errors.supplier}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-on-surface mb-1">Fecha *</label>
           <BasicDatePicker
+            label="Fecha *"
             name="fecha"
             value={fecha}
             onChange={(date) => setFecha(date)}
@@ -555,21 +555,15 @@ const CompraForm = () => {
                   </td>
 
                   {/* Producto */}
-                  <td className="border border-border-subtle px-2 py-1 align-middle">
-                    <Autocomplete
-                      options={getAvailableProducts(index)}
-                      value={item.producto}
-                      onChange={(_, value) => handleProductSelect(index, value)}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder="Escribir producto..."
-                          sx={{
-                            ...autocompleteSx(false),
-                            minWidth: 200,
-                          }}
-                        />
-                      )}
+                  <td className="border border-border-subtle px-2 py-1 align-middle" style={{ minWidth: 200 }}>
+                    <BasicSelect
+                      name={`producto_${index}`}
+                      value={item.producto ? { name: item.producto.descripcion, value: item.producto.id } : null}
+                      options={getAvailableProducts(index).map((p) => ({ name: p.descripcion, value: p.id }))}
+                      onChange={(e) => {
+                        const productId = e.target.value?.value;
+                        handleProductSelect(index, products.find((p) => p.id === productId) || null);
+                      }}
                     />
                   </td>
 
@@ -598,6 +592,7 @@ const CompraForm = () => {
                       }
                       options={saleTypes.map((st) => ({ name: st.descripcion, value: st.id }))}
                       onChange={(e) => updateItem(index, 'tipo_venta', e.target.value?.value ?? null)}
+                      placeholder="Opciones"
                     />
                   </td>
 
@@ -766,19 +761,19 @@ const CompraForm = () => {
 
       {/* Acciones */}
       <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-border-subtle">
-        <Button
-          variant="outlined"
+        <button
+          type="button"
           onClick={() => navigate('/buy')}
-          sx={{ textTransform: 'none', fontWeight: 700, px: 4, py: 1.25 }}
+          className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
         >
           Cancelar
-        </Button>
+        </button>
 
         <IconLabelButtons
           label={saving ? 'Guardando…' : 'Confirmar'}
           variant="contained"
           size="large"
-          disabled={saving}
+          disabled={saving || !isFormComplete}
           onClick={handleSave}
         />
       </div>

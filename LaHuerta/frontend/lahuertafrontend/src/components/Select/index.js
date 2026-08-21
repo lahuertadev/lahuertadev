@@ -24,8 +24,10 @@ const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted upperca
  *   error      — alias para helperText
  *   disabled   — campo bloqueado (no editable): se ve grisado y con cursor "no permitido",
  *                acorde al tema claro/oscuro
+ *   placeholder — texto de la opción vacía (default: 'Seleccionar...'). Usar uno más corto
+ *                 en selects angostos (ej. dentro de una columna de tabla) para que no se corte.
  */
-export default function BasicSelect({ label, name, value, options = [], onChange, helperText, error, disabled = false }) {
+export default function BasicSelect({ label, name, value, options = [], onChange, helperText, error, disabled = false, placeholder = 'Seleccionar...' }) {
   const isError = Boolean(error) || Boolean(helperText);
 
   const handleChange = (e) => {
@@ -45,7 +47,7 @@ export default function BasicSelect({ label, name, value, options = [], onChange
         disabled={disabled}
         className={selectCls(isError, disabled)}
       >
-        <option value="">Seleccionar...</option>
+        <option value="">{placeholder}</option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.name}
