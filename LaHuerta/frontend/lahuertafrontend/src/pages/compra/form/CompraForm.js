@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -64,10 +65,14 @@ const EMPTY_VACIO = {
   precio_unitario: '',
 };
 
+// Label chico en mayúsculas, mismo patrón que ya usan CustomInput/BasicSelect en el resto del sitio.
+const mobileLabelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1';
+
 const CompraForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -405,19 +410,20 @@ const CompraForm = () => {
       />
 
       {/* Encabezado */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/buy')}
           color="primary"
           variant="outlined"
+          sx={{ alignSelf: 'flex-start' }}
         >
           Volver
         </Button>
-        <h1 className="text-2xl font-bold text-on-surface">
+        <h1 className="text-xl sm:text-2xl font-bold text-on-surface sm:flex-1 sm:text-center">
           {isEdit ? `Editar Compra #${String(id).padStart(8, '0')}` : 'Nueva Compra'}
         </h1>
-        <div className="w-20" />
+        <div className="hidden sm:block w-20" />
       </div>
 
       <hr className="border-border-subtle mb-6" />
@@ -534,6 +540,79 @@ const CompraForm = () => {
           </button>
         </div>
 
+        {isMobile ? (
+          <div className="space-y-3">
+            {items.map((item, index) => (
+              <div key={index} className="border border-border-subtle rounded-lg p-3 bg-surface-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={mobileLabelCls}>Producto {index + 1}</span>
+                  {items.length > 1 && (
+                    <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </div>
+
+                <BasicSelect
+                  label="Producto"
+                  name={`producto_${index}`}
+                  value={item.producto ? { name: item.producto.descripcion, value: item.producto.id } : null}
+                  options={getAvailableProducts(index).map((p) => ({ name: p.descripcion, value: p.id }))}
+                  onChange={(e) => {
+                    const productId = e.target.value?.value;
+                    handleProductSelect(index, products.find((p) => p.id === productId) || null);
+                  }}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={mobileLabelCls}>Cantidad</label>
+                    <TextField
+                      type="number"
+                      size="small"
+                      fullWidth
+                      inputProps={{ min: 0, step: 0.01 }}
+                      value={item.cantidad_producto}
+                      onChange={(e) => updateItem(index, 'cantidad_producto', e.target.value)}
+                      error={Boolean(errors[`item_${index}_cantidad`])}
+                    />
+                  </div>
+                  <BasicSelect
+                    label="Tipo venta"
+                    name={`tipo_venta_${index}`}
+                    value={
+                      item.tipo_venta
+                        ? { name: saleTypes.find((st) => st.id === item.tipo_venta)?.descripcion, value: item.tipo_venta }
+                        : null
+                    }
+                    options={saleTypes.map((st) => ({ name: st.descripcion, value: st.id }))}
+                    onChange={(e) => updateItem(index, 'tipo_venta', e.target.value?.value ?? null)}
+                    placeholder="Opciones"
+                  />
+                </div>
+
+                <div>
+                  <label className={mobileLabelCls}>Precio</label>
+                  <AmountInput
+                    name={`precio_${index}`}
+                    value={item.precio}
+                    onChange={(raw) => updateItem(index, 'precio', raw)}
+                    hasError={Boolean(errors[`item_${index}_precio`])}
+                  />
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t border-border-subtle">
+                  <span className={mobileLabelCls + ' mb-0'}>Subtotal</span>
+                  <span className="font-semibold text-on-surface">
+                    {item.producto && parseFloat(item.precio) > 0
+                      ? formatCurrency(calculateItemSubtotal(item))
+                      : '—'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
@@ -598,15 +677,11 @@ const CompraForm = () => {
 
                   {/* Precio */}
                   <td className="border border-border-subtle px-2 py-1">
-                    <TextField
-                      type="number"
-                      size="small"
-                      fullWidth
-                      inputProps={{ min: 0, step: 0.01 }}
+                    <AmountInput
+                      name={`precio_${index}`}
                       value={item.precio}
-                      onChange={(e) => updateItem(index, 'precio', e.target.value)}
-                      error={Boolean(errors[`item_${index}_precio`])}
-                      sx={{ '& input': { textAlign: 'right' } }}
+                      onChange={(raw) => updateItem(index, 'precio', raw)}
+                      hasError={Boolean(errors[`item_${index}_precio`])}
                     />
                   </td>
 
@@ -630,6 +705,7 @@ const CompraForm = () => {
             </tbody>
           </table>
         </div>
+        )}
 
         {(errors.items_empty || errors.items_duplicated) && (
           <div className="mt-2">
@@ -673,6 +749,56 @@ const CompraForm = () => {
 
         {vacios.length === 0 ? (
           <p className="text-sm text-on-surface-muted">Sin vacíos registrados.</p>
+        ) : isMobile ? (
+          <div className="space-y-3">
+            {vacios.map((vacio, index) => (
+              <div key={index} className="border border-border-subtle rounded-lg p-3 bg-surface-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={mobileLabelCls}>Vacío {index + 1}</span>
+                  <IconButton size="small" onClick={() => removeVacio(index)} color="error">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </div>
+
+                <BasicSelect
+                  label="Tipo"
+                  name={`vacio_tipo_${index}`}
+                  value={
+                    vacio.tipo_contenedor
+                      ? {
+                          name: containerTypes.find((ct) => ct.id === vacio.tipo_contenedor)?.descripcion,
+                          value: vacio.tipo_contenedor,
+                        }
+                      : null
+                  }
+                  options={getAvailableContainerTypes(index).map((ct) => ({ name: ct.descripcion, value: ct.id }))}
+                  onChange={(e) => updateVacio(index, 'tipo_contenedor', e.target.value?.value ?? null)}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={mobileLabelCls}>Cantidad</label>
+                    <TextField
+                      type="number"
+                      size="small"
+                      fullWidth
+                      inputProps={{ min: 0, step: 1 }}
+                      value={vacio.cantidad}
+                      onChange={(e) => updateVacio(index, 'cantidad', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={mobileLabelCls}>Precio seña</label>
+                    <AmountInput
+                      name={`vacio_precio_${index}`}
+                      value={vacio.precio_unitario}
+                      onChange={(raw) => updateVacio(index, 'precio_unitario', raw)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
@@ -760,11 +886,11 @@ const CompraForm = () => {
       />
 
       {/* Acciones */}
-      <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-border-subtle">
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-center gap-3 sm:gap-4 mt-6 pt-4 border-t border-border-subtle">
         <button
           type="button"
           onClick={() => navigate('/buy')}
-          className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
+          className="w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
         >
           Cancelar
         </button>
@@ -775,6 +901,7 @@ const CompraForm = () => {
           size="large"
           disabled={saving || !isFormComplete}
           onClick={handleSave}
+          sx={{ width: { xs: '100%', sm: 'auto' } }}
         />
       </div>
     </div>
