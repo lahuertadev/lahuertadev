@@ -42,7 +42,7 @@ export default function AlertDialog({
         </div>
 
         {/* Message */}
-        <div className="text-sm text-on-surface-muted leading-relaxed pl-[52px]">
+        <div className="text-sm text-on-surface leading-relaxed pl-[52px]">
           {message}
         </div>
 
