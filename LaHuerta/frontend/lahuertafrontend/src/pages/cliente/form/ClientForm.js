@@ -493,7 +493,7 @@ const ClientForm = () => {
             <button
               type="button"
               onClick={() => navigate('/client')}
-              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
             >
               Cancelar
             </button>
