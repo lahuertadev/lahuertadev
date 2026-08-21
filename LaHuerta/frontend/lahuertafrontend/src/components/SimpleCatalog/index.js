@@ -204,7 +204,7 @@ const SimpleCatalog = ({
                         <button
                           type="button"
                           onClick={() => handleCancel(resetForm)}
-                          className="flex-1 h-11 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:bg-surface-low transition-all"
+                          className="flex-1 h-11 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                         >
                           Cancelar
                         </button>
@@ -244,7 +244,7 @@ const SimpleCatalog = ({
                         <button
                           type="button"
                           onClick={() => handleCancel(resetForm)}
-                          className="h-10 px-5 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:bg-surface-low transition-all"
+                          className="h-10 px-5 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                         >
                           Cancelar
                         </button>
