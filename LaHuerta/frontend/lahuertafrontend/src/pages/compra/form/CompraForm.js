@@ -458,27 +458,27 @@ const CompraForm = () => {
       {selectedSupplier && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1">Mercado</label>
             <CustomInput
               readOnly
+              label="Mercado"
               name="supplierMercado"
               value={selectedSupplier.mercado?.descripcion || ''}
               onChange={() => {}}
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1">Puesto</label>
             <CustomInput
               readOnly
+              label="Puesto"
               name="supplierPuesto"
               value={selectedSupplier.puesto || ''}
               onChange={() => {}}
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1">Contacto</label>
             <CustomInput
               readOnly
+              label="Contacto"
               name="supplierContacto"
               value={formatTelefono(selectedSupplier.telefono)}
               onChange={() => {}}
