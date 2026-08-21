@@ -29,6 +29,9 @@ class PricesListCreateSerializer(serializers.ModelSerializer):
             "nombre",
             "descripcion",
         ]
+        extra_kwargs = {
+            "descripcion": {"required": False, "allow_blank": True},
+        }
 
 
 class PricesListPutSerializer(serializers.ModelSerializer):
