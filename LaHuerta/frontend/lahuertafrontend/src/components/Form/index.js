@@ -5,6 +5,7 @@ import DatePicker from '../DatePicker';
 import BasicSelect from '../Select';
 import Button from '../Button';
 import CheckboxLabels from '../Checkbox';
+import AmountInput from '../AmountInput';
 import Toast from '../Toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../../styles/forms.css';
@@ -120,6 +121,23 @@ const GenericForm = ({
                         regex={validation?.regex}
                         regexErrorText={validation?.errorMessage}
                       />
+                    ) : type === 'amount' ? (
+                      <div className="w-full">
+                        {label && (
+                          <label className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5">
+                            {label}
+                          </label>
+                        )}
+                        <AmountInput
+                          name={name}
+                          value={values[name]}
+                          onChange={(raw) => setFieldValue(name, raw)}
+                          hasError={touched[name] && Boolean(errors[name])}
+                        />
+                        {touched[name] && errors[name] && (
+                          <p className="mt-1 text-xs text-red-500">{errors[name]}</p>
+                        )}
+                      </div>
                     ) : type === 'select' ? (
                       <BasicSelect
                         name={name}

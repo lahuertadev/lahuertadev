@@ -68,7 +68,7 @@ const ExpenseForm = () => {
 
   //* Configuración de los campos del formulario
   const fields = [
-    { name: 'amount', label: 'Importe', type: 'number', required: true},
+    { name: 'amount', label: 'Importe', type: 'amount', required: true},
     { name: 'date', label: 'Fecha', type: 'date',required: true},
     { name: 'expenseType', label: 'Tipo de gasto', type: 'select', required: true},
   ];
