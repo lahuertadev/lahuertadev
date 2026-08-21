@@ -22,6 +22,8 @@ import PersonIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -155,6 +157,7 @@ export default function MiniDrawer({title, menuOptions}) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
   const [open, setOpen] = React.useState(false);
+  const [pinned, setPinned] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const csrfToken = useCsrfToken();
   const navigate = useNavigate();
@@ -180,11 +183,22 @@ export default function MiniDrawer({title, menuOptions}) {
 
   const handleDrawerClose = () => {
     setOpen(false);
+    setPinned(false);
+  };
+
+  // Al anclar, el menú queda abierto y no se cierra al navegar entre pantallas.
+  // Al desanclar, vuelve al comportamiento normal (se abre/cierra manualmente).
+  const handleTogglePin = () => {
+    setPinned((prev) => {
+      const next = !prev;
+      if (next) setOpen(true);
+      return next;
+    });
   };
 
   const handleNavigate = (path) => {
     if (!path) return;
-    handleDrawerClose();
+    if (!pinned) handleDrawerClose();
     navigate(path);
   };
 
@@ -236,6 +250,13 @@ export default function MiniDrawer({title, menuOptions}) {
   const drawerMenuContent = (
     <>
       <DrawerHeader>
+        <IconButton
+          onClick={handleTogglePin}
+          aria-label={pinned ? 'Desanclar menú' : 'Anclar menú'}
+          sx={{ color: pinned ? BLUE : 'var(--color-on-surface-muted)' }}
+        >
+          {pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+        </IconButton>
         <IconButton onClick={handleDrawerClose} sx={{ color: 'var(--color-on-surface-muted)' }}>
           {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
