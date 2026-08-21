@@ -98,6 +98,7 @@ const GenericForm = ({
             className="custom-form"
             style={{
               width: isMobile ? '90%' : getFormWidth(),
+              minWidth: isMobile ? undefined : '380px',
               maxWidth: '100%',
               margin: '0 auto',
             }}
@@ -152,6 +153,13 @@ const GenericForm = ({
               })}
             </Grid>
             <div className="custom-button">
+              <button
+                type="button"
+                onClick={() => navigate(urls.list)}
+                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+              >
+                Cancelar
+              </button>
               <Button
                 label="Enviar"
                 color="primary"
@@ -159,6 +167,12 @@ const GenericForm = ({
                 size="large"
                 type="submit"
                 disabled={!isValid || !dirty}
+                sx={{
+                  '&.Mui-disabled': {
+                    backgroundColor: 'var(--color-field-locked)',
+                    color: 'var(--color-on-surface-muted)',
+                  },
+                }}
               />
             </div>
           </Form>
