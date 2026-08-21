@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { clientUrl } from '../../../constants/urls';
+import { getActiveBadgeStyle } from '../../../constants/statusBadge';
 import { formatCuit } from '../../../utils/cuit';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
@@ -156,7 +157,7 @@ const ClientDetail = () => {
       <SectionCard icon={<VerifiedUserIcon sx={{ fontSize: 20 }} />} title="Estado" cols={2}>
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Estado del cliente</span>
-          <span className={`inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${client.estado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+          <span style={{ ...getActiveBadgeStyle(client.estado), display: 'inline-flex', width: 'fit-content' }}>
             {client.estado ? 'Activo' : 'Inactivo'}
           </span>
         </div>
