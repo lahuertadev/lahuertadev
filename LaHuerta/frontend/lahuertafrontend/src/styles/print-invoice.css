@@ -1,6 +1,5 @@
 /* ── Reset & base ── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background: #fff; }
 
 /* ── Acciones (no se imprimen) ── */
 .invoice-actions {
@@ -32,7 +31,9 @@ body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background:
   flex-direction: column;
   align-items: center;
   padding: 24px 16px;
-  background: #e5e7eb;
+  background: var(--color-surface);
+  font-family: Arial, sans-serif;
+  font-size: 11px;
 }
 
 /* ── Comprobante ── */
