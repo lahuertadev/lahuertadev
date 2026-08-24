@@ -160,11 +160,11 @@ const OwnCheckForm = () => {
 
           {/* Breadcrumbs */}
           <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
             <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
             <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
             <span className="text-xs">›</span>
             <span className="text-on-surface font-semibold">{id ? 'Editar cheque' : 'Nuevo cheque'}</span>
           </nav>

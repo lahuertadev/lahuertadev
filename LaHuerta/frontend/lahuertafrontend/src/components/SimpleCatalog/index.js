@@ -150,7 +150,7 @@ const SimpleCatalog = ({
             <React.Fragment key={i}>
               {i > 0 && <span className="text-xs">›</span>}
               {crumb.path ? (
-                <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(crumb.path)}>
+                <span className="hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(crumb.path)}>
                   {crumb.label}
                 </span>
               ) : (
@@ -322,7 +322,7 @@ const SimpleCatalog = ({
                         {!row.isSystem && (
                           <button
                             onClick={() => handleEdit(row.id)}
-                            className="p-2 text-on-surface-muted hover:text-blue-lahuerta hover:bg-blue-lahuerta/10 rounded-lg transition-all"
+                            className="p-2 text-on-surface-muted hover:text-accent hover:bg-blue-lahuerta/10 rounded-lg transition-all"
                             title="Editar"
                           >
                             <EditIcon fontSize="small" />

@@ -397,7 +397,7 @@ const PriceListEdit = () => {
               <Button
                 startIcon={<ArrowBackIcon />}
                 onClick={handleBack}
-                color="secondary"
+                color="primary"
                 variant="outlined"
                 fullWidth
               >

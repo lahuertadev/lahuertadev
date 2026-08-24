@@ -159,7 +159,7 @@ const GenericList = ({ data, onAdd }) => {
               {i > 0 && <span className="text-on-surface-muted text-xs">›</span>}
               {crumb.path ? (
                 <span
-                  className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors"
+                  className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
                   onClick={() => navigate(crumb.path)}
                 >
                   {crumb.label}

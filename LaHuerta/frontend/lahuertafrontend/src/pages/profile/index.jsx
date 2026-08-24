@@ -240,7 +240,7 @@ const Profile = () => {
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
         <span className="text-xs">›</span>
         <span className="text-on-surface font-semibold">Mi Perfil</span>
       </nav>

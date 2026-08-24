@@ -25,6 +25,7 @@ module.exports = {
         'border-subtle':         'rgb(var(--color-border-subtle-rgb) / <alpha-value>)',
         'field-locked':          'rgb(var(--color-field-locked-rgb) / <alpha-value>)',
         'field-locked-border':   'rgb(var(--color-field-locked-border-rgb) / <alpha-value>)',
+        'accent':                'rgb(var(--color-accent-rgb) / <alpha-value>)',
       }
     },
   },

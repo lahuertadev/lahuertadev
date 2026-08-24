@@ -223,9 +223,9 @@ const ProductForm = () => {
 
             {/* Breadcrumbs */}
             <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-              <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
               <span className="text-xs">›</span>
-              <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/product')}>Productos</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/product')}>Productos</span>
               <span className="text-xs">›</span>
               <span className="text-on-surface font-semibold">{id ? 'Editar Producto' : 'Nuevo Producto'}</span>
             </nav>

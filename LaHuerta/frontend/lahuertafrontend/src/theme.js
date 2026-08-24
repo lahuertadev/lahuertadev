@@ -37,9 +37,12 @@ export default function getTheme(mode = 'light') {
         styleOverrides: {
           root: { textTransform: 'none' },
           outlined: {
-            borderColor: SITE_BLUE,
-            color: SITE_BLUE,
-            '&:hover': { borderColor: SITE_BLUE_DARK, backgroundColor: 'rgba(74, 123, 196, 0.08)' },
+            borderColor: 'var(--color-accent)',
+            color: 'var(--color-accent)',
+            '&:hover': {
+              borderColor: 'var(--color-accent)',
+              backgroundColor: 'rgb(var(--color-accent-rgb) / 0.14)',
+            },
           },
           contained: {
             backgroundColor: SITE_BLUE,

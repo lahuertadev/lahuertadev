@@ -498,14 +498,14 @@ const FacturaForm = () => {
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
         <span
-          className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors"
+          className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
           onClick={() => navigate('/')}
         >
           Home
         </span>
         <span className="text-xs">›</span>
         <span
-          className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors"
+          className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
           onClick={() => navigate('/bill')}
         >
           Facturas
@@ -671,7 +671,7 @@ const FacturaForm = () => {
               <button
                 type="button"
                 onClick={addItem}
-                className="flex items-center gap-1.5 text-sm font-semibold text-blue-lahuerta hover:text-blue-lahuerta/80 transition-colors"
+                className="flex items-center gap-1.5 text-sm font-semibold text-blue-lahuerta hover:text-accent/80 transition-colors"
               >
                 <AddCircleOutlineIcon fontSize="small" />
                 Agregar línea
