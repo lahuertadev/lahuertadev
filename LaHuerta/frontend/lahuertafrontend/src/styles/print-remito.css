@@ -535,7 +535,7 @@
       width: 100%;
       min-height: auto;
       margin: 0;
-      padding: 0 !important;
+      padding: 9mm 0 0 0 !important;
       background: #fff;
       box-sizing: border-box;
     }
@@ -550,7 +550,7 @@
       max-width: none;
       min-height: auto;
       margin: 0;
-      padding: 9mm 0 0 0;
+      padding: 0 !important;
       background: #fff;
       border: 1px solid #111;
       font-family: Arial, Helvetica, sans-serif;
