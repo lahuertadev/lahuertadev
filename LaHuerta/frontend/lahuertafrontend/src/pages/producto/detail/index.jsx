@@ -105,7 +105,7 @@ const ProductDetail = () => {
       </nav>
 
       {/* 1. Información General */}
-      <SectionCard icon={<Inventory2Icon sx={{ fontSize: 20 }} />} title="Información General" cols={2}>
+      <SectionCard icon={<Inventory2Icon sx={{ fontSize: 20 }} />} title="Información General">
         <Field label="Producto" value={product.descripcion} />
         <Field label="Categoría" value={product.categoria?.descripcion} />
       </SectionCard>
