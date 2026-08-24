@@ -10,6 +10,7 @@ import { ThemeModeProvider } from "./context/ThemeModeContext";
 import App from "./App";
 import Home from './pages/home';
 import ExpenseForm from "./pages/gasto/form/ExpenseForm";
+import ExpenseDetail from "./pages/gasto/detail/ExpenseDetail";
 import ExpenseList from "./pages/gasto/list";
 import ClientForm from "./pages/cliente/form/ClientForm";
 import ClientsList from "./pages/cliente/list";
@@ -103,6 +104,10 @@ const router = createBrowserRouter([
       {
         path: '/expense/edit/:id',
         element: <ExpenseForm />
+      },
+      {
+        path: '/expense/detail/:id',
+        element: <ExpenseDetail />
       },
       {
         path: 'product',

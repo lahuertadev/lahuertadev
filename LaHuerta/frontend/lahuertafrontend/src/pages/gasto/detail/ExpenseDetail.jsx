@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { productUrl } from '../../../constants/urls';
+import { expenseUrl } from '../../../constants/urls';
+import { HOME, FINANZAS } from '../../../constants/breadcrumbs';
+import { formatCurrency } from '../../../utils/currency';
+import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
-import Inventory2Icon from '@mui/icons-material/Inventory2Outlined';
-import StraightenIcon from '@mui/icons-material/StraightenOutlined';
+import PaidOutlinedIcon from '@mui/icons-material/PaidOutlined';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -31,34 +33,34 @@ const Field = ({ label, value }) => (
   </div>
 );
 
-const ProductDetail = () => {
+const ExpenseDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
-  const [product, setProduct] = useState(null);
+  const [expense, setExpense] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleDelete = async () => {
-    await axios.delete(`${productUrl}${id}/`);
-    navigate('/product');
+    await axios.delete(`${expenseUrl}${id}/`);
+    navigate('/expense');
   };
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchExpense = async () => {
       try {
-        const response = await axios.get(`${productUrl}${id}/`);
-        setProduct(response.data);
+        const response = await axios.get(`${expenseUrl}${id}/`);
+        setExpense(response.data);
       } catch (err) {
-        console.error('Error cargando producto:', err);
+        console.error('Error cargando gasto:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) fetchProduct();
+    if (id) fetchExpense();
   }, [id]);
 
   if (loading) {
@@ -69,12 +71,12 @@ const ProductDetail = () => {
     );
   }
 
-  if (error || !product) {
+  if (error || !expense) {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
-        <p className="text-sm text-red-500">Error al cargar el producto.</p>
+        <p className="text-sm text-red-500">Error al cargar el gasto.</p>
         <button
-          onClick={() => navigate('/product')}
+          onClick={() => navigate('/expense')}
           className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
         >
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
@@ -83,38 +85,25 @@ const ProductDetail = () => {
     );
   }
 
-  const measurementType = product.tipo_unidad?.tipo_medicion;
-
-  const commercialField =
-    measurementType === 'PESO'
-      ? { label: 'Peso Aproximado', value: product.peso_aproximado != null ? `${product.peso_aproximado} kg` : null }
-      : measurementType === 'CANTIDAD'
-        ? { label: 'Cantidad por Bulto', value: product.cantidad_por_bulto }
-        : null;
-
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/product')}>Productos</span>
+        <span className="whitespace-nowrap text-on-surface-muted">{FINANZAS.label}</span>
         <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{product.descripcion}</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/expense')}>Gastos</span>
+        <span className="text-xs">›</span>
+        <span className="text-on-surface font-semibold">{formatDate(expense.fecha)}</span>
       </nav>
 
-      {/* 1. Información General */}
-      <SectionCard icon={<Inventory2Icon sx={{ fontSize: 20 }} />} title="Información General" cols={2}>
-        <Field label="Producto" value={product.descripcion} />
-        <Field label="Categoría" value={product.categoria?.descripcion} />
-      </SectionCard>
-
-      {/* 2. Presentación y Medidas */}
-      <SectionCard icon={<StraightenIcon sx={{ fontSize: 20 }} />} title="Presentación y Medidas">
-        <Field label="Tipo de Contenedor" value={product.tipo_contenedor?.descripcion} />
-        <Field label="Tipo de Unidad" value={product.tipo_unidad?.descripcion} />
-        {commercialField && <Field label={commercialField.label} value={commercialField.value} />}
+      {/* Datos del Gasto */}
+      <SectionCard icon={<PaidOutlinedIcon sx={{ fontSize: 20 }} />} title="Datos del Gasto">
+        <Field label="Fecha" value={formatDate(expense.fecha)} />
+        <Field label="Importe" value={formatCurrency(expense.importe)} />
+        <Field label="Tipo de Gasto" value={expense.tipo_gasto?.descripcion} />
       </SectionCard>
 
       {/* Action Bar */}
@@ -131,7 +120,7 @@ const ProductDetail = () => {
               </button>
               <button
                 type="button"
-                onClick={() => navigate(`/product/edit/${id}`)}
+                onClick={() => navigate(`/expense/edit/${id}`)}
                 className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
               >
                 <EditIcon sx={{ fontSize: 16 }} /> Editar
@@ -139,7 +128,7 @@ const ProductDetail = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/product')}
+              onClick={() => navigate('/expense')}
               className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
@@ -149,17 +138,17 @@ const ProductDetail = () => {
           <div className="flex items-center justify-end gap-4">
             <button
               type="button"
-              onClick={() => navigate('/product')}
+              onClick={() => navigate('/expense')}
               className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>
             <button
               type="button"
-              onClick={() => navigate(`/product/edit/${id}`)}
+              onClick={() => navigate(`/expense/edit/${id}`)}
               className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
             >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar producto
+              <EditIcon sx={{ fontSize: 16 }} /> Editar gasto
             </button>
           </div>
         )}
@@ -167,8 +156,8 @@ const ProductDetail = () => {
 
       <AlertDialog
         open={confirmOpen}
-        title="Eliminar producto"
-        message={`¿Estás seguro que querés eliminar "${product?.descripcion}"? Esta acción no se puede deshacer.`}
+        title="Eliminar gasto"
+        message="¿Estás seguro que querés eliminar este gasto? Esta acción no se puede deshacer."
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />
@@ -177,4 +166,4 @@ const ProductDetail = () => {
   );
 };
 
-export default ProductDetail;
+export default ExpenseDetail;
