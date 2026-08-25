@@ -6,6 +6,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { billUrl } from '../../../constants/urls';
 import '../../../styles/print-remito.css';
+import logoLaHuerta from '../../../assets/logo-lahuerta-sin-fondo.png';
 
 const LA_HUERTA = {
   nombre: 'La Huerta',
@@ -80,7 +81,10 @@ const BillPrintView = () => {
         <div className="remito-header">
           {/* Columna izquierda: datos de La Huerta */}
           <div className="remito-empresa">
-            <div className="remito-empresa-nombre">{LA_HUERTA.nombre}</div>
+            <div className="remito-empresa-nombre">
+              <img src={logoLaHuerta} alt="La Huerta" className="remito-empresa-logo" />
+              {LA_HUERTA.nombre}
+            </div>
             <div className="remito-empresa-sub">{LA_HUERTA.propietario}</div>
             <div className="remito-empresa-sub">{LA_HUERTA.direccion}</div>
             <div className="remito-empresa-sub">Email: {LA_HUERTA.email}</div>
