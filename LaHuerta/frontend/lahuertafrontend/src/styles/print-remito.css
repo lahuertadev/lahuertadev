@@ -679,7 +679,7 @@
       justify-content: center;
       font-size: 26px;
       font-weight: 900;
-      margin-bottom: 6px;
+      margin-bottom: 6px !important;
       line-height: 1;
     }
   
