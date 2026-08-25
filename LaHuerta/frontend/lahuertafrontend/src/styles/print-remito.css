@@ -72,9 +72,19 @@
     opacity: 0.9;
   }
 
-  .remito {
+  /* Mat blanco alrededor de la hoja, para que se note que el remito
+     está "contenido" ahí en vez de tocar directamente el fondo oscuro
+     de la app (mismo efecto que ya da el padding de la factura). */
+  .remito-sheet {
     width: 100%;
     max-width: 760px;
+    background: #fff;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .remito {
+    width: 100%;
     background: #fff;
     border: 1px solid #999;
     padding: 0;
