@@ -310,7 +310,7 @@ const GenericList = ({ data, onAdd }) => {
           </div>
 
           {/* Footer — pegado abajo */}
-          <div className="px-5 py-5 border-t border-border-subtle space-y-2 shrink-0">
+          <div className="px-5 pt-5 pb-8 border-t border-border-subtle space-y-2 shrink-0">
             <button
               onClick={applyFilters}
               className="w-full bg-blue-lahuerta hover:bg-blue-lahuerta/90 text-white py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-[0.98]"
