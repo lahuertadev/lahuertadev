@@ -4,6 +4,7 @@ import * as Yup from 'yup';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
+import { extractErrorMessage } from '../../../utils/errors';
 import { supplierUrl, marketUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
 import AmountInput from '../../../components/AmountInput';
@@ -29,17 +30,6 @@ const BACKEND_TO_FORM_FIELD = {
   nave: 'nave',
   telefono: 'telefono',
   cuenta_corriente: 'checkingAccount',
-};
-
-const extractErrorMessage = (error) => {
-  const data = error?.response?.data;
-  if (!data) return 'Error al guardar. Verificá los datos e intentá de nuevo.';
-  if (typeof data === 'string') return data;
-  if (data.detail) return data.detail;
-  if (data.error) return data.error;
-  const fieldErrors = Object.values(data).flat().filter((v) => typeof v === 'string');
-  if (fieldErrors.length) return fieldErrors[0];
-  return 'Error al guardar. Verificá los datos e intentá de nuevo.';
 };
 
 const extractFieldErrors = (error) => {
