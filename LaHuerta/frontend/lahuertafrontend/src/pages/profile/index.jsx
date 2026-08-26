@@ -20,6 +20,7 @@ import { useCsrfToken } from '../../hooks/useCsrfToken';
 import { useAuth } from '../../context/AuthContext';
 import { ROLE_CONFIG } from '../../constants/roles';
 import { formatDate } from '../../utils/date';
+import { extractErrorMessage } from '../../utils/errors';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -28,15 +29,6 @@ const formatTelefono = (raw = '') => {
   if (digits.length <= 2) return digits;
   if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
   return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-};
-
-const extractErrorMessage = (error, fallback) => {
-  const data = error?.response?.data;
-  if (!data) return fallback;
-  if (typeof data === 'string') return data;
-  if (data.detail) return data.detail;
-  const fieldErrors = Object.values(data).flat().filter((v) => typeof v === 'string');
-  return fieldErrors[0] || fallback;
 };
 
 const extractFieldErrors = (error) => {
@@ -228,7 +220,10 @@ const Profile = () => {
       });
       setUser(response.data);
     } catch (error) {
-      setAvatarToast({ open: true, message: extractErrorMessage(error, 'Error al subir la foto de perfil.') });
+      const message = error?.response?.status === 413
+        ? 'La imagen es demasiado pesada. El tamaño máximo permitido es 3MB.'
+        : extractErrorMessage(error, 'Error al subir la foto de perfil.');
+      setAvatarToast({ open: true, message });
     } finally {
       setAvatarUploading(false);
     }

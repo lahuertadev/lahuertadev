@@ -210,6 +210,12 @@ class AvatarUploadSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = ['avatar']
 
+    def validate_avatar(self, value):
+        max_size = 3 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError('La imagen no puede superar los 3MB.')
+        return value
+
 class UpdateUserRoleSerializer(serializers.Serializer):
     """
     DTO para cambiar el rol de un usuario. No admite superuser: esa
