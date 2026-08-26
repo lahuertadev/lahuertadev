@@ -5,6 +5,7 @@ import Slider from '@mui/material/Slider';
 import Button from '../Button';
 
 const CROPPER_HEIGHT = 280;
+const MAX_AVATAR_SIZE = 512;
 
 const createImage = (url) =>
   new Promise((resolve, reject) => {
@@ -17,9 +18,10 @@ const createImage = (url) =>
 
 const getCroppedImageBlob = async (imageSrc, cropPixels) => {
   const image = await createImage(imageSrc);
+  const outputSize = Math.min(cropPixels.width, cropPixels.height, MAX_AVATAR_SIZE);
   const canvas = document.createElement('canvas');
-  canvas.width = cropPixels.width;
-  canvas.height = cropPixels.height;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
   const ctx = canvas.getContext('2d');
 
   ctx.drawImage(
@@ -30,8 +32,8 @@ const getCroppedImageBlob = async (imageSrc, cropPixels) => {
     cropPixels.height,
     0,
     0,
-    cropPixels.width,
-    cropPixels.height
+    outputSize,
+    outputSize
   );
 
   return new Promise((resolve) => {
