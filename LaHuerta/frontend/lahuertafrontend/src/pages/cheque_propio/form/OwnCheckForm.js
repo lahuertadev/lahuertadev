@@ -7,10 +7,11 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { ownCheckUrl, bankUrl } from '../../../constants/urls';
 import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import Toast from '../../../components/Toast';
+import CustomInput from '../../../components/Input';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 
@@ -159,11 +160,11 @@ const OwnCheckForm = () => {
 
           {/* Breadcrumbs */}
           <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
             <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
             <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
             <span className="text-xs">›</span>
             <span className="text-on-surface font-semibold">{id ? 'Editar cheque' : 'Nuevo cheque'}</span>
           </nav>
@@ -172,14 +173,13 @@ const OwnCheckForm = () => {
           <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
             <div className="flex flex-col gap-1">
               <FieldLabel text="Número" help="Número correlativo del cheque, impreso en la parte superior derecha." required />
-              <input
+              <CustomInput
                 name="numero"
                 type="number"
                 min="1"
                 value={values.numero}
                 onChange={handleChange}
                 placeholder="Nº de cheque"
-                className={inputCls(touched.numero && errors.numero) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
                 disabled={!!id}
               />
               <FieldError error={errors.numero} touched={touched.numero} />
@@ -258,7 +258,7 @@ const OwnCheckForm = () => {
             <button
               type="button"
               onClick={() => navigate('/own-check')}
-              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted hover:bg-surface-low rounded-lg transition-colors"
+              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
             >
               Cancelar
             </button>

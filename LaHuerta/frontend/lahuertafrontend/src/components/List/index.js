@@ -9,7 +9,7 @@ import Toast from '../Toast';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import CloseIcon from '@mui/icons-material/Close';
@@ -159,7 +159,7 @@ const GenericList = ({ data, onAdd }) => {
               {i > 0 && <span className="text-on-surface-muted text-xs">›</span>}
               {crumb.path ? (
                 <span
-                  className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors"
+                  className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
                   onClick={() => navigate(crumb.path)}
                 >
                   {crumb.label}
@@ -310,7 +310,7 @@ const GenericList = ({ data, onAdd }) => {
           </div>
 
           {/* Footer — pegado abajo */}
-          <div className="px-5 py-5 border-t border-border-subtle space-y-2 shrink-0">
+          <div className="px-5 pt-5 pb-8 border-t border-border-subtle space-y-2 shrink-0">
             <button
               onClick={applyFilters}
               className="w-full bg-blue-lahuerta hover:bg-blue-lahuerta/90 text-white py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-[0.98]"

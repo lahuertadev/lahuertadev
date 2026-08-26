@@ -6,11 +6,11 @@ import { clientPaymentUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
-import PersonIcon from '@mui/icons-material/Person';
-import PaymentsIcon from '@mui/icons-material/Payments';
-import CreditCardIcon from '@mui/icons-material/CreditCard';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
+import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -78,7 +78,7 @@ const ClientPaymentDetail = () => {
         <p className="text-sm text-red-500">Error al cargar el pago.</p>
         <button
           onClick={() => navigate('/client-payment')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-blue-lahuerta transition-colors"
+          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
         >
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
         </button>
@@ -91,9 +91,9 @@ const ClientPaymentDetail = () => {
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
         <span className="text-xs">›</span>
         <span className="text-on-surface font-semibold">{payment.cliente.razon_social}</span>
       </nav>
@@ -151,7 +151,7 @@ const ClientPaymentDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/client-payment')}
-              className="w-full py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>
@@ -161,7 +161,7 @@ const ClientPaymentDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/client-payment')}
-              className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>

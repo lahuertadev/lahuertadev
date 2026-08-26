@@ -11,10 +11,10 @@ import Toast from '../../../components/Toast';
 import Tooltip from '@mui/material/Tooltip';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import EditIcon from '@mui/icons-material/Edit';
+import EditIcon from '@mui/icons-material/EditOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const STATE_CONFIG = {
@@ -92,7 +92,7 @@ const OwnCheckDetail = () => {
         <p className="text-sm text-red-500">Error al cargar el cheque.</p>
         <button
           onClick={() => navigate('/own-check')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-blue-lahuerta transition-colors"
+          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
         >
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
         </button>
@@ -119,11 +119,11 @@ const OwnCheckDetail = () => {
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
         <span className="text-xs">›</span>
         <span className="whitespace-nowrap text-on-surface font-semibold">N° {check.numero}</span>
       </nav>
@@ -278,7 +278,7 @@ const OwnCheckDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/own-check')}
-              className="w-full py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>
@@ -288,7 +288,7 @@ const OwnCheckDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/own-check')}
-              className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>

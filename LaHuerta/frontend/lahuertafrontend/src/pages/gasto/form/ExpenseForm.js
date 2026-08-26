@@ -68,7 +68,7 @@ const ExpenseForm = () => {
 
   //* Configuración de los campos del formulario
   const fields = [
-    { name: 'amount', label: 'Importe', type: 'number', required: true},
+    { name: 'amount', label: 'Importe', type: 'amount', required: true},
     { name: 'date', label: 'Fecha', type: 'date',required: true},
     { name: 'expenseType', label: 'Tipo de gasto', type: 'select', required: true},
   ];
@@ -101,11 +101,11 @@ const ExpenseForm = () => {
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6 pb-12">
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
         <span className="text-xs">›</span>
         <span className="whitespace-nowrap text-on-surface-muted">{FINANZAS.label}</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/expense')}>Gastos</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/expense')}>Gastos</span>
         <span className="text-xs">›</span>
         <span className="whitespace-nowrap text-on-surface font-semibold">{id ? 'Editar gasto' : 'Nuevo gasto'}</span>
       </nav>

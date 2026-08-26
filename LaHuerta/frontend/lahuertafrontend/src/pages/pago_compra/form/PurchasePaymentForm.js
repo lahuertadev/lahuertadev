@@ -11,9 +11,9 @@ import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCartOutlined';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 
@@ -26,7 +26,7 @@ const inputCls = (hasError) =>
   }`;
 
 const readonlyCls =
-  'w-full bg-surface-low/60 px-3 py-2.5 rounded-lg border border-border-subtle text-sm text-on-surface-muted select-none';
+  'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted select-none cursor-not-allowed';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -54,7 +54,7 @@ const ReadonlyField = ({ label, value, highlight = false, helpText }) => (
     </div>
     <div className={
       highlight
-        ? 'w-full px-3 py-2.5 rounded-lg border text-sm font-semibold select-none bg-amber-50 border-amber-200 text-amber-700'
+        ? 'w-full px-3 py-2.5 rounded-lg border text-sm font-semibold select-none cursor-not-allowed bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400'
         : readonlyCls
     }>
       {value || '—'}
@@ -226,9 +226,9 @@ const PurchasePaymentForm = () => {
 
             {/* Breadcrumbs */}
             <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-              <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
               <span className="text-xs">›</span>
-              <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/purchase-payment')}>Pagos de Compras</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/purchase-payment')}>Pagos de Compras</span>
               <span className="text-xs">›</span>
               <span className="text-on-surface font-semibold">Nuevo</span>
             </nav>
@@ -405,7 +405,7 @@ const PurchasePaymentForm = () => {
               <button
                 type="button"
                 onClick={() => navigate('/purchase-payment')}
-                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted hover:bg-surface-low rounded-lg transition-colors"
+                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
               >
                 Cancelar
               </button>

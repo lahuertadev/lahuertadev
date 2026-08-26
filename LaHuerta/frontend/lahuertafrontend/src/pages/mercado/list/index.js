@@ -1,38 +1,15 @@
+import React from 'react';
+import SimpleCatalog from '../../../components/SimpleCatalog';
 import { marketUrl } from '../../../constants/urls';
-import GenericList from '../../../components/List';
-import { useNavigate } from 'react-router-dom';
 
-const mapMarketData = (data) => {
-  const list = Array.isArray(data) ? data : [];
-  return list.map((item) => ({
-    id: item.id,
-    descripcion: item.descripcion,
-  }));
-};
-
-const columns = [{ field: 'descripcion', headerName: 'Descripción', flex: 1, align: 'center', headerAlign: 'center' }];
-
-const data = {
-  title: 'Mercados',
-  fetchUrl: {
-    baseUrl: marketUrl,
-    createUrl: '/market/create',
-    editUrl: '/market/edit',
-  },
-  columns,
-  mapData: mapMarketData,
-  filtersConfig: [],
-  newLabelText: 'Nuevo mercado',
-};
-
-const MarketList = () => {
-  const navigate = useNavigate();
-
-  const handleAdd = () => {
-    navigate('/market/create');
-  };
-
-  return <GenericList data={data} onAdd={handleAdd} />;
-};
+const MarketList = () => (
+  <SimpleCatalog
+    url={marketUrl}
+    title="Mercado"
+    breadcrumbKey="/market"
+    placeholder="Ej: Mercado Central"
+    maxLength={50}
+  />
+);
 
 export default MarketList;

@@ -3,19 +3,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { clientUrl } from '../../../constants/urls';
+import { getActiveBadgeStyle } from '../../../constants/statusBadge';
 import { formatCuit } from '../../../utils/cuit';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
-import BusinessIcon from '@mui/icons-material/Business';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import PhoneIcon from '@mui/icons-material/Phone';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import BusinessIcon from '@mui/icons-material/BusinessOutlined';
+import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
+import PhoneIcon from '@mui/icons-material/PhoneOutlined';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -90,7 +91,7 @@ const ClientDetail = () => {
         <p className="text-sm text-red-500">Error al cargar el cliente.</p>
         <button
           onClick={() => navigate('/client')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-blue-lahuerta transition-colors"
+          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
         >
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
         </button>
@@ -103,9 +104,9 @@ const ClientDetail = () => {
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
         <span className="text-xs">›</span>
         <span className="text-on-surface font-semibold">{client.razon_social}</span>
       </nav>
@@ -156,7 +157,7 @@ const ClientDetail = () => {
       <SectionCard icon={<VerifiedUserIcon sx={{ fontSize: 20 }} />} title="Estado" cols={2}>
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Estado del cliente</span>
-          <span className={`inline-flex w-fit items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${client.estado ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+          <span style={{ ...getActiveBadgeStyle(client.estado), display: 'inline-flex', width: 'fit-content' }}>
             {client.estado ? 'Activo' : 'Inactivo'}
           </span>
         </div>
@@ -185,7 +186,7 @@ const ClientDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/client')}
-              className="w-full py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>
@@ -195,7 +196,7 @@ const ClientDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/client')}
-              className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>

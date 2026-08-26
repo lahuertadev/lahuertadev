@@ -8,9 +8,9 @@ import Toast from '../Toast';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import AddIcon from '@mui/icons-material/AddCircleOutline';
 
 /**
  * SimpleCatalog — CRUD inline reutilizable para catálogos de un solo campo.
@@ -150,7 +150,7 @@ const SimpleCatalog = ({
             <React.Fragment key={i}>
               {i > 0 && <span className="text-xs">›</span>}
               {crumb.path ? (
-                <span className="hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate(crumb.path)}>
+                <span className="hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(crumb.path)}>
                   {crumb.label}
                 </span>
               ) : (
@@ -204,7 +204,7 @@ const SimpleCatalog = ({
                         <button
                           type="button"
                           onClick={() => handleCancel(resetForm)}
-                          className="flex-1 h-11 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:bg-surface-low transition-all"
+                          className="flex-1 h-11 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
                         >
                           Cancelar
                         </button>
@@ -244,7 +244,7 @@ const SimpleCatalog = ({
                         <button
                           type="button"
                           onClick={() => handleCancel(resetForm)}
-                          className="h-10 px-5 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:bg-surface-low transition-all"
+                          className="h-10 px-5 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
                         >
                           Cancelar
                         </button>
@@ -322,7 +322,7 @@ const SimpleCatalog = ({
                         {!row.isSystem && (
                           <button
                             onClick={() => handleEdit(row.id)}
-                            className="p-2 text-on-surface-muted hover:text-blue-lahuerta hover:bg-blue-lahuerta/10 rounded-lg transition-all"
+                            className="p-2 text-on-surface-muted hover:text-accent hover:bg-blue-lahuerta/10 rounded-lg transition-all"
                             title="Editar"
                           >
                             <EditIcon fontSize="small" />

@@ -5,6 +5,7 @@ import DatePicker from '../DatePicker';
 import BasicSelect from '../Select';
 import Button from '../Button';
 import CheckboxLabels from '../Checkbox';
+import AmountInput from '../AmountInput';
 import Toast from '../Toast';
 import { useParams, useNavigate } from 'react-router-dom';
 import '../../styles/forms.css';
@@ -98,6 +99,7 @@ const GenericForm = ({
             className="custom-form"
             style={{
               width: isMobile ? '90%' : getFormWidth(),
+              minWidth: isMobile ? undefined : '380px',
               maxWidth: '100%',
               margin: '0 auto',
             }}
@@ -119,6 +121,23 @@ const GenericForm = ({
                         regex={validation?.regex}
                         regexErrorText={validation?.errorMessage}
                       />
+                    ) : type === 'amount' ? (
+                      <div className="w-full">
+                        {label && (
+                          <label className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5">
+                            {label}
+                          </label>
+                        )}
+                        <AmountInput
+                          name={name}
+                          value={values[name]}
+                          onChange={(raw) => setFieldValue(name, raw)}
+                          hasError={touched[name] && Boolean(errors[name])}
+                        />
+                        {touched[name] && errors[name] && (
+                          <p className="mt-1 text-xs text-red-500">{errors[name]}</p>
+                        )}
+                      </div>
                     ) : type === 'select' ? (
                       <BasicSelect
                         name={name}
@@ -152,6 +171,13 @@ const GenericForm = ({
               })}
             </Grid>
             <div className="custom-button">
+              <button
+                type="button"
+                onClick={() => navigate(urls.list)}
+                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
+              >
+                Cancelar
+              </button>
               <Button
                 label="Enviar"
                 color="primary"
@@ -159,6 +185,12 @@ const GenericForm = ({
                 size="large"
                 type="submit"
                 disabled={!isValid || !dirty}
+                sx={{
+                  '&.Mui-disabled': {
+                    backgroundColor: 'var(--color-field-locked)',
+                    color: 'var(--color-on-surface-muted)',
+                  },
+                }}
               />
             </div>
           </Form>

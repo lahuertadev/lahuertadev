@@ -6,10 +6,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   Legend, ResponsiveContainer,
 } from 'recharts';
-import PrintIcon from '@mui/icons-material/Print';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import PaymentsIcon from '@mui/icons-material/Payments';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
+import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import BasicSelect from '../../components/Select';
 import BasicDatePicker from '../../components/DatePicker';
 import { clientUrl, clientReportUrl } from '../../constants/urls';
@@ -117,17 +117,17 @@ const ClientReport = () => {
       {/* ── Breadcrumb ── */}
       <nav
         className="no-print"
-        style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.875rem', fontWeight: 500, color: '#596064', marginBottom: '16px' }}
+        style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-on-surface-muted)', marginBottom: '16px' }}
       >
         {breadcrumbs.map((crumb, i) => (
           <React.Fragment key={i}>
-            {i > 0 && <span style={{ fontSize: '0.75rem', color: '#596064' }}>›</span>}
+            {i > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--color-on-surface-muted)' }}>›</span>}
             {crumb.path ? (
               <span style={{ whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => navigate(crumb.path)}>
                 {crumb.label}
               </span>
             ) : (
-              <span style={{ whiteSpace: 'nowrap', fontWeight: 700, color: '#2c3437' }}>{crumb.label}</span>
+              <span style={{ whiteSpace: 'nowrap', fontWeight: 700, color: 'var(--color-on-surface)' }}>{crumb.label}</span>
             )}
           </React.Fragment>
         ))}
@@ -145,7 +145,7 @@ const ClientReport = () => {
         </div>
         <Button
           variant="contained"
-          startIcon={<PrintIcon />}
+          startIcon={<PrintOutlinedIcon />}
           onClick={() => window.print()}
           disabled={!report}
           sx={{ fontWeight: 600, whiteSpace: 'nowrap', ...(isMobile && { width: '100%', py: 1.5 }) }}
@@ -173,7 +173,7 @@ const ClientReport = () => {
           />
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-              <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#596064' }}>
+              <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-muted)' }}>
                 Fecha de referencia
               </span>
               <Tooltip
@@ -181,7 +181,7 @@ const ClientReport = () => {
                 placement="top"
                 arrow
               >
-                <InfoOutlinedIcon sx={{ fontSize: 14, color: '#9ca3af', cursor: 'default' }} />
+                <InfoOutlinedIcon sx={{ fontSize: 14, color: 'var(--color-on-surface-muted)', cursor: 'default' }} />
               </Tooltip>
             </div>
             <BasicDatePicker
@@ -274,30 +274,30 @@ const ClientReport = () => {
                 <Paper className="report-kpi-card" sx={{ p: 3, position: 'relative', overflow: 'hidden' }}>
                   <div className="report-kpi-bg-icon"><ReceiptLongIcon /></div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase" className="report-kpi-print-ink">
                       Total Facturado
                     </Typography>
                     <Tooltip title="Suma de facturas y notas de débito emitidas en el período. Las notas de crédito se muestran por separado." placement="top" arrow>
-                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: '#9ca3af', cursor: 'default' }} />
+                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: 'var(--color-on-surface-muted)', cursor: 'default' }} />
                     </Tooltip>
                   </div>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  <Typography variant="caption" color="text.secondary" className="report-kpi-print-ink" sx={{ display: 'block' }}>
                     en el período · {periodLabel}
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 1 }}>
+                  <Typography variant="h5" fontWeight="bold" color="text.primary" className="report-kpi-print-ink" sx={{ mt: 1 }}>
                     {formatCurrency(report.kpis.total_billed)}
                   </Typography>
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--color-border-subtle)', display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {parseFloat(report.kpis.total_invoiced) > 0 && (
                       <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#596064' }}>Facturas</span>
-                        <span style={{ fontWeight: 600, color: '#596064' }}>{formatCurrency(report.kpis.total_invoiced)}</span>
+                        <span style={{ color: 'var(--color-on-surface-muted)' }}>Facturas</span>
+                        <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{formatCurrency(report.kpis.total_invoiced)}</span>
                       </Typography>
                     )}
                     {parseFloat(report.kpis.total_debit_notes) > 0 && (
                       <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#596064' }}>Notas de Débito</span>
-                        <span style={{ fontWeight: 600, color: '#596064' }}>{formatCurrency(report.kpis.total_debit_notes)}</span>
+                        <span style={{ color: 'var(--color-on-surface-muted)' }}>Notas de Débito</span>
+                        <span style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>{formatCurrency(report.kpis.total_debit_notes)}</span>
                       </Typography>
                     )}
                   </div>
@@ -306,56 +306,57 @@ const ClientReport = () => {
                 <Paper className="report-kpi-card" sx={{ p: 3, position: 'relative', overflow: 'hidden' }}>
                   <div className="report-kpi-bg-icon"><PaymentsIcon /></div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase" className="report-kpi-print-ink">
                       Total Pagado
                     </Typography>
                     <Tooltip title="Suma de los pagos en efectivo, cheque u otros medios registrados en el período. No incluye notas de crédito." placement="top" arrow>
-                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: '#9ca3af', cursor: 'default' }} />
+                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: 'var(--color-on-surface-muted)', cursor: 'default' }} />
                     </Tooltip>
                   </div>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  <Typography variant="caption" color="text.secondary" className="report-kpi-print-ink" sx={{ display: 'block' }}>
                     en el período ·{' '}
                     <span style={{ color: paidRatio >= 80 ? '#16a34a' : paidRatio >= 50 ? '#ca8a04' : '#dc2626', fontWeight: 700 }}>
                       {paidRatio}% cobrado
                     </span>
                   </Typography>
-                  <Typography variant="h5" fontWeight="bold" color="text.primary" sx={{ mt: 1 }}>
+                  <Typography variant="h5" fontWeight="bold" color="text.primary" className="report-kpi-print-ink" sx={{ mt: 1 }}>
                     {formatCurrency(report.kpis.total_paid)}
                   </Typography>
                 </Paper>
 
                 <Paper
                   className="report-kpi-card"
-                  sx={{ p: 3, position: 'relative', overflow: 'hidden', bgcolor: pendingBalance > 0 ? '#fff5f5' : 'background.paper' }}
+                  sx={{ p: 3, position: 'relative', overflow: 'hidden', bgcolor: pendingBalance > 0 ? 'rgba(220,38,38,0.08)' : 'background.paper' }}
                 >
                   <div className="report-kpi-bg-icon"><AccountBalanceWalletIcon /></div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">
+                    <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase" className="report-kpi-print-ink">
                       Saldo Pendiente
                     </Typography>
                     <Tooltip title="Total facturado menos notas de crédito acreditadas y pagos del período. Un valor negativo indica saldo a favor del cliente." placement="top" arrow>
-                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: '#9ca3af', cursor: 'default' }} />
+                      <InfoOutlinedIcon className="no-print" sx={{ fontSize: 13, color: 'var(--color-on-surface-muted)', cursor: 'default' }} />
                     </Tooltip>
                   </div>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  <Typography variant="caption" color="text.secondary" className="report-kpi-print-ink" sx={{ display: 'block' }}>
                     en el período
                   </Typography>
                   <Typography
                     variant="h5"
                     fontWeight="bold"
+                    className={pendingBalance > 0 ? '' : 'report-kpi-print-ink'}
                     sx={{ mt: 1, color: pendingBalance > 0 ? 'error.main' : 'text.primary' }}
                   >
                     {formatCurrency(report.kpis.pending_balance)}
                   </Typography>
-                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--color-border-subtle)', display: 'flex', flexDirection: 'column', gap: 2 }}>
                     {parseFloat(report.kpis.total_credited) > 0 && (
                       <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#596064' }}>NC acreditadas</span>
+                        <span style={{ color: 'var(--color-on-surface-muted)' }}>NC acreditadas</span>
                         <span style={{ fontWeight: 600, color: '#16a34a' }}>-{formatCurrency(report.kpis.total_credited)}</span>
                       </Typography>
                     )}
                     <Typography variant="caption" sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: '#596064' }}>Cuenta corriente</span>
+                      <span style={{ color: 'var(--color-on-surface-muted)' }}>Cuenta corriente</span>
                       <span style={{ fontWeight: 600, color: parseFloat(report.kpis.account_balance) > 0 ? '#dc2626' : 'inherit' }}>
                         {formatCurrency(report.kpis.account_balance)}
                       </span>
@@ -373,7 +374,7 @@ const ClientReport = () => {
             </Typography>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={report.chart} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" />
                 <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
                 <RechartsTooltip content={({ active, payload, label }) => {
