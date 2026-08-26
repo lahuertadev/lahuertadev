@@ -13,13 +13,17 @@ import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import AccountCircle from '@mui/icons-material/AccountCircle';
+import AccountCircle from '@mui/icons-material/AccountCircleOutlined';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import PersonIcon from '@mui/icons-material/Person';
+import PersonIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -31,6 +35,7 @@ import axios from 'axios';
 import { authLogoutUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeMode } from '../../context/ThemeModeContext';
 import { ROLE_CONFIG } from '../../constants/roles';
 import logoLaHuerta from '../../assets/logo-lahuerta-sin-fondo.png';
 
@@ -69,8 +74,8 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
 })(({ theme }) => ({
   zIndex: theme.zIndex.drawer + 1,
-  backgroundColor: '#ffffff',
-  color: '#2c3437',
+  backgroundColor: 'var(--color-surface-card)',
+  color: 'var(--color-on-surface)',
   boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   transition: theme.transitions.create(['width', 'margin'], {
     easing: theme.transitions.easing.sharp,
@@ -98,8 +103,19 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
     whiteSpace: 'nowrap',
     boxSizing: 'border-box',
     '& .MuiDrawer-paper': {
-      backgroundColor: '#f0f4f7',
-      borderRight: '1px solid #e3e9ed',
+      backgroundColor: 'var(--color-surface-low)',
+      borderRight: '1px solid var(--color-border-subtle)',
+      scrollbarColor: 'var(--color-border-subtle) transparent',
+      scrollbarWidth: 'thin',
+      '&::-webkit-scrollbar': { width: '8px' },
+      '&::-webkit-scrollbar-track': { background: 'transparent' },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'var(--color-border-subtle)',
+        borderRadius: '4px',
+      },
+      '&::-webkit-scrollbar-thumb:hover': {
+        backgroundColor: 'var(--color-on-surface-muted)',
+      },
     },
     variants: [
       {
@@ -108,8 +124,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
           ...openedMixin(theme),
           '& .MuiDrawer-paper': {
             ...openedMixin(theme),
-            backgroundColor: '#f0f4f7',
-            borderRight: '1px solid #e3e9ed',
+            backgroundColor: 'var(--color-surface-low)',
+            borderRight: '1px solid var(--color-border-subtle)',
           },
         },
       },
@@ -119,8 +135,8 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
           ...closedMixin(theme),
           '& .MuiDrawer-paper': {
             ...closedMixin(theme),
-            backgroundColor: '#f0f4f7',
-            borderRight: '1px solid #e3e9ed',
+            backgroundColor: 'var(--color-surface-low)',
+            borderRight: '1px solid var(--color-border-subtle)',
           },
         },
       },
@@ -141,10 +157,12 @@ export default function MiniDrawer({title, menuOptions}) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
   const [open, setOpen] = React.useState(false);
+  const [pinned, setPinned] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const csrfToken = useCsrfToken();
   const navigate = useNavigate();
   const { clearUser, user } = useAuth();
+  const { mode, toggleMode } = useThemeMode();
 
   // Auto-expande el grupo cuyo hijo está activo
   const initialOpenGroups = React.useMemo(() => {
@@ -165,11 +183,24 @@ export default function MiniDrawer({title, menuOptions}) {
 
   const handleDrawerClose = () => {
     setOpen(false);
+    setPinned(false);
+  };
+
+  // Al anclar, el menú queda abierto y no se cierra al navegar entre pantallas.
+  // Al desanclar, vuelve al comportamiento normal (se abre/cierra manualmente).
+  const handleTogglePin = () => {
+    setPinned((prev) => {
+      const next = !prev;
+      if (next) setOpen(true);
+      return next;
+    });
   };
 
   const handleNavigate = (path) => {
     if (!path) return;
-    handleDrawerClose();
+    // En mobile el menú siempre se cierra al navegar, sin importar el ancla: no tiene
+    // sentido dejarlo fijo abierto tapando la pantalla en una vista chica.
+    if (isMobile || !pinned) handleDrawerClose();
     navigate(path);
   };
 
@@ -189,6 +220,11 @@ export default function MiniDrawer({title, menuOptions}) {
   const handleProfileClick = () => {
     handleUserMenuClose();
     navigate('/profile');
+  };
+
+  const handleToggleTheme = () => {
+    handleUserMenuClose();
+    toggleMode();
   };
 
   const handleLogout = async () => {
@@ -216,7 +252,17 @@ export default function MiniDrawer({title, menuOptions}) {
   const drawerMenuContent = (
     <>
       <DrawerHeader>
-        <IconButton onClick={handleDrawerClose} sx={{ color: '#596064' }}>
+        {/* Anclar el menú no aplica en mobile: ahí siempre se cierra al elegir una opción. */}
+        {!isMobile && (
+          <IconButton
+            onClick={handleTogglePin}
+            aria-label={pinned ? 'Desanclar menú' : 'Anclar menú'}
+            sx={{ color: pinned ? BLUE : 'var(--color-on-surface-muted)' }}
+          >
+            {pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+          </IconButton>
+        )}
+        <IconButton onClick={handleDrawerClose} sx={{ color: 'var(--color-on-surface-muted)' }}>
           {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
         </IconButton>
       </DrawerHeader>
@@ -233,7 +279,7 @@ export default function MiniDrawer({title, menuOptions}) {
             px: 1.5,
             mx: 1,
             borderRadius: '8px',
-            color: active ? BLUE : '#596064',
+            color: active ? BLUE : 'var(--color-on-surface-muted)',
             backgroundColor: active ? `rgba(74,123,196,0.10)` : 'transparent',
             '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE },
             justifyContent: open ? 'initial' : 'center',
@@ -290,7 +336,7 @@ export default function MiniDrawer({title, menuOptions}) {
                               pr: 2,
                               mx: 1,
                               borderRadius: '8px',
-                              color: childActive ? BLUE : '#596064',
+                              color: childActive ? BLUE : 'var(--color-on-surface-muted)',
                               backgroundColor: childActive ? 'rgba(74,123,196,0.06)' : 'transparent',
                               fontWeight: childActive ? 600 : 400,
                               '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE },
@@ -347,7 +393,7 @@ export default function MiniDrawer({title, menuOptions}) {
             onClick={handleDrawerOpen}
             edge="start"
             sx={[
-              { marginRight: 2, color: '#596064' },
+              { marginRight: 2, color: 'var(--color-on-surface-muted)' },
               open && { display: 'none' },
             ]}
           >
@@ -380,8 +426,8 @@ export default function MiniDrawer({title, menuOptions}) {
                     fontSize: '0.6875rem',
                     fontWeight: 600,
                     lineHeight: '16px',
-                    backgroundColor: (ROLE_CONFIG[user.role] || {}).bg || '#f0f4f7',
-                    color: (ROLE_CONFIG[user.role] || {}).color || '#596064',
+                    backgroundColor: (ROLE_CONFIG[user.role] || {}).bg || 'var(--color-surface-low)',
+                    color: (ROLE_CONFIG[user.role] || {}).color || 'var(--color-on-surface-muted)',
                   }}
                 >
                   {(ROLE_CONFIG[user.role] || {}).label || user.role}
@@ -395,7 +441,7 @@ export default function MiniDrawer({title, menuOptions}) {
               aria-controls="user-menu"
               aria-haspopup="true"
               onClick={handleUserMenuOpen}
-              sx={{ color: '#596064' }}
+              sx={{ color: 'var(--color-on-surface-muted)' }}
             >
               {user?.avatar ? (
                 <Avatar src={user.avatar} sx={{ width: 32, height: 32 }} />
@@ -417,14 +463,45 @@ export default function MiniDrawer({title, menuOptions}) {
               vertical: 'top',
               horizontal: 'right',
             }}
+            slotProps={{
+              paper: {
+                sx: {
+                  minWidth: 220,
+                  mt: 1,
+                  borderRadius: '10px',
+                  backgroundColor: 'var(--color-surface-card)',
+                  color: 'var(--color-on-surface)',
+                },
+              },
+            }}
           >
-            <MenuItem onClick={handleProfileClick}>
+            {user && (
+              <Box sx={{ px: 2, py: 1.25 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+                  {[user.first_name, user.last_name].filter(Boolean).join(' ') || user.email}
+                </Typography>
+                {user.email && (
+                  <Typography variant="caption" sx={{ color: 'var(--color-on-surface-muted)' }}>
+                    {user.email}
+                  </Typography>
+                )}
+              </Box>
+            )}
+            <Divider />
+            <MenuItem onClick={handleProfileClick} sx={{ py: 1 }}>
               <ListItemIcon>
                 <PersonIcon fontSize="small" />
               </ListItemIcon>
               Perfil
             </MenuItem>
-            <MenuItem onClick={handleLogout}>
+            <MenuItem onClick={handleToggleTheme} sx={{ py: 1 }}>
+              <ListItemIcon>
+                {mode === 'dark' ? <DarkModeOutlinedIcon fontSize="small" /> : <LightModeOutlinedIcon fontSize="small" />}
+              </ListItemIcon>
+              Cambiar tema
+            </MenuItem>
+            <Divider />
+            <MenuItem onClick={handleLogout} sx={{ py: 1 }}>
               <ListItemIcon>
                 <LogoutIcon fontSize="small" />
               </ListItemIcon>
@@ -439,7 +516,25 @@ export default function MiniDrawer({title, menuOptions}) {
           open={open}
           onClose={handleDrawerClose}
           ModalProps={{ keepMounted: true }}
-          sx={{ '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box', backgroundColor: '#f0f4f7', borderRight: '1px solid #e3e9ed' } }}
+          sx={{
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              backgroundColor: 'var(--color-surface-low)',
+              borderRight: '1px solid var(--color-border-subtle)',
+              scrollbarColor: 'var(--color-border-subtle) transparent',
+              scrollbarWidth: 'thin',
+              '&::-webkit-scrollbar': { width: '8px' },
+              '&::-webkit-scrollbar-track': { background: 'transparent' },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'var(--color-border-subtle)',
+                borderRadius: '4px',
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                backgroundColor: 'var(--color-on-surface-muted)',
+              },
+            },
+          }}
         >
           {drawerMenuContent}
         </MuiDrawer>

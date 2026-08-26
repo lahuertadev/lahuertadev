@@ -113,13 +113,14 @@ const StatusCell = ({ params, onToggleActive, currentUserId, busyId }) => {
  */
 export const getColumns = ({ onToggleActive, onChangeRole, currentUserId, busyId }) => [
   { field: 'name', headerName: 'Nombre', align: 'center', headerAlign: 'center', flex: 1 },
-  { field: 'email', headerName: 'Email', align: 'center', headerAlign: 'center', flex: 1 },
+  { field: 'email', headerName: 'Email', align: 'center', headerAlign: 'center', flex: 1, hiddenOnMobile: true },
   {
     field: 'role',
     headerName: 'Rol',
     minWidth: 170,
     align: 'center',
     headerAlign: 'center',
+    hiddenOnMobile: true,
     renderCell: (params) => <RoleCell params={params} onChangeRole={onChangeRole} busyId={busyId} />,
   },
   {

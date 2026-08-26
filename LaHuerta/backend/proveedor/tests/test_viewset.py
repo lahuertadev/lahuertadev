@@ -82,6 +82,7 @@ class FakeSupplierRepo(ISupplierRepository):
             puesto=data.get('puesto', 1),
             nave=data.get('nave'),
             telefono=data.get('telefono', ''),
+            cuenta_corriente=data.get('cuenta_corriente', 0),
             nombre_fantasia=data.get('nombre_fantasia', ''),
             mercado=mercado,
         )
@@ -90,9 +91,7 @@ class FakeSupplierRepo(ISupplierRepository):
         return obj
 
     def modify_supplier(self, supplier, data):
-        safe_data = dict(data)
-        safe_data.pop('cuenta_corriente', None)
-        for k, v in safe_data.items():
+        for k, v in data.items():
             setattr(supplier, k, v)
         return supplier
 

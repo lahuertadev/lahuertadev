@@ -8,8 +8,8 @@ import { clientPaymentUrl, clientUrl, paymentTypeUrl, bankUrl } from '../../../c
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
-import PersonIcon from '@mui/icons-material/Person';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -181,9 +181,9 @@ const ClientPaymentForm = () => {
 
             {/* Breadcrumbs */}
             <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-              <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
               <span className="text-xs">›</span>
-              <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
               <span className="text-xs">›</span>
               <span className="text-on-surface font-semibold">{id ? 'Editar' : 'Nuevo'}</span>
             </nav>
@@ -263,7 +263,12 @@ const ClientPaymentForm = () => {
                     onChange={handleChange}
                     placeholder="Nº de cheque"
                     disabled={!!(id && values.chequeNumero)}
-                    className={inputCls(touched.chequeNumero && errors.chequeNumero) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' + (id && values.chequeNumero ? ' opacity-50 cursor-not-allowed' : '')}
+                    className={
+                      (id && values.chequeNumero
+                        ? 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed'
+                        : inputCls(touched.chequeNumero && errors.chequeNumero)
+                      ) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                    }
                   />
                   <FieldError error={errors.chequeNumero} touched={touched.chequeNumero} />
                 </div>
@@ -326,7 +331,7 @@ const ClientPaymentForm = () => {
               <button
                 type="button"
                 onClick={() => navigate('/client-payment')}
-                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
               >
                 Cancelar
               </button>

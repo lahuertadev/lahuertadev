@@ -5,11 +5,11 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { supplierUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import AlertDialog from '../../../components/DialogAlert';
-import BusinessIcon from '@mui/icons-material/Business';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import BusinessIcon from '@mui/icons-material/BusinessOutlined';
+import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import EditIcon from '@mui/icons-material/EditOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -77,7 +77,7 @@ const SupplierDetail = () => {
         <p className="text-sm text-red-500">Error al cargar el proveedor.</p>
         <button
           onClick={() => navigate('/supplier')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-blue-lahuerta transition-colors"
+          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
         >
           <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
         </button>
@@ -92,9 +92,9 @@ const SupplierDetail = () => {
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
         <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/supplier')}>Proveedores</span>
+        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/supplier')}>Proveedores</span>
         <span className="text-xs">›</span>
         <span className="text-on-surface font-semibold">{supplier.nombre}</span>
       </nav>
@@ -147,7 +147,7 @@ const SupplierDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/supplier')}
-              className="w-full py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>
@@ -157,7 +157,7 @@ const SupplierDetail = () => {
             <button
               type="button"
               onClick={() => navigate('/supplier')}
-              className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
+              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
             >
               <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
             </button>

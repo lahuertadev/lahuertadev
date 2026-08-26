@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { billUrl } from '../../../constants/urls';
 import '../../../styles/print-remito.css';
+import logoLaHuerta from '../../../assets/logo-lahuerta-sin-fondo.png';
 
 const LA_HUERTA = {
   nombre: 'La Huerta',
@@ -20,6 +22,8 @@ const formatDateAR = (isoDate) => {
   const [y, m, d] = isoDate.split('-');
   return `${d}/${m}/${y}`;
 };
+
+const ITEMS_PER_PAGE = 15;
 
 const BillPrintView = () => {
   const { id } = useParams();
@@ -47,6 +51,11 @@ const BillPrintView = () => {
   const billNumber = String(bill.numero_comprobante || bill.id).padStart(8, '0');
   const [serie, numero] = ['00001', billNumber.slice(-4)];
 
+  const itemPages = [];
+  for (let i = 0; i < Math.max(items.length, 1); i += ITEMS_PER_PAGE) {
+    itemPages.push(items.slice(i, i + ITEMS_PER_PAGE));
+  }
+
   return (
     <div className="remito-page">
       {/* Botones de acción (no se imprimen) */}
@@ -60,17 +69,22 @@ const BillPrintView = () => {
           Volver al listado
         </Button>
         <button onClick={() => window.print()} className="btn-print">
-          🖨 Imprimir / Guardar PDF
+          <PrintOutlinedIcon fontSize="small" /> Imprimir / Guardar PDF
         </button>
       </div>
 
       {/* ══════════════════ REMITO ══════════════════ */}
+      {itemPages.map((pageItems, pageIdx) => (
+      <div key={pageIdx} className={`remito-sheet${pageIdx < itemPages.length - 1 ? ' remito-break' : ''}`}>
       <div className="remito">
         {/* CABECERA */}
         <div className="remito-header">
           {/* Columna izquierda: datos de La Huerta */}
           <div className="remito-empresa">
-            <div className="remito-empresa-nombre">{LA_HUERTA.nombre}</div>
+            <div className="remito-empresa-nombre">
+              <img src={logoLaHuerta} alt="La Huerta" className="remito-empresa-logo" />
+              {LA_HUERTA.nombre}
+            </div>
             <div className="remito-empresa-sub">{LA_HUERTA.propietario}</div>
             <div className="remito-empresa-sub">{LA_HUERTA.direccion}</div>
             <div className="remito-empresa-sub">Email: {LA_HUERTA.email}</div>
@@ -161,7 +175,7 @@ const BillPrintView = () => {
             </tr>
           </thead>
           <tbody>
-            {items.map((it, idx) => {
+            {pageItems.map((it, idx) => {
               const qty = parseFloat(it.cantidad) || 0;
               const price = parseFloat(it.precio_aplicado) || 0;
               const subtotal = qty * price;
@@ -182,7 +196,7 @@ const BillPrintView = () => {
               );
             })}
             {/* Filas vacías para completar el remito */}
-            {Array.from({ length: Math.max(0, 12 - items.length) }).map((_, i) => (
+            {Array.from({ length: Math.max(0, ITEMS_PER_PAGE - pageItems.length) }).map((_, i) => (
               <tr key={`empty-${i}`} className="remito-tabla-row">
                 <td className="remito-tabla-cant-cell">&nbsp;</td>
                 <td className="remito-tabla-desc-cell">&nbsp;</td>
@@ -194,8 +208,14 @@ const BillPrintView = () => {
 
         {/* Total */}
         <div className="remito-total-row">
-          <span className="remito-total-label">TOTAL</span>
-          <span className="remito-total-value">$ {parseFloat(total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+          <span className="remito-total-productos">Productos: {items.length}</span>
+          {itemPages.length > 1 ? (
+            <span className="remito-hoja-indicator">Hoja {pageIdx + 1} de {itemPages.length}</span>
+          ) : <span />}
+          <div className="remito-total-amount">
+            <span className="remito-total-label">TOTAL</span>
+            <span className="remito-total-value">$ {parseFloat(total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
+          </div>
         </div>
 
         {/* Firma */}
@@ -210,6 +230,8 @@ const BillPrintView = () => {
           </div>
         </div>
       </div>
+      </div>
+      ))}
     </div>
   );
 };

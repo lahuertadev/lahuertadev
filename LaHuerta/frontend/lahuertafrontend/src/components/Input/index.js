@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import Visibility from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOff from '@mui/icons-material/VisibilityOffOutlined';
 
-const inputCls = (hasError, isPassword) =>
-  `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
+const inputCls = (hasError, isPassword, isLocked) =>
+  `w-full px-3 py-2.5 rounded-lg border text-sm placeholder:text-gray-400 focus:outline-none transition-all ${
     isPassword ? 'pr-10' : ''
   } ${
-    hasError
-      ? 'border-red-400 ring-2 ring-red-100'
-      : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+    isLocked
+      ? 'bg-field-locked border-field-locked-border text-on-surface-muted select-none cursor-not-allowed'
+      : `bg-surface-low text-on-surface focus:ring-2 ${
+          hasError
+            ? 'border-red-400 ring-2 ring-red-100'
+            : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+        }`
   }`;
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -30,6 +34,8 @@ const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted upperca
  *   regexErrorText — mensaje si falla regex (default: 'Formato inválido')
  *   multiline      — renderiza <textarea> en lugar de <input>
  *   autoComplete   — atributo autocomplete
+ *   readOnly       — campo bloqueado (no editable): se ve grisado y con cursor "no permitido",
+ *                     acorde al tema claro/oscuro, sin necesidad de estilos por afuera
  *   className      — clases adicionales
  */
 const CustomInput = ({
@@ -46,6 +52,8 @@ const CustomInput = ({
   regexErrorText = 'Formato inválido',
   multiline = false,
   autoComplete,
+  readOnly = false,
+  disabled = false,
   className = '',
   // Props MUI heredados — absorbidos para no pasarlos al DOM
   variant,
@@ -69,6 +77,7 @@ const CustomInput = ({
   const errorMsg = regexError || helperText;
   const isError = Boolean(errorMsg);
   const isPassword = type === 'password';
+  const isLocked = readOnly || disabled;
 
   const fieldProps = {
     id: `${name}-input`,
@@ -78,7 +87,9 @@ const CustomInput = ({
     maxLength,
     required,
     autoComplete,
-    className: `${inputCls(isError, isPassword)}${className ? ` ${className}` : ''}`,
+    readOnly,
+    disabled,
+    className: `${inputCls(isError, isPassword, isLocked)}${className ? ` ${className}` : ''}`,
     ...props,
   };
 

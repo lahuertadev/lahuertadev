@@ -66,7 +66,8 @@ class SupplierViewSet(ViewSet):
 
     def create(self, request):
         '''
-        Crea un nuevo proveedor. La cuenta corriente se inicializa en 0.
+        Crea un nuevo proveedor. La cuenta corriente inicial es opcional
+        (por defecto 0) y puede indicarse en la creación.
         '''
         try:
             serializer = SupplierCreateSerializer(data=request.data)
@@ -90,7 +91,7 @@ class SupplierViewSet(ViewSet):
 
     def update(self, request, pk=None):
         '''
-        Actualiza un proveedor. La cuenta corriente no es modificable por este endpoint.
+        Actualiza un proveedor, incluyendo la cuenta corriente.
         '''
         try:
             supplier = self.supplier_repository.get_supplier_by_id(pk)

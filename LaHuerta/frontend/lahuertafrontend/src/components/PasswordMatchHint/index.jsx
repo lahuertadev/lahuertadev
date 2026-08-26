@@ -1,6 +1,6 @@
 import React from 'react';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
+import CancelIcon from '@mui/icons-material/CancelOutlined';
 
 /**
  * PasswordMatchHint — indica en vivo si "Confirmar contraseña" coincide con la contraseña.

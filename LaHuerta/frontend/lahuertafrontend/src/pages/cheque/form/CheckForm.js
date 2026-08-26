@@ -6,10 +6,11 @@ import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
 import { checkUrl, bankUrl, checkStateUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
+import CustomInput from '../../../components/Input';
 import BasicDatePicker from '../../../components/DatePicker';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -145,9 +146,9 @@ const CheckForm = () => {
 
           {/* Breadcrumbs */}
           <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
             <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-blue-lahuerta cursor-pointer transition-colors" onClick={() => navigate('/check')}>Cheques</span>
+            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/check')}>Cheques</span>
             <span className="text-xs">›</span>
             <span className="text-on-surface font-semibold">{id ? 'Editar' : 'Nuevo'}</span>
           </nav>
@@ -155,18 +156,17 @@ const CheckForm = () => {
           {/* 1. Datos del cheque */}
           <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Número</label>
-              <input
+              <CustomInput
+                label="Número"
                 name="numero"
                 type="number"
                 min="1"
                 value={values.numero}
                 onChange={handleChange}
                 placeholder="Nº de cheque"
-                className={inputCls(touched.numero && errors.numero) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
                 disabled={!!id}
+                helperText={touched.numero ? errors.numero : ''}
               />
-              <FieldError error={errors.numero} touched={touched.numero} />
             </div>
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Banco</label>
@@ -241,7 +241,7 @@ const CheckForm = () => {
             <button
               type="button"
               onClick={() => navigate('/check')}
-              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted hover:bg-surface-low rounded-lg transition-colors"
+              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
             >
               Cancelar
             </button>

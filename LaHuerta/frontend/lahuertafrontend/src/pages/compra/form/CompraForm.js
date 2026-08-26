@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import Autocomplete from '@mui/material/Autocomplete';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
-import DeleteIcon from '@mui/icons-material/Delete';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -14,19 +14,28 @@ import { buyUrl, supplierUrl, productUrl, saleTypeUrl, containerTypeUrl } from '
 import { formatCurrency } from '../../../utils/currency';
 import AmountInput from '../../../components/AmountInput';
 import Toast from '../../../components/Toast';
+import CustomInput from '../../../components/Input';
 import IconLabelButtons from '../../../components/Button';
 import BasicSelect from '../../../components/Select';
+import BasicDatePicker from '../../../components/DatePicker';
 import AlertDialog from '../../../components/DialogAlert';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
+const formatTelefono = (raw = '') => {
+  const digits = (raw || '').replace(/\D/g, '').slice(0, 10);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+};
+
 const autocompleteSx = (hasError) => ({
   '& .MuiOutlinedInput-root': {
-    backgroundColor: '#f0f4f7',
+    backgroundColor: 'var(--color-surface-low)',
     borderRadius: '0.5rem',
     fontSize: '0.875rem',
     padding: '0 !important',
     '& fieldset': {
-      borderColor: hasError ? '#f87171' : '#e3e9ed',
+      borderColor: hasError ? '#f87171' : 'var(--color-border-subtle)',
     },
     '&:hover fieldset': {
       borderColor: hasError ? '#f87171' : '#4a7bc4',
@@ -39,7 +48,7 @@ const autocompleteSx = (hasError) => ({
   '& .MuiInputBase-input': {
     padding: '0.625rem 0.75rem !important',
     fontSize: '0.875rem',
-    color: '#2c3437',
+    color: 'var(--color-on-surface)',
   },
 });
 
@@ -56,10 +65,14 @@ const EMPTY_VACIO = {
   precio_unitario: '',
 };
 
+// Label chico en mayúsculas, mismo patrón que ya usan CustomInput/BasicSelect en el resto del sitio.
+const mobileLabelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1';
+
 const CompraForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
+  const isMobile = useMediaQuery('(max-width:600px)');
 
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -382,9 +395,14 @@ const CompraForm = () => {
     }
   };
 
+  // El botón Confirmar queda habilitado recién cuando el formulario está completo:
+  // proveedor + fecha cargados y al menos un producto con cantidad y precio válidos.
+  // Los vacíos son opcionales, así que no forman parte de esta validación.
+  const isFormComplete = Object.keys(validate()).length === 0;
+
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto py-6 px-4 bg-white rounded shadow-md w-full max-w-5xl">
+    <div className="container mx-auto py-6 px-4 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-5xl">
       <Toast
         open={toast.open}
         message={toast.message}
@@ -392,56 +410,51 @@ const CompraForm = () => {
       />
 
       {/* Encabezado */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate('/buy')}
           color="primary"
           variant="outlined"
+          sx={{ alignSelf: 'flex-start' }}
         >
           Volver
         </Button>
-        <h1 className="text-2xl font-bold text-gray-800">
+        <h1 className="text-xl sm:text-2xl font-bold text-on-surface sm:flex-1 sm:text-center">
           {isEdit ? `Editar Compra #${String(id).padStart(8, '0')}` : 'Nueva Compra'}
         </h1>
-        <div className="w-20" />
+        <div className="hidden sm:block w-20" />
       </div>
 
-      <hr className="border-gray-200 mb-6" />
+      <hr className="border-border-subtle mb-6" />
 
       {/* Sección: Datos de la compra */}
       <div className="space-y-4 mb-6">
-        <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Datos de la compra</h3>
+        <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">Datos de la compra</h3>
 
       {/* Fila 1: Proveedor + Fecha */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="md:col-span-2">
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Proveedor *</label>
-          <Autocomplete
-            options={suppliers}
-            value={selectedSupplier}
-            onChange={(_, value) => setSelectedSupplier(value)}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="Buscar proveedor..."
-                error={Boolean(errors.supplier)}
-                helperText={errors.supplier}
-                sx={autocompleteSx(Boolean(errors.supplier))}
-              />
-            )}
+          <BasicSelect
+            label="Proveedor *"
+            name="supplier"
+            value={selectedSupplier ? { name: selectedSupplier.nombre, value: selectedSupplier.id } : null}
+            options={suppliers.map((s) => ({ name: s.nombre, value: s.id }))}
+            onChange={(e) => {
+              const supplierId = e.target.value?.value;
+              setSelectedSupplier(suppliers.find((s) => s.id === supplierId) || null);
+            }}
+            error={errors.supplier}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha *</label>
-          <input
-            type="date"
+          <BasicDatePicker
+            label="Fecha *"
+            name="fecha"
             value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-            className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 ${
-              errors.fecha ? 'border-red-500' : 'border-gray-300'
-            }`}
+            onChange={(date) => setFecha(date)}
+            hasError={Boolean(errors.fecha)}
           />
           {errors.fecha && <p className="text-red-500 text-xs mt-1">{errors.fecha}</p>}
         </div>
@@ -451,27 +464,30 @@ const CompraForm = () => {
       {selectedSupplier && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Mercado</label>
-            <input
+            <CustomInput
               readOnly
+              label="Mercado"
+              name="supplierMercado"
               value={selectedSupplier.mercado?.descripcion || ''}
-              className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm"
+              onChange={() => {}}
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Puesto</label>
-            <input
+            <CustomInput
               readOnly
+              label="Puesto"
+              name="supplierPuesto"
               value={selectedSupplier.puesto || ''}
-              className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm"
+              onChange={() => {}}
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Contacto</label>
-            <input
+            <CustomInput
               readOnly
-              value={selectedSupplier.telefono || ''}
-              className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm"
+              label="Contacto"
+              name="supplierContacto"
+              value={formatTelefono(selectedSupplier.telefono)}
+              onChange={() => {}}
             />
           </div>
         </div>
@@ -490,12 +506,12 @@ const CompraForm = () => {
               color="primary"
             />
           }
-          label={<span className="text-sm font-semibold text-gray-700">¿Se dejó seña?</span>}
+          label={<span className="text-sm font-semibold text-on-surface">¿Se dejó seña?</span>}
         />
 
         {tieneSenia && (
           <div className="mt-2 max-w-xs">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Importe señado</label>
+            <label className="block text-sm font-semibold text-on-surface mb-1">Importe señado</label>
             <AmountInput
               name="senia"
               value={senia}
@@ -509,7 +525,7 @@ const CompraForm = () => {
 
       {/* Sección: Productos */}
       <div className="space-y-4 mb-6">
-        <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Productos</h3>
+        <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">Productos</h3>
 
       {/* Tabla de productos */}
       <div className="mb-4">
@@ -524,47 +540,114 @@ const CompraForm = () => {
           </button>
         </div>
 
+        {isMobile ? (
+          <div className="space-y-3">
+            {items.map((item, index) => (
+              <div key={index} className="border border-border-subtle rounded-lg p-3 bg-surface-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={mobileLabelCls}>Producto {index + 1}</span>
+                  {items.length > 1 && (
+                    <IconButton size="small" onClick={() => removeItem(index)} color="error">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </div>
+
+                <BasicSelect
+                  label="Producto"
+                  name={`producto_${index}`}
+                  value={item.producto ? { name: item.producto.descripcion, value: item.producto.id } : null}
+                  options={getAvailableProducts(index).map((p) => ({ name: p.descripcion, value: p.id }))}
+                  onChange={(e) => {
+                    const productId = e.target.value?.value;
+                    handleProductSelect(index, products.find((p) => p.id === productId) || null);
+                  }}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={mobileLabelCls}>Cantidad</label>
+                    <TextField
+                      type="number"
+                      size="small"
+                      fullWidth
+                      inputProps={{ min: 0, step: 0.01 }}
+                      value={item.cantidad_producto}
+                      onChange={(e) => updateItem(index, 'cantidad_producto', e.target.value)}
+                      error={Boolean(errors[`item_${index}_cantidad`])}
+                    />
+                  </div>
+                  <BasicSelect
+                    label="Tipo venta"
+                    name={`tipo_venta_${index}`}
+                    value={
+                      item.tipo_venta
+                        ? { name: saleTypes.find((st) => st.id === item.tipo_venta)?.descripcion, value: item.tipo_venta }
+                        : null
+                    }
+                    options={saleTypes.map((st) => ({ name: st.descripcion, value: st.id }))}
+                    onChange={(e) => updateItem(index, 'tipo_venta', e.target.value?.value ?? null)}
+                    placeholder="Opciones"
+                  />
+                </div>
+
+                <div>
+                  <label className={mobileLabelCls}>Precio</label>
+                  <AmountInput
+                    name={`precio_${index}`}
+                    value={item.precio}
+                    onChange={(raw) => updateItem(index, 'precio', raw)}
+                    hasError={Boolean(errors[`item_${index}_precio`])}
+                  />
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t border-border-subtle">
+                  <span className={mobileLabelCls + ' mb-0'}>Subtotal</span>
+                  <span className="font-semibold text-on-surface">
+                    {item.producto && parseFloat(item.precio) > 0
+                      ? formatCurrency(calculateItemSubtotal(item))
+                      : '—'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="bg-gray-100 text-gray-700">
-                <th className="border border-gray-200 px-2 py-2 text-center w-12">#</th>
-                <th className="border border-gray-200 px-2 py-2 text-center">Producto</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-28">Cantidad</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-32">Tipo venta</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-32">Precio</th>
-                <th className="border border-gray-200 px-2 py-2 text-center w-28">Subtotal</th>
-                <th className="border border-gray-200 px-2 py-2 w-10"></th>
+              <tr className="bg-surface-low text-on-surface">
+                <th className="border border-border-subtle px-2 py-2 text-center w-12">#</th>
+                <th className="border border-border-subtle px-2 py-2 text-center">Producto</th>
+                <th className="border border-border-subtle px-2 py-2 text-center w-28">Cantidad</th>
+                <th className="border border-border-subtle px-2 py-2 text-center w-32">Tipo venta</th>
+                <th className="border border-border-subtle px-2 py-2 text-center w-32">Precio</th>
+                <th className="border border-border-subtle px-2 py-2 text-center w-28">Subtotal</th>
+                <th className="border border-border-subtle px-2 py-2 w-10"></th>
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="border border-gray-200 px-2 py-1 text-center text-gray-400">
+                <tr key={index} className="hover:bg-surface-low">
+                  <td className="border border-border-subtle px-2 py-1 text-center text-on-surface-muted">
                     {index + 1}
                   </td>
 
                   {/* Producto */}
-                  <td className="border border-gray-200 px-2 py-1 align-middle">
-                    <Autocomplete
-                      options={getAvailableProducts(index)}
-                      value={item.producto}
-                      onChange={(_, value) => handleProductSelect(index, value)}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder="Escribir producto..."
-                          sx={{
-                            ...autocompleteSx(false),
-                            minWidth: 200,
-                          }}
-                        />
-                      )}
+                  <td className="border border-border-subtle px-2 py-1 align-middle" style={{ minWidth: 200 }}>
+                    <BasicSelect
+                      name={`producto_${index}`}
+                      value={item.producto ? { name: item.producto.descripcion, value: item.producto.id } : null}
+                      options={getAvailableProducts(index).map((p) => ({ name: p.descripcion, value: p.id }))}
+                      onChange={(e) => {
+                        const productId = e.target.value?.value;
+                        handleProductSelect(index, products.find((p) => p.id === productId) || null);
+                      }}
                     />
                   </td>
 
                   {/* Cantidad */}
-                  <td className="border border-gray-200 px-2 py-1">
+                  <td className="border border-border-subtle px-2 py-1">
                     <TextField
                       type="number"
                       size="small"
@@ -578,7 +661,7 @@ const CompraForm = () => {
                   </td>
 
                   {/* Tipo venta */}
-                  <td className="border border-gray-200 px-2 py-1">
+                  <td className="border border-border-subtle px-2 py-1">
                     <BasicSelect
                       name={`tipo_venta_${index}`}
                       value={
@@ -588,32 +671,29 @@ const CompraForm = () => {
                       }
                       options={saleTypes.map((st) => ({ name: st.descripcion, value: st.id }))}
                       onChange={(e) => updateItem(index, 'tipo_venta', e.target.value?.value ?? null)}
+                      placeholder="Opciones"
                     />
                   </td>
 
                   {/* Precio */}
-                  <td className="border border-gray-200 px-2 py-1">
-                    <TextField
-                      type="number"
-                      size="small"
-                      fullWidth
-                      inputProps={{ min: 0, step: 0.01 }}
+                  <td className="border border-border-subtle px-2 py-1">
+                    <AmountInput
+                      name={`precio_${index}`}
                       value={item.precio}
-                      onChange={(e) => updateItem(index, 'precio', e.target.value)}
-                      error={Boolean(errors[`item_${index}_precio`])}
-                      sx={{ '& input': { textAlign: 'right' } }}
+                      onChange={(raw) => updateItem(index, 'precio', raw)}
+                      hasError={Boolean(errors[`item_${index}_precio`])}
                     />
                   </td>
 
                   {/* Subtotal */}
-                  <td className="border border-gray-200 px-2 py-1 text-right font-medium text-gray-700">
+                  <td className="border border-border-subtle px-2 py-1 text-right font-medium text-on-surface">
                     {item.producto && parseFloat(item.precio) > 0
                       ? formatCurrency(calculateItemSubtotal(item))
                       : '—'}
                   </td>
 
                   {/* Eliminar */}
-                  <td className="border border-gray-200 px-1 py-1 text-center">
+                  <td className="border border-border-subtle px-1 py-1 text-center">
                     {items.length > 1 && (
                       <IconButton size="small" onClick={() => removeItem(index)} color="error">
                         <DeleteIcon fontSize="small" />
@@ -625,6 +705,7 @@ const CompraForm = () => {
             </tbody>
           </table>
         </div>
+        )}
 
         {(errors.items_empty || errors.items_duplicated) && (
           <div className="mt-2">
@@ -643,18 +724,18 @@ const CompraForm = () => {
             {seniaValue > 0 && (
               <>
                 <div>
-                  <span className="text-gray-500 text-sm mr-4">SUBTOTAL</span>
-                  <span className="text-base font-medium text-gray-700">{formatCurrency(subtotal)}</span>
+                  <span className="text-on-surface-muted text-sm mr-4">SUBTOTAL</span>
+                  <span className="text-base font-medium text-on-surface">{formatCurrency(subtotal)}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500 text-sm mr-4">SEÑA</span>
+                  <span className="text-on-surface-muted text-sm mr-4">SEÑA</span>
                   <span className="text-base font-medium text-red-500">- {formatCurrency(seniaValue)}</span>
                 </div>
               </>
             )}
             <div>
-              <span className="text-gray-500 text-sm mr-4">TOTAL</span>
-              <span className="text-xl font-bold text-gray-800">{formatCurrency(total)}</span>
+              <span className="text-on-surface-muted text-sm mr-4">TOTAL</span>
+              <span className="text-xl font-bold text-on-surface">{formatCurrency(total)}</span>
             </div>
           </div>
         </div>
@@ -664,25 +745,75 @@ const CompraForm = () => {
 
       {/* Sección: Vacíos */}
       <div className="space-y-4 mb-6">
-        <h3 className="text-xl font-semibold border-b-2 border-black pb-2">Vacíos</h3>
+        <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">Vacíos</h3>
 
         {vacios.length === 0 ? (
-          <p className="text-sm text-gray-400">Sin vacíos registrados.</p>
+          <p className="text-sm text-on-surface-muted">Sin vacíos registrados.</p>
+        ) : isMobile ? (
+          <div className="space-y-3">
+            {vacios.map((vacio, index) => (
+              <div key={index} className="border border-border-subtle rounded-lg p-3 bg-surface-card space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={mobileLabelCls}>Vacío {index + 1}</span>
+                  <IconButton size="small" onClick={() => removeVacio(index)} color="error">
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </div>
+
+                <BasicSelect
+                  label="Tipo"
+                  name={`vacio_tipo_${index}`}
+                  value={
+                    vacio.tipo_contenedor
+                      ? {
+                          name: containerTypes.find((ct) => ct.id === vacio.tipo_contenedor)?.descripcion,
+                          value: vacio.tipo_contenedor,
+                        }
+                      : null
+                  }
+                  options={getAvailableContainerTypes(index).map((ct) => ({ name: ct.descripcion, value: ct.id }))}
+                  onChange={(e) => updateVacio(index, 'tipo_contenedor', e.target.value?.value ?? null)}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={mobileLabelCls}>Cantidad</label>
+                    <TextField
+                      type="number"
+                      size="small"
+                      fullWidth
+                      inputProps={{ min: 0, step: 1 }}
+                      value={vacio.cantidad}
+                      onChange={(e) => updateVacio(index, 'cantidad', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={mobileLabelCls}>Precio seña</label>
+                    <AmountInput
+                      name={`vacio_precio_${index}`}
+                      value={vacio.precio_unitario}
+                      onChange={(raw) => updateVacio(index, 'precio_unitario', raw)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-gray-100 text-gray-700">
-                  <th className="border border-gray-200 px-2 py-2 text-center">Tipo</th>
-                  <th className="border border-gray-200 px-2 py-2 text-center w-28">Cantidad</th>
-                  <th className="border border-gray-200 px-2 py-2 text-center w-36">Precio seña</th>
-                  <th className="border border-gray-200 px-2 py-2 w-10"></th>
+                <tr className="bg-surface-low text-on-surface">
+                  <th className="border border-border-subtle px-2 py-2 text-center">Tipo</th>
+                  <th className="border border-border-subtle px-2 py-2 text-center w-28">Cantidad</th>
+                  <th className="border border-border-subtle px-2 py-2 text-center w-36">Precio seña</th>
+                  <th className="border border-border-subtle px-2 py-2 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {vacios.map((vacio, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="border border-gray-200 px-2 py-1">
+                  <tr key={index} className="hover:bg-surface-low">
+                    <td className="border border-border-subtle px-2 py-1">
                       <BasicSelect
                         name={`vacio_tipo_${index}`}
                         value={
@@ -697,7 +828,7 @@ const CompraForm = () => {
                         onChange={(e) => updateVacio(index, 'tipo_contenedor', e.target.value?.value ?? null)}
                       />
                     </td>
-                    <td className="border border-gray-200 px-2 py-1">
+                    <td className="border border-border-subtle px-2 py-1">
                       <TextField
                         type="number"
                         size="small"
@@ -708,14 +839,14 @@ const CompraForm = () => {
                         sx={{ ...autocompleteSx(false), '& input': { textAlign: 'right' } }}
                       />
                     </td>
-                    <td className="border border-gray-200 px-2 py-1">
+                    <td className="border border-border-subtle px-2 py-1">
                       <AmountInput
                         name={`vacio_precio_${index}`}
                         value={vacio.precio_unitario}
                         onChange={(raw) => updateVacio(index, 'precio_unitario', raw)}
                       />
                     </td>
-                    <td className="border border-gray-200 px-1 py-1 text-center">
+                    <td className="border border-border-subtle px-1 py-1 text-center">
                       <IconButton size="small" onClick={() => removeVacio(index)} color="error">
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -755,21 +886,22 @@ const CompraForm = () => {
       />
 
       {/* Acciones */}
-      <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-gray-200">
-        <Button
-          variant="outlined"
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-center gap-3 sm:gap-4 mt-6 pt-4 border-t border-border-subtle">
+        <button
+          type="button"
           onClick={() => navigate('/buy')}
-          sx={{ textTransform: 'none', fontWeight: 700, px: 4, py: 1.25 }}
+          className="w-full sm:w-auto px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
         >
           Cancelar
-        </Button>
+        </button>
 
         <IconLabelButtons
           label={saving ? 'Guardando…' : 'Confirmar'}
           variant="contained"
           size="large"
-          disabled={saving}
+          disabled={saving || !isFormComplete}
           onClick={handleSave}
+          sx={{ width: { xs: '100%', sm: 'auto' } }}
         />
       </div>
     </div>

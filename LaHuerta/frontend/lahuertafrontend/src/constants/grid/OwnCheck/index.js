@@ -1,6 +1,6 @@
 import React from 'react';
 import Tooltip from '@mui/material/Tooltip';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
 
 const STATE_CONFIG = {
   'EMITIDO': { label: 'Emitido', bg: '#e8f0fb', color: '#4a7bc4' },

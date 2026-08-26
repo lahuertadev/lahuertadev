@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import axios from 'axios';
-import CakeIcon from '@mui/icons-material/Cake';
-import CelebrationIcon from '@mui/icons-material/Celebration';
+import CakeIcon from '@mui/icons-material/CakeOutlined';
+import CelebrationIcon from '@mui/icons-material/CelebrationOutlined';
 import ActionAreaCard from '../components/Card';
 import { cardOptions } from '../constants/cardOptions';
 import { authCelebrationsUrl } from '../constants/urls';

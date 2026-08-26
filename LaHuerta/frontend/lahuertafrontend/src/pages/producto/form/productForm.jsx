@@ -5,8 +5,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 import CustomInput from '../../../components/Input';
-import BasicSelect from '../../../components/Select';
-import IconLabelButtons from '../../../components/Button';
 import { loadOptions } from '../../../utils/selectOptions';
 import {
   productUrl,
@@ -14,7 +12,35 @@ import {
   containerTypeUrl,
   unitTypeUrl,
 } from '../../../constants/urls';
+import Inventory2Icon from '@mui/icons-material/Inventory2Outlined';
+import StraightenIcon from '@mui/icons-material/StraightenOutlined';
 
+// ── Estilos reutilizables ─────────────────────────────────────────────────────
+const inputCls = (hasError) =>
+  `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
+    hasError
+      ? 'border-red-400 ring-2 ring-red-100'
+      : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+  }`;
+
+const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
+
+const SectionCard = ({ icon, title, children, cols = 3 }) => (
+  <section className="space-y-3">
+    <div className="flex items-center gap-2 px-1">
+      <span className="text-blue-lahuerta">{icon}</span>
+      <h2 className="text-base font-semibold text-on-surface">{title}</h2>
+    </div>
+    <div className={`bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle grid grid-cols-1 md:grid-cols-${cols} gap-6`}>
+      {children}
+    </div>
+  </section>
+);
+
+const FieldError = ({ error, touched }) =>
+  touched && error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null;
+
+// ── Componente principal ──────────────────────────────────────────────────────
 const ProductForm = () => {
   const [selectOptions, setSelectOptions] = useState({
     categories: [],
@@ -47,10 +73,11 @@ const ProductForm = () => {
     );
 
     const unitTypes = await loadOptions(unitTypeUrl, (data) =>
-      data.map((item) => ({ 
-        name: item.descripcion, 
+      data.map((item) => ({
+        name: item.descripcion,
         value: item.id,
-        measurementType: item.tipo_medicion}))
+        measurementType: item.tipo_medicion,
+      }))
     );
 
     setSelectOptions({
@@ -75,10 +102,10 @@ const ProductForm = () => {
           ? { name: data.tipo_contenedor.descripcion, value: data.tipo_contenedor.id }
           : '',
         unitType: data.tipo_unidad
-          ? { 
-            name: data.tipo_unidad.descripcion, 
+          ? {
+            name: data.tipo_unidad.descripcion,
             value: data.tipo_unidad.id,
-            measurementType: data.tipo_unidad.tipo_medicion 
+            measurementType: data.tipo_unidad.tipo_medicion
           }
           : '',
         unitsPerBundle: data.cantidad_por_bulto ?? '',
@@ -113,7 +140,7 @@ const ProductForm = () => {
 
         return schema.notRequired();
       }),
-      
+
     approximateWeight: Yup.number()
       .transform((value, originalValue) => (originalValue === '' ? null : value))
       .nullable()
@@ -192,104 +219,134 @@ const ProductForm = () => {
         const requiresUnitsPerBundle = measurementType === 'CANTIDAD';
 
         return (
-          <div className="min-h-screen flex items-center justify-center bg-transparent flex-1">
-            <Form className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl space-y-8">
-              {/* Datos del producto */}
-              <div className="space-y-4">
-                <h3 className="text-xl font-semibold border-b-2 border-black pb-2">
-                  Datos del producto
-                </h3>
+          <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Field
-                    as={CustomInput}
-                    label="Descripción"
-                    name="description"
-                    required
-                    className="col-span-2"
-                    onChange={handleChange}
-                  />
+            {/* Breadcrumbs */}
+            <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+              <span className="text-xs">›</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/product')}>Productos</span>
+              <span className="text-xs">›</span>
+              <span className="text-on-surface font-semibold">{id ? 'Editar Producto' : 'Nuevo Producto'}</span>
+            </nav>
 
-                  <BasicSelect
-                    label="Categoría"
-                    name="category"
-                    value={values.category}
-                    options={selectOptions.categories}
-                    onChange={handleChange}
-                  />
-
-                  <BasicSelect
-                    label="Tipo de contenedor"
-                    name="containerType"
-                    value={values.containerType}
-                    options={selectOptions.containerTypes}
-                    onChange={handleChange}
-                  />
-
-                  <BasicSelect
-                    label="Tipo de unidad"
-                    name="unitType"
-                    value={values.unitType}
-                    options={selectOptions.unitTypes}
-                    onChange={(event) => {
-                      handleChange(event);
-
-                      const selectedUnitType = event.target.value;
-                      const selectedMeasurementType = selectedUnitType?.measurementType;
-
-                      if (selectedMeasurementType === 'PESO') {
-                        setFieldValue('unitsPerBundle', '');
-                      }
-
-                      if (selectedMeasurementType === 'CANTIDAD') {
-                        setFieldValue('approximateWeight', '');
-                      }
-                    }}
-                  />
-                  {requiresUnitsPerBundle && (
-                  <Field
-                    as={CustomInput}
-                    label="Cantidad por bulto"
-                    name="unitsPerBundle"
-                    type="number"
-                    required={requiresUnitsPerBundle}
-                    onChange={handleChange}
-                  />
-                  )}
-                  {isWeightBased && (
-                  <Field
-                    as={CustomInput}
-                    label="Peso aproximado"
-                    name="approximateWeight"
-                    type="number"
-                    required={isWeightBased}
-                    onChange={handleChange}
-                  />
-                  )}
-                </div>
-              </div>
-
-              {/* Botón submit */}
-              <div className="mt-8 flex justify-center">
-                <IconLabelButtons
-                  label="Guardar"
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  type="submit"
+            {/* 1. Información General */}
+            <SectionCard icon={<Inventory2Icon sx={{ fontSize: 20 }} />} title="Información General" cols={2}>
+              <div className="md:col-span-2">
+                <Field
+                  as={CustomInput}
+                  label="Descripción *"
+                  name="description"
+                  onChange={handleChange}
+                  helperText={touched.description ? errors.description : ''}
                 />
               </div>
+              <div className="flex flex-col gap-1">
+                <label className={labelCls}>Categoría *</label>
+                <select
+                  name="category"
+                  value={values.category?.value || ''}
+                  onChange={(e) => {
+                    const selected = selectOptions.categories.find(o => String(o.value) === e.target.value) || null;
+                    setFieldValue('category', selected);
+                  }}
+                  className={inputCls(touched.category && errors.category)}
+                >
+                  <option value="">Seleccionar...</option>
+                  {selectOptions.categories.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.name}</option>
+                  ))}
+                </select>
+                <FieldError error={errors.category} touched={touched.category} />
+              </div>
+            </SectionCard>
 
-              {/* Errores */}
-              {Object.keys(errors).map((key) =>
-                touched[key] && errors[key] ? (
-                  <div key={key} className="text-red-500 text-sm mt-2">
-                    {typeof errors[key] === 'string' ? errors[key] : 'Campo inválido'}
-                  </div>
-                ) : null
+            {/* 2. Presentación y Medidas */}
+            <SectionCard icon={<StraightenIcon sx={{ fontSize: 20 }} />} title="Presentación y Medidas">
+              <div className="flex flex-col gap-1">
+                <label className={labelCls}>Tipo de contenedor *</label>
+                <select
+                  name="containerType"
+                  value={values.containerType?.value || ''}
+                  onChange={(e) => {
+                    const selected = selectOptions.containerTypes.find(o => String(o.value) === e.target.value) || null;
+                    setFieldValue('containerType', selected);
+                  }}
+                  className={inputCls(touched.containerType && errors.containerType)}
+                >
+                  <option value="">Seleccionar...</option>
+                  {selectOptions.containerTypes.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.name}</option>
+                  ))}
+                </select>
+                <FieldError error={errors.containerType} touched={touched.containerType} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={labelCls}>Tipo de unidad *</label>
+                <select
+                  name="unitType"
+                  value={values.unitType?.value || ''}
+                  onChange={(e) => {
+                    const selected = selectOptions.unitTypes.find(o => String(o.value) === e.target.value) || null;
+                    setFieldValue('unitType', selected);
+
+                    const selectedMeasurementType = selected?.measurementType;
+                    if (selectedMeasurementType === 'PESO') {
+                      setFieldValue('unitsPerBundle', '');
+                    }
+                    if (selectedMeasurementType === 'CANTIDAD') {
+                      setFieldValue('approximateWeight', '');
+                    }
+                  }}
+                  className={inputCls(touched.unitType && errors.unitType)}
+                >
+                  <option value="">Seleccionar...</option>
+                  {selectOptions.unitTypes.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.name}</option>
+                  ))}
+                </select>
+                <FieldError error={errors.unitType} touched={touched.unitType} />
+              </div>
+              {requiresUnitsPerBundle && (
+                <Field
+                  as={CustomInput}
+                  label="Cantidad por bulto *"
+                  name="unitsPerBundle"
+                  type="number"
+                  onChange={handleChange}
+                  helperText={touched.unitsPerBundle ? errors.unitsPerBundle : ''}
+                />
               )}
-            </Form>
-          </div>
+              {isWeightBased && (
+                <Field
+                  as={CustomInput}
+                  label="Peso aproximado *"
+                  name="approximateWeight"
+                  type="number"
+                  onChange={handleChange}
+                  helperText={touched.approximateWeight ? errors.approximateWeight : ''}
+                />
+              )}
+            </SectionCard>
+
+            {/* Action Bar */}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border-subtle">
+              <button
+                type="button"
+                onClick={() => navigate('/product')}
+                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all"
+              >
+                {id ? 'Guardar cambios' : 'Registrar Producto'}
+              </button>
+            </div>
+
+          </Form>
         );
       }}
     </Formik>

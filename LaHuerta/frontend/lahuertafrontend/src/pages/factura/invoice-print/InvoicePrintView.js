@@ -4,6 +4,7 @@ import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { billUrl } from '../../../constants/urls';
 import '../../../styles/print-invoice.css';
 import logoLaHuerta from '../../../assets/logo-lahuerta-sin-fondo.png';
@@ -100,7 +101,7 @@ const InvoicePrintView = () => {
           Volver al listado
         </Button>
         <button onClick={() => window.print()} className="btn-print">
-          🖨 Imprimir / Guardar PDF
+          <PrintOutlinedIcon fontSize="small" /> Imprimir / Guardar PDF
         </button>
       </div>
 
