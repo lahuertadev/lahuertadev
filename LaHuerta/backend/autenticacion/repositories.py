@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils import timezone
 from django.db import transaction
 from .models import Usuario
 from .interfaces import IUserRepository
@@ -15,7 +16,8 @@ class UserRepository(IUserRepository):
             password=data['password'],
             first_name=data.get('first_name', ''),
             last_name=data.get('last_name', ''),
-            role=data.get('role', Usuario.EMPLOYEE)
+            role=data.get('role', Usuario.EMPLOYEE),
+            is_active=False
         )
 
     def authenticate(self, email, password, request=None):
@@ -26,9 +28,20 @@ class UserRepository(IUserRepository):
         )
 
     def get_user_by_email(self, email):
-        """Obtiene un usuario por su email"""
+        """Obtiene un usuario activo por su email"""
         try:
             return Usuario.objects.get(email=email, is_active=True)
+        except Usuario.DoesNotExist:
+            return None
+
+    def get_user_by_email_any_status(self, email):
+        """
+        Obtiene un usuario por su email sin filtrar por estado activo.
+        Usado en verificación de email, donde el usuario todavía está
+        pendiente de aprobación (is_active=False) al momento de verificar.
+        """
+        try:
+            return Usuario.objects.get(email=email)
         except Usuario.DoesNotExist:
             return None
 
@@ -94,12 +107,23 @@ class UserRepository(IUserRepository):
         """Obtiene los usuarios habilitados"""
         return Usuario.objects.filter(is_active=True)
 
+    def get_superusers(self):
+        """Obtiene los superusuarios activos, para notificaciones administrativas"""
+        return Usuario.objects.filter(role=Usuario.SUPERUSER, is_active=True)
+
     def set_active_status(self, user_id, is_active):
-        """Habilita o deshabilita un usuario. Retorna el usuario actualizado o None si no existe"""
+        """
+        Habilita o deshabilita un usuario. Retorna el usuario actualizado o None si no existe.
+        La primera vez que un superusuario decide el estado de un usuario (lo active o
+        lo rechace) se marca approved_at, para distinguir "pendiente de aprobación"
+        (approved_at=None) de "inactivo" (ya fue revisado, pero está deshabilitado).
+        """
         user = self.get_user_by_id(user_id)
         if not user:
             return None
         user.is_active = is_active
+        if not user.approved_at:
+            user.approved_at = timezone.now()
         user.save()
         return user
 

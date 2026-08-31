@@ -13,7 +13,7 @@ from .views import (
     EmailVerificationView,
     ResendVerificationCodeView,
     UserListView,
-    ToggleUserActiveView,
+    UpdateUserStatusView,
     UpdateUserRoleView
 )
 
@@ -31,7 +31,7 @@ urlpatterns = [
     path('verify-email/', EmailVerificationView.as_view(), name='verify-email'),
     path('resend-verification-code/', ResendVerificationCodeView.as_view(), name='resend-verification-code'),
     path('users/', UserListView.as_view(), name='user-list'),
-    path('users/<int:pk>/toggle-active/', ToggleUserActiveView.as_view(), name='user-toggle-active'),
+    path('users/<int:pk>/status/', UpdateUserStatusView.as_view(), name='user-update-status'),
     path('users/<int:pk>/role/', UpdateUserRoleView.as_view(), name='user-update-role'),
 ]
 

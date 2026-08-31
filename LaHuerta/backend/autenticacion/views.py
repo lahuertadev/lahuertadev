@@ -14,6 +14,7 @@ from .serializers import (
     EmailVerificationSerializer,
     ResendVerificationCodeSerializer,
     UpdateUserRoleSerializer,
+    UpdateUserStatusSerializer,
     ProfileSerializer,
     ProfileUpdateSerializer,
     AvatarUploadSerializer
@@ -25,6 +26,7 @@ from .models import Usuario
 from .utils import (
     send_password_reset_email,
     send_welcome_email_with_verification_code,
+    send_new_user_pending_approval_email,
     create_verification_code_for_user,
     verify_user_email,
     is_verification_code_expired,
@@ -61,7 +63,7 @@ class RegisterView(APIView):
             verification_code = create_verification_code_for_user(user)
 
             send_welcome_email_with_verification_code(user, verification_code)
-            
+
             return Response(
                 {
                     'message': 'Usuario registrado exitosamente. Se ha enviado un código de verificación a tu email.',
@@ -107,13 +109,7 @@ class LoginView(APIView):
                 {'detail':'Credenciales inválidas'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
-        if not user.is_active:
-            return Response(
-                {'detail':'Usuario inactivo'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-        
+
         login(request, user) #* loguea el usuario, request ya auntenticadas. Setea las cookies.
 
         return Response(
@@ -294,8 +290,8 @@ class EmailVerificationView(APIView):
         code = serializer.validated_data['code']
         
         try:
-            user = self.repository.get_user_by_email(email)
-            
+            user = self.repository.get_user_by_email_any_status(email)
+
             if not user:
                 return Response(
                     {'detail': 'Usuario no encontrado.'},
@@ -307,11 +303,14 @@ class EmailVerificationView(APIView):
                     {'message': 'El email ya está verificado.'},
                     status=status.HTTP_200_OK
                 )
-            
+
             if verify_user_email(user, code):
+                superuser_emails = list(self.repository.get_superusers().values_list('email', flat=True))
+                send_new_user_pending_approval_email(user, superuser_emails)
+
                 return Response(
                     {
-                        'message': 'Email verificado exitosamente. Tu cuenta está activa.'
+                        'message': 'Email verificado exitosamente. Tu cuenta está pendiente de aprobación de un administrador.'
                     },
                     status=status.HTTP_200_OK
                 )
@@ -354,10 +353,10 @@ class ResendVerificationCodeView(APIView):
             )
         
         email = serializer.validated_data['email']
-        
+
         try:
-            user = self.repository.get_user_by_email(email)
-            
+            user = self.repository.get_user_by_email_any_status(email)
+
             if not user:
                 return Response(
                     {
@@ -521,9 +520,14 @@ class UserListView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ToggleUserActiveView(APIView):
+class UpdateUserStatusView(APIView):
     """
-    Habilita o deshabilita un usuario. Solo accesible para superusuarios.
+    Habilita o deshabilita un usuario de forma explícita (el nuevo estado viaja
+    en el body, no se infiere invirtiendo el actual). Solo accesible para
+    superusuarios. La primera vez que se decide el estado de un usuario se
+    marca approved_at (ver UserRepository.set_active_status), lo que lo saca
+    del estado "pendiente de aprobación" para siempre, sea cual sea el estado
+    elegido.
     Un superusuario no puede deshabilitarse a sí mismo, ni deshabilitar a
     otro superusuario: esa acción se hace fuera de la API.
     """
@@ -534,6 +538,16 @@ class ToggleUserActiveView(APIView):
         self.repository = repository or UserRepository()
 
     def patch(self, request, pk):
+        serializer = UpdateUserStatusSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        new_is_active = serializer.validated_data['is_active']
+
         try:
             target_user = self.repository.get_user_by_id(pk)
 
@@ -555,14 +569,14 @@ class ToggleUserActiveView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            updated_user = self.repository.set_active_status(pk, not target_user.is_active)
+            updated_user = self.repository.set_active_status(pk, new_is_active)
 
             return Response(
                 UserResponseSerializer(updated_user).data,
                 status=status.HTTP_200_OK
             )
         except Exception as e:
-            print(f"Error al habilitar/deshabilitar usuario: {e}")
+            print(f"Error al actualizar el estado del usuario: {e}")
             return Response(
                 {'detail': 'Error al actualizar el estado del usuario.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

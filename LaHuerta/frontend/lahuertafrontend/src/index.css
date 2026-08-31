@@ -25,6 +25,8 @@
   --color-field-locked-border-rgb: 219 225 230;
   --color-row-highlight:      #4a7bc4;
   --color-row-highlight-rgb:  74 123 196;
+  --color-row-pending:        #ff8800;
+  --color-row-pending-rgb:    255 136 0;
   --color-accent:             #4a7bc4;
   --color-accent-rgb:         74 123 196;
 }
@@ -48,6 +50,8 @@
   --color-field-locked-border-rgb: 51 60 66;
   --color-row-highlight:      #93c5fd;
   --color-row-highlight-rgb:  147 197 253;
+  --color-row-pending:        #fdba74;
+  --color-row-pending-rgb:    253 186 116;
   --color-accent:             #93c5fd;
   --color-accent-rgb:         147 197 253;
 }
