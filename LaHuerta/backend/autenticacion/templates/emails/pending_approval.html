@@ -1,0 +1,26 @@
+{% extends "emails/base_email.html" %}
+{% block title %}Nuevo usuario pendiente de aprobación{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 12px; font-size:20px; color:#2c3437;">Nuevo usuario pendiente de aprobación</h1>
+<p style="margin:0 0 20px; font-size:14px; line-height:1.6; color:#596064;">
+  Se registró un nuevo usuario en La Huerta y ya verificó su email. Está pendiente de tu aprobación para poder ingresar:
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f4f7; border-radius:8px; margin:0 0 24px;">
+  <tr>
+    <td style="padding:12px 16px; font-size:13px; color:#596064;">Nombre</td>
+    <td style="padding:12px 16px; font-size:14px; color:#2c3437; font-weight:600; text-align:right;">{{ user_name }}</td>
+  </tr>
+  <tr>
+    <td style="padding:12px 16px; font-size:13px; color:#596064; border-top:1px solid #e3e9ed;">Email</td>
+    <td style="padding:12px 16px; font-size:14px; color:#2c3437; text-align:right; border-top:1px solid #e3e9ed;">{{ user_email }}</td>
+  </tr>
+  <tr>
+    <td style="padding:12px 16px; font-size:13px; color:#596064; border-top:1px solid #e3e9ed;">Usuario</td>
+    <td style="padding:12px 16px; font-size:14px; color:#2c3437; text-align:right; border-top:1px solid #e3e9ed;">{{ username }}</td>
+  </tr>
+</table>
+<div style="text-align:center; margin:0 0 24px;">
+  <a href="{{ users_url }}" style="display:inline-block; background-color:#4a7bc4; color:#ffffff; text-decoration:none; font-weight:700; font-size:14px; padding:14px 32px; border-radius:8px;">Ir a gestión de Usuarios</a>
+</div>
+<p style="margin:0; font-size:13px; color:#596064; line-height:1.5;">Para habilitarlo, ingresá a la gestión de Usuarios y activá su cuenta.</p>
+{% endblock %}

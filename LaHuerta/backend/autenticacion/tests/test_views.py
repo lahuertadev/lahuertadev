@@ -80,6 +80,8 @@ def test_register_view_success(api_client):
     assert response.data['message'] == 'Usuario registrado exitosamente. Se ha enviado un código de verificación a tu email.'
     assert Usuario.objects.filter(email=data['email']).exists()
     assert 'user' in response.data
+    created_user = Usuario.objects.get(email=data['email'])
+    assert created_user.is_active is False
 
 @pytest.mark.django_db
 def test_register_view_ignores_privileged_role(api_client):
@@ -97,6 +99,7 @@ def test_register_view_ignores_privileged_role(api_client):
     assert response.status_code == status.HTTP_201_CREATED
     created_user = Usuario.objects.get(email=data['email'])
     assert created_user.role == Usuario.EMPLOYEE
+    assert created_user.is_active is False
 
 @pytest.mark.django_db
 def test_register_view_duplicate_email(api_client, test_user):
@@ -563,7 +566,8 @@ def test_celebrations_view_returns_500_on_unexpected_error(mock_repository_class
 # ==================== EMAIL VERIFICATION (VERIFY-EMAIL) VIEW TESTS ====================
 
 @pytest.mark.django_db
-def test_verify_email_success(api_client, test_user):
+@patch('autenticacion.views.send_new_user_pending_approval_email')
+def test_verify_email_success(mock_send_email, api_client, test_user):
     """
     POST /auth/verify-email/ con email y código válidos verifica el email.
     """
@@ -573,10 +577,76 @@ def test_verify_email_success(api_client, test_user):
     response = api_client.post('/api/auth/verify-email/', data)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.data['message'] == 'Email verificado exitosamente. Tu cuenta está activa.'
+    assert response.data['message'] == 'Email verificado exitosamente. Tu cuenta está pendiente de aprobación de un administrador.'
     test_user.refresh_from_db()
     assert test_user.email_verified is True
     assert test_user.email_verification_code is None
+    mock_send_email.assert_called_once()
+
+@pytest.mark.django_db
+@patch('autenticacion.views.send_new_user_pending_approval_email')
+def test_verify_email_pending_approval_user_can_verify(mock_send_email, api_client):
+    """
+    Un usuario recién registrado (is_active=False, pendiente de aprobación) debe
+    poder verificar su email igual: la verificación ocurre antes de la aprobación.
+    """
+    pending_user = Usuario.objects.create_user(
+        email='pending@test.com',
+        username='pendinguser',
+        password='Testpass123!',
+        role=Usuario.EMPLOYEE,
+        is_active=False
+    )
+    code = create_verification_code_for_user(pending_user)
+    data = {'email': pending_user.email, 'code': code}
+
+    response = api_client.post('/api/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    pending_user.refresh_from_db()
+    assert pending_user.email_verified is True
+    assert pending_user.is_active is False
+    mock_send_email.assert_called_once()
+
+@pytest.mark.django_db
+@patch('autenticacion.views.send_new_user_pending_approval_email')
+def test_verify_email_notifies_superusers(mock_send_email, api_client, superuser):
+    """
+    Al verificar el email, se notifica por email a los superusuarios activos
+    para que revisen y aprueben al usuario nuevo.
+    """
+    pending_user = Usuario.objects.create_user(
+        email='pending2@test.com',
+        username='pendinguser2',
+        password='Testpass123!',
+        role=Usuario.EMPLOYEE,
+        is_active=False
+    )
+    code = create_verification_code_for_user(pending_user)
+    data = {'email': pending_user.email, 'code': code}
+
+    response = api_client.post('/api/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    called_user, called_emails = mock_send_email.call_args[0]
+    assert called_user.email == pending_user.email
+    assert called_emails == [superuser.email]
+
+@pytest.mark.django_db
+@patch('autenticacion.views.send_new_user_pending_approval_email')
+def test_verify_email_already_verified_does_not_renotify(mock_send_email, api_client, test_user):
+    """
+    Si el email ya estaba verificado, no se vuelve a notificar a los superusuarios.
+    """
+    test_user.email_verified = True
+    test_user.save()
+    code = create_verification_code_for_user(test_user)
+    data = {'email': test_user.email, 'code': code}
+
+    response = api_client.post('/api/auth/verify-email/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    mock_send_email.assert_not_called()
 
 @pytest.mark.django_db
 def test_verify_email_user_not_found(api_client):
@@ -700,6 +770,28 @@ def test_resend_verification_code_already_verified(mock_send_email, api_client, 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['message'] == 'El email ya está verificado.'
     mock_send_email.assert_not_called()
+
+@pytest.mark.django_db
+@patch('autenticacion.views.send_welcome_email_with_verification_code')
+def test_resend_verification_code_pending_approval_user(mock_send_email, api_client):
+    """
+    Un usuario recién registrado (is_active=False, pendiente de aprobación) debe
+    poder reenviar su código de verificación igual.
+    """
+    pending_user = Usuario.objects.create_user(
+        email='pendingresend@test.com',
+        username='pendingresend',
+        password='Testpass123!',
+        role=Usuario.EMPLOYEE,
+        is_active=False
+    )
+    data = {'email': pending_user.email}
+
+    response = api_client.post('/api/auth/resend-verification-code/', data)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['message'] == 'Se ha enviado un nuevo código de verificación a tu email.'
+    mock_send_email.assert_called_once()
 
 @pytest.mark.django_db
 def test_resend_verification_code_invalid_email(api_client):
@@ -1028,14 +1120,14 @@ def test_user_list_view_returns_500_on_unexpected_error(mock_repository_class, a
     assert response.data['detail'] == 'Error al listar los usuarios.'
 
 
-# ==================== TOGGLE USER ACTIVE VIEW TESTS ====================
+# ==================== UPDATE USER STATUS VIEW TESTS ====================
 
 @pytest.mark.django_db
-def test_toggle_user_active_disables_user(api_client, superuser, test_user):
+def test_update_user_status_disables_user(api_client, superuser, test_user):
     api_client.force_authenticate(user=superuser)
     assert test_user.is_active is True
 
-    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/status/', {'is_active': False})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['is_active'] is False
@@ -1043,10 +1135,10 @@ def test_toggle_user_active_disables_user(api_client, superuser, test_user):
     assert test_user.is_active is False
 
 @pytest.mark.django_db
-def test_toggle_user_active_enables_user(api_client, superuser, inactive_user):
+def test_update_user_status_enables_user(api_client, superuser, inactive_user):
     api_client.force_authenticate(user=superuser)
 
-    response = api_client.patch(f'/api/auth/users/{inactive_user.id}/toggle-active/')
+    response = api_client.patch(f'/api/auth/users/{inactive_user.id}/status/', {'is_active': True})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.data['is_active'] is True
@@ -1054,17 +1146,69 @@ def test_toggle_user_active_enables_user(api_client, superuser, inactive_user):
     assert inactive_user.is_active is True
 
 @pytest.mark.django_db
-def test_toggle_user_active_self_lockout_blocked(api_client, superuser):
+def test_update_user_status_first_decision_stamps_approved_at(api_client, superuser):
+    """
+    Un usuario pendiente (approved_at=None) que es rechazado (is_active=False,
+    la misma opción en la que ya estaba) queda igual de inactivo pero deja de
+    estar "pendiente": approved_at se marca en la primera decisión, sin
+    importar si el resultado es activarlo o no.
+    """
+    pending_user = Usuario.objects.create_user(
+        email='pending-status@test.com',
+        username='pendingstatus',
+        password='Testpass123!',
+        role=Usuario.EMPLOYEE,
+        is_active=False
+    )
+    assert pending_user.approved_at is None
     api_client.force_authenticate(user=superuser)
 
-    response = api_client.patch(f'/api/auth/users/{superuser.id}/toggle-active/')
+    response = api_client.patch(f'/api/auth/users/{pending_user.id}/status/', {'is_active': False})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['is_active'] is False
+    assert response.data['approved_at'] is not None
+    pending_user.refresh_from_db()
+    assert pending_user.is_active is False
+    assert pending_user.approved_at is not None
+
+@pytest.mark.django_db
+def test_update_user_status_reapproved_user_does_not_look_pending_again(api_client, superuser):
+    """
+    Regresión: aprobar a un usuario pendiente y después deshabilitarlo no debe
+    volver a dejarlo "pendiente" — approved_at, una vez seteado, no se borra.
+    """
+    pending_user = Usuario.objects.create_user(
+        email='reapproved@test.com',
+        username='reapproved',
+        password='Testpass123!',
+        role=Usuario.EMPLOYEE,
+        is_active=False
+    )
+    api_client.force_authenticate(user=superuser)
+
+    approve_response = api_client.patch(f'/api/auth/users/{pending_user.id}/status/', {'is_active': True})
+    assert approve_response.data['approved_at'] is not None
+    first_approved_at = approve_response.data['approved_at']
+
+    disable_response = api_client.patch(f'/api/auth/users/{pending_user.id}/status/', {'is_active': False})
+
+    assert disable_response.status_code == status.HTTP_200_OK
+    assert disable_response.data['is_active'] is False
+    assert disable_response.data['approved_at'] == first_approved_at
+
+@pytest.mark.django_db
+def test_update_user_status_self_lockout_blocked(api_client, superuser):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(f'/api/auth/users/{superuser.id}/status/', {'is_active': False})
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     superuser.refresh_from_db()
     assert superuser.is_active is True
 
 @pytest.mark.django_db
-def test_toggle_user_active_cannot_target_superuser(api_client, superuser):
+def test_update_user_status_cannot_target_superuser(api_client, superuser):
     """
     Un superusuario no puede habilitar/deshabilitar a otro superusuario:
     esa acción se hace fuera de la API.
@@ -1077,44 +1221,58 @@ def test_toggle_user_active_cannot_target_superuser(api_client, superuser):
     )
     api_client.force_authenticate(user=superuser)
 
-    response = api_client.patch(f'/api/auth/users/{other_superuser.id}/toggle-active/')
+    response = api_client.patch(f'/api/auth/users/{other_superuser.id}/status/', {'is_active': False})
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     other_superuser.refresh_from_db()
     assert other_superuser.is_active is True
 
 @pytest.mark.django_db
-def test_toggle_user_active_not_found(api_client, superuser):
+def test_update_user_status_not_found(api_client, superuser):
     api_client.force_authenticate(user=superuser)
 
-    response = api_client.patch('/api/auth/users/999999/toggle-active/')
+    response = api_client.patch('/api/auth/users/999999/status/', {'is_active': False})
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 @pytest.mark.django_db
-def test_toggle_user_active_denies_administrator(api_client, administrator, test_user):
+def test_update_user_status_missing_is_active(api_client, superuser, test_user):
+    """
+    Con form-data, un BooleanField ausente se interpreta como checkbox sin
+    marcar (False) por diseño de DRF — por eso se manda como JSON acá, que es
+    lo que efectivamente envía el frontend (axios con Content-Type json).
+    """
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/status/', {}, format='json')
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert 'is_active' in response.data
+
+@pytest.mark.django_db
+def test_update_user_status_denies_administrator(api_client, administrator, test_user):
     api_client.force_authenticate(user=administrator)
 
-    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/status/', {'is_active': False})
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 @pytest.mark.django_db
-def test_toggle_user_active_denies_unauthenticated(api_client, test_user):
-    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+def test_update_user_status_denies_unauthenticated(api_client, test_user):
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/status/', {'is_active': False})
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 @pytest.mark.django_db
 @patch('autenticacion.views.UserRepository')
-def test_toggle_user_active_returns_500_on_unexpected_error(mock_repository_class, api_client, superuser, test_user):
+def test_update_user_status_returns_500_on_unexpected_error(mock_repository_class, api_client, superuser, test_user):
     """
-    PATCH /auth/users/<id>/toggle-active/ devuelve 500 si el repository falla inesperadamente.
+    PATCH /auth/users/<id>/status/ devuelve 500 si el repository falla inesperadamente.
     """
     mock_repository_class.return_value.get_user_by_id.side_effect = Exception('boom')
     api_client.force_authenticate(user=superuser)
 
-    response = api_client.patch(f'/api/auth/users/{test_user.id}/toggle-active/')
+    response = api_client.patch(f'/api/auth/users/{test_user.id}/status/', {'is_active': False})
 
     assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.data['detail'] == 'Error al actualizar el estado del usuario.'

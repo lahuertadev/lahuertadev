@@ -25,13 +25,14 @@ import CloseIcon from '@mui/icons-material/Close';
  *   filtersConfig — array de { label, name, type: 'text'|'date'|'number'|'select', options? }
  *   newLabelText  — texto completo del botón de creación (ej. "Nuevo cliente", "Nueva categoría")
  *   breadcrumbs   — (opcional) array de { label, path? } para mostrar navegación superior
+ *   getRowClassName — (opcional) (params) => string, para resaltar filas (ver DataGridDemo)
  *
  * Props directas:
  *   onAdd         — (opcional) callback personalizado para el botón "Nueva X";
  *                   si no se pasa, navega a fetchUrl.createUrl
  */
 const GenericList = ({ data, onAdd }) => {
-  const { title, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, isRowSelectable, showAdd = true, showEdit = true, showDelete = true } = data;
+  const { title, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -226,6 +227,7 @@ const GenericList = ({ data, onAdd }) => {
               canDelete={canDelete}
               canEdit={canEdit}
               isRowSelectable={isRowSelectable}
+              getRowClassName={getRowClassName}
               showEdit={showEdit}
               showDelete={showDelete}
             />

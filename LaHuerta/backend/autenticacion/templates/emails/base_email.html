@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}La Huerta{% endblock %}</title>
+</head>
+<body style="margin:0; padding:0; background-color:#e3e9ed; font-family: Arial, Helvetica, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#e3e9ed; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background-color:#4a7bc4; padding:24px 32px;">
+              <span style="font-size:20px; font-weight:700; color:#ffffff;">La Huerta</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              {% block content %}{% endblock %}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px; background-color:#f0f4f7; border-top:1px solid #e3e9ed;">
+              <p style="margin:0; font-size:12px; color:#596064; line-height:1.5;">Este es un email automático de La Huerta. Si no reconocés esta acción, podés ignorar este mensaje.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

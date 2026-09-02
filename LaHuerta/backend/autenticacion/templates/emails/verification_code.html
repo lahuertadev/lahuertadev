@@ -1,0 +1,12 @@
+{% extends "emails/base_email.html" %}
+{% block title %}¡Bienvenido a La Huerta!{% endblock %}
+{% block content %}
+<h1 style="margin:0 0 12px; font-size:20px; color:#2c3437;">¡Hola {{ user_name }}!</h1>
+<p style="margin:0 0 24px; font-size:14px; line-height:1.6; color:#596064;">
+  Te damos la bienvenida a La Huerta. Para completar tu registro y activar la verificación de tu cuenta, ingresá el siguiente código:
+</p>
+<div style="text-align:center; margin:0 0 24px;">
+  <span style="display:inline-block; font-size:32px; font-weight:700; letter-spacing:8px; color:#4a7bc4; background-color:rgba(74,123,196,0.1); padding:16px 28px; border-radius:10px;">{{ verification_code }}</span>
+</div>
+<p style="margin:0; font-size:13px; color:#596064; line-height:1.5;">Este código expira en 24 horas. Si no te registraste en La Huerta, podés ignorar este email.</p>
+{% endblock %}

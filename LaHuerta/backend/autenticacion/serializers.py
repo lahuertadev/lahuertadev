@@ -64,8 +64,6 @@ class UserLoginSerializer(serializers.Serializer):
             user = authenticate(request=self.context.get('request'), username=email, password=password)
             if not user:
                 raise serializers.ValidationError('Credenciales inválidas.')
-            if not user.is_active:
-                raise serializers.ValidationError('Usuario inactivo.')
             attrs['user'] = user
         else:
             raise serializers.ValidationError('Debe proporcionar email y contraseña.')
@@ -78,8 +76,8 @@ class UserResponseSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Usuario
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_active', 'email_verified', 'date_joined']
-        read_only_fields = ['id', 'date_joined']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'is_active', 'email_verified', 'date_joined', 'approved_at']
+        read_only_fields = ['id', 'date_joined', 'approved_at']
 
 class PasswordResetRequestSerializer(serializers.Serializer):
     """
@@ -227,4 +225,12 @@ class UpdateUserRoleSerializer(serializers.Serializer):
             'invalid_choice': 'Rol inválido. Debe ser "administrator" o "employee".',
             'required': 'Debe indicar el nuevo rol.',
         }
+    )
+
+class UpdateUserStatusSerializer(serializers.Serializer):
+    """
+    DTO para cambiar el estado (activo/inactivo) de un usuario de forma explícita.
+    """
+    is_active = serializers.BooleanField(
+        error_messages={'required': 'Debe indicar el nuevo estado.'}
     )

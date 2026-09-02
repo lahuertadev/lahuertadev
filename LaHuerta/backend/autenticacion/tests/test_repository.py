@@ -57,6 +57,7 @@ def test_create_user(repository):
     assert user.first_name == 'Test'
     assert user.last_name == 'User'
     assert user.role == Usuario.EMPLOYEE
+    assert user.is_active is False
 
 #? ==================== AUTHENTICATE USER TESTS ====================
 
@@ -106,6 +107,28 @@ def test_get_user_by_email_inactive(repository, inactive_user):
 @pytest.mark.django_db
 def test_get_user_by_email_not_found(repository):
     user = repository.get_user_by_email('noexiste@test.com')
+
+    assert user is None
+
+#? ==================== GET USER BY EMAIL ANY STATUS TESTS ====================
+
+@pytest.mark.django_db
+def test_get_user_by_email_any_status_finds_active(repository, active_user):
+    user = repository.get_user_by_email_any_status(active_user.email)
+
+    assert user is not None
+    assert user.pk == active_user.pk
+
+@pytest.mark.django_db
+def test_get_user_by_email_any_status_finds_inactive(repository, inactive_user):
+    user = repository.get_user_by_email_any_status(inactive_user.email)
+
+    assert user is not None
+    assert user.pk == inactive_user.pk
+
+@pytest.mark.django_db
+def test_get_user_by_email_any_status_not_found(repository):
+    user = repository.get_user_by_email_any_status('noexiste@test.com')
 
     assert user is None
 
@@ -276,6 +299,32 @@ def test_set_active_status_not_found(repository):
 
     assert user is None
 
+@pytest.mark.django_db
+def test_set_active_status_stamps_approved_at_on_first_decision(repository, db):
+    pending_user = Usuario.objects.create_user(
+        email='pending-repo@test.com',
+        username='pendingrepo',
+        password='Testpass123!',
+        role=Usuario.EMPLOYEE,
+        is_active=False
+    )
+    assert pending_user.approved_at is None
+
+    user = repository.set_active_status(pending_user.id, False)
+
+    assert user.is_active is False
+    assert user.approved_at is not None
+
+@pytest.mark.django_db
+def test_set_active_status_does_not_overwrite_existing_approved_at(repository, active_user):
+    first_call = repository.set_active_status(active_user.id, False)
+    first_approved_at = first_call.approved_at
+    assert first_approved_at is not None
+
+    second_call = repository.set_active_status(active_user.id, True)
+
+    assert second_call.approved_at == first_approved_at
+
 #? ==================== SET USER ROLE TESTS ====================
 
 @pytest.mark.django_db
@@ -335,4 +384,33 @@ def test_set_avatar_updates_field(repository, active_user):
     assert bool(user.avatar)
     active_user.refresh_from_db()
     assert bool(active_user.avatar)
+
+#? ==================== GET SUPERUSERS TESTS ====================
+
+@pytest.mark.django_db
+def test_get_superusers_returns_only_active_superusers(repository, active_user, inactive_user):
+    active_superuser = Usuario.objects.create_user(
+        email='super@test.com',
+        username='super',
+        password='Testpass123!',
+        role=Usuario.SUPERUSER,
+        is_active=True
+    )
+    Usuario.objects.create_user(
+        email='inactivesuper@test.com',
+        username='inactivesuper',
+        password='Testpass123!',
+        role=Usuario.SUPERUSER,
+        is_active=False
+    )
+
+    superusers = list(repository.get_superusers())
+
+    assert superusers == [active_superuser]
+
+@pytest.mark.django_db
+def test_get_superusers_empty_when_none_exist(repository, active_user):
+    superusers = list(repository.get_superusers())
+
+    assert superusers == []
     active_user.avatar.delete(save=False)
