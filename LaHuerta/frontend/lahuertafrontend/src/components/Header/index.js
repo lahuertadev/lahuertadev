@@ -152,11 +152,11 @@ const isPathActive = (path, currentPath) => {
   return currentPath === path || currentPath.startsWith(path);
 };
 
-export default function MiniDrawer({title, menuOptions}) {
+export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
-  const [open, setOpen] = React.useState(false);
+  const setOpen = onOpenChange;
   const [pinned, setPinned] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const csrfToken = useCsrfToken();

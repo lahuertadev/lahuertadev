@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { ThemeProvider } from '@mui/material/styles';
 import MiniDrawer from './components/Header';
@@ -15,6 +15,7 @@ function App() {
   const { user } = useAuth();
   const { mode } = useThemeMode();
   const theme = useMemo(() => getTheme(mode), [mode]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Fuerza Django para que cree la cookie csrftoken apenas arranca la app.
   useEffect(() => {
@@ -37,12 +38,13 @@ function App() {
         <MiniDrawer
           title='La Huerta'
           menuOptions={visibleOptions}
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
         />
         <main className="flex-grow px-4 sm:px-8 py-6">
           <Outlet />
         </main>
-        <Footer
-        />
+        <Footer open={drawerOpen} />
       </div>
     </ThemeProvider>
   );
