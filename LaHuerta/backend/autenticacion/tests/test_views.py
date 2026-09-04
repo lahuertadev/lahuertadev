@@ -1120,6 +1120,57 @@ def test_user_list_view_returns_500_on_unexpected_error(mock_repository_class, a
     assert response.data['detail'] == 'Error al listar los usuarios.'
 
 
+# ==================== USER DETAIL VIEW TESTS ====================
+
+@pytest.mark.django_db
+def test_user_detail_view_allows_superuser(api_client, superuser, administrator):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.get(f'/api/auth/users/{administrator.id}/')
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['id'] == administrator.id
+    assert response.data['email'] == administrator.email
+    assert response.data['role'] == administrator.role
+
+@pytest.mark.django_db
+def test_user_detail_view_denies_administrator(api_client, administrator, superuser):
+    api_client.force_authenticate(user=administrator)
+
+    response = api_client.get(f'/api/auth/users/{superuser.id}/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_user_detail_view_denies_unauthenticated(api_client, superuser):
+    response = api_client.get(f'/api/auth/users/{superuser.id}/')
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+@pytest.mark.django_db
+def test_user_detail_view_returns_404_for_nonexistent_user(api_client, superuser):
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.get('/api/auth/users/999999/')
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.data['detail'] == 'Usuario no encontrado.'
+
+@pytest.mark.django_db
+@patch('autenticacion.views.UserRepository')
+def test_user_detail_view_returns_500_on_unexpected_error(mock_repository_class, api_client, superuser):
+    """
+    GET /auth/users/<id>/ devuelve 500 si el repository falla inesperadamente.
+    """
+    mock_repository_class.return_value.get_user_by_id.side_effect = Exception('boom')
+    api_client.force_authenticate(user=superuser)
+
+    response = api_client.get(f'/api/auth/users/{superuser.id}/')
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al obtener el usuario.'
+
+
 # ==================== UPDATE USER STATUS VIEW TESTS ====================
 
 @pytest.mark.django_db

@@ -23,6 +23,7 @@ from .interfaces import IUserRepository
 from .repositories import UserRepository
 from .permissions import IsSuperuser
 from .models import Usuario
+from .exceptions import UserNotFoundException
 from .utils import (
     send_password_reset_email,
     send_welcome_email_with_verification_code,
@@ -517,6 +518,36 @@ class UserListView(APIView):
             print(f"Error al listar usuarios: {e}")
             return Response(
                 {'detail': 'Error al listar los usuarios.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class UserDetailView(APIView):
+    """
+    Devuelve el detalle completo (cuenta + perfil) de un usuario por id.
+    Solo accesible para superusuarios.
+    """
+    permission_classes = [IsSuperuser]
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
+
+    def get(self, request, pk):
+        try:
+            user = self.repository.get_user_by_id(pk)
+            if not user:
+                raise UserNotFoundException('Usuario no encontrado.')
+
+            return Response(
+                ProfileSerializer(user, context={'request': request}).data,
+                status=status.HTTP_200_OK
+            )
+        except UserNotFoundException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Error al obtener el usuario: {e}")
+            return Response(
+                {'detail': 'Error al obtener el usuario.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

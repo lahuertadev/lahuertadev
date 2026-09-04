@@ -25,6 +25,7 @@ No incluye (pendiente de otra etapa):
 2. El usuario verifica su email en `/api/auth/verify-email/`. Recién en ese momento se notifica por email a todos los Socios activos, con los datos del usuario nuevo y un link directo a la gestión de Usuarios.
 3. Mientras esté inactivo, cualquier intento de login devuelve el mismo mensaje genérico que unas credenciales inválidas ("Credenciales inválidas.") — no revela si la cuenta existe, ni si está pendiente de aprobación o directamente deshabilitada.
 4. Un Socio puede consultar `GET /api/auth/users/` para ver el listado completo de usuarios (activos e inactivos). En pantalla, la fila de un usuario pendiente de aprobación aparece resaltada y su Estado dice "Pendiente".
+4.1. Desde ese listado, un Socio puede acceder al detalle de solo lectura de cualquier usuario (`GET /api/auth/users/<id>/`), con sus datos de cuenta y de perfil (nombre, apellido, fecha de nacimiento, domicilio, teléfono, foto). Las acciones de gestión (habilitar/deshabilitar, cambiar rol) siguen resolviéndose desde el listado, no desde el detalle.
 5. Un Socio decide el estado de un usuario con `PATCH /api/auth/users/<id>/status/`, enviando `{"is_active": true}` (aprobar) o `{"is_active": false}` (rechazar/deshabilitar). Esa es la primera y única vez que ese usuario deja de estar "pendiente": a partir de ahí su Estado siempre se muestra como Activo o Inactivo, nunca vuelve a leerse como pendiente aunque se lo deshabilite más adelante.
 6. Un Socio no puede deshabilitarse a sí mismo (se bloquea con 400 para evitar quedar sin acceso).
 7. Un Socio puede promover a un Employee a Administrator (o degradarlo) con `PATCH /api/auth/users/<id>/role/`, enviando `{"role": "administrator"}` o `{"role": "employee"}`.
@@ -34,7 +35,7 @@ No incluye (pendiente de otra etapa):
 - Todos los endpoints de la API requieren sesión iniciada por defecto (`DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`), excepto los explícitamente públicos.
 - El campo `role` es de solo lectura en el registro público: cualquier valor enviado se ignora y el usuario se crea como `employee`.
 - El registro público siempre crea el usuario con `is_active=False`, sin importar qué se envíe en el request.
-- Gestión de usuarios (`GET /api/auth/users/`, `PATCH /api/auth/users/<id>/status/`, `PATCH /api/auth/users/<id>/role/`) requiere rol `superuser`; ni siquiera Administrator puede leer ese listado.
+- Gestión de usuarios (`GET /api/auth/users/`, `GET /api/auth/users/<id>/`, `PATCH /api/auth/users/<id>/status/`, `PATCH /api/auth/users/<id>/role/`) requiere rol `superuser`; ni siquiera Administrator puede leer ese listado ni el detalle.
 - Un usuario no puede deshabilitarse a sí mismo.
 - Un usuario inactivo (`is_active=False`, sea "pendiente" o "dado de baja") no puede iniciar sesión: Django descarta el intento a nivel del backend de autenticación (`ModelBackend`) antes de llegar a cualquier chequeo propio, y el mensaje que se devuelve es el mismo que el de credenciales inválidas.
 - Un usuario "pendiente de aprobación" se distingue de uno "dado de baja" por el campo `approved_at`: `None` significa que ningún Socio decidió todavía su estado; una vez seteado (la primera vez que se llama a `/status/` para ese usuario, sea cual sea el resultado), no se vuelve a borrar.
@@ -46,11 +47,14 @@ No incluye (pendiente de otra etapa):
   - La columna Rol y la columna Estado son selects inline (pill + flecha) en vez de un formulario aparte: Rol ofrece Administrador/Empleado, Estado ofrece Activo/Inactivo.
   - Un usuario pendiente de aprobación se ve con la fila resaltada (fondo y borde naranja) y su Estado en pill naranja "Pendiente" — no es una opción elegible del select, solo el rótulo inicial hasta que un Socio decida.
   - Un Socio no puede cambiarse el rol ni el estado a sí mismo, ni a otro Socio, desde esta pantalla (se muestran como texto fijo, sin select).
+  - Cada fila tiene un botón "Ver detalle" (lupa) que lleva al detalle del usuario; en mobile, tocar la fila hace lo mismo.
+- **Detalle de Usuario** (`/user/detail/:id`, solo Socio): pantalla de solo lectura con los datos de cuenta (email, nombre de usuario, rol, fecha de alta) y de perfil (nombre, apellido, fecha de nacimiento, domicilio, teléfono, foto) de un usuario puntual. No permite editar ni gestionar el usuario desde ahí.
 
 ## Endpoints involucrados
 - `POST /api/auth/register/` — Registro público, rol forzado a `employee`, usuario creado inactivo.
 - `POST /api/auth/verify-email/` — Verifica el código de email; si es la primera verificación exitosa, dispara el email de notificación a los Socios.
 - `GET /api/auth/users/` — Listado de usuarios (solo Socio).
+- `GET /api/auth/users/<id>/` — Detalle completo (cuenta + perfil) de un usuario puntual (solo Socio).
 - `PATCH /api/auth/users/<id>/status/` — Habilita o deshabilita un usuario de forma explícita, según `{"is_active": true|false}` (solo Socio).
 - `PATCH /api/auth/users/<id>/role/` — Cambia el rol de un usuario entre `administrator` y `employee` (solo Socio).
 

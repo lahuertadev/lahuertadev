@@ -59,7 +59,7 @@ const UsersList = () => {
 
   const data = {
     title: 'Usuarios',
-    fetchUrl: { baseUrl: authUsersUrl },
+    fetchUrl: { baseUrl: authUsersUrl, detailUrl: '/user/detail' },
     columns: getColumns({
       onChangeStatus: handleChangeStatus,
       onChangeRole: handleChangeRole,
