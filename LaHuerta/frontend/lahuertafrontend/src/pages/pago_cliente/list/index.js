@@ -1,4 +1,6 @@
-import { clientPaymentUrl } from '../../../constants/urls';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import { clientPaymentUrl, paymentTypeUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/ClientPayment';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
@@ -16,7 +18,7 @@ const mapClientPaymentData = (data) => {
   }));
 };
 
-const data = {
+const buildData = (paymentTypeOptions) => ({
   title: 'Pagos de Clientes',
   fetchUrl: {
     baseUrl: clientPaymentUrl,
@@ -27,15 +29,26 @@ const data = {
   columns: columns,
   mapData: mapClientPaymentData,
   filtersConfig: [
-    { label: 'Cliente', name: 'client', type: 'text' },
-    { label: 'Fecha', name: 'date', type: 'date' },
-    { label: 'Importe', name: 'amount', type: 'number' },
+    { label: 'Cliente', name: 'business_name', type: 'text' },
+    { label: 'Tipo de Pago', name: 'payment_type_id', type: 'select', options: paymentTypeOptions },
+    { label: 'Importe mín.', name: 'amount_min', type: 'number' },
+    { label: 'Importe máx.', name: 'amount_max', type: 'number' },
+    { label: 'Fecha desde', name: 'date_from', type: 'date' },
+    { label: 'Fecha hasta', name: 'date_to', type: 'date' },
   ],
   newLabelText: 'Nuevo pago',
-};
+});
 
 const ClientPaymentList = () => {
   const navigate = useNavigate();
+  const [data, setData] = useState(buildData([]));
+
+  useEffect(() => {
+    axios.get(paymentTypeUrl).then((res) => {
+      const options = res.data.map((t) => ({ name: t.descripcion, value: t.id }));
+      setData(buildData(options));
+    }).catch(() => {});
+  }, []);
 
   const handleAddPayment = () => {
     navigate('/client-payment/create');
