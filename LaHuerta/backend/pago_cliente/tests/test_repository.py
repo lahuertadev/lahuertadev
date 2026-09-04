@@ -66,6 +66,43 @@ class TestClientPaymentRepository:
         assert result.count() == 1
         assert result.first().cliente_id == self.cliente.id
 
+    def test_get_all_filter_by_business_name(self):
+        self._make_payment()
+        assert self.repository.get_all(business_name='Cliente Test').count() == 1
+        assert self.repository.get_all(business_name='Inexistente').count() == 0
+
+    def test_get_all_filter_by_amount_min(self):
+        self._make_payment(importe=Decimal('500.00'))
+        self._make_payment(importe=Decimal('2000.00'))
+        assert self.repository.get_all(amount_min=Decimal('1000.00')).count() == 1
+
+    def test_get_all_filter_by_amount_max(self):
+        self._make_payment(importe=Decimal('500.00'))
+        self._make_payment(importe=Decimal('2000.00'))
+        assert self.repository.get_all(amount_max=Decimal('1000.00')).count() == 1
+
+    def test_get_all_filter_by_date_from(self):
+        self._make_payment()
+        assert self.repository.get_all(date_from='2024-01-01').count() == 1
+        assert self.repository.get_all(date_from='2024-01-02').count() == 0
+
+    def test_get_all_filter_by_date_to(self):
+        self._make_payment()
+        assert self.repository.get_all(date_to='2024-01-01').count() == 1
+        assert self.repository.get_all(date_to='2023-12-31').count() == 0
+
+    def test_get_all_filter_by_payment_type_id(self):
+        otro_tipo = TipoPago.objects.create(descripcion='Transferencia')
+        self._make_payment()
+        payment_transferencia = self.repository.create(
+            client=self.cliente, payment_type=otro_tipo, payment_date='2024-01-01', amount=Decimal('100.00'),
+        )
+
+        result = self.repository.get_all(payment_type_id=otro_tipo.id)
+
+        assert result.count() == 1
+        assert result.first().id == payment_transferencia.id
+
     # ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
         payment = self._make_payment()
