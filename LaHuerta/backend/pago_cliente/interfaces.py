@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 class IClientPaymentRepository(ABC):
 
     @abstractmethod
-    def get_all(self, client_id=None):
+    def get_all(self, client_id=None, business_name=None, amount_min=None, amount_max=None,
+                date_from=None, date_to=None, payment_type_id=None):
         pass
 
     @abstractmethod
