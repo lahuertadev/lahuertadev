@@ -61,10 +61,23 @@ class FakeClientPaymentRepo(IClientPaymentRepository):
         self._items[payment.id] = payment
         return payment
 
-    def get_all(self, client_id=None):
+    def get_all(self, client_id=None, business_name=None, amount_min=None, amount_max=None,
+                date_from=None, date_to=None, payment_type_id=None):
         qs = PagoCliente.objects.select_related('cliente', 'tipo_pago').all()
         if client_id:
             qs = qs.filter(cliente_id=client_id)
+        if business_name:
+            qs = qs.filter(cliente__razon_social__icontains=business_name)
+        if amount_min is not None:
+            qs = qs.filter(importe__gte=amount_min)
+        if amount_max is not None:
+            qs = qs.filter(importe__lte=amount_max)
+        if date_from:
+            qs = qs.filter(fecha_pago__gte=date_from)
+        if date_to:
+            qs = qs.filter(fecha_pago__lte=date_to)
+        if payment_type_id:
+            qs = qs.filter(tipo_pago_id=payment_type_id)
         return qs
 
     def get_by_id(self, id):
@@ -171,6 +184,21 @@ def test_list_filter_by_client_id(factory, db_setup):
     assert response.status_code == 200
     assert len(response.data) == 1
     assert response.data[0]['cliente']['id'] == db_setup['cliente'].id
+
+
+@pytest.mark.django_db
+def test_list_filter_by_payment_type_id(factory, db_setup):
+    otro_tipo = TipoPago.objects.create(descripcion='Transferencia')
+    vs, repo = _make_viewset()
+    repo._add_real(db_setup['cliente'], db_setup['tipo_pago'])
+    payment_transferencia = repo._add_real(db_setup['cliente'], otro_tipo)
+
+    request = factory.get('/client-payment/', {'payment_type_id': otro_tipo.id})
+    response = vs.list(Request(request, parsers=[JSONParser()]))
+
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]['id'] == payment_transferencia.id
 
 
 # ── RETRIEVE ───────────────────────────────────────────────────────────────────

@@ -65,3 +65,9 @@ class ClientPaymentResponseSerializer(serializers.ModelSerializer):
 
 class ClientPaymentQueryParamsSerializer(serializers.Serializer):
     client_id = serializers.IntegerField(required=False)
+    business_name = serializers.CharField(required=False)
+    amount_min = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    amount_max = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    date_from = serializers.DateField(required=False)
+    date_to = serializers.DateField(required=False)
+    payment_type_id = serializers.IntegerField(required=False)
