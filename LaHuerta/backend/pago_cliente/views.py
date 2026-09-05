@@ -26,14 +26,13 @@ class ClientPaymentViewSet(viewsets.ViewSet):
 
     def list(self, request):
         '''
-        Lista todos los pagos. Acepta ?client_id= para filtrar por cliente.
+        Lista todos los pagos. Acepta filtros por cliente, importe, fecha y tipo de pago.
         '''
         params_serializer = ClientPaymentQueryParamsSerializer(data=request.query_params)
         params_serializer.is_valid(raise_exception=True)
 
         try:
-            client_id = params_serializer.validated_data.get('client_id')
-            payments = self.repository.get_all(client_id=client_id)
+            payments = self.repository.get_all(**params_serializer.validated_data)
             serializer = ClientPaymentResponseSerializer(payments, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 

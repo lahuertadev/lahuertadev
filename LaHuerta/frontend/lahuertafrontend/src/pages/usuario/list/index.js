@@ -15,6 +15,10 @@ const mapUserData = (data) => {
     email: user.email,
     role: user.role,
     active: user.is_active,
+    // Pendiente de aprobación: todavía nadie decidió su estado (a diferencia
+    // de un usuario dado de baja, a quien un superusuario sí llegó a
+    // revisar/aprobar alguna vez y también tiene is_active=false).
+    pendingApproval: !user.is_active && !user.approved_at,
     createdAt: formatDate(user.date_joined),
   }));
 };
@@ -29,10 +33,10 @@ const UsersList = () => {
     setToast({ open: true, message: err.message || 'Ocurrió un error, por favor intentá de nuevo.' });
   };
 
-  const handleToggleActive = async (id) => {
+  const handleChangeStatus = async (id, isActive) => {
     setBusyId(id);
     try {
-      await axios.patch(`${authUsersUrl}${id}/toggle-active/`);
+      await axios.patch(`${authUsersUrl}${id}/status/`, { is_active: isActive });
       setRefreshKey((k) => k + 1);
     } catch (err) {
       showError(err);
@@ -55,14 +59,15 @@ const UsersList = () => {
 
   const data = {
     title: 'Usuarios',
-    fetchUrl: { baseUrl: authUsersUrl },
+    fetchUrl: { baseUrl: authUsersUrl, detailUrl: '/user/detail' },
     columns: getColumns({
-      onToggleActive: handleToggleActive,
+      onChangeStatus: handleChangeStatus,
       onChangeRole: handleChangeRole,
       currentUserId: currentUser?.id,
       busyId,
     }),
     mapData: mapUserData,
+    getRowClassName: (params) => (params.row.pendingApproval ? 'row-pending-approval' : ''),
     showAdd: false,
     showEdit: false,
     showDelete: false,

@@ -1,12 +1,32 @@
 import re
 import random
 import string
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from django.conf import settings
 from django.utils import timezone
 from datetime import date, timedelta
 from rest_framework import serializers
 from .models import Usuario
+
+
+def _send_html_email(subject, template_name, context, recipient_list):
+    """
+    Renderiza un template de emails/ (que extiende emails/base_email.html) y lo
+    envía con fallback en texto plano para clientes que no soportan HTML.
+    """
+    html_message = render_to_string(template_name, context)
+    plain_message = strip_tags(html_message)
+
+    email = EmailMultiAlternatives(
+        subject=subject,
+        body=plain_message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=recipient_list,
+    )
+    email.attach_alternative(html_message, 'text/html')
+    email.send(fail_silently=False)
 
 
 def user_has_role(user, role):
@@ -78,7 +98,7 @@ def validate_password_strength(value):
 def send_password_reset_email(user, uid, token):
     """
     Envía un email con el token de recuperación de contraseña
-    
+
     Args:
         user: Instancia del usuario
         uid: ID del usuario codificado en base64
@@ -86,32 +106,16 @@ def send_password_reset_email(user, uid, token):
     """
     frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
     reset_url = f"{frontend_url}/reset-password?uid={uid}&token={token}"
-    
-    subject = 'Recuperación de contraseña - La Huerta'
-    
-    message = f"""
-Hola {user.first_name or user.username},
 
-Has solicitado restablecer tu contraseña en La Huerta.
-
-Para restablecer tu contraseña, haz clic en el siguiente enlace:
-{reset_url}
-
-Si no solicitaste este cambio, puedes ignorar este email.
-
-Este enlace expirará en 3 días por seguridad.
-
-Saludos,
-Equipo de La Huerta
-"""
-    
     try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+        _send_html_email(
+            subject='Recuperación de contraseña - La Huerta',
+            template_name='emails/password_reset.html',
+            context={
+                'user_name': user.first_name or user.username,
+                'reset_url': reset_url,
+            },
             recipient_list=[user.email],
-            fail_silently=False,
         )
         return True
     except Exception as e:
@@ -123,45 +127,56 @@ Equipo de La Huerta
 def send_welcome_email_with_verification_code(user, verification_code):
     """
     Envía un email de bienvenida con el código de verificación de email
-    
+
     Args:
         user: Instancia del usuario recién registrado
         verification_code: Código de verificación de 6 dígitos
     """
-    user_name = user.first_name or user.username
-    
-    subject = '¡Bienvenido a La Huerta! 🎉'
-    
-    message = f"""
-¡Hola {user_name}!
-
-Te damos la bienvenida a La Huerta. Estamos muy contentos de que te hayas unido a nuestra plataforma.
-
-Para completar tu registro y activar tu cuenta, necesitamos verificar tu dirección de email.
-
-Tu código de verificación es: {verification_code}
-
-Este código expirará en 24 horas por seguridad.
-
-Si no te registraste en La Huerta, puedes ignorar este email.
-
-¡Esperamos que disfrutes usando nuestra plataforma!
-
-Saludos,
-Equipo de La Huerta
-"""
-    
     try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+        _send_html_email(
+            subject='¡Bienvenido a La Huerta! 🎉',
+            template_name='emails/verification_code.html',
+            context={
+                'user_name': user.first_name or user.username,
+                'verification_code': verification_code,
+            },
             recipient_list=[user.email],
-            fail_silently=False,
         )
         return True
     except Exception as e:
         print(f"Error al enviar email de bienvenida: {e}")
+        return False
+
+
+def send_new_user_pending_approval_email(user, superuser_emails):
+    """
+    Notifica a los superusuarios que un usuario nuevo verificó su email y está
+    pendiente de aprobación (queda inactivo hasta que lo habiliten).
+
+    Args:
+        user: Instancia del usuario recién registrado
+        superuser_emails: lista de emails de superusuarios a notificar
+    """
+    if not superuser_emails:
+        return False
+
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+
+    try:
+        _send_html_email(
+            subject='Nuevo usuario pendiente de aprobación - La Huerta',
+            template_name='emails/pending_approval.html',
+            context={
+                'user_name': user.first_name or user.username,
+                'user_email': user.email,
+                'username': user.username,
+                'users_url': f"{frontend_url}/user",
+            },
+            recipient_list=superuser_emails,
+        )
+        return True
+    except Exception as e:
+        print(f"Error al enviar email de aprobación pendiente: {e}")
         return False
 
 

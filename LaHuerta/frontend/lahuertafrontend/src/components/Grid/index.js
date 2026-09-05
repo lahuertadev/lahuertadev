@@ -251,6 +251,14 @@ export default function DataGridDemo({
             backgroundColor: 'rgb(var(--color-row-highlight-rgb) / 0.16)',
             '&:hover': { backgroundColor: 'rgb(var(--color-row-highlight-rgb) / 0.26)' },
           },
+          // Fila de usuario pendiente de aprobación — pasar 'row-pending-approval' vía getRowClassName.
+          // Mismo nivel de opacidad que row-highlighted (0.16/0.26) más un borde
+          // izquierdo sólido, para que se distinga también en el tema claro.
+          '& .MuiDataGrid-row.row-pending-approval': {
+            backgroundColor: 'rgb(var(--color-row-pending-rgb) / 0.16)',
+            borderLeft: '3px solid var(--color-row-pending)',
+            '&:hover': { backgroundColor: 'rgb(var(--color-row-pending-rgb) / 0.26)' },
+          },
           '& .MuiDataGrid-cell': {
             padding: '0 12px',
             color: 'var(--color-on-surface)',

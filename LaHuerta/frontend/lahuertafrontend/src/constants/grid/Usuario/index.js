@@ -7,6 +7,20 @@ const ROLE_MENU_OPTIONS = [
   { value: 'employee', label: 'Empleado' },
 ];
 
+// "Pendiente" no es una opción elegible: es solo el rótulo de display para un
+// usuario que todavía no fue revisado (approved_at=None). El select real solo
+// ofrece los dos estados a los que un superusuario puede decidir moverlo.
+const STATUS_MENU_OPTIONS = [
+  { value: 'true', label: 'Activo' },
+  { value: 'false', label: 'Inactivo' },
+];
+
+const STATUS_CONFIG = {
+  active: { label: 'Activo', bg: '#e6f4ea', color: '#15803d' },
+  inactive: { label: 'Inactivo', bg: '#fdeaea', color: '#dc2626' },
+  pending: { label: 'Pendiente', bg: '#fff1e0', color: '#c2650a' },
+};
+
 const pillStyle = (bg, color) => ({
   display: 'inline-flex',
   alignItems: 'center',
@@ -66,36 +80,56 @@ const RoleCell = ({ params, onChangeRole, busyId }) => {
   );
 };
 
-// Mismo switch (checkbox + estilos) que "Cliente activo" en ClientForm.js.
-const StatusCell = ({ params, onToggleActive, currentUserId, busyId }) => {
+// Mismo patrón que RoleCell (select real invisible encima del badge). Antes
+// era un switch on/off, pero eso solo alcanza para 2 estados: con "Pendiente"
+// de por medio hay 3 lecturas posibles (Pendiente / Activo / Inactivo), así
+// que necesita un select igual que Rol. "Pendiente" es solo el rótulo inicial
+// de un usuario nunca revisado (approved_at=None) — no es una opción elegible,
+// el select solo deja moverlo a Activo o Inactivo, cualquiera de las dos lo
+// saca de "pendiente" para siempre (ver UserRepository.set_active_status).
+const StatusCell = ({ params, onChangeStatus, currentUserId, busyId }) => {
   const isSelf = params.row.id === currentUserId;
   const isSuperuser = params.row.role === 'superuser';
   const isBusy = busyId === params.row.id;
   const isActive = Boolean(params.value);
+  const isPending = params.row.pendingApproval;
+
+  const cfg = STATUS_CONFIG[isActive ? 'active' : isPending ? 'pending' : 'inactive'];
+
+  if (isSelf || isSuperuser) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+        <span style={pillStyle(cfg.bg, cfg.color)}>{cfg.label}</span>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: '100%' }}>
-      {isSelf || isSuperuser ? (
-        <span className={`text-xs font-semibold ${isActive ? 'text-green-700' : 'text-red-600'}`}>
-          {isActive ? 'Activo' : 'Inactivo'}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+      <div style={{ position: 'relative', display: 'inline-flex', opacity: isBusy ? 0.6 : 1 }}>
+        <span style={{ ...pillStyle(cfg.bg, cfg.color), pointerEvents: 'none' }}>
+          {cfg.label}
+          <ExpandMoreIcon sx={{ fontSize: 14 }} />
         </span>
-      ) : (
-        <>
-          <span className={`text-xs font-semibold ${isActive ? 'text-green-700' : 'text-red-600'}`}>
-            {isActive ? 'Activo' : 'Inactivo'}
-          </span>
-          <label className={`relative inline-flex items-center ${isBusy ? 'cursor-default opacity-60' : 'cursor-pointer'}`}>
-            <input
-              type="checkbox"
-              checked={isActive}
-              disabled={isBusy}
-              onChange={() => onToggleActive(params.row.id)}
-              className="sr-only peer"
-            />
-            <div className="w-9 h-5 bg-gray-200 rounded-full peer peer-checked:bg-blue-lahuerta after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white" />
-          </label>
-        </>
-      )}
+        <select
+          value={String(isActive)}
+          disabled={isBusy}
+          onChange={(e) => onChangeStatus(params.row.id, e.target.value === 'true')}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            border: 'none',
+            cursor: isBusy ? 'default' : 'pointer',
+          }}
+        >
+          {STATUS_MENU_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };
@@ -106,12 +140,12 @@ const StatusCell = ({ params, onToggleActive, currentUserId, busyId }) => {
  * porque a diferencia del resto de las grillas del proyecto estas columnas
  * disparan un PATCH en vez de navegar a otra pantalla.
  *
- * @param {(id: number) => void} onToggleActive
+ * @param {(id: number, isActive: boolean) => void} onChangeStatus
  * @param {(id: number, role: string) => void} onChangeRole
  * @param {number} currentUserId — id del usuario logueado, para ocultar su propia acción de estado
  * @param {number|null} busyId — id de la fila con una acción en curso (deshabilita botones)
  */
-export const getColumns = ({ onToggleActive, onChangeRole, currentUserId, busyId }) => [
+export const getColumns = ({ onChangeStatus, onChangeRole, currentUserId, busyId }) => [
   { field: 'name', headerName: 'Nombre', align: 'center', headerAlign: 'center', flex: 1 },
   { field: 'email', headerName: 'Email', align: 'center', headerAlign: 'center', flex: 1, hiddenOnMobile: true },
   {
@@ -130,7 +164,7 @@ export const getColumns = ({ onToggleActive, onChangeRole, currentUserId, busyId
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => (
-      <StatusCell params={params} onToggleActive={onToggleActive} currentUserId={currentUserId} busyId={busyId} />
+      <StatusCell params={params} onChangeStatus={onChangeStatus} currentUserId={currentUserId} busyId={busyId} />
     ),
   },
   { field: 'createdAt', headerName: 'Fecha de alta', align: 'center', headerAlign: 'center', hiddenOnMobile: true },

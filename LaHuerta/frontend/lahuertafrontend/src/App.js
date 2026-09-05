@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { ThemeProvider } from '@mui/material/styles';
 import MiniDrawer from './components/Header';
@@ -15,6 +15,7 @@ function App() {
   const { user } = useAuth();
   const { mode } = useThemeMode();
   const theme = useMemo(() => getTheme(mode), [mode]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Fuerza Django para que cree la cookie csrftoken apenas arranca la app.
   useEffect(() => {
@@ -33,16 +34,24 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <div className="App min-h-[100svh] flex flex-col bg-surface">
+      <div className="App h-[100svh] flex flex-col overflow-hidden bg-surface">
         <MiniDrawer
           title='La Huerta'
           menuOptions={visibleOptions}
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
         />
-        <main className="flex-grow px-4 sm:px-8 py-6">
+        {/* Mismo ancho de drawer (240/65) que Header y Footer aplican por su cuenta: Tailwind
+            necesita las clases arbitrarias completas y literales para compilarlas, así que no
+            se puede centralizar en una constante interpolada sin romper el JIT. */}
+        <main
+          className={`flex-grow overflow-y-auto px-4 sm:px-8 py-6 transition-[margin-left] duration-200 ease-in-out ${
+            drawerOpen ? 'sm:ml-[240px]' : 'sm:ml-[65px]'
+          }`}
+        >
           <Outlet />
         </main>
-        <Footer
-        />
+        <Footer open={drawerOpen} />
       </div>
     </ThemeProvider>
   );

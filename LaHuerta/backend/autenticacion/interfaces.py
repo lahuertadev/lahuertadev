@@ -15,6 +15,10 @@ class IUserRepository(ABC):
         pass
 
     @abstractmethod
+    def get_user_by_email_any_status(self, email):
+        pass
+
+    @abstractmethod
     def generate_password_reset_token(self, user):
         pass
 
@@ -48,6 +52,10 @@ class IUserRepository(ABC):
 
     @abstractmethod
     def get_active_users(self):
+        pass
+
+    @abstractmethod
+    def get_superusers(self):
         pass
 
     @abstractmethod

@@ -13,6 +13,7 @@ class Usuario(AbstractUser):
     ]
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=EMPLOYEE, verbose_name='Rol de usuario')
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name='Fecha de aprobación')
     email = models.EmailField(unique=True, verbose_name='Correo electrónico')
     email_verified = models.BooleanField(default=False, verbose_name='Email verificado')
     email_verification_code = models.CharField(max_length=6, null=True, blank=True, verbose_name='Código de verificación')

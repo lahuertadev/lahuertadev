@@ -163,6 +163,7 @@ const PasswordResetConfirm = () => {
 
             <div className="mt-6">
               <Button
+                type="submit"
                 label={loading ? 'Restableciendo...' : 'Restablecer contraseña'}
                 color="primary"
                 variant="contained"
