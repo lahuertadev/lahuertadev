@@ -3,7 +3,8 @@ import { Outlet } from 'react-router-dom';
 import axios from 'axios';
 import CakeIcon from '@mui/icons-material/CakeOutlined';
 import CelebrationIcon from '@mui/icons-material/CelebrationOutlined';
-import ActionAreaCard from '../components/Card';
+import AccessCard from '../components/Card';
+import AlertsPanel from '../components/AlertsPanel';
 import { cardOptions } from '../constants/cardOptions';
 import { authCelebrationsUrl } from '../constants/urls';
 import { useAuth } from '../context/AuthContext';
@@ -54,44 +55,36 @@ const Home = () => {
     return () => { cancelled = true; };
   }, []);
 
+  const alerts = celebrations.map((celebration) => {
+    const isSelf = user && celebration.user_id === user.id;
+    return {
+      key: `${celebration.type}-${celebration.user_id}`,
+      icon: celebration.type === 'birthday' ? <CakeIcon fontSize="small" /> : <CelebrationIcon fontSize="small" />,
+      message: celebrationMessage(celebration, isSelf),
+    };
+  });
+
+  const firstName = user?.first_name || user?.username;
+
   return (
-    <div className='container mx-auto h-full items-center justify-center flex flex-col'>
-      <h1 className='text-white font-bold text-3xl'>Bienvenido al sistema de Gestión de La Huerta</h1>
-      <br></br>
-      <br></br>
+    <div className="container mx-auto flex flex-col items-start px-4 py-4">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-accent">Bienvenido de nuevo</p>
+        <h1 className="mt-1 text-2xl font-bold text-on-surface">
+          {firstName ? `Hola, ${firstName} 👋` : 'Hola 👋'}
+        </h1>
+      </div>
 
-      {celebrations.length > 0 && (
-        <div className="w-full max-w-3xl mb-6 space-y-2">
-          {celebrations.map((celebration) => {
-            const isSelf = user && celebration.user_id === user.id;
-            return (
-              <div
-                key={`${celebration.type}-${celebration.user_id}`}
-                className="flex items-center justify-center gap-3 bg-purple-50 border border-purple-200 rounded-xl px-5 py-3"
-              >
-                {celebration.type === 'birthday' ? (
-                  <CakeIcon sx={{ color: '#7e22ce' }} />
-                ) : (
-                  <CelebrationIcon sx={{ color: '#7e22ce' }} />
-                )}
-                <p className="text-sm font-semibold text-purple-900">
-                  {celebrationMessage(celebration, isSelf)}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cardOptions.map((card, index) => (
-          <ActionAreaCard
-            key={index}
+      <div className="mt-4 grid w-full content-start grid-flow-row-dense grid-cols-1 gap-2 sm:grid-cols-2 sm:auto-rows-[minmax(64px,auto)] lg:grid-cols-4 lg:auto-rows-[minmax(72px,auto)]">
+        <AlertsPanel alerts={alerts} />
+        {cardOptions.map((card) => (
+          <AccessCard
+            key={card.url}
             title={card.title}
             description={card.description}
             url={card.url}
-            img={card.img}
-            imgDescription={card.imgDescription}
+            icon={card.icon}
+            size={card.size}
           />
         ))}
       </div>
