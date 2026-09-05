@@ -4,6 +4,7 @@ import axios from 'axios';
 import CustomInput from '../../components/Input';
 import Button from '../../components/Button';
 import AuthMarketingPanel from '../../components/AuthMarketingPanel';
+import FruitRain from '../../components/FruitRain';
 import { authLoginUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
 
@@ -67,8 +68,13 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-lahuerta to-little-blue-lahuerta p-4">
-      <div className="w-full max-w-6xl flex min-h-[600px] bg-white rounded-xl shadow-xl overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-r from-blue-lahuerta to-little-blue-lahuerta p-4">
+      <FruitRain />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_65%_at_center,rgba(74,123,196,0.45)_0%,rgba(74,123,196,0)_70%)]"
+      />
+      <div className="relative z-10 w-full max-w-6xl flex min-h-[600px] bg-white rounded-xl shadow-xl overflow-hidden">
       <AuthMarketingPanel
         titleLine1="Bienvenido a"
         titleLine2="La Huerta 👋"
