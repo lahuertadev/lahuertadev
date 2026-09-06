@@ -131,37 +131,26 @@ input[type='number']::-webkit-inner-spin-button {
   margin: 0;
 }
 
-/* Scroll de listas desplegables (Autocomplete, Select, menús) acorde al tema:
-   una sola regla global en vez de repetirla componente por componente. */
-.MuiAutocomplete-listbox,
-.MuiMenu-list,
-.MuiPopover-paper,
-.MuiList-root {
+/* Scroll acorde al tema en todo el sitio (listas desplegables, tablas con scroll
+   horizontal, cualquier contenedor con overflow), en vez de repetirlo selector por
+   selector. scrollbar-color/-width son heredables (alcanza con :root para Firefox),
+   pero los pseudo-elementos ::-webkit-scrollbar no se heredan y hay que aplicarlos
+   a todos los elementos con "*". */
+:root {
   scrollbar-color: var(--color-border-subtle) transparent;
   scrollbar-width: thin;
 }
-.MuiAutocomplete-listbox::-webkit-scrollbar,
-.MuiMenu-list::-webkit-scrollbar,
-.MuiPopover-paper::-webkit-scrollbar,
-.MuiList-root::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
-.MuiAutocomplete-listbox::-webkit-scrollbar-track,
-.MuiMenu-list::-webkit-scrollbar-track,
-.MuiPopover-paper::-webkit-scrollbar-track,
-.MuiList-root::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
-.MuiAutocomplete-listbox::-webkit-scrollbar-thumb,
-.MuiMenu-list::-webkit-scrollbar-thumb,
-.MuiPopover-paper::-webkit-scrollbar-thumb,
-.MuiList-root::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background-color: var(--color-border-subtle);
   border-radius: 4px;
 }
-.MuiAutocomplete-listbox::-webkit-scrollbar-thumb:hover,
-.MuiMenu-list::-webkit-scrollbar-thumb:hover,
-.MuiPopover-paper::-webkit-scrollbar-thumb:hover,
-.MuiList-root::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background-color: var(--color-on-surface-muted);
 }
