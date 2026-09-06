@@ -81,6 +81,25 @@ const router = createBrowserRouter([
     path: '/reset-password',
     element: <PasswordResetConfirm />,
   },
+  //! Sin header - Impresión de comprobantes: fuera del layout de <App/> (sidebar +
+  //! contenedor de altura fija con overflow-hidden) para que el contenido multi-hoja
+  //! nunca quede recortado al imprimir. Requieren sesión pero no el shell de la app.
+  {
+    path: '/bill/detail/:id',
+    element: (
+      <RequireAuth>
+        <BillPrintView />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '/bill/invoice/:id',
+    element: (
+      <RequireAuth>
+        <InvoicePrintView />
+      </RequireAuth>
+    ),
+  },
   //! Con header (requiere sesión; si no hay sesión redirige a /login)
   {
     path: '/',
@@ -237,14 +256,6 @@ const router = createBrowserRouter([
       {
         path: 'bill/edit/:id',
         element: <FacturaForm />
-      },
-      {
-        path: 'bill/detail/:id',
-        element: <BillPrintView />
-      },
-      {
-        path: 'bill/invoice/:id',
-        element: <InvoicePrintView />
       },
       {
         path: 'buy',

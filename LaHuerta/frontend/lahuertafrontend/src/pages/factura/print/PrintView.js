@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { ThemeProvider } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { billUrl } from '../../../constants/urls';
+import { useDarkModeSync } from '../../../hooks/useDarkModeSync';
 import '../../../styles/print-remito.css';
 import logoLaHuerta from '../../../assets/logo-lahuerta-sin-fondo.png';
 
@@ -28,9 +30,10 @@ const ITEMS_PER_PAGE = 15;
 const BillPrintView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useDarkModeSync();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     axios.get(`${billUrl}${id}/`)
       .then((r) => {
@@ -44,8 +47,8 @@ const BillPrintView = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="print-loading">Cargando remito…</div>;
-  if (!bill) return <div className="print-loading">Remito no encontrado.</div>;
+  if (loading) return <ThemeProvider theme={theme}><div className="print-loading">Cargando remito…</div></ThemeProvider>;
+  if (!bill) return <ThemeProvider theme={theme}><div className="print-loading">Remito no encontrado.</div></ThemeProvider>;
 
   const { cliente, tipo_factura, fecha, total, items = [] } = bill;
   const billNumber = String(bill.numero_comprobante || bill.id).padStart(8, '0');
@@ -57,6 +60,7 @@ const BillPrintView = () => {
   }
 
   return (
+    <ThemeProvider theme={theme}>
     <div className="remito-page">
       {/* Botones de acción (no se imprimen) */}
       <div className="print-actions no-print">
@@ -233,6 +237,7 @@ const BillPrintView = () => {
       </div>
       ))}
     </div>
+    </ThemeProvider>
   );
 };
 
