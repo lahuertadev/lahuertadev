@@ -459,4 +459,11 @@
     background: white !important;
     z-index: 100 !important;
   }
+
+  /* El texto usa color="text.secondary" del theme de MUI, que en dark mode resuelve
+     a gris claro: forzar tinta oscura para que se vea igual sin importar el tema activo. */
+  .report-print-footer,
+  .report-print-footer * {
+    color: #1f2937 !important;
+  }
 }
