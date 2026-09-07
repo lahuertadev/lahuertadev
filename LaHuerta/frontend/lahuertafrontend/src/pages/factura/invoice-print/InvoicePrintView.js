@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
+import { ThemeProvider } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { billUrl } from '../../../constants/urls';
+import { useDarkModeSync } from '../../../hooks/useDarkModeSync';
 import '../../../styles/print-invoice.css';
 import logoLaHuerta from '../../../assets/logo-lahuerta-sin-fondo.png';
 
@@ -52,6 +54,7 @@ const buildAfipQRUrl = (bill) => {
 const InvoicePrintView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useDarkModeSync();
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,8 +65,8 @@ const InvoicePrintView = () => {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div style={{ padding: 24 }}>Cargando factura…</div>;
-  if (!bill) return <div style={{ padding: 24 }}>Factura no encontrada.</div>;
+  if (loading) return <ThemeProvider theme={theme}><div style={{ padding: 24 }}>Cargando factura…</div></ThemeProvider>;
+  if (!bill) return <ThemeProvider theme={theme}><div style={{ padding: 24 }}>Factura no encontrada.</div></ThemeProvider>;
 
   const { cliente, tipo_factura, fecha, subtotal, total, items = [], numero_comprobante, cae, cae_vto, factura_asociada } = bill;
 
@@ -90,6 +93,7 @@ const InvoicePrintView = () => {
   }
 
   return (
+    <ThemeProvider theme={theme}>
     <div className="invoice-page">
       <div className="invoice-actions no-print">
         <Button
@@ -289,6 +293,7 @@ const InvoicePrintView = () => {
         </div>
       ))}
     </div>
+    </ThemeProvider>
   );
 };
 
