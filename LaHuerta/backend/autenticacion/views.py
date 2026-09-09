@@ -7,6 +7,7 @@ from django.contrib.auth import login, logout
 from .serializers import (
     UserRegisterSerializer,
     UserLoginSerializer,
+    GoogleLoginSerializer,
     UserResponseSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
@@ -31,7 +32,8 @@ from .utils import (
     create_verification_code_for_user,
     verify_user_email,
     is_verification_code_expired,
-    get_upcoming_celebrations
+    get_upcoming_celebrations,
+    verify_google_credential
 )
 from django.middleware.csrf import get_token
 from rest_framework.decorators import api_view, permission_classes
@@ -120,6 +122,86 @@ class LoginView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+class GoogleLoginView(APIView):
+    """
+    Servicio para login con Google.
+    Verifica el id_token contra GOOGLE_CLIENT_ID, busca o crea el Usuario por
+    email y sigue el mismo flujo de aprobación que el registro manual: un
+    usuario nuevo (o que todavía no fue revisado por un superusuario) queda
+    pendiente de aprobación en vez de loguearse.
+    """
+    permission_classes = [AllowAny]
+
+    def __init__(self, repository: IUserRepository = None, **kwargs):
+        super().__init__(**kwargs)
+        self.repository = repository or UserRepository()
+
+    def post(self, request):
+        serializer = GoogleLoginSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            idinfo = verify_google_credential(serializer.validated_data['credential'])
+
+            if not idinfo:
+                return Response(
+                    {'detail': 'Token de Google inválido.'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            if not idinfo.get('email_verified'):
+                return Response(
+                    {'detail': 'El email de la cuenta de Google no está verificado.'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            user, created = self.repository.get_or_create_google_user(
+                email=idinfo['email'],
+                first_name=idinfo.get('given_name', ''),
+                last_name=idinfo.get('family_name', '')
+            )
+
+            if created:
+                superuser_emails = list(self.repository.get_superusers().values_list('email', flat=True))
+                send_new_user_pending_approval_email(user, superuser_emails)
+
+                return Response(
+                    {
+                        'message': 'Cuenta creada con Google. Tu cuenta está pendiente de aprobación de un administrador.',
+                        'user': UserResponseSerializer(user).data,
+                    },
+                    status=status.HTTP_201_CREATED
+                )
+
+            if not user.is_active:
+                detail = (
+                    'Tu cuenta está pendiente de aprobación de un administrador.'
+                    if not user.approved_at else
+                    'Tu cuenta fue deshabilitada. Contactá a un administrador.'
+                )
+                return Response({'detail': detail}, status=status.HTTP_403_FORBIDDEN)
+
+            login(request, user)
+
+            return Response(
+                {
+                    'message': 'Login exitoso',
+                    'user': UserResponseSerializer(user).data
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            print(f"Error al iniciar sesión con Google: {e}")
+            return Response(
+                {'detail': 'Error al iniciar sesión con Google.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class LogoutView(APIView):
     """
