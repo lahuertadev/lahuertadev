@@ -1,9 +1,10 @@
 from datetime import date, datetime, timedelta, timezone as dt_timezone
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.utils import timezone
 
-from autenticacion.utils import get_upcoming_celebrations, CELEBRATIONS_WINDOW_DAYS
+from autenticacion.utils import get_upcoming_celebrations, CELEBRATIONS_WINDOW_DAYS, verify_google_credential
 
 
 def make_user(user_id, first_name='', last_name='', birth_date=None, date_joined=None):
@@ -111,3 +112,22 @@ def test_results_are_sorted_by_days_until():
     celebrations = get_upcoming_celebrations([user_far, user_near])
 
     assert [c['user_id'] for c in celebrations] == [10, 9]
+
+
+# ==================== VERIFY GOOGLE CREDENTIAL TESTS ====================
+
+@patch('autenticacion.utils.google_id_token.verify_oauth2_token')
+def test_verify_google_credential_valid_token(mock_verify_oauth2_token):
+    mock_verify_oauth2_token.return_value = {'email': 'user@test.com', 'email_verified': True}
+
+    idinfo = verify_google_credential('valid-token')
+
+    assert idinfo == {'email': 'user@test.com', 'email_verified': True}
+
+@patch('autenticacion.utils.google_id_token.verify_oauth2_token')
+def test_verify_google_credential_invalid_token(mock_verify_oauth2_token):
+    mock_verify_oauth2_token.side_effect = ValueError('Token inválido')
+
+    idinfo = verify_google_credential('invalid-token')
+
+    assert idinfo is None

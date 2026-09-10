@@ -133,6 +133,56 @@ def test_get_user_by_email_any_status_not_found(repository):
     assert user is None
 
 
+#? ==================== GET OR CREATE GOOGLE USER TESTS ====================
+
+@pytest.mark.django_db
+def test_get_or_create_google_user_creates_new_user(repository):
+    user, created = repository.get_or_create_google_user(
+        email='new-google@test.com',
+        first_name='Google',
+        last_name='User'
+    )
+
+    assert created is True
+    assert user.email == 'new-google@test.com'
+    assert user.username == 'new-google'
+    assert user.first_name == 'Google'
+    assert user.last_name == 'User'
+    assert user.auth_provider == Usuario.GOOGLE
+    assert user.email_verified is True
+    assert user.is_active is False
+    assert user.has_usable_password() is False
+
+@pytest.mark.django_db
+def test_get_or_create_google_user_generates_unique_username(repository, active_user):
+    """
+    active_user ya tiene username 'active' (mismo local-part que el nuevo email),
+    debe generar un username alternativo para evitar la colisión.
+    """
+    other_user, created = repository.get_or_create_google_user(
+        email='active@othertest.com',
+        first_name='',
+        last_name=''
+    )
+
+    assert created is True
+    assert other_user.username != active_user.username
+    assert other_user.username == 'active2'
+
+@pytest.mark.django_db
+def test_get_or_create_google_user_returns_existing_user(repository, active_user):
+    user, created = repository.get_or_create_google_user(
+        email=active_user.email,
+        first_name='Otro',
+        last_name='Nombre'
+    )
+
+    assert created is False
+    assert user.pk == active_user.pk
+    # No pisa los datos del usuario existente
+    assert user.first_name != 'Otro'
+
+
 #? ==================== GENERATE PASSWORD RESET TOKEN TESTS ====================
 
 @pytest.mark.django_db

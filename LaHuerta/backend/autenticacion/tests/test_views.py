@@ -241,8 +241,109 @@ def test_login_view_missing_fields(api_client):
     }
     
     response = api_client.post('/api/auth/login/', data)
-    
+
     assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+# ==================== GOOGLE LOGIN VIEW TESTS ====================
+
+def _google_idinfo(email, email_verified=True, given_name='Google', family_name='User'):
+    return {
+        'email': email,
+        'email_verified': email_verified,
+        'given_name': given_name,
+        'family_name': family_name,
+    }
+
+@pytest.mark.django_db
+@patch('autenticacion.views.verify_google_credential')
+def test_google_login_view_creates_pending_user(mock_verify, api_client):
+    """Un email de Google sin usuario existente crea uno nuevo, pendiente de aprobación, sin loguearlo"""
+    mock_verify.return_value = _google_idinfo('nuevo-google@test.com')
+
+    response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert 'pendiente de aprobación' in response.data['message']
+    created_user = Usuario.objects.get(email='nuevo-google@test.com')
+    assert created_user.auth_provider == Usuario.GOOGLE
+    assert created_user.is_active is False
+    assert created_user.email_verified is True
+    assert '_auth_user_id' not in api_client.session
+
+@pytest.mark.django_db
+@patch('autenticacion.views.verify_google_credential')
+def test_google_login_view_active_existing_user_logs_in(mock_verify, api_client, test_user):
+    mock_verify.return_value = _google_idinfo(test_user.email)
+
+    response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data['message'] == 'Login exitoso'
+    assert response.data['user']['email'] == test_user.email
+
+@pytest.mark.django_db
+@patch('autenticacion.views.verify_google_credential')
+def test_google_login_view_pending_existing_user_is_rejected(mock_verify, api_client, inactive_user):
+    """Usuario ya registrado pero todavía no aprobado (approved_at=None): no debe loguearlo"""
+    mock_verify.return_value = _google_idinfo(inactive_user.email)
+
+    response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert 'pendiente de aprobación' in response.data['detail']
+
+@pytest.mark.django_db
+@patch('autenticacion.views.verify_google_credential')
+def test_google_login_view_disabled_existing_user_is_rejected(mock_verify, api_client, inactive_user):
+    """Usuario ya revisado y deshabilitado (approved_at seteado): mensaje distinto al de pendiente"""
+    inactive_user.approved_at = timezone.now()
+    inactive_user.save()
+    mock_verify.return_value = _google_idinfo(inactive_user.email)
+
+    response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert 'deshabilitada' in response.data['detail']
+
+@pytest.mark.django_db
+@patch('autenticacion.views.verify_google_credential')
+def test_google_login_view_invalid_token(mock_verify, api_client):
+    mock_verify.return_value = None
+
+    response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+@pytest.mark.django_db
+@patch('autenticacion.views.verify_google_credential')
+def test_google_login_view_email_not_verified_by_google(mock_verify, api_client):
+    mock_verify.return_value = _google_idinfo('sinverificar@test.com', email_verified=False)
+
+    response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert not Usuario.objects.filter(email='sinverificar@test.com').exists()
+
+@pytest.mark.django_db
+def test_google_login_view_missing_credential(api_client):
+    response = api_client.post('/api/auth/google-login/', {})
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+@pytest.mark.django_db
+@patch('autenticacion.views.verify_google_credential')
+def test_google_login_view_returns_500_on_unexpected_error(mock_verify, api_client):
+    """
+    Un error inesperado (ej. de red al verificar el token contra Google) no debe
+    propagarse sin control: la vista lo captura y devuelve 500.
+    """
+    mock_verify.side_effect = Exception('boom')
+
+    response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert response.data['detail'] == 'Error al iniciar sesión con Google.'
 
 
 # ==================== LOGOUT VIEW TESTS ====================
