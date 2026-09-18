@@ -6,6 +6,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/ap
 
 //! Auth
 export const authLoginUrl = `${API_BASE}/auth/login/`;
+export const authGoogleLoginUrl = `${API_BASE}/auth/google-login/`;
 export const authRegisterUrl = `${API_BASE}/auth/register/`;
 export const authLogoutUrl = `${API_BASE}/auth/logout/`;
 export const authMeUrl = `${API_BASE}/auth/me/`;

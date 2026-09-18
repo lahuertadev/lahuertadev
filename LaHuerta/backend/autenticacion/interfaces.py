@@ -19,6 +19,10 @@ class IUserRepository(ABC):
         pass
 
     @abstractmethod
+    def get_or_create_google_user(self, email, first_name, last_name):
+        pass
+
+    @abstractmethod
     def generate_password_reset_token(self, user):
         pass
 

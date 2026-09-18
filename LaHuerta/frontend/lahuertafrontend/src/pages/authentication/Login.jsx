@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { GoogleLogin } from '@react-oauth/google';
 import CustomInput from '../../components/Input';
 import Button from '../../components/Button';
 import AuthMarketingPanel from '../../components/AuthMarketingPanel';
 import FruitRain from '../../components/FruitRain';
-import { authLoginUrl } from '../../constants/urls';
+import { authLoginUrl, authGoogleLoginUrl } from '../../constants/urls';
 import { useCsrfToken } from '../../hooks/useCsrfToken';
+import { useToast } from '../../context/ToastContext';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const csrfToken = useCsrfToken();
+  const { showToast } = useToast();
   const from = location.state?.from?.pathname || '/';
   const [formData, setFormData] = useState({
     email: '',
@@ -21,9 +24,29 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const googleButtonContainerRef = useRef(null);
+  const [googleButtonWidth, setGoogleButtonWidth] = useState(null);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (googleButtonContainerRef.current) {
+        setGoogleButtonWidth(Math.min(googleButtonContainerRef.current.offsetWidth, 400));
+      }
+    };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const redirectAfterLogin = () => {
+    showToast('Ingreso exitoso', { variant: 'success' });
+    navigate(from, { replace: true });
   };
 
   const handleSubmit = async (e) => {
@@ -46,7 +69,7 @@ const Login = () => {
         }
       );
 
-      navigate(from, { replace: true });
+      redirectAfterLogin();
     } catch (err) {
       if (err.response && err.response.data) {
         const data = err.response.data;
@@ -62,7 +85,39 @@ const Login = () => {
       } else {
         setError('Error de conexión. Intente nuevamente.');
       }
-    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post(
+        authGoogleLoginUrl,
+        { credential: credentialResponse.credential },
+        {
+          withCredentials: true,
+          headers: {
+            'X-CSRFToken': csrfToken,
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        showToast(response.data.message, { variant: 'success', duration: 8000 });
+        setLoading(false);
+        return;
+      }
+
+      redirectAfterLogin();
+    } catch (err) {
+      if (err.response && err.response.data && err.response.data.detail) {
+        setError(err.response.data.detail);
+      } else {
+        setError('Error al iniciar sesión con Google. Intente nuevamente.');
+      }
       setLoading(false);
     }
   };
@@ -83,7 +138,7 @@ const Login = () => {
 
       {/* Panel derecho - formulario de login */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-[400px]">
           <h1 className="text-3xl font-bold mb-2 text-gray-900">Iniciar sesión</h1>
           <p className="text-sm text-gray-500 mb-6">
             Ingresá tus credenciales para acceder al panel de La Huerta.
@@ -128,15 +183,16 @@ const Login = () => {
               />
             </div>
 
-            {/* Botón futuro para Google */}
-            <div className="mt-4">
-              <button
-                type="button"
-                disabled
-                className="w-full border border-gray-300 rounded-lg py-2.5 text-sm font-medium text-gray-600 flex items-center justify-center gap-2 cursor-not-allowed bg-gray-100"
-              >
-                <span className="text-gray-400">Login con Google (próximamente)</span>
-              </button>
+            <div className="mt-4" ref={googleButtonContainerRef}>
+              {googleButtonWidth && (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Error al iniciar sesión con Google. Intente nuevamente.')}
+                  width={googleButtonWidth}
+                  size="large"
+                  shape="rectangular"
+                />
+              )}
             </div>
 
             <div className="mt-4 flex flex-col items-center space-y-2">

@@ -218,3 +218,6 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='La Huerta <no-reply@l
 
 #TODO URL del frontend para el link de reset (ajusta según tu frontend)
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
+#* Client ID de OAuth de Google Cloud Console, usado para verificar el id_token del login con Google
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')

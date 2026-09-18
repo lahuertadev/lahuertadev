@@ -37,10 +37,14 @@
       display: none !important;
     }
 
-    /* Remover gradientes del App */
+    /* Remover gradientes del App y liberar la altura fija + overflow-hidden que usa
+       el layout normal (sidebar fijo, scroll acotado a <main>): si no se resetean acá,
+       el contenido que exceda esa altura queda recortado también al imprimir. */
     .App {
       background: white !important;
+      height: auto !important;
       min-height: auto !important;
+      overflow: visible !important;
       padding: 0 !important;
       margin: 0 !important;
     }
@@ -50,6 +54,8 @@
     main {
       width: 100% !important;
       max-width: 100% !important;
+      height: auto !important;
+      overflow: visible !important;
       padding: 10mm 8mm !important;
       margin: 0 !important;
     }

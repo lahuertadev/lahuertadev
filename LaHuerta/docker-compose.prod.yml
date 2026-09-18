@@ -42,6 +42,7 @@ services:
       context: ./frontend/lahuertafrontend
       args:
         REACT_APP_API_BASE_URL: https://lahuerta-app.com/api
+        REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     networks:
       - lahuerta_network
 

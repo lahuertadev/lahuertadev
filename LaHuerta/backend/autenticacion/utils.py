@@ -8,6 +8,8 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import date, timedelta
 from rest_framework import serializers
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
 from .models import Usuario
 
 
@@ -178,6 +180,24 @@ def send_new_user_pending_approval_email(user, superuser_emails):
     except Exception as e:
         print(f"Error al enviar email de aprobación pendiente: {e}")
         return False
+
+
+# ==================== FUNCIONES DE LOGIN CON GOOGLE ====================
+
+def verify_google_credential(credential):
+    """
+    Verifica el id_token (credential) que manda el frontend contra GOOGLE_CLIENT_ID.
+    Retorna el payload del token (con email, email_verified, given_name, family_name)
+    si es válido, o None si el token es inválido.
+    """
+    try:
+        return google_id_token.verify_oauth2_token(
+            credential,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID
+        )
+    except ValueError:
+        return None
 
 
 # ==================== FUNCIONES DE VERIFICACIÓN DE EMAIL ====================
