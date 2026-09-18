@@ -12,7 +12,16 @@ class Usuario(AbstractUser):
         (EMPLOYEE, 'Empleado'),
     ]
 
+    LOCAL = 'local'
+    GOOGLE = 'google'
+
+    AUTH_PROVIDER_CHOICES = [
+        (LOCAL, 'Local'),
+        (GOOGLE, 'Google'),
+    ]
+
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=EMPLOYEE, verbose_name='Rol de usuario')
+    auth_provider = models.CharField(max_length=20, choices=AUTH_PROVIDER_CHOICES, default=LOCAL, verbose_name='Proveedor de autenticación')
     approved_at = models.DateTimeField(null=True, blank=True, verbose_name='Fecha de aprobación')
     email = models.EmailField(unique=True, verbose_name='Correo electrónico')
     email_verified = models.BooleanField(default=False, verbose_name='Email verificado')

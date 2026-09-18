@@ -70,6 +70,13 @@ class UserLoginSerializer(serializers.Serializer):
 
         return attrs
 
+class GoogleLoginSerializer(serializers.Serializer):
+    """
+    DTO para el login con Google: recibe el id_token (credential) devuelto
+    por @react-oauth/google en el frontend.
+    """
+    credential = serializers.CharField(required=True)
+
 class UserResponseSerializer(serializers.ModelSerializer):
     """
     DTO para mostrar información del usuario (sin password)

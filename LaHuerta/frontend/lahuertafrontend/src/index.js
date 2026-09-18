@@ -1,12 +1,14 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ThemeProvider } from "@mui/material/styles";
 import getTheme from "./theme";
 import "./index.css";
 import "./api/axiosConfig";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeModeProvider } from "./context/ThemeModeContext";
+import { ToastProvider } from "./context/ToastContext";
 import App from "./App";
 import Home from './pages/home';
 import ExpenseForm from "./pages/gasto/form/ExpenseForm";
@@ -357,12 +359,16 @@ const router = createBrowserRouter([
 // El modo oscuro dinámico solo se aplica dentro del área autenticada (ver App.js).
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ThemeModeProvider>
-      <ThemeProvider theme={getTheme('light')}>
-        <AuthProvider>
-          <RouterProvider router={router} />
-        </AuthProvider>
-      </ThemeProvider>
-    </ThemeModeProvider>
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || ''} locale="es">
+      <ThemeModeProvider>
+        <ThemeProvider theme={getTheme('light')}>
+          <AuthProvider>
+            <ToastProvider>
+              <RouterProvider router={router} />
+            </ToastProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </ThemeModeProvider>
+    </GoogleOAuthProvider>
   </React.StrictMode>
 );

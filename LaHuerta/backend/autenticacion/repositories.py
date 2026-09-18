@@ -45,6 +45,43 @@ class UserRepository(IUserRepository):
         except Usuario.DoesNotExist:
             return None
 
+    def get_or_create_google_user(self, email, first_name, last_name):
+        """
+        Busca un usuario por email; si no existe, lo crea con auth_provider='google',
+        email ya verificado (lo garantiza Google) y sin contraseña utilizable.
+        Sigue el mismo flujo de aprobación que el registro manual: queda
+        is_active=False hasta que un superusuario lo habilite.
+        Retorna (usuario, creado).
+        """
+        user = self.get_user_by_email_any_status(email)
+        if user:
+            return user, False
+
+        username = self._generate_unique_username(email)
+
+        user = Usuario(
+            email=email,
+            username=username,
+            first_name=first_name or '',
+            last_name=last_name or '',
+            role=Usuario.EMPLOYEE,
+            auth_provider=Usuario.GOOGLE,
+            email_verified=True,
+            is_active=False,
+        )
+        user.set_unusable_password()
+        user.save()
+        return user, True
+
+    def _generate_unique_username(self, email):
+        base = email.split('@')[0]
+        username = base
+        suffix = 1
+        while Usuario.objects.filter(username=username).exists():
+            suffix += 1
+            username = f"{base}{suffix}"
+        return username
+
     def generate_password_reset_token(self, user):
         """
         Genera un token seguro para reset de contraseña
