@@ -285,26 +285,31 @@ def test_google_login_view_active_existing_user_logs_in(mock_verify, api_client,
 @pytest.mark.django_db
 @patch('autenticacion.views.verify_google_credential')
 def test_google_login_view_pending_existing_user_is_rejected(mock_verify, api_client, inactive_user):
-    """Usuario ya registrado pero todavía no aprobado (approved_at=None): no debe loguearlo"""
+    """
+    Usuario ya registrado pero todavía no aprobado (approved_at=None): no debe
+    loguearlo, con el mismo mensaje genérico que usa LoginView para no revelar
+    el motivo puntual (evita confirmarle a quien sea dueño de ese email que la
+    cuenta existe y está pendiente).
+    """
     mock_verify.return_value = _google_idinfo(inactive_user.email)
 
     response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert 'pendiente de aprobación' in response.data['detail']
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.data['detail'] == 'Credenciales inválidas'
 
 @pytest.mark.django_db
 @patch('autenticacion.views.verify_google_credential')
 def test_google_login_view_disabled_existing_user_is_rejected(mock_verify, api_client, inactive_user):
-    """Usuario ya revisado y deshabilitado (approved_at seteado): mensaje distinto al de pendiente"""
+    """Usuario ya revisado y deshabilitado (approved_at seteado): mismo mensaje genérico que el caso pendiente"""
     inactive_user.approved_at = timezone.now()
     inactive_user.save()
     mock_verify.return_value = _google_idinfo(inactive_user.email)
 
     response = api_client.post('/api/auth/google-login/', {'credential': 'fake-token'})
 
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-    assert 'deshabilitada' in response.data['detail']
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.data['detail'] == 'Credenciales inválidas'
 
 @pytest.mark.django_db
 @patch('autenticacion.views.verify_google_credential')

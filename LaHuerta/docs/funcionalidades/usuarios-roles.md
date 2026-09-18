@@ -3,6 +3,8 @@
 ## Objetivo
 Controlar el acceso al sistema mediante autenticación obligatoria y roles de usuario, exigir la aprobación de un Socio antes de que un usuario recién registrado pueda ingresar, y permitir que un Socio habilite o deshabilite el acceso de otros usuarios.
 
+También permite iniciar sesión con una cuenta de Google, además del login tradicional por email/contraseña, integrado con el mismo mecanismo de sesión y el mismo flujo de aprobación.
+
 ## Alcance
 - Exigir sesión iniciada para acceder a cualquier endpoint de la API, salvo los públicos (registro, login, recuperación de contraseña, verificación de email).
 - Tres roles posibles: **Socio** (`superuser`), **Administrator** (`administrator`) y **Employee** (`employee`, reservado para una etapa futura, sin reglas propias todavía).
@@ -31,6 +33,14 @@ No incluye (pendiente de otra etapa):
 7. Un Socio puede promover a un Employee a Administrator (o degradarlo) con `PATCH /api/auth/users/<id>/role/`, enviando `{"role": "administrator"}` o `{"role": "employee"}`.
 8. Las cuentas Socio se crean fuera de la API (por el equipo de desarrollo). Ningún endpoint permite ascender a alguien a `superuser`, ni modificar el rol de un usuario que ya es `superuser`.
 
+### Login con Google
+9. En vez de email/contraseña, un usuario puede iniciar sesión con su cuenta de Google desde el botón correspondiente en `/login`. El frontend obtiene un `id_token` de Google y lo manda a `POST /api/auth/google-login/`.
+10. El backend verifica el `id_token` contra `GOOGLE_CLIENT_ID` y busca un usuario por ese email:
+    - Si no existe, lo crea con `auth_provider=google`, `email_verified=True` (Google ya lo verificó) y **queda inactivo**, igual que el registro manual — se notifica a los Socios como pendiente de aprobación, pero no se loguea todavía.
+    - Si ya existe y está activo, lo loguea (misma cookie de sesión que el login tradicional).
+    - Si ya existe pero sigue inactivo (pendiente de aprobación o deshabilitado), se rechaza con el mismo mensaje genérico que usa el login tradicional ("Credenciales inválidas") — no se distingue el motivo, para no confirmarle a quien complete el login de Google con ese email en qué estado puntual está la cuenta.
+11. Un usuario creado por Google no tiene contraseña utilizable (no puede loguearse por email/contraseña) a menos que la establezca luego con "Recuperar contraseña".
+
 ## Validaciones importantes
 - Todos los endpoints de la API requieren sesión iniciada por defecto (`DEFAULT_PERMISSION_CLASSES = [IsAuthenticated]`), excepto los explícitamente públicos.
 - El campo `role` es de solo lectura en el registro público: cualquier valor enviado se ignora y el usuario se crea como `employee`.
@@ -52,11 +62,14 @@ No incluye (pendiente de otra etapa):
 
 ## Endpoints involucrados
 - `POST /api/auth/register/` — Registro público, rol forzado a `employee`, usuario creado inactivo.
+- `POST /api/auth/google-login/` — Login con Google: recibe `{"credential": "<id_token>"}`, busca/crea el usuario por email y loguea si ya está activo.
 - `POST /api/auth/verify-email/` — Verifica el código de email; si es la primera verificación exitosa, dispara el email de notificación a los Socios.
 - `GET /api/auth/users/` — Listado de usuarios (solo Socio).
 - `GET /api/auth/users/<id>/` — Detalle completo (cuenta + perfil) de un usuario puntual (solo Socio).
 - `PATCH /api/auth/users/<id>/status/` — Habilita o deshabilita un usuario de forma explícita, según `{"is_active": true|false}` (solo Socio).
 - `PATCH /api/auth/users/<id>/role/` — Cambia el rol de un usuario entre `administrator` y `employee` (solo Socio).
+
+- Requiere `GOOGLE_CLIENT_ID` configurado en el backend (Client ID de OAuth de Google Cloud Console) y `REACT_APP_GOOGLE_CLIENT_ID` en el frontend; sin esa configuración el botón de Google no puede completar el login.
 
 ## Consideraciones
 - Este cambio cierra un hueco de seguridad existente: antes de esta funcionalidad, la API no exigía sesión iniciada en ningún módulo de negocio (clientes, facturas, compras, etc.), porque Django REST Framework no tenía configurado ningún permiso por defecto.

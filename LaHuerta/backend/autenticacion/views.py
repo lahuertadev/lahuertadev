@@ -180,12 +180,14 @@ class GoogleLoginView(APIView):
                 )
 
             if not user.is_active:
-                detail = (
-                    'Tu cuenta está pendiente de aprobación de un administrador.'
-                    if not user.approved_at else
-                    'Tu cuenta fue deshabilitada. Contactá a un administrador.'
+                # Mismo mensaje genérico que LoginView para una cuenta inactiva: no
+                # distinguir pendiente de deshabilitada evita confirmarle a quien
+                # sea dueño de ese email (ya lo probó al completar el login de
+                # Google) el motivo puntual por el que no puede entrar.
+                return Response(
+                    {'detail': 'Credenciales inválidas'},
+                    status=status.HTTP_401_UNAUTHORIZED
                 )
-                return Response({'detail': detail}, status=status.HTTP_403_FORBIDDEN)
 
             login(request, user)
 
