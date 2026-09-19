@@ -4,6 +4,12 @@ from .models import CompraProducto
 
 class BuyProductRepository(IBuyProductRepository):
 
+    def verify_product_on_buys(self, product_id):
+        '''
+        Verifica si existe un producto en alguna compra
+        '''
+        return CompraProducto.objects.filter(producto_id=product_id).exists()
+
     def create_products(self, buy, products):
         for product in products:
             CompraProducto.objects.create(
