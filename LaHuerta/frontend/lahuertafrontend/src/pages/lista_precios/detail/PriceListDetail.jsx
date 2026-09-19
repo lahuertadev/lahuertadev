@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { priceListUrl, priceListProductUrl } from '../../../constants/urls';
+import { priceListUrl, priceListProductUrl, saleTypeUrl } from '../../../constants/urls';
 import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
 import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Alert, useMediaQuery } from '@mui/material';
@@ -36,6 +36,7 @@ const PriceListDetail = () => {
   const isMobile = useMediaQuery('(max-width:600px)');
   const [priceList, setPriceList] = useState(null);
   const [products, setProducts] = useState([]);
+  const [saleTypes, setSaleTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [duplicating, setDuplicating] = useState(false);
@@ -53,6 +54,11 @@ const PriceListDetail = () => {
         // Obtener los productos de la lista
         const productsResponse = await axios.get(`${priceListProductUrl}?lista_precios=${id}`);
         setProducts(productsResponse.data || []);
+
+        // Catálogo completo de tipos de venta, para mostrar siempre todas las columnas de precio
+        // (no solo los tipos de venta que ya tienen algún precio cargado en esta lista puntual)
+        const saleTypesResponse = await axios.get(saleTypeUrl);
+        setSaleTypes(saleTypesResponse.data || []);
       } catch (err) {
         console.error('Error cargando datos:', err);
         setError(err.message);
@@ -129,7 +135,7 @@ const PriceListDetail = () => {
 
   return (
     <div className="container mx-auto h-full flex flex-col rounded p-4 price-list-detail-page">
-      <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
+      <Box className="price-list-print-content" sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
 
         {isMobile && (
           <Alert severity="info" className="no-print" sx={{ mb: 2 }}>
@@ -298,14 +304,9 @@ const PriceListDetail = () => {
                       </Typography>
                     </Box>
                   ) : (() => {
-            // Columnas dinámicas: un tipo_venta por columna
-            const tvMap = {};
-            products.forEach(item => {
-              if (item.tipo_venta && !tvMap[item.tipo_venta.id]) {
-                tvMap[item.tipo_venta.id] = item.tipo_venta;
-              }
-            });
-            const tipoVentaColumns = Object.values(tvMap).sort((a, b) => a.id - b.id);
+            // Columnas de precio: una por cada tipo_venta del catálogo (Unidad, Bulto, etc.),
+            // no solo los que ya tienen algún precio cargado en esta lista puntual.
+            const tipoVentaColumns = [...saleTypes].sort((a, b) => a.id - b.id);
 
             // Pivot: una fila por producto
             const rowMap = {};
@@ -343,6 +344,12 @@ const PriceListDetail = () => {
                 />
                 <TableContainer>
                   <Table aria-label="tabla de productos">
+                    <colgroup>
+                      <col /> {/* Producto */}
+                      <col /> {/* Categoría */}
+                      {tipoVentaColumns.map(tv => <col key={tv.id} />) /* una por cada tipo de venta */}
+                      <col /> {/* Peso Aprox. / Cantidad */}
+                    </colgroup>
                     <TableHead>
                       <TableRow sx={{ bgcolor: 'var(--color-surface-low)' }}>
                         <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Producto</TableCell>
@@ -352,7 +359,7 @@ const PriceListDetail = () => {
                             {tv.descripcion}
                           </TableCell>
                         ))}
-                        <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Peso Aprox.</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>Peso Aprox. / Cantidad</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -379,7 +386,7 @@ const PriceListDetail = () => {
                           ))}
                           <TableCell align="center">
                             <span className="price-list-muted-text" style={{ color: 'var(--color-on-surface-muted)' }}>
-                              {row.producto.cantidad_por_bulto || '—'} {row.producto.tipo_unidad?.abreviacion || ''}
+                              {row.producto.peso_aproximado ?? row.producto.cantidad_por_bulto ?? '—'} {row.producto.tipo_unidad?.abreviacion || ''}
                             </span>
                           </TableCell>
                         </TableRow>
