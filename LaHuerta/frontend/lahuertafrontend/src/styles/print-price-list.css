@@ -90,8 +90,25 @@
     display: none !important;
   }
 
-  .price-list-detail-page {
+  /* Margen lateral reducido respecto al genérico de App.css (8mm -> 5mm), específico de esta
+     pantalla: la tabla de productos tiene varias columnas y necesita aprovechar más ancho de
+     hoja. ".container.price-list-detail-page" es más específico que ".container" de App.css,
+     así que gana en el cascade sin tocar la impresión del resto de la app. */
+  .container.price-list-detail-page {
     padding-top: 0 !important;
+    padding-left: 5mm !important;
+    padding-right: 5mm !important;
+  }
+
+  /* El Box interno tiene "maxWidth: 1200" en su sx (pensado para pantalla, así el contenido
+     no se estira de más en monitores grandes) que nunca se reseteaba en impresión: dejaba un
+     margen muerto en los costados de la hoja sin importar cuánto se redujera el padding del
+     contenedor de arriba. Viene de un sx (clase de Emotion inestable), por eso se le agrega
+     className="price-list-print-content" para poder pisarlo acá de forma confiable. */
+  .price-list-print-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
   }
 
   /* Encabezado de impresión - el espacio de arriba ya lo da el margin-bottom de la barra
@@ -176,18 +193,22 @@
     page-break-after: auto !important;
   }
 
-  /* Anchos específicos para cada columna de productos */
-  table colgroup col:nth-child(1) {
-    width: 45% !important; /* Producto - más ancho */
+  /* Anchos específicos para cada columna de productos. La cantidad de columnas de precio
+     (Unidad, Bulto, ...) varía según los tipos de venta cargados en cada lista, así que en
+     vez de fijar un nth-child por posición, se ancla Producto/Categoría/Peso Aprox por punta
+     y las columnas de precio del medio quedan en "auto": con table-layout:fixed, el navegador
+     reparte el espacio restante en partes iguales entre ellas, sea 1, 2 o más. */
+  table colgroup col:first-child {
+    width: 32% !important; /* Producto - más ancho */
   }
   table colgroup col:nth-child(2) {
-    width: 20% !important; /* Categoría - compacto */
+    width: 14% !important; /* Categoría - compacto */
   }
-  table colgroup col:nth-child(3) {
-    width: 17.5% !important; /* Precio Unitario - compacto */
+  table colgroup col:nth-child(n+3):nth-last-child(n+2) {
+    width: auto !important; /* columnas de precio (Unidad, Bulto, ...) - reparten el resto */
   }
-  table colgroup col:nth-child(4) {
-    width: 17.5% !important; /* Precio Bulto - compacto */
+  table colgroup col:last-child {
+    width: 18% !important; /* Peso Aprox. / Cantidad - necesita más lugar que el resto, el texto es largo */
   }
 
   /* Celdas con bordes y padding mínimo */
@@ -220,11 +241,16 @@
     font-weight: 400 !important;
   }
 
-  /* Header de tabla con fondo */
+  /* Header de tabla con fondo. Los títulos son texto corto y controlado (no nombres de
+     producto arbitrariamente largos), así que a diferencia de .MuiTableCell-root de arriba
+     no necesitan el break-word agresivo: eso es lo que partía "Cantidad" a la mitad
+     ("Cantida" + "d") en vez de simplemente bajar de línea en el espacio anterior. */
   .MuiTableHead-root .MuiTableCell-root {
     background-color: #e0e0e0 !important;
     font-weight: bold !important;
     font-size: 10pt !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
   }
 
   /* Wrapper: thead y tfoot repiten en cada hoja de forma nativa del navegador */
@@ -328,8 +354,8 @@
   .price-list-print-footer {
     position: fixed !important;
     bottom: 0 !important;
-    left: 10mm !important;
-    right: 10mm !important;
+    left: 5mm !important;
+    right: 5mm !important;
     height: 10mm !important;
     display: flex !important;
     align-items: center !important;
