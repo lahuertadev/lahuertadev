@@ -91,11 +91,35 @@ const PriceListEdit = () => {
         setOriginalListName(listRes.data.nombre);
         setOriginalListDescription(listRes.data.descripcion);
 
-        setProducts(productsRes.data);
-        setOriginalProducts(JSON.parse(JSON.stringify(productsRes.data)));
+        // Completar, para cada producto ya presente en la lista, un "placeholder" editable
+        // (sin id real todavía) por cada tipo de venta del catálogo que ese producto no tenga
+        // cargado. Así Unidad y Bulto quedan siempre disponibles para completar, aunque la lista
+        // solo haya tenido precios de un tipo de venta hasta ahora.
+        const fetchedProducts = productsRes.data;
+        const saleTypesList = saleTypesRes.data;
+
+        const existingKeys = new Set(fetchedProducts.map(p => `${p.producto?.id}-${p.tipo_venta?.id}`));
+        const productosEnLista = new Map();
+        fetchedProducts.forEach(p => {
+          if (p.producto?.id) productosEnLista.set(p.producto.id, p.producto);
+        });
+
+        const placeholders = [];
+        productosEnLista.forEach((producto, productoId) => {
+          saleTypesList.forEach(tv => {
+            if (!existingKeys.has(`${productoId}-${tv.id}`)) {
+              placeholders.push({ id: `new-${productoId}-${tv.id}`, producto, tipo_venta: tv, precio: '' });
+            }
+          });
+        });
+
+        const fullProducts = [...fetchedProducts, ...placeholders];
+
+        setProducts(fullProducts);
+        setOriginalProducts(JSON.parse(JSON.stringify(fullProducts)));
 
         setAllProducts(allProductsRes.data);
-        setSaleTypes(saleTypesRes.data);
+        setSaleTypes(saleTypesList);
 
         setLoading(false);
       } catch (err) {
@@ -157,8 +181,10 @@ const PriceListEdit = () => {
   const confirmDeleteProduct = async () => {
     if (!productToDelete) return;
     const { productId } = productToDelete;
-    // Eliminar todos los registros (uno por tipo_venta) del producto en esta lista
-    const itemsToDelete = products.filter(p => p.producto?.id === productId);
+    // Eliminar todos los registros reales (uno por tipo_venta) del producto en esta lista.
+    // Los placeholders (id string, nunca guardados) no existen en el servidor: se descartan
+    // solo del estado local, sin pegarle a la API.
+    const itemsToDelete = products.filter(p => p.producto?.id === productId && typeof p.id === 'number');
     try {
       await Promise.all(itemsToDelete.map(item => axios.delete(`${priceListProductUrl}${item.id}/`)));
       setProducts(prev => prev.filter(p => p.producto?.id !== productId));
@@ -177,6 +203,7 @@ const PriceListEdit = () => {
     setSaving(true);
     let successCount = 0;
     let errorCount = 0;
+    const updatedProducts = [...products];
 
     try {
       if (listMetadataChanged) {
@@ -197,8 +224,12 @@ const PriceListEdit = () => {
         }
       }
 
-      for (let i = 0; i < products.length; i++) {
-        const product = products[i];
+      // Los placeholders (fila sin id real, precio todavía vacío) no se validan ni se guardan
+      // si nunca se tocaron. Si se completaron, sí tienen que ser > 0 como cualquier precio.
+      for (let i = 0; i < updatedProducts.length; i++) {
+        const product = updatedProducts[i];
+        const isPlaceholder = typeof product.id === 'string';
+        if (isPlaceholder && !product.precio) continue;
         if (!product.precio || parseFloat(product.precio) <= 0) {
           setSnackbar({ open: true, message: `El precio debe ser mayor a 0 (fila ${i + 1})`, severity: 'error' });
           setSaving(false);
@@ -206,8 +237,28 @@ const PriceListEdit = () => {
         }
       }
 
-      for (let i = 0; i < products.length; i++) {
-        const product = products[i];
+      for (let i = 0; i < updatedProducts.length; i++) {
+        const product = updatedProducts[i];
+        const isPlaceholder = typeof product.id === 'string';
+
+        if (isPlaceholder) {
+          if (!product.precio) continue;
+          try {
+            const res = await axios.post(priceListProductUrl, {
+              lista_precios: parseInt(id),
+              producto: product.producto.id,
+              tipo_venta: product.tipo_venta.id,
+              precio: parseFloat(product.precio),
+            });
+            updatedProducts[i] = res.data;
+            successCount++;
+          } catch (err) {
+            console.error(`Error creando precio para producto ${product.producto.id}:`, err);
+            errorCount++;
+          }
+          continue;
+        }
+
         const original = originalProducts.find(p => p.id === product.id);
         if (original && String(product.precio) !== String(original.precio)) {
           try {
@@ -222,9 +273,10 @@ const PriceListEdit = () => {
         }
       }
 
+      setProducts(updatedProducts);
       if (errorCount === 0) {
         setSnackbar({ open: true, message: `${successCount} cambios guardados correctamente`, severity: 'success' });
-        setOriginalProducts(JSON.parse(JSON.stringify(products)));
+        setOriginalProducts(JSON.parse(JSON.stringify(updatedProducts)));
         setHasChanges(false);
       } else {
         setSnackbar({ open: true, message: `${successCount} guardados, ${errorCount} fallaron`, severity: 'warning' });
@@ -428,14 +480,9 @@ const PriceListEdit = () => {
               </Typography>
             </Box>
           ) : (() => {
-            // Columnas dinámicas por tipo_venta
-            const tvMap = {};
-            products.forEach(item => {
-              if (item.tipo_venta && !tvMap[item.tipo_venta.id]) {
-                tvMap[item.tipo_venta.id] = item.tipo_venta;
-              }
-            });
-            const tipoVentaColumns = Object.values(tvMap).sort((a, b) => a.id - b.id);
+            // Columnas de precio: una por cada tipo_venta del catálogo (Unidad, Bulto, etc.),
+            // no solo los que ya tienen algún precio cargado en esta lista puntual.
+            const tipoVentaColumns = [...saleTypes].sort((a, b) => a.id - b.id);
 
             const getAbreviacion = (producto, tipoVenta) => {
               const desc = tipoVenta?.descripcion?.toLowerCase();
@@ -455,7 +502,7 @@ const PriceListEdit = () => {
                   producto: item.producto,
                   descripcion: item.producto.descripcion,
                   categoria: item.producto.categoria?.descripcion || '—',
-                  pesoAprox: `${item.producto.cantidad_por_bulto || '—'} ${item.producto.tipo_unidad?.abreviacion || ''}`.trim(),
+                  pesoAprox: `${item.producto.peso_aproximado ?? item.producto.cantidad_por_bulto ?? '—'} ${item.producto.tipo_unidad?.abreviacion || ''}`.trim(),
                   items: {},
                 };
               }
@@ -512,7 +559,7 @@ const PriceListEdit = () => {
                   );
                 },
               })),
-              { field: 'pesoAprox', headerName: 'Peso Aprox.', width: 120, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+              { field: 'pesoAprox', headerName: 'Peso Aprox. / Cantidad', width: 150, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
             ];
 
             return (
