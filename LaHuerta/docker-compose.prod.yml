@@ -25,6 +25,12 @@ services:
       - .env
     volumes:
       - media_data:/app/media
+      # Certificado AFIP (lahuerta.crt/.key) y caché de tokens WSAA: nunca están en git (son
+      # secretos), así que un bind mount a una ruta del host es lo único que los persiste entre
+      # deploys. Sin esto, cada build reconstruye /app/certs vacío porque el checkout de git no
+      # tiene ese directorio. El contenido real vive en /etc/lahuerta/certs del servidor,
+      # cargado a mano una sola vez.
+      - /etc/lahuerta/certs:/app/certs
     command: >
       sh -c "
       python manage.py migrate &&
