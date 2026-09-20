@@ -1,7 +1,9 @@
 import pytest
 from datetime import date
 from decimal import Decimal
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+from django.test import override_settings
 
 from factura.service import BillService
 from factura.exceptions import (
@@ -97,6 +99,32 @@ def _make_bill_mock():
     bill.pagofactura_set = Mock()
     bill.pagofactura_set.exists.return_value = False
     return bill
+
+
+# ── ARCAService por defecto (homologacion segun entorno) ────────────────────────
+
+@override_settings(DEBUG=False)
+@patch('factura.service.ARCAService')
+def test_default_arca_service_usa_homologacion_false_en_produccion(mock_arca_cls):
+    BillService(
+        bill_repository=Mock(),
+        bill_product_repository=Mock(),
+        client_repository=Mock(),
+        price_list_product_repository=Mock(),
+    )
+    mock_arca_cls.assert_called_once_with(homologacion=False)
+
+
+@override_settings(DEBUG=True)
+@patch('factura.service.ARCAService')
+def test_default_arca_service_usa_homologacion_true_en_desarrollo(mock_arca_cls):
+    BillService(
+        bill_repository=Mock(),
+        bill_product_repository=Mock(),
+        client_repository=Mock(),
+        price_list_product_repository=Mock(),
+    )
+    mock_arca_cls.assert_called_once_with(homologacion=True)
 
 
 # ── _calculate_total_amount ────────────────────────────────────────────────────

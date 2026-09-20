@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import transaction
 from .interfaces import IBillRepository
 from cliente.interfaces import IClientRepository
@@ -38,7 +39,7 @@ class BillService:
         self.bill_product_repository = bill_product_repository
         self.client_repository = client_repository
         self.price_list_product_repository = price_list_product_repository
-        self.arca_service = arca_service or ARCAService(homologacion=True)
+        self.arca_service = arca_service or ARCAService(homologacion=settings.DEBUG)
 
     @transaction.atomic
     def create_bill(self, data: dict):
