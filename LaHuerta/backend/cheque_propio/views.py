@@ -1,3 +1,4 @@
+import logging
 from django.db.models import ProtectedError
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -8,6 +9,8 @@ from .interfaces import IOwnCheckRepository
 from .serializers import OwnCheckCreateSerializer, OwnCheckUpdateSerializer, OwnCheckResponseSerializer, OwnCheckQueryParamsSerializer
 from .exceptions import OwnCheckNotFoundException, OwnCheckInvalidTransitionException
 from .factory import build_own_check_service
+
+logger = logging.getLogger(__name__)
 
 
 class OwnCheckViewSet(viewsets.ViewSet):
@@ -35,8 +38,9 @@ class OwnCheckViewSet(viewsets.ViewSet):
             serializer = OwnCheckResponseSerializer(own_checks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Error al listar cheques propios")
+            return Response({'detail': 'Error al obtener los cheques.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, pk=None):
         try:
@@ -51,6 +55,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al obtener cheque propio pk=%s", pk)
             return Response({'detail': 'Error al obtener el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request):
@@ -62,8 +67,12 @@ class OwnCheckViewSet(viewsets.ViewSet):
             response_serializer = OwnCheckResponseSerializer(own_check)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Error al crear cheque propio")
+            return Response(
+                {'detail': 'Error al crear el cheque.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def update(self, request, pk=None):
         try:
@@ -84,6 +93,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al actualizar cheque propio pk=%s", pk)
             return Response({'detail': 'Error al actualizar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, pk=None):
@@ -105,6 +115,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al actualizar cheque propio pk=%s", pk)
             return Response({'detail': 'Error al actualizar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, pk=None):
@@ -126,6 +137,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             )
 
         except Exception:
+            logger.exception("Error al eliminar cheque propio pk=%s", pk)
             return Response({'detail': 'Error al eliminar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='cash')
@@ -148,6 +160,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al marcar como cobrado cheque propio pk=%s", pk)
             return Response({'detail': 'Error al marcar el cheque como cobrado.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='cancel')
@@ -170,4 +183,5 @@ class OwnCheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al anular cheque propio pk=%s", pk)
             return Response({'detail': 'Error al anular el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
