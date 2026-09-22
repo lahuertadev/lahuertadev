@@ -50,6 +50,7 @@ class CheckResponseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cheque
         fields = [
+            'id',
             'numero',
             'importe',
             'fecha_emision',
