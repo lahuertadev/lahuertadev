@@ -29,20 +29,20 @@ class CheckViewSet(viewsets.ViewSet):
         params_serializer.is_valid(raise_exception=True)
         params = params_serializer.validated_data
 
-        endosado_raw = params.get('endosado')
-        endosado = None
-        if endosado_raw == 'true':
-            endosado = True
-        elif endosado_raw == 'false':
-            endosado = False
+        endorsed_raw = params.get('endosado')
+        endorsed = None
+        if endorsed_raw == 'true':
+            endorsed = True
+        elif endorsed_raw == 'false':
+            endorsed = False
 
         try:
             checks = self.repository.get_all(
-                banco=params.get('banco'),
-                estado=params.get('estado'),
-                endosado=endosado,
-                fecha_deposito_desde=params.get('fecha_deposito_desde'),
-                fecha_deposito_hasta=params.get('fecha_deposito_hasta'),
+                bank=params.get('banco'),
+                state=params.get('estado'),
+                endorsed=endorsed,
+                deposit_date_from=params.get('fecha_deposito_desde'),
+                deposit_date_to=params.get('fecha_deposito_hasta'),
             )
             serializer = CheckResponseSerializer(checks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
