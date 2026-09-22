@@ -1,7 +1,12 @@
 from decimal import Decimal
 from django.db import transaction
 from .interfaces import IClientPaymentRepository
-from .exceptions import ClientPaymentNotFoundException, PaymentTypeChangeBlockedException
+from .exceptions import (
+    ClientPaymentNotFoundException,
+    PaymentTypeChangeBlockedException,
+    CheckAlreadyExistsException,
+    PaymentDeletionBlockedException,
+)
 from cliente.interfaces import IClientRepository
 from cheque.interfaces import ICheckRepository
 from estado_cheque.models import EstadoCheque
@@ -35,6 +40,7 @@ class ClientPaymentService:
         self.client_repository.update_balance(client)
 
         if data['tipo_pago'].descripcion == 'Cheque':
+            self._validate_no_duplicate_check(data['cheque_numero'], data['cheque_banco'], client)
             in_wallet = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
             self.check_repository.create({
                 'numero': data['cheque_numero'],
@@ -62,6 +68,14 @@ class ClientPaymentService:
 
         check = payment.cheque_set.first()
 
+        old_total_amount = payment.importe
+        old_client = payment.cliente
+        new_total_amount = data.get('importe', old_total_amount)
+        new_client = data.get('cliente', old_client)
+
+        client_changed = old_client != new_client
+        amount_changed = old_total_amount != new_total_amount
+
         if old_is_check and not new_is_check:
             if check and check.endosado:
                 raise PaymentTypeChangeBlockedException(
@@ -72,6 +86,7 @@ class ClientPaymentService:
             check = None
 
         elif not old_is_check and new_is_check:
+            self._validate_no_duplicate_check(data['cheque_numero'], data['cheque_banco'], new_client)
             in_wallet = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
             self.check_repository.create({
                 'numero': data['cheque_numero'],
@@ -85,13 +100,9 @@ class ClientPaymentService:
             })
             check = None
 
-        old_total_amount = payment.importe
-        old_client = payment.cliente
-        new_total_amount = data.get('importe', old_total_amount)
-        new_client = data.get('cliente', old_client)
-
-        client_changed = old_client != new_client
-        amount_changed = old_total_amount != new_total_amount
+        elif old_is_check and new_is_check and check and (client_changed or 'cheque_banco' in data):
+            effective_bank = data.get('cheque_banco', check.banco)
+            self._validate_no_duplicate_check(check.numero, effective_bank, new_client, exclude_id=check.id)
 
         if client_changed:
             old_client.cuenta_corriente = Decimal(str(old_client.cuenta_corriente)) + Decimal(str(old_total_amount))
@@ -130,12 +141,27 @@ class ClientPaymentService:
         if not payment:
             raise ClientPaymentNotFoundException('Pago no encontrado.')
 
+        check = payment.cheque_set.first()
+        if check and check.endosado:
+            supplier = check.pago_compra.compra.proveedor.nombre
+            payment_date = check.pago_compra.fecha_pago
+            raise PaymentDeletionBlockedException(
+                f'No se puede eliminar el pago porque el cheque N° {check.numero} ya fue endosado '
+                f'al proveedor {supplier} (pago del {payment_date}). '
+                'Primero eliminá o editá ese pago al proveedor para poder continuar.'
+            )
+
         client = payment.cliente
         client.cuenta_corriente = Decimal(str(client.cuenta_corriente)) + Decimal(str(payment.importe))
         self.client_repository.update_balance(client)
 
-        check = payment.cheque_set.first()
         if check:
             self.check_repository.delete(check)
 
         self.payment_repository.delete(payment)
+
+    def _validate_no_duplicate_check(self, number, bank, client, exclude_id=None):
+        if self.check_repository.exists_duplicate(number, bank, client, exclude_id=exclude_id):
+            raise CheckAlreadyExistsException(
+                f'Ya existe un cheque N° {number} del banco {bank.descripcion} para este cliente.'
+            )
