@@ -8,7 +8,7 @@ class IOwnCheckRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, numero):
+    def get_by_id(self, id):
         pass
 
     @abstractmethod
