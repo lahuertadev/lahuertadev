@@ -1,11 +1,15 @@
 import React from 'react';
 
-const inputCls = (hasError) =>
-  `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
+const inputCls = (hasError, disabled) => {
+  if (disabled) {
+    return 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed';
+  }
+  return `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
     hasError
       ? 'border-red-400 ring-2 ring-red-100'
       : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
   }`;
+};
 
 // Formatea para mostrar: separa miles con punto, decimal con coma.
 // Solo muestra los decimales que el usuario haya escrito (sin forzar ",00").
@@ -24,7 +28,7 @@ const formatDisplay = (raw, allowNegative = false) => {
   return isNegative ? `-${formatted}` : formatted;
 };
 
-const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0,00', allowNegative = false }) => {
+const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0,00', allowNegative = false, disabled = false }) => {
 
   const handleChange = (e) => {
     const input = e.target.value;
@@ -62,7 +66,8 @@ const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0
       onChange={handleChange}
       onBlur={handleBlur}
       placeholder={placeholder}
-      className={inputCls(hasError)}
+      disabled={disabled}
+      className={inputCls(hasError, disabled)}
     />
   );
 };
