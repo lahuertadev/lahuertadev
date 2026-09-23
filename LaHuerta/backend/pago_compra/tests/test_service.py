@@ -49,11 +49,14 @@ class FakeCheckRepo(ICheckRepository):
         self._items = {}
         self._updated = []
 
-    def get_all(self, banco=None, estado=None, endosado=None, fecha_deposito_desde=None, fecha_deposito_hasta=None):
+    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None):
         return list(self._items.values())
 
-    def get_by_id(self, numero):
-        return self._items.get(numero)
+    def get_by_id(self, id):
+        return self._items.get(id)
+
+    def exists_duplicate(self, number, bank, client, exclude_id=None):
+        return False
 
     def create(self, data):
         pass
@@ -65,7 +68,7 @@ class FakeCheckRepo(ICheckRepository):
         return check
 
     def delete(self, check):
-        self._items.pop(check.numero, None)
+        self._items.pop(check.id, None)
 
 
 class FakeSupplierRepo(ISupplierRepository):
@@ -147,17 +150,18 @@ class TestCreatePurchasePayment:
         service = _make_service()
         en_cartera = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
         check = Mock()
+        check.id = 100
         check.numero = 12345
         check.endosado = False
         check.estado = en_cartera
-        service.check_repository._items[12345] = check
+        service.check_repository._items[100] = check
 
         payment = service.create_payment({
             'compra': _make_compra(),
             'importe_abonado': Decimal('5000.00'),
             'tipo_pago': self.tipo_cheque,
             'fecha_pago': '2024-01-01',
-            'cheque_numero': 12345,
+            'cheque_id': 100,
         })
 
         assert check.endosado is True
@@ -173,7 +177,7 @@ class TestCreatePurchasePayment:
                 'importe_abonado': Decimal('1000.00'),
                 'tipo_pago': self.tipo_cheque,
                 'fecha_pago': '2024-01-01',
-                'cheque_numero': 99999,
+                'cheque_id': 99999,
             })
 
     def test_importe_supera_saldo_lanza_excepcion(self):
