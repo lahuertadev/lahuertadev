@@ -23,7 +23,7 @@ const actionBtnCls = (variant) => {
 
 const mapCheckData = (data) => {
   return data.map((check) => ({
-    id: check.numero,
+    id: check.id,
     numero: check.numero,
     bank: check.banco.descripcion,
     amount: formatCurrency(check.importe),

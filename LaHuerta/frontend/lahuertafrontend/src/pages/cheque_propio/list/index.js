@@ -8,7 +8,7 @@ import GenericList from '../../../components/List';
 
 const mapOwnCheckData = (data) =>
   data.map((check) => ({
-    id: check.numero,
+    id: check.id,
     numero: check.numero,
     supplier: check.supplier_name || '—',
     bank: check.banco?.descripcion || '-',
