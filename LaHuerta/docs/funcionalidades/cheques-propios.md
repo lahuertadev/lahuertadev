@@ -77,11 +77,13 @@ Los cheques emitidos por La Huerta suelen entregarse al proveedor antes de que p
 - **COBRADO y ANULADO son estados finales**: no se pueden editar, eliminar, cobrar ni anular nuevamente.
 
 ## Validaciones importantes
-- El número de cheque es único. No pueden existir dos cheques con el mismo número.
-- Si se informa fecha de depósito, no puede ser posterior a la fecha de vencimiento (validada en frontend y backend). No aplica si el cheque no tiene fecha de depósito cargada.
+- El número de cheque es único **por banco**: pueden existir dos cheques con el mismo número si son de bancos distintos, pero no dos con igual número y banco (`numero` dejó de ser la PK del registro; ahora es `id`, y la unicidad se valida explícitamente por `numero` + `banco`).
+- El número de cheque puede editarse libremente mientras el cheque no esté usado en ningún pago a proveedor (ver "Eliminación protegida" y la regla nueva más abajo).
+- Si se informa fecha de depósito, no puede ser posterior a la fecha de vencimiento (validada en `OwnCheckService`, no en el serializer). No aplica si el cheque no tiene fecha de depósito cargada.
 - El importe abonado no puede superar el saldo restante del cheque.
 - El importe abonado no puede superar el saldo pendiente de la compra.
 - Solo aparecen como disponibles los cheques EMITIDO con saldo > 0 y sin pagos a otro proveedor.
+- **No se puede editar número, banco ni importe de un cheque ya usado en algún pago a proveedor** (aunque siga en estado EMITIDO): el formulario bloquea esos tres campos y muestra un aviso citando al proveedor; el backend rechaza el cambio igual si se lo intenta forzar (`OwnCheckEditBlockedException`, validado en `OwnCheckService.update_own_check`). Fecha de emisión, fecha de depósito, fecha de vencimiento y observaciones siguen editables sin restricción en ese caso.
 
 ## Pantallas involucradas
 - `/own-check` — Listado de cheques emitidos
