@@ -99,8 +99,9 @@ const ClientPaymentDetail = () => {
       </nav>
 
       {/* 1. Cliente */}
-      <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Cliente" cols={1}>
+      <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Cliente" cols={3}>
         <Field label="Razón Social" value={payment.cliente.razon_social} />
+        <Field label="CUIT" value={payment.cliente.cuit} />
       </SectionCard>
 
       {/* 2. Datos del pago */}
