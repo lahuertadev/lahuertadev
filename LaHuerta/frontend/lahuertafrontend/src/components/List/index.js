@@ -150,7 +150,7 @@ const GenericList = ({ data, onAdd }) => {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
-      <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} />
+      <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} duration={8000} />
 
       {/* Breadcrumbs */}
       {resolvedBreadcrumbs && (
