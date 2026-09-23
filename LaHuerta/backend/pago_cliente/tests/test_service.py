@@ -326,7 +326,35 @@ class TestUpdatePayment:
                 'cheque_numero': 9999,
             })
 
-    def test_update_fecha_emision_permitido_aunque_cheque_este_endosado(self):
+    def test_update_fecha_emision_bloqueado_si_cheque_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+
+        with pytest.raises(CheckEditBlockedException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_fecha_emision': '2024-03-01',
+            })
+
+    def test_update_fecha_deposito_bloqueado_si_cheque_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+
+        with pytest.raises(CheckEditBlockedException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_fecha_deposito': '2024-03-01',
+            })
+
+    def test_update_observaciones_permitido_aunque_cheque_este_endosado(self):
         service = _make_service()
         payment, check, client = self._make_payment_with_check(service)
         check.endosado = True
@@ -336,10 +364,11 @@ class TestUpdatePayment:
             'tipo_pago': self.tipo_cheque,
             'fecha_pago': '2024-01-01',
             'importe': Decimal('1000.00'),
-            'cheque_fecha_emision': '2024-03-01',
+            'observaciones': 'nota nueva',
         })
 
-        assert check.fecha_emision == '2024-03-01'
+        update_data = service.payment_repository._last_update_data
+        assert update_data.get('observaciones') == 'nota nueva'
 
     def test_update_banco_duplicado_lanza_excepcion(self):
         service = _make_service()

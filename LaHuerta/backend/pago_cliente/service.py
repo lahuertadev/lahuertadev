@@ -105,17 +105,24 @@ class ClientPaymentService:
             effective_number = data.get('cheque_numero', check.numero)
             effective_bank = data.get('cheque_banco', check.banco)
             effective_check_amount = data.get('importe', check.importe)
+            effective_issue_date = data.get('cheque_fecha_emision', check.fecha_emision)
+            effective_deposit_date = data.get('cheque_fecha_deposito', check.fecha_deposito)
 
             number_changed = effective_number != check.numero
             bank_changed = effective_bank != check.banco
             check_amount_changed = effective_check_amount != check.importe
-            changes_identity_or_value = client_changed or number_changed or bank_changed or check_amount_changed
+            issue_date_changed = effective_issue_date != check.fecha_emision
+            deposit_date_changed = effective_deposit_date != check.fecha_deposito
+            changes_check_data = (
+                client_changed or number_changed or bank_changed or check_amount_changed
+                or issue_date_changed or deposit_date_changed
+            )
 
-            if changes_identity_or_value and check.endosado:
+            if changes_check_data and check.endosado:
                 proveedor = check.pago_compra.compra.proveedor.nombre
                 payment_date = check.pago_compra.fecha_pago
                 raise CheckEditBlockedException(
-                    f'No se puede modificar el número, banco o importe del cheque N° {check.numero}: '
+                    f'No se pueden modificar los datos del cheque N° {check.numero}: '
                     f'ya fue endosado al proveedor {proveedor} (pago del {payment_date}). '
                     'Primero eliminá o editá ese pago al proveedor para poder continuar.'
                 )
