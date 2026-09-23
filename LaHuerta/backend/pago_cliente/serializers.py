@@ -56,6 +56,7 @@ class ClientPaymentResponseSerializer(serializers.ModelSerializer):
             'banco': check.banco.id,
             'fecha_emision': check.fecha_emision,
             'fecha_deposito': check.fecha_deposito,
+            'endosado': check.endosado,
         }
 
     class Meta:

@@ -6,6 +6,7 @@ from .exceptions import (
     PaymentTypeChangeBlockedException,
     CheckAlreadyExistsException,
     PaymentDeletionBlockedException,
+    CheckEditBlockedException,
 )
 from cliente.interfaces import IClientRepository
 from cheque.interfaces import ICheckRepository
@@ -100,9 +101,27 @@ class ClientPaymentService:
             })
             check = None
 
-        elif old_is_check and new_is_check and check and (client_changed or 'cheque_banco' in data):
+        elif old_is_check and new_is_check and check:
+            effective_number = data.get('cheque_numero', check.numero)
             effective_bank = data.get('cheque_banco', check.banco)
-            self._validate_no_duplicate_check(check.numero, effective_bank, new_client, exclude_id=check.id)
+            effective_check_amount = data.get('importe', check.importe)
+
+            number_changed = effective_number != check.numero
+            bank_changed = effective_bank != check.banco
+            check_amount_changed = effective_check_amount != check.importe
+            changes_identity_or_value = client_changed or number_changed or bank_changed or check_amount_changed
+
+            if changes_identity_or_value and check.endosado:
+                proveedor = check.pago_compra.compra.proveedor.nombre
+                payment_date = check.pago_compra.fecha_pago
+                raise CheckEditBlockedException(
+                    f'No se puede modificar el número, banco o importe del cheque N° {check.numero}: '
+                    f'ya fue endosado al proveedor {proveedor} (pago del {payment_date}). '
+                    'Primero eliminá o editá ese pago al proveedor para poder continuar.'
+                )
+
+            if client_changed or number_changed or bank_changed:
+                self._validate_no_duplicate_check(effective_number, effective_bank, new_client, exclude_id=check.id)
 
         if client_changed:
             old_client.cuenta_corriente = Decimal(str(old_client.cuenta_corriente)) + Decimal(str(old_total_amount))
@@ -122,6 +141,8 @@ class ClientPaymentService:
 
         if old_is_check and new_is_check and check:
             check_updates = {}
+            if 'cheque_numero' in data:
+                check_updates['numero'] = data['cheque_numero']
             if 'cheque_banco' in data:
                 check_updates['banco'] = data['cheque_banco']
             if 'cheque_fecha_emision' in data:

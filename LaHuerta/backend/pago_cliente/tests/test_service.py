@@ -12,6 +12,7 @@ from pago_cliente.exceptions import (
     ClientPaymentNotFoundException,
     CheckAlreadyExistsException,
     PaymentDeletionBlockedException,
+    CheckEditBlockedException,
 )
 
 
@@ -258,6 +259,9 @@ class TestUpdatePayment:
         check = Mock()
         check.importe = importe
         check.banco = self.banco_nacion
+        check.numero = 5001
+        check.id = 1
+        check.endosado = False
         check.fecha_emision = '2024-01-01'
         check.fecha_deposito = None
         payment.cheque_set.first = Mock(return_value=check)
@@ -289,6 +293,53 @@ class TestUpdatePayment:
         })
 
         assert check.banco == self.banco_galicia
+
+    def test_update_numero_actualiza_cheque(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+
+        service.update_payment(payment.id, {
+            'cliente': client,
+            'tipo_pago': self.tipo_cheque,
+            'fecha_pago': '2024-01-01',
+            'importe': Decimal('1000.00'),
+            'cheque_numero': 9999,
+        })
+
+        assert check.numero == 9999
+
+    def test_update_numero_banco_o_importe_bloqueado_si_cheque_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+        pago_compra = Mock()
+        pago_compra.compra.proveedor.nombre = 'Proveedor Test'
+        pago_compra.fecha_pago = '2024-02-01'
+        check.pago_compra = pago_compra
+
+        with pytest.raises(CheckEditBlockedException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_numero': 9999,
+            })
+
+    def test_update_fecha_emision_permitido_aunque_cheque_este_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+
+        service.update_payment(payment.id, {
+            'cliente': client,
+            'tipo_pago': self.tipo_cheque,
+            'fecha_pago': '2024-01-01',
+            'importe': Decimal('1000.00'),
+            'cheque_fecha_emision': '2024-03-01',
+        })
+
+        assert check.fecha_emision == '2024-03-01'
 
     def test_update_banco_duplicado_lanza_excepcion(self):
         service = _make_service()

@@ -14,6 +14,7 @@ from .exceptions import (
     PaymentTypeChangeBlockedException,
     CheckAlreadyExistsException,
     PaymentDeletionBlockedException,
+    CheckEditBlockedException,
 )
 from .factory import build_client_payment_service
 
@@ -118,6 +119,9 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         except CheckAlreadyExistsException as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        except CheckEditBlockedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception:
             logger.exception("Error al actualizar pago de cliente pk=%s", pk)
             return Response(
@@ -148,6 +152,9 @@ class ClientPaymentViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except CheckAlreadyExistsException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except CheckEditBlockedException as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:

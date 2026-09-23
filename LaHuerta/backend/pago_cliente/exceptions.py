@@ -12,3 +12,7 @@ class CheckAlreadyExistsException(Exception):
 
 class PaymentDeletionBlockedException(Exception):
     pass
+
+
+class CheckEditBlockedException(Exception):
+    pass
