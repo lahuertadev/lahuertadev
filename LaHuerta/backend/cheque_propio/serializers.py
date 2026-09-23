@@ -8,53 +8,26 @@ from banco.serializers import BankSerializer
 
 class OwnCheckCreateSerializer(serializers.ModelSerializer):
     '''
-    DTO para la creación de cheques propios.
+    DTO para la creación de cheques propios. Las reglas de negocio (duplicado,
+    rango de fechas) se validan en OwnCheckService, no acá.
     '''
     banco = serializers.PrimaryKeyRelatedField(queryset=Banco.objects.all())
 
     class Meta:
         model = OwnCheck
         fields = ['numero', 'importe', 'fecha_emision', 'fecha_deposito', 'fecha_vencimiento', 'banco', 'observaciones']
-        extra_kwargs = {
-            'numero': {'validators': []}
-        }
-
-    def validate(self, data):
-        if OwnCheck.objects.filter(numero=data['numero'], banco=data['banco']).exists():
-            raise serializers.ValidationError({'numero': 'Ya existe un cheque con ese número para ese banco.'})
-
-        deposit_date = data.get('fecha_deposito')
-        due_date = data.get('fecha_vencimiento')
-        if deposit_date and due_date and deposit_date > due_date:
-            raise serializers.ValidationError({
-                'fecha_deposito': 'La fecha de depósito no puede ser posterior a la fecha de vencimiento.'
-            })
-        return data
 
 
 class OwnCheckUpdateSerializer(serializers.ModelSerializer):
     '''
-    DTO para la modificación de cheques propios.
+    DTO para la modificación de cheques propios. Las reglas de negocio
+    (duplicado, uso en pagos, rango de fechas) se validan en OwnCheckService.
     '''
     banco = serializers.PrimaryKeyRelatedField(queryset=Banco.objects.all())
 
     class Meta:
         model = OwnCheck
         fields = ['numero', 'importe', 'fecha_emision', 'fecha_deposito', 'fecha_vencimiento', 'banco', 'observaciones']
-
-    def validate(self, data):
-        number = data.get('numero', getattr(self.instance, 'numero', None))
-        bank = data.get('banco', getattr(self.instance, 'banco', None))
-        if OwnCheck.objects.filter(numero=number, banco=bank).exclude(pk=self.instance.pk).exists():
-            raise serializers.ValidationError({'numero': 'Ya existe un cheque con ese número para ese banco.'})
-
-        deposit_date = data.get('fecha_deposito', getattr(self.instance, 'fecha_deposito', None))
-        due_date = data.get('fecha_vencimiento', getattr(self.instance, 'fecha_vencimiento', None))
-        if deposit_date and due_date and deposit_date > due_date:
-            raise serializers.ValidationError({
-                'fecha_deposito': 'La fecha de depósito no puede ser posterior a la fecha de vencimiento.'
-            })
-        return data
 
 
 class OwnCheckResponseSerializer(serializers.ModelSerializer):

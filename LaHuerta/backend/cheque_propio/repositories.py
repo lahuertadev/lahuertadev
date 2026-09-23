@@ -39,6 +39,12 @@ class OwnCheckRepository(IOwnCheckRepository):
             .first()
         )
 
+    def exists_duplicate(self, number, bank, exclude_id=None):
+        queryset = OwnCheck.objects.filter(numero=number, banco=bank)
+        if exclude_id is not None:
+            queryset = queryset.exclude(id=exclude_id)
+        return queryset.exists()
+
     def create(self, data: dict):
         return OwnCheck.objects.create(**data)
 

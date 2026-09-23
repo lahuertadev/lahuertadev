@@ -12,6 +12,10 @@ class IOwnCheckRepository(ABC):
         pass
 
     @abstractmethod
+    def exists_duplicate(self, number, bank, exclude_id=None):
+        pass
+
+    @abstractmethod
     def create(self, data: dict):
         pass
 
