@@ -6,6 +6,7 @@ import { clientPaymentUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
+import Toast from '../../../components/Toast';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
@@ -42,10 +43,19 @@ const ClientPaymentDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '' });
 
   const handleDelete = async () => {
-    await axios.delete(`${clientPaymentUrl}${id}/`);
-    navigate('/client-payment');
+    try {
+      await axios.delete(`${clientPaymentUrl}${id}/`);
+      navigate('/client-payment');
+    } catch (err) {
+      console.error('Error eliminando el pago:', err);
+      const msg = err?.response?.data?.detail || 'Error al eliminar el pago.';
+      setToast({ open: true, message: msg });
+    } finally {
+      setConfirmOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -88,6 +98,13 @@ const ClientPaymentDetail = () => {
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        onClose={() => setToast({ open: false, message: '' })}
+        duration={8000}
+        responsive
+      />
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
@@ -124,6 +141,7 @@ const ClientPaymentDetail = () => {
       {payment.cheque && (
         <SectionCard icon={<CreditCardIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
           <Field label="N° de cheque" value={payment.cheque.numero} />
+          <Field label="Banco" value={payment.cheque.banco_descripcion} />
           <Field label="Fecha de emisión" value={formatDate(payment.cheque.fecha_emision)} />
           <Field label="Fecha de depósito" value={formatDate(payment.cheque.fecha_deposito)} />
         </SectionCard>

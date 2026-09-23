@@ -199,7 +199,7 @@ const ClientPaymentForm = () => {
                 <div className="md:col-span-3 flex items-start gap-3 px-4 py-3 rounded-lg border bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400">
                   <WarningAmberIcon sx={{ fontSize: 18 }} className="shrink-0 mt-0.5" />
                   <p className="text-sm">
-                    Este cheque ya fue endosado a un proveedor. No se puede modificar el cliente, el número, el banco ni el importe.
+                    Este cheque ya fue endosado a un proveedor. No se puede modificar el cliente, el importe ni los datos del cheque (número, banco, fechas).
                   </p>
                 </div>
               )}
@@ -306,14 +306,16 @@ const ClientPaymentForm = () => {
                     value={values.chequeFechaEmision}
                     onChange={(date) => setFieldValue('chequeFechaEmision', date)}
                     hasError={touched.chequeFechaEmision && Boolean(errors.chequeFechaEmision)}
+                    disabled={checkEndosado}
                   />
                   <FieldError error={errors.chequeFechaEmision} touched={touched.chequeFechaEmision} />
                 </div>
                 <div className="md:col-span-3 flex items-center gap-6 bg-surface-low/50 border border-border-subtle px-5 py-4 rounded-xl">
-                  <label className="flex items-center gap-3 cursor-pointer flex-1">
+                  <label className={`flex items-center gap-3 flex-1 ${checkEndosado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                     <input
                       type="checkbox"
                       checked={values.chequeDiferido}
+                      disabled={checkEndosado}
                       onChange={(e) => {
                         setFieldValue('chequeDiferido', e.target.checked);
                         if (!e.target.checked) setFieldValue('chequeFechaDeposito', null);
@@ -333,6 +335,7 @@ const ClientPaymentForm = () => {
                         value={values.chequeFechaDeposito}
                         onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
                         hasError={false}
+                        disabled={checkEndosado}
                       />
                     </div>
                   )}
