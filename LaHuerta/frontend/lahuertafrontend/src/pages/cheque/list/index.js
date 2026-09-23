@@ -26,6 +26,7 @@ const mapCheckData = (data) => {
     id: check.id,
     numero: check.numero,
     bank: check.banco.descripcion,
+    client: check.cliente?.razon_social || '-',
     amount: formatCurrency(check.importe),
     issueDate: formatDate(check.fecha_emision),
     depositDate: check.fecha_deposito ? formatDate(check.fecha_deposito) : '-',

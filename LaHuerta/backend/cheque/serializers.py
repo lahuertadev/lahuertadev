@@ -46,6 +46,7 @@ class CheckResponseSerializer(serializers.ModelSerializer):
     '''
     banco = BankSerializer()
     estado = EstadoChequeSerializer()
+    cliente = serializers.SerializerMethodField()
 
     class Meta:
         model = Cheque
@@ -61,4 +62,14 @@ class CheckResponseSerializer(serializers.ModelSerializer):
             'estado',
             'pago_cliente',
             'pago_compra',
+            'cliente',
         ]
+
+    def get_cliente(self, obj):
+        if not obj.pago_cliente:
+            return None
+        return {
+            'cuit': obj.pago_cliente.cliente.cuit,
+            'razon_social': obj.pago_cliente.cliente.razon_social,
+            'fecha_pago': obj.pago_cliente.fecha_pago,
+        }

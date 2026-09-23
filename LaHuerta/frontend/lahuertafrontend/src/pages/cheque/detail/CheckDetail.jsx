@@ -7,6 +7,9 @@ import { formatDate } from '../../../utils/date';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PersonIcon from '@mui/icons-material/PersonOutline';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import Tooltip from '@mui/material/Tooltip';
 
 const STATE_CONFIG = {
   'EN_CARTERA': { label: 'En cartera',  bg: '#e8f0fb', color: '#4a7bc4' },
@@ -18,11 +21,16 @@ const STATE_CONFIG = {
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
-const SectionCard = ({ icon, title, children, cols = 3 }) => (
+const SectionCard = ({ icon, title, tooltip, children, cols = 3 }) => (
   <section className="space-y-3">
     <div className="flex items-center gap-2 px-1">
       <span className="text-blue-lahuerta">{icon}</span>
       <h2 className="text-base font-semibold text-on-surface">{title}</h2>
+      {tooltip && (
+        <Tooltip title={tooltip} placement="top" arrow>
+          <InfoOutlinedIcon sx={{ fontSize: 16, color: '#9ca3af', cursor: 'help' }} />
+        </Tooltip>
+      )}
     </div>
     <div className={`bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle grid grid-cols-1 md:grid-cols-${cols} gap-6`}>
       {children}
@@ -140,6 +148,19 @@ const CheckDetail = () => {
           <Field label="Fecha de endoso" value={formatDate(check.fecha_endoso)} />
         )}
       </SectionCard>
+
+      {/* 3. Datos del cliente */}
+      {check.cliente && (
+        <SectionCard
+          icon={<PersonIcon sx={{ fontSize: 20 }} />}
+          title="Datos del Cliente"
+          tooltip="Cliente que abonó este cheque"
+        >
+          <Field label="CUIT" value={check.cliente.cuit} />
+          <Field label="Razón Social" value={check.cliente.razon_social} />
+          <Field label="Fecha de pago" value={formatDate(check.cliente.fecha_pago)} />
+        </SectionCard>
+      )}
 
       {/* Action Bar */}
       <div className="flex items-center justify-end pt-6 border-t border-border-subtle">
