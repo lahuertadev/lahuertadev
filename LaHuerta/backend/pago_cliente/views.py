@@ -1,3 +1,4 @@
+import logging
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .repositories import ClientPaymentRepository
@@ -8,8 +9,15 @@ from .serializers import (
     ClientPaymentSerializer,
     ClientPaymentQueryParamsSerializer,
 )
-from .exceptions import ClientPaymentNotFoundException, PaymentTypeChangeBlockedException
+from .exceptions import (
+    ClientPaymentNotFoundException,
+    PaymentTypeChangeBlockedException,
+    CheckAlreadyExistsException,
+    PaymentDeletionBlockedException,
+)
 from .factory import build_client_payment_service
+
+logger = logging.getLogger(__name__)
 
 
 class ClientPaymentViewSet(viewsets.ViewSet):
@@ -36,8 +44,12 @@ class ClientPaymentViewSet(viewsets.ViewSet):
             serializer = ClientPaymentResponseSerializer(payments, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except Exception as e:
-            raise Exception(e, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Error al listar pagos de cliente")
+            return Response(
+                {'detail': 'Error al obtener los pagos.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def retrieve(self, request, pk=None):
         '''
@@ -55,6 +67,7 @@ class ClientPaymentViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al obtener pago de cliente pk=%s", pk)
             return Response(
                 {'detail': 'Error al obtener el pago.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -73,8 +86,15 @@ class ClientPaymentViewSet(viewsets.ViewSet):
             response_serializer = ClientPaymentResponseSerializer(payment)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except CheckAlreadyExistsException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception:
+            logger.exception("Error al crear pago de cliente")
+            return Response(
+                {'detail': 'Error al crear el pago.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     def update(self, request, pk=None):
         '''
@@ -85,7 +105,7 @@ class ClientPaymentViewSet(viewsets.ViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            payment = self.service.update_payment(payment_id=pk,data=serializer.validated_data)
+            payment = self.service.update_payment(payment_id=pk, data=serializer.validated_data)
             response_serializer = ClientPaymentResponseSerializer(payment)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
@@ -95,7 +115,11 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         except PaymentTypeChangeBlockedException as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        except CheckAlreadyExistsException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception:
+            logger.exception("Error al actualizar pago de cliente pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar el pago.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -123,7 +147,11 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         except PaymentTypeChangeBlockedException as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+        except CheckAlreadyExistsException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception:
+            logger.exception("Error al actualizar pago de cliente pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar el pago.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -140,7 +168,11 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         except ClientPaymentNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
+        except PaymentDeletionBlockedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception:
+            logger.exception("Error al eliminar pago de cliente pk=%s", pk)
             return Response(
                 {'detail': 'Error al eliminar el pago.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
