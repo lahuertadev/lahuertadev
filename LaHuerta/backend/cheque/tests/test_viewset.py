@@ -155,6 +155,33 @@ def test_retrieve_success(factory, viewset):
     assert response.data['numero'] == 1001
 
 
+def test_retrieve_success_con_pago_compra_asociado(factory, viewset):
+    pago_compra = Mock()
+    pago_compra.fecha_pago = '2024-05-01'
+    pago_compra.importe_abonado = Decimal('750.00')
+    pago_compra.compra.proveedor.nombre = 'Proveedor Test'
+    check = _mock_cheque(1001, endosado=True, pago_compra=pago_compra)
+    viewset.repository._items[1001] = check
+
+    request = factory.get('/checks/1001/')
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.retrieve(drf_request, pk=1001)
+
+    assert response.status_code == 200
+    assert response.data['pago_compra']['proveedor'] == 'Proveedor Test'
+    assert response.data['pago_compra']['importe_abonado'] == Decimal('750.00')
+
+
+def test_retrieve_success_sin_pago_compra_es_none(factory, viewset):
+    viewset.repository._add(1001)
+
+    request = factory.get('/checks/1001/')
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.retrieve(drf_request, pk=1001)
+
+    assert response.data['pago_compra'] is None
+
+
 # ------------------------- CREATE --------------------------
 @pytest.mark.django_db
 def test_create_success(factory, viewset):
