@@ -276,8 +276,8 @@ const PurchasePaymentForm = () => {
             {selectedBuy && (
               <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del pago" cols={2}>
                 <div className="flex flex-col gap-1">
+                  <label className={labelCls}>Fecha de pago</label>
                   <BasicDatePicker
-                    label="Fecha de pago"
                     value={values.paymentDate}
                     onChange={(date) => setFieldValue('paymentDate', date)}
                     hasError={touched.paymentDate && Boolean(errors.paymentDate)}
