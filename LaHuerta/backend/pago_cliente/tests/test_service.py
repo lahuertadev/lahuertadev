@@ -8,7 +8,12 @@ from tipo_pago.models import TipoPago
 from cheque.interfaces import ICheckRepository
 from pago_cliente.interfaces import IClientPaymentRepository
 from pago_cliente.service import ClientPaymentService
-from pago_cliente.exceptions import ClientPaymentNotFoundException
+from pago_cliente.exceptions import (
+    ClientPaymentNotFoundException,
+    CheckAlreadyExistsException,
+    PaymentDeletionBlockedException,
+    CheckEditBlockedException,
+)
 
 
 # ── Fake repos ────────────────────────────────────────────────────────────────
@@ -18,15 +23,26 @@ class FakeCheckRepo(ICheckRepository):
         self._items = {}
         self._created = []
         self._updated = []
+        self._next_id = 1
 
     def get_all(self):
         return list(self._items.values())
 
-    def get_by_id(self, numero):
-        return self._items.get(numero)
+    def get_by_id(self, id):
+        return self._items.get(id)
+
+    def exists_duplicate(self, number, bank, client, exclude_id=None):
+        for check in self._items.values():
+            if exclude_id is not None and check.id == exclude_id:
+                continue
+            if check.numero == number and check.banco == bank and check.pago_cliente and check.pago_cliente.cliente == client:
+                return True
+        return False
 
     def create(self, data):
         check = Mock()
+        check.id = self._next_id
+        self._next_id += 1
         check.numero = data['numero']
         check.importe = data['importe']
         check.banco = data['banco']
@@ -191,6 +207,23 @@ class TestCreatePayment:
         created = service.check_repository._created[0]
         assert created['fecha_deposito'] is None
 
+    def test_cheque_duplicado_lanza_excepcion(self):
+        service = _make_service()
+        service.check_repository.exists_duplicate = Mock(return_value=True)
+
+        with pytest.raises(CheckAlreadyExistsException):
+            service.create_payment({
+                'cliente': _make_client(),
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('5000.00'),
+                'cheque_numero': 12345,
+                'cheque_banco': self.banco,
+                'cheque_fecha_emision': '2024-01-01',
+            })
+
+        assert len(service.check_repository._created) == 0
+
     def test_descuenta_cuenta_corriente_del_cliente(self):
         service = _make_service()
         client = _make_client(cuenta_corriente=Decimal('10000.00'))
@@ -226,6 +259,9 @@ class TestUpdatePayment:
         check = Mock()
         check.importe = importe
         check.banco = self.banco_nacion
+        check.numero = 5001
+        check.id = 1
+        check.endosado = False
         check.fecha_emision = '2024-01-01'
         check.fecha_deposito = None
         payment.cheque_set.first = Mock(return_value=check)
@@ -257,6 +293,115 @@ class TestUpdatePayment:
         })
 
         assert check.banco == self.banco_galicia
+
+    def test_update_numero_actualiza_cheque(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+
+        service.update_payment(payment.id, {
+            'cliente': client,
+            'tipo_pago': self.tipo_cheque,
+            'fecha_pago': '2024-01-01',
+            'importe': Decimal('1000.00'),
+            'cheque_numero': 9999,
+        })
+
+        assert check.numero == 9999
+
+    def test_update_numero_banco_o_importe_bloqueado_si_cheque_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+        pago_compra = Mock()
+        pago_compra.compra.proveedor.nombre = 'Proveedor Test'
+        pago_compra.fecha_pago = '2024-02-01'
+        check.pago_compra = pago_compra
+
+        with pytest.raises(CheckEditBlockedException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_numero': 9999,
+            })
+
+    def test_update_fecha_emision_bloqueado_si_cheque_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+
+        with pytest.raises(CheckEditBlockedException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_fecha_emision': '2024-03-01',
+            })
+
+    def test_update_fecha_deposito_bloqueado_si_cheque_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+
+        with pytest.raises(CheckEditBlockedException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_fecha_deposito': '2024-03-01',
+            })
+
+    def test_update_observaciones_permitido_aunque_cheque_este_endosado(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.endosado = True
+
+        service.update_payment(payment.id, {
+            'cliente': client,
+            'tipo_pago': self.tipo_cheque,
+            'fecha_pago': '2024-01-01',
+            'importe': Decimal('1000.00'),
+            'observaciones': 'nota nueva',
+        })
+
+        update_data = service.payment_repository._last_update_data
+        assert update_data.get('observaciones') == 'nota nueva'
+
+    def test_update_banco_duplicado_lanza_excepcion(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        check.id = 1
+        check.numero = 5001
+        service.check_repository.exists_duplicate = Mock(return_value=True)
+
+        with pytest.raises(CheckAlreadyExistsException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_banco': self.banco_galicia,
+            })
+
+    def test_update_cliente_con_cheque_duplicado_en_nuevo_cliente_lanza_excepcion(self):
+        service = _make_service()
+        payment, check, old_client = self._make_payment_with_check(service)
+        check.id = 1
+        check.numero = 5001
+        new_client = _make_client()
+        new_client.id = 2
+        service.check_repository.exists_duplicate = Mock(return_value=True)
+
+        with pytest.raises(CheckAlreadyExistsException):
+            service.update_payment(payment.id, {
+                'cliente': new_client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+            })
 
     def test_update_fecha_deposito_actualiza_cheque(self):
         service = _make_service()
@@ -290,6 +435,31 @@ class TestUpdatePayment:
         assert 'cheque_banco' not in update_data
         assert 'cheque_fecha_emision' not in update_data
         assert 'cheque_fecha_deposito' not in update_data
+
+    def test_update_cambia_a_cheque_duplicado_lanza_excepcion(self):
+        service = _make_service()
+        client = _make_client()
+        payment = service.payment_repository.create(
+            client=client,
+            payment_type=self.tipo_efectivo,
+            payment_date='2024-01-01',
+            amount=Decimal('1000.00'),
+        )
+        payment.cheque_set.first = Mock(return_value=None)
+        service.check_repository.exists_duplicate = Mock(return_value=True)
+
+        with pytest.raises(CheckAlreadyExistsException):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+                'cheque_numero': 7001,
+                'cheque_banco': self.banco_nacion,
+                'cheque_fecha_emision': '2024-01-01',
+            })
+
+        assert len(service.check_repository._created) == 0
 
     def test_update_sin_cheque_asociado_no_falla(self):
         service = _make_service()
@@ -378,7 +548,7 @@ class TestDeletePayment:
         self.tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
         self.tipo_efectivo = TipoPago.objects.create(descripcion='Efectivo')
 
-    def _make_payment(self, service, tipo_pago, with_check=False):
+    def _make_payment(self, service, tipo_pago, with_check=False, endosado=False):
         client = _make_client()
         payment = service.payment_repository.create(
             client=client,
@@ -389,15 +559,17 @@ class TestDeletePayment:
         if with_check:
             check = Mock()
             check.numero = 12345
+            check.endosado = endosado
             service.check_repository._items[check.numero] = check
             payment.cheque_set.first = Mock(return_value=check)
+            return payment, client, check
         else:
             payment.cheque_set.first = Mock(return_value=None)
-        return payment, client
+        return payment, client, None
 
     def test_delete_pago_con_cheque_elimina_el_cheque(self):
         service = _make_service()
-        payment, client = self._make_payment(service, self.tipo_cheque, with_check=True)
+        payment, client, check = self._make_payment(service, self.tipo_cheque, with_check=True)
         payment_id = payment.id
 
         service.delete_payment(payment_id)
@@ -405,9 +577,24 @@ class TestDeletePayment:
         assert service.payment_repository.get_by_id(payment_id) is None
         assert service.check_repository.get_by_id(12345) is None
 
+    def test_delete_pago_con_cheque_endosado_lanza_excepcion(self):
+        service = _make_service()
+        payment, client, check = self._make_payment(service, self.tipo_cheque, with_check=True, endosado=True)
+        pago_compra = Mock()
+        pago_compra.compra.proveedor.nombre = 'Proveedor Test'
+        pago_compra.fecha_pago = '2024-02-01'
+        check.pago_compra = pago_compra
+
+        with pytest.raises(PaymentDeletionBlockedException):
+            service.delete_payment(payment.id)
+
+        # el pago y el cheque siguen existiendo, nada se revirtió
+        assert service.payment_repository.get_by_id(payment.id) is not None
+        assert service.check_repository.get_by_id(12345) is not None
+
     def test_delete_pago_sin_cheque_no_falla(self):
         service = _make_service()
-        payment, client = self._make_payment(service, self.tipo_efectivo, with_check=False)
+        payment, client, check = self._make_payment(service, self.tipo_efectivo, with_check=False)
         payment_id = payment.id
 
         service.delete_payment(payment_id)

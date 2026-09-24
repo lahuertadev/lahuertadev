@@ -4,14 +4,12 @@ from decimal import Decimal
 from banco.models import Banco
 from estado_cheque.models import EstadoCheque
 from pago_cliente.models import PagoCliente
-from pago_compra.models import PagoCompra
-from compra.models import Compra
-from proveedor.models import Proveedor
+from provincia.models import Provincia
+from municipio.models import Municipio
+from localidad.models import Localidad
 from cliente.models import Cliente
 from tipo_pago.models import TipoPago
-from mercado.models import Mercado
 from tipo_condicion_iva.models import TipoCondicionIva
-from tipo_venta.models import TipoVenta
 from cheque.models import Cheque
 from cheque.repositories import CheckRepository
 
@@ -32,6 +30,28 @@ class TestCheckRepository:
             estado=self.estado,
         )
 
+    def _make_cliente_con_pago(self):
+        provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
+        municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
+        localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
+        condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
+        cliente = Cliente.objects.create(
+            cuit='20123456789',
+            razon_social='Cliente Test SA',
+            cuenta_corriente=Decimal('0.00'),
+            telefono='1122334455',
+            localidad=localidad,
+            condicion_IVA=condicion_iva,
+        )
+        tipo_pago = TipoPago.objects.create(descripcion='Cheque')
+        payment = PagoCliente.objects.create(
+            fecha_pago='2024-01-01',
+            importe=Decimal('1000.00'),
+            cliente=cliente,
+            tipo_pago=tipo_pago,
+        )
+        return cliente, payment
+
     # ------------------------- GET ALL -------------------------
     def test_get_all_returns_all(self):
         self._make_cheque(1001)
@@ -49,7 +69,7 @@ class TestCheckRepository:
     def test_get_by_id_ok(self):
         cheque = self._make_cheque(1001)
 
-        result = self.repository.get_by_id(1001)
+        result = self.repository.get_by_id(cheque.id)
 
         assert result is not None
         assert result.numero == cheque.numero
@@ -57,6 +77,32 @@ class TestCheckRepository:
     def test_get_by_id_not_found_returns_none(self):
         result = self.repository.get_by_id(9999)
         assert result is None
+
+    # ------------------------- EXISTS DUPLICATE -----------------
+    def test_exists_duplicate_mismo_numero_banco_cliente(self):
+        cliente, payment = self._make_cliente_con_pago()
+        cheque = self._make_cheque(numero=3001)
+        cheque.pago_cliente = payment
+        cheque.save()
+
+        assert self.repository.exists_duplicate(3001, self.banco, cliente) is True
+
+    def test_exists_duplicate_distinto_banco_no_es_duplicado(self):
+        cliente, payment = self._make_cliente_con_pago()
+        cheque = self._make_cheque(numero=3001)
+        cheque.pago_cliente = payment
+        cheque.save()
+        otro_banco = Banco.objects.create(descripcion='Galicia')
+
+        assert self.repository.exists_duplicate(3001, otro_banco, cliente) is False
+
+    def test_exists_duplicate_excluye_el_propio_cheque(self):
+        cliente, payment = self._make_cliente_con_pago()
+        cheque = self._make_cheque(numero=3001)
+        cheque.pago_cliente = payment
+        cheque.save()
+
+        assert self.repository.exists_duplicate(3001, self.banco, cliente, exclude_id=cheque.id) is False
 
     # ------------------------- CREATE --------------------------
     def test_create_ok(self):

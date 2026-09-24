@@ -4,3 +4,15 @@ class ClientPaymentNotFoundException(Exception):
 
 class PaymentTypeChangeBlockedException(Exception):
     pass
+
+
+class CheckAlreadyExistsException(Exception):
+    pass
+
+
+class PaymentDeletionBlockedException(Exception):
+    pass
+
+
+class CheckEditBlockedException(Exception):
+    pass

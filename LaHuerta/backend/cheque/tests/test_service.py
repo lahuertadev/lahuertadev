@@ -9,13 +9,14 @@ from cheque.exceptions import CheckAlreadyEndorsedException, CheckInvalidStateEx
 from cliente.interfaces import IClientRepository
 
 
-def _make_check(endosado=False, estado_descripcion='EN_CARTERA', pago_cliente=None):
+def _make_check(endosado=False, estado_descripcion='EN_CARTERA', pago_cliente=None, pago_compra=None):
     estado = Mock()
     estado.descripcion = estado_descripcion
     check = Mock()
     check.endosado = endosado
     check.estado = estado
     check.pago_cliente = pago_cliente
+    check.pago_compra = pago_compra
     return check
 
 
@@ -25,6 +26,17 @@ def _make_pago_cliente(importe='2000.00', cc='5000.00'):
     pago = Mock()
     pago.importe = Decimal(importe)
     pago.cliente = cliente
+    return pago
+
+
+def _make_pago_compra(importe_abonado='2000.00', cc='5000.00'):
+    proveedor = Mock()
+    proveedor.cuenta_corriente = Decimal(cc)
+    compra = Mock()
+    compra.proveedor = proveedor
+    pago = Mock()
+    pago.importe_abonado = Decimal(importe_abonado)
+    pago.compra = compra
     return pago
 
 
@@ -43,18 +55,27 @@ class FakeClientRepo(IClientRepository):
         self.updated.append(client.cuenta_corriente)
 
 
-def _make_service(with_client_repo=False):
+class FakeSupplierRepo:
+    def __init__(self):
+        self.updated = []
+
+    def update_balance(self, supplier):
+        self.updated.append(supplier.cuenta_corriente)
+
+
+def _make_service(with_client_repo=False, with_supplier_repo=False):
     repo = Mock()
     repo.update.side_effect = lambda check, data: [setattr(check, k, v) for k, v in data.items()]
     client_repo = FakeClientRepo() if with_client_repo else None
-    return CheckService(repo, client_repository=client_repo), repo, client_repo
+    supplier_repo = FakeSupplierRepo() if with_supplier_repo else None
+    return CheckService(repo, client_repository=client_repo, supplier_repository=supplier_repo), repo, client_repo, supplier_repo
 
 
 # ── ENDORSE ──────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 def test_endorse_already_endorsed():
-    service, _, __ = _make_service()
+    service, _, __, ___ = _make_service()
     check = _make_check(endosado=True)
     with pytest.raises(CheckAlreadyEndorsedException):
         service.endorse_check(check, pago_compra=Mock())
@@ -62,7 +83,7 @@ def test_endorse_already_endorsed():
 
 @pytest.mark.django_db
 def test_endorse_invalid_state():
-    service, _, __ = _make_service()
+    service, _, __, ___ = _make_service()
     check = _make_check(estado_descripcion='DEPOSITADO')
     with pytest.raises(CheckInvalidStateException):
         service.endorse_check(check, pago_compra=Mock())
@@ -71,7 +92,7 @@ def test_endorse_invalid_state():
 @pytest.mark.django_db
 def test_endorse_success():
     EstadoCheque.objects.create(descripcion='ENDOSADO')
-    service, repo, _ = _make_service()
+    service, repo, _, __ = _make_service()
     pago_compra = Mock()
     check = _make_check()
 
@@ -87,7 +108,7 @@ def test_endorse_success():
 
 @pytest.mark.django_db
 def test_deposit_invalid_state():
-    service, _, __ = _make_service()
+    service, _, __, ___ = _make_service()
     check = _make_check(estado_descripcion='DEPOSITADO')
     with pytest.raises(CheckInvalidTransitionException):
         service.deposit_check(check)
@@ -96,7 +117,7 @@ def test_deposit_invalid_state():
 @pytest.mark.django_db
 def test_deposit_success():
     EstadoCheque.objects.create(descripcion='DEPOSITADO')
-    service, repo, _ = _make_service()
+    service, repo, _, __ = _make_service()
     check = _make_check()  # EN_CARTERA
 
     result = service.deposit_check(check)
@@ -109,7 +130,7 @@ def test_deposit_success():
 
 @pytest.mark.django_db
 def test_credit_invalid_state():
-    service, _, __ = _make_service()
+    service, _, __, ___ = _make_service()
     check = _make_check(estado_descripcion='EN_CARTERA')
     with pytest.raises(CheckInvalidTransitionException):
         service.credit_check(check)
@@ -118,7 +139,7 @@ def test_credit_invalid_state():
 @pytest.mark.django_db
 def test_credit_success():
     EstadoCheque.objects.create(descripcion='ACREDITADO')
-    service, repo, _ = _make_service()
+    service, repo, _, __ = _make_service()
     check = _make_check(estado_descripcion='DEPOSITADO')
 
     result = service.credit_check(check)
@@ -131,7 +152,7 @@ def test_credit_success():
 
 @pytest.mark.django_db
 def test_reject_invalid_state():
-    service, _, __ = _make_service()
+    service, _, __, ___ = _make_service()
     check = _make_check(estado_descripcion='EN_CARTERA')
     with pytest.raises(CheckInvalidTransitionException):
         service.reject_check(check)
@@ -140,7 +161,7 @@ def test_reject_invalid_state():
 @pytest.mark.django_db
 def test_reject_success():
     EstadoCheque.objects.create(descripcion='RECHAZADO')
-    service, repo, _ = _make_service()
+    service, repo, _, __ = _make_service()
     check = _make_check(estado_descripcion='DEPOSITADO')
 
     result = service.reject_check(check)
@@ -152,7 +173,7 @@ def test_reject_success():
 @pytest.mark.django_db
 def test_reject_con_pago_cliente_revierte_cc():
     EstadoCheque.objects.create(descripcion='RECHAZADO')
-    service, _, client_repo = _make_service(with_client_repo=True)
+    service, _, client_repo, __ = _make_service(with_client_repo=True)
     pago_cliente = _make_pago_cliente(importe='2000.00', cc='3000.00')
     check = _make_check(estado_descripcion='DEPOSITADO', pago_cliente=pago_cliente)
 
@@ -165,9 +186,83 @@ def test_reject_con_pago_cliente_revierte_cc():
 @pytest.mark.django_db
 def test_reject_sin_pago_cliente_no_modifica_cc():
     EstadoCheque.objects.create(descripcion='RECHAZADO')
-    service, _, client_repo = _make_service(with_client_repo=True)
+    service, _, client_repo, __ = _make_service(with_client_repo=True)
     check = _make_check(estado_descripcion='DEPOSITADO', pago_cliente=None)
 
     service.reject_check(check)
 
     assert len(client_repo.updated) == 0
+
+
+# ── CREDIT / REJECT desde ENDOSADO ────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_credit_success_desde_endosado():
+    EstadoCheque.objects.create(descripcion='ACREDITADO')
+    service, repo, _, __ = _make_service()
+    check = _make_check(endosado=True, estado_descripcion='ENDOSADO')
+
+    result = service.credit_check(check)
+
+    assert result.estado.descripcion == 'ACREDITADO'
+    repo.update.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_reject_success_desde_endosado():
+    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    service, repo, _, __ = _make_service()
+    check = _make_check(endosado=True, estado_descripcion='ENDOSADO')
+
+    result = service.reject_check(check)
+
+    assert result.estado.descripcion == 'RECHAZADO'
+    repo.update.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_reject_desde_endosado_revierte_cc_cliente_y_proveedor():
+    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    service, _, client_repo, supplier_repo = _make_service(with_client_repo=True, with_supplier_repo=True)
+    pago_cliente = _make_pago_cliente(importe='2000.00', cc='3000.00')
+    pago_compra = _make_pago_compra(importe_abonado='2000.00', cc='5000.00')
+    check = _make_check(
+        endosado=True,
+        estado_descripcion='ENDOSADO',
+        pago_cliente=pago_cliente,
+        pago_compra=pago_compra,
+    )
+
+    service.reject_check(check)
+
+    assert pago_cliente.cliente.cuenta_corriente == Decimal('5000.00')
+    assert pago_compra.compra.proveedor.cuenta_corriente == Decimal('7000.00')
+    assert len(client_repo.updated) == 1
+    assert len(supplier_repo.updated) == 1
+
+
+@pytest.mark.django_db
+def test_reject_desde_depositado_no_revierte_cc_proveedor():
+    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    service, _, __, supplier_repo = _make_service(with_supplier_repo=True)
+    check = _make_check(endosado=False, estado_descripcion='DEPOSITADO', pago_compra=None)
+
+    service.reject_check(check)
+
+    assert len(supplier_repo.updated) == 0
+
+
+@pytest.mark.django_db
+def test_reject_desde_endosado_no_toca_pago_compra():
+    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    service, repo, _, __ = _make_service(with_supplier_repo=True)
+    pago_compra = _make_pago_compra()
+    check = _make_check(endosado=True, estado_descripcion='ENDOSADO', pago_compra=pago_compra)
+
+    service.reject_check(check)
+
+    # El PagoCompra queda intacto: solo se actualiza el estado del cheque,
+    # nunca se llama a delete ni a update sobre el pago de compra (trazabilidad).
+    repo.update.assert_called_once()
+    assert set(repo.update.call_args[0][1].keys()) == {'estado'}
+    assert pago_compra.delete.call_count == 0

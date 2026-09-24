@@ -15,6 +15,7 @@ const mapClientPaymentData = (data) => {
     amount: formatCurrency(payment.importe),
     paymentType: payment.tipo_pago.descripcion,
     observations: payment.observaciones || '-',
+    chequeRechazado: payment.cheque?.estado === 'RECHAZADO',
   }));
 };
 

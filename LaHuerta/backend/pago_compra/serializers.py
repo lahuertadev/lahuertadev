@@ -19,19 +19,19 @@ class PurchasePaymentWriteSerializer(serializers.Serializer):
     importe_abonado = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
     tipo_pago = serializers.PrimaryKeyRelatedField(queryset=TipoPago.objects.all())
     fecha_pago = serializers.DateField()
-    cheque_numero = serializers.IntegerField(required=False, allow_null=True)
-    own_check_numero = serializers.IntegerField(required=False, allow_null=True)
+    cheque_id = serializers.IntegerField(required=False, allow_null=True)
+    own_check_id = serializers.IntegerField(required=False, allow_null=True)
 
     def validate(self, data):
         if data.get('tipo_pago') and data['tipo_pago'].descripcion == 'Cheque':
-            if not data.get('cheque_numero'):
+            if not data.get('cheque_id'):
                 raise serializers.ValidationError(
-                    {'cheque_numero': 'Requerido cuando el tipo de pago es cheque.'}
+                    {'cheque_id': 'Requerido cuando el tipo de pago es cheque.'}
                 )
         if data.get('tipo_pago') and data['tipo_pago'].descripcion == 'Cheque Propio':
-            if not data.get('own_check_numero'):
+            if not data.get('own_check_id'):
                 raise serializers.ValidationError(
-                    {'own_check_numero': 'Requerido cuando el tipo de pago es cheque propio.'}
+                    {'own_check_id': 'Requerido cuando el tipo de pago es cheque propio.'}
                 )
         return data
 

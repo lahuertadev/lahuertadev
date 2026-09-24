@@ -23,9 +23,10 @@ const actionBtnCls = (variant) => {
 
 const mapCheckData = (data) => {
   return data.map((check) => ({
-    id: check.numero,
+    id: check.id,
     numero: check.numero,
     bank: check.banco.descripcion,
+    client: check.cliente?.razon_social || '-',
     amount: formatCurrency(check.importe),
     issueDate: formatDate(check.fecha_emision),
     depositDate: check.fecha_deposito ? formatDate(check.fecha_deposito) : '-',
@@ -96,7 +97,7 @@ const CheckList = () => {
           </div>
         );
       }
-      if (state === 'DEPOSITADO') {
+      if (state === 'DEPOSITADO' || state === 'ENDOSADO') {
         return (
           <div className="flex gap-1.5 items-center h-full">
             <button className={actionBtnCls('credit')} onClick={() => handleStateChange('credit', params.row.id)}>

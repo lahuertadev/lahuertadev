@@ -205,7 +205,7 @@ def test_create_tipo_cheque_sin_numero_retorna_400(factory, db_setup):
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
-    assert 'cheque_numero' in str(response.data)
+    assert 'cheque_id' in str(response.data)
 
 
 @pytest.mark.django_db
@@ -223,7 +223,7 @@ def test_create_cheque_no_encontrado_retorna_404(factory, db_setup):
         'importe_abonado': '1500.00',
         'tipo_pago': tipo_cheque.id,
         'fecha_pago': '2024-01-15',
-        'cheque_numero': 99999,
+        'cheque_id': 99999,
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 404
@@ -245,7 +245,7 @@ def test_create_cheque_ya_endosado_retorna_400(factory, db_setup):
         'importe_abonado': '1500.00',
         'tipo_pago': tipo_cheque.id,
         'fecha_pago': '2024-01-15',
-        'cheque_numero': 12345,
+        'cheque_id': 12345,
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
@@ -267,7 +267,7 @@ def test_create_cheque_estado_invalido_retorna_400(factory, db_setup):
         'importe_abonado': '1500.00',
         'tipo_pago': tipo_cheque.id,
         'fecha_pago': '2024-01-15',
-        'cheque_numero': 12345,
+        'cheque_id': 12345,
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400

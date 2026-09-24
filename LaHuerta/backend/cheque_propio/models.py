@@ -9,7 +9,7 @@ class OwnCheck(models.Model):
         COBRADO = 'COBRADO', 'Cobrado'
         ANULADO = 'ANULADO', 'Anulado'
 
-    numero = models.IntegerField(primary_key=True)
+    numero = models.IntegerField()
     importe = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_emision = models.DateField()
     fecha_deposito = models.DateField(blank=True, null=True)
@@ -23,3 +23,6 @@ class OwnCheck(models.Model):
 
     class Meta:
         db_table = 'cheque_propio'
+        constraints = [
+            models.UniqueConstraint(fields=['numero', 'banco'], name='unique_own_check_numero_banco'),
+        ]

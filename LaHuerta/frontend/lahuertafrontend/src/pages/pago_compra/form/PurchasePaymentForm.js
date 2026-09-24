@@ -79,8 +79,8 @@ const PurchasePaymentForm = () => {
     paymentDate: today(),
     amount: '',
     paymentType: '',
-    chequeNumero: '',
-    ownCheckNumero: '',
+    chequeId: '',
+    ownCheckId: '',
   };
 
   useEffect(() => {
@@ -100,7 +100,7 @@ const PurchasePaymentForm = () => {
         loadOptions(`${checkUrl}?estado=EN_CARTERA`, (data) =>
           data.map((c) => ({
             name: `Nro. ${c.numero} — ${c.banco?.descripcion || c.banco} — ${formatCurrency(c.importe)}`,
-            value: c.numero,
+            value: c.id,
             importe: c.importe,
           }))
         ),
@@ -114,8 +114,8 @@ const PurchasePaymentForm = () => {
     setFieldValue('buy', buyId);
     setFieldValue('amount', '');
     setFieldValue('paymentType', '');
-    setFieldValue('chequeNumero', '');
-    setFieldValue('ownCheckNumero', '');
+    setFieldValue('chequeId', '');
+    setFieldValue('ownCheckId', '');
 
     if (!buyId) {
       setSelectedBuy(null);
@@ -132,7 +132,7 @@ const PurchasePaymentForm = () => {
           `${ownCheckUrl}?available=true&supplier_id=${proveedorId}`,
           (items) => items.map((c) => ({
             name: `Nro. ${c.numero} — ${c.banco?.descripcion || c.banco} — Saldo: ${formatCurrency(c.remaining_balance)}`,
-            value: c.numero,
+            value: c.id,
             importe: c.remaining_balance,
           }))
         );
@@ -158,11 +158,11 @@ const PurchasePaymentForm = () => {
     const selected = selectOptions.paymentTypes.find(
       (opt) => String(opt.value) === String(values.paymentType)
     );
-    if (selected?.name === 'Cheque' && !values.chequeNumero) {
-      errors.chequeNumero = 'Requerido cuando el tipo de pago es cheque.';
+    if (selected?.name === 'Cheque' && !values.chequeId) {
+      errors.chequeId = 'Requerido cuando el tipo de pago es cheque.';
     }
-    if (selected?.name === 'Cheque Propio' && !values.ownCheckNumero) {
-      errors.ownCheckNumero = 'Requerido cuando el tipo de pago es cheque propio.';
+    if (selected?.name === 'Cheque Propio' && !values.ownCheckId) {
+      errors.ownCheckId = 'Requerido cuando el tipo de pago es cheque propio.';
     }
     return errors;
   };
@@ -178,10 +178,10 @@ const PurchasePaymentForm = () => {
       tipo_pago:       values.paymentType,
     };
     if (selected?.name === 'Cheque') {
-      payload.cheque_numero = values.chequeNumero;
+      payload.cheque_id = values.chequeId;
     }
     if (selected?.name === 'Cheque Propio') {
-      payload.own_check_numero = values.ownCheckNumero;
+      payload.own_check_id = values.ownCheckId;
     }
     const formatDetailAmounts = (msg) =>
       msg.replace(/\((\d+(?:\.\d+)?)\)/g, (_, num) => `(${formatCurrency(parseFloat(num))})`);
@@ -196,7 +196,7 @@ const PurchasePaymentForm = () => {
       } else {
         const msg = detail
           ? formatDetailAmounts(detail)
-          : error?.response?.data?.cheque_numero?.[0] || 'Error al registrar el pago.';
+          : error?.response?.data?.cheque_id?.[0] || 'Error al registrar el pago.';
         setToast({ open: true, message: msg });
       }
     }
@@ -276,8 +276,8 @@ const PurchasePaymentForm = () => {
             {selectedBuy && (
               <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del pago" cols={2}>
                 <div className="flex flex-col gap-1">
+                  <label className={labelCls}>Fecha de pago</label>
                   <BasicDatePicker
-                    label="Fecha de pago"
                     value={values.paymentDate}
                     onChange={(date) => setFieldValue('paymentDate', date)}
                     hasError={touched.paymentDate && Boolean(errors.paymentDate)}
@@ -291,8 +291,8 @@ const PurchasePaymentForm = () => {
                     value={values.paymentType}
                     onChange={(e) => {
                       setFieldValue('paymentType', e.target.value);
-                      setFieldValue('chequeNumero', '');
-                      setFieldValue('ownCheckNumero', '');
+                      setFieldValue('chequeId', '');
+                      setFieldValue('ownCheckId', '');
                       setFieldValue('amount', '');
                     }}
                     className={inputCls(touched.paymentType && errors.paymentType)}
@@ -326,26 +326,26 @@ const PurchasePaymentForm = () => {
                 <div className="flex flex-col gap-1">
                   <label className={labelCls}>Cheque en cartera</label>
                   <select
-                    value={values.chequeNumero}
+                    value={values.chequeId}
                     onChange={(e) => {
                       const selected = selectOptions.checks.find((c) => String(c.value) === e.target.value);
-                      setFieldValue('chequeNumero', e.target.value);
+                      setFieldValue('chequeId', e.target.value);
                       setFieldValue('amount', selected ? String(selected.importe) : '');
                     }}
-                    className={inputCls(touched.chequeNumero && errors.chequeNumero)}
+                    className={inputCls(touched.chequeId && errors.chequeId)}
                   >
                     <option value="">Seleccionar cheque...</option>
                     {selectOptions.checks.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.name}</option>
                     ))}
                   </select>
-                  <FieldError error={errors.chequeNumero} touched={touched.chequeNumero} />
+                  <FieldError error={errors.chequeId} touched={touched.chequeId} />
                   {selectOptions.checks.length === 0 && (
                     <p className="mt-1 text-xs text-on-surface-muted">No hay cheques en cartera disponibles.</p>
                   )}
                 </div>
 
-                {values.chequeNumero && (
+                {values.chequeId && (
                   <div className="flex flex-col gap-1">
                     <label className={labelCls}>Importe abonado</label>
                     <AmountInput
@@ -366,26 +366,26 @@ const PurchasePaymentForm = () => {
                 <div className="flex flex-col gap-1">
                   <label className={labelCls}>Cheque propio disponible</label>
                   <select
-                    value={values.ownCheckNumero}
+                    value={values.ownCheckId}
                     onChange={(e) => {
                       const selected = selectOptions.ownChecks.find((c) => String(c.value) === e.target.value);
-                      setFieldValue('ownCheckNumero', e.target.value);
+                      setFieldValue('ownCheckId', e.target.value);
                       setFieldValue('amount', selected ? String(selected.importe) : '');
                     }}
-                    className={inputCls(touched.ownCheckNumero && errors.ownCheckNumero)}
+                    className={inputCls(touched.ownCheckId && errors.ownCheckId)}
                   >
                     <option value="">Seleccionar cheque...</option>
                     {selectOptions.ownChecks.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.name}</option>
                     ))}
                   </select>
-                  <FieldError error={errors.ownCheckNumero} touched={touched.ownCheckNumero} />
+                  <FieldError error={errors.ownCheckId} touched={touched.ownCheckId} />
                   {selectOptions.ownChecks.length === 0 && (
                     <p className="mt-1 text-xs text-on-surface-muted">No hay cheques propios disponibles.</p>
                   )}
                 </div>
 
-                {values.ownCheckNumero && (
+                {values.ownCheckId && (
                   <div className="flex flex-col gap-1">
                     <label className={labelCls}>Importe abonado</label>
                     <AmountInput

@@ -4,11 +4,15 @@ from abc import ABC, abstractmethod
 class ICheckRepository(ABC):
 
     @abstractmethod
-    def get_all(self, banco=None, estado=None, endosado=None, fecha_deposito_desde=None, fecha_deposito_hasta=None):
+    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None):
         pass
 
     @abstractmethod
-    def get_by_id(self, numero):
+    def get_by_id(self, id):
+        pass
+
+    @abstractmethod
+    def exists_duplicate(self, number, bank, client, exclude_id=None):
         pass
 
     @abstractmethod
@@ -16,9 +20,9 @@ class ICheckRepository(ABC):
         pass
 
     @abstractmethod
-    def update(self, cheque, data: dict):
+    def update(self, check, data: dict):
         pass
 
     @abstractmethod
-    def delete(self, cheque):
+    def delete(self, check):
         pass

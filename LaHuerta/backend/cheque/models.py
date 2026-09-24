@@ -6,7 +6,7 @@ from pago_compra.models import PagoCompra
 
 
 class Cheque(models.Model):
-    numero = models.IntegerField(primary_key=True)
+    numero = models.IntegerField()
     importe = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_emision = models.DateField()
     fecha_deposito = models.DateField(blank=True, null=True)
