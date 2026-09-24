@@ -97,7 +97,7 @@ const CheckList = () => {
           </div>
         );
       }
-      if (state === 'DEPOSITADO') {
+      if (state === 'DEPOSITADO' || state === 'ENDOSADO') {
         return (
           <div className="flex gap-1.5 items-center h-full">
             <button className={actionBtnCls('credit')} onClick={() => handleStateChange('credit', params.row.id)}>
