@@ -96,6 +96,8 @@ const ClientPaymentDetail = () => {
     );
   }
 
+  const isRechazado = payment.cheque?.estado === 'RECHAZADO';
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
       <Toast
@@ -129,6 +131,12 @@ const ClientPaymentDetail = () => {
           <span className="text-sm font-semibold text-on-surface">{formatCurrency(payment.importe)}</span>
         </div>
         <Field label="Tipo de pago" value={payment.tipo_pago.descripcion} />
+        <div className="flex flex-col gap-1">
+          <span className={labelCls}>Estado</span>
+          <span className={`text-sm font-semibold ${isRechazado ? 'text-red-500' : 'text-on-surface'}`}>
+            {isRechazado ? 'Rechazado' : 'Acreditado'}
+          </span>
+        </div>
         {payment.observaciones && (
           <div className="md:col-span-3 flex flex-col gap-1">
             <span className={labelCls}>Observaciones</span>
