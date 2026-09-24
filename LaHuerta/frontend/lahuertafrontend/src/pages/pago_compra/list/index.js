@@ -13,6 +13,7 @@ const mapPaymentData = (data) => {
     amount: formatCurrency(p.importe_abonado),
     paymentType: p.tipo_pago?.descripcion || '-',
     cheque: p.cheque?.numero || p.cheque_propio?.numero || '-',
+    chequeRechazado: p.cheque?.estado === 'RECHAZADO',
   }));
 };
 
