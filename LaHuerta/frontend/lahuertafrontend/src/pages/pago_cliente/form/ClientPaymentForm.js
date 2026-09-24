@@ -199,7 +199,7 @@ const ClientPaymentForm = () => {
                 <div className="md:col-span-3 flex items-start gap-3 px-4 py-3 rounded-lg border bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400">
                   <WarningAmberIcon sx={{ fontSize: 18 }} className="shrink-0 mt-0.5" />
                   <p className="text-sm">
-                    Este cheque ya fue endosado a un proveedor. No se puede modificar el cliente, el importe ni los datos del cheque (número, banco, fechas).
+                    Este cheque ya fue endosado a un proveedor. No se puede modificar el cliente, el importe, el tipo de pago ni los datos del cheque (número, banco, fechas).
                   </p>
                 </div>
               )}
@@ -243,7 +243,8 @@ const ClientPaymentForm = () => {
                 <select
                   value={values.paymentType}
                   onChange={(e) => setFieldValue('paymentType', e.target.value)}
-                  className={inputCls(touched.paymentType && errors.paymentType)}
+                  disabled={checkEndosado}
+                  className={checkEndosado ? lockedSelectCls : inputCls(touched.paymentType && errors.paymentType)}
                 >
                   <option value="">Seleccionar...</option>
                   {selectOptions.paymentTypes.map((opt) => (
