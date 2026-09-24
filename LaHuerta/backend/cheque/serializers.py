@@ -46,10 +46,13 @@ class CheckResponseSerializer(serializers.ModelSerializer):
     '''
     banco = BankSerializer()
     estado = EstadoChequeSerializer()
+    cliente = serializers.SerializerMethodField()
+    pago_compra = serializers.SerializerMethodField()
 
     class Meta:
         model = Cheque
         fields = [
+            'id',
             'numero',
             'importe',
             'fecha_emision',
@@ -60,4 +63,23 @@ class CheckResponseSerializer(serializers.ModelSerializer):
             'estado',
             'pago_cliente',
             'pago_compra',
+            'cliente',
         ]
+
+    def get_cliente(self, obj):
+        if not obj.pago_cliente:
+            return None
+        return {
+            'cuit': obj.pago_cliente.cliente.cuit,
+            'razon_social': obj.pago_cliente.cliente.razon_social,
+            'fecha_pago': obj.pago_cliente.fecha_pago,
+        }
+
+    def get_pago_compra(self, obj):
+        if not obj.pago_compra:
+            return None
+        return {
+            'proveedor': obj.pago_compra.compra.proveedor.nombre,
+            'fecha_pago': obj.pago_compra.fecha_pago,
+            'importe_abonado': obj.pago_compra.importe_abonado,
+        }

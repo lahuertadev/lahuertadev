@@ -41,6 +41,7 @@ def _mock_cheque(numero, importe=Decimal('1000.00'), banco=None, estado=None,
                  fecha_emision='2024-01-01', fecha_deposito=None, fecha_endoso=None,
                  endosado=False, pago_cliente=None, pago_compra=None):
     obj = Mock(spec=Cheque)
+    obj.id = numero
     obj.numero = numero
     obj.pk = numero
     obj.importe = importe
@@ -68,11 +69,14 @@ class FakeCheckRepo(ICheckRepository):
         self._items[numero] = obj
         return obj
 
-    def get_all(self, banco=None, estado=None, endosado=None, fecha_deposito_desde=None, fecha_deposito_hasta=None):
+    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None):
         return list(self._items.values())
 
-    def get_by_id(self, numero):
-        return self._items.get(int(numero))
+    def get_by_id(self, id):
+        return self._items.get(int(id))
+
+    def exists_duplicate(self, number, bank, client, exclude_id=None):
+        return False
 
     def create(self, data):
         numero = data.get('numero')
@@ -89,13 +93,13 @@ class FakeCheckRepo(ICheckRepository):
         self._items[numero] = obj
         return obj
 
-    def update(self, cheque, data):
+    def update(self, check, data):
         for k, v in data.items():
-            setattr(cheque, k, v)
-        return cheque
+            setattr(check, k, v)
+        return check
 
-    def delete(self, cheque):
-        self._items.pop(cheque.numero, None)
+    def delete(self, check):
+        self._items.pop(check.numero, None)
 
 
 @pytest.fixture
@@ -149,6 +153,33 @@ def test_retrieve_success(factory, viewset):
 
     assert response.status_code == 200
     assert response.data['numero'] == 1001
+
+
+def test_retrieve_success_con_pago_compra_asociado(factory, viewset):
+    pago_compra = Mock()
+    pago_compra.fecha_pago = '2024-05-01'
+    pago_compra.importe_abonado = Decimal('750.00')
+    pago_compra.compra.proveedor.nombre = 'Proveedor Test'
+    check = _mock_cheque(1001, endosado=True, pago_compra=pago_compra)
+    viewset.repository._items[1001] = check
+
+    request = factory.get('/checks/1001/')
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.retrieve(drf_request, pk=1001)
+
+    assert response.status_code == 200
+    assert response.data['pago_compra']['proveedor'] == 'Proveedor Test'
+    assert response.data['pago_compra']['importe_abonado'] == Decimal('750.00')
+
+
+def test_retrieve_success_sin_pago_compra_es_none(factory, viewset):
+    viewset.repository._add(1001)
+
+    request = factory.get('/checks/1001/')
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.retrieve(drf_request, pk=1001)
+
+    assert response.data['pago_compra'] is None
 
 
 # ------------------------- CREATE --------------------------

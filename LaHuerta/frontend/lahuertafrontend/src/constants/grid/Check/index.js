@@ -13,12 +13,13 @@ const STATE_CONFIG = {
 export const columns = [
   { field: 'numero',    headerName: 'Número',         align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'bank',      headerName: 'Banco',           align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'client',    headerName: 'Cliente',         align: 'center', headerAlign: 'center', hiddenOnMobile: true, width: 130 },
   { field: 'amount',    headerName: 'Importe',         align: 'center', headerAlign: 'center', mobileClickable: true },
-  { field: 'issueDate', headerName: 'Fecha emisión',   align: 'center', headerAlign: 'center', minWidth: 140, hiddenOnMobile: true },
+  { field: 'issueDate', headerName: 'Emisión',         align: 'center', headerAlign: 'center', minWidth: 110, hiddenOnMobile: true },
   {
     field: 'depositDate',
     headerName: 'Depósito',
-    minWidth: 160,
+    minWidth: 130,
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => {

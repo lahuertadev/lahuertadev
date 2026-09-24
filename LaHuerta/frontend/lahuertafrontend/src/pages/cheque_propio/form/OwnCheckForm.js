@@ -13,6 +13,7 @@ import AmountInput from '../../../components/AmountInput';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Tooltip from '@mui/material/Tooltip';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
@@ -22,6 +23,8 @@ const inputCls = (hasError) =>
       ? 'border-red-400 ring-2 ring-red-100'
       : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
   }`;
+
+const lockedSelectCls = 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed';
 
 const SectionCard = ({ icon, title, children, cols = 3 }) => (
   <section className="space-y-3">
@@ -63,6 +66,8 @@ const OwnCheckForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [toast, setToast] = useState({ open: false, message: '' });
+  const [usedInPurchase, setUsedInPurchase] = useState(false);
+  const [purchaseSupplier, setPurchaseSupplier] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -75,6 +80,8 @@ const OwnCheckForm = () => {
         try {
           const response = await axios.get(`${ownCheckUrl}${id}/`);
           const data = response.data;
+          setUsedInPurchase((data.purchases?.length || 0) > 0);
+          setPurchaseSupplier(data.supplier_name || '');
           setInitialValues({
             numero: data.numero,
             bank: data.banco.id,
@@ -171,6 +178,14 @@ const OwnCheckForm = () => {
 
           {/* 1. Datos del cheque */}
           <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
+            {usedInPurchase && (
+              <div className="md:col-span-3 flex items-start gap-3 px-4 py-3 rounded-lg border bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400">
+                <WarningAmberIcon sx={{ fontSize: 18 }} className="shrink-0 mt-0.5" />
+                <p className="text-sm">
+                  Este cheque ya está usado en un pago a {purchaseSupplier || 'un proveedor'}. No se puede modificar el número, el banco ni el importe.
+                </p>
+              </div>
+            )}
             <div className="flex flex-col gap-1">
               <FieldLabel text="Número" help="Número correlativo del cheque, impreso en la parte superior derecha." required />
               <CustomInput
@@ -180,7 +195,7 @@ const OwnCheckForm = () => {
                 value={values.numero}
                 onChange={handleChange}
                 placeholder="Nº de cheque"
-                disabled={!!id}
+                disabled={usedInPurchase}
               />
               <FieldError error={errors.numero} touched={touched.numero} />
             </div>
@@ -189,7 +204,8 @@ const OwnCheckForm = () => {
               <select
                 value={values.bank}
                 onChange={(e) => setFieldValue('bank', e.target.value)}
-                className={inputCls(touched.bank && errors.bank)}
+                disabled={usedInPurchase}
+                className={usedInPurchase ? lockedSelectCls : inputCls(touched.bank && errors.bank)}
               >
                 <option value="">Seleccionar...</option>
                 {banks.map((opt) => (
@@ -205,6 +221,7 @@ const OwnCheckForm = () => {
                 value={values.amount}
                 onChange={(raw) => setFieldValue('amount', raw)}
                 hasError={touched.amount && Boolean(errors.amount)}
+                disabled={usedInPurchase}
               />
               <FieldError error={errors.amount} touched={touched.amount} />
             </div>

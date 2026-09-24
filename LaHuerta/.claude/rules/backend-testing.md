@@ -47,3 +47,10 @@ Para CRUDs importantes, contemplar:
 - entidad inexistente
 - validación de campos obligatorios
 - reglas de negocio relevantes
+
+## Ante cualquier cambio de código
+- Todo cambio de lógica (backend o frontend) debe venir acompañado de tests nuevos o actualizados que cubran el comportamiento agregado o modificado. No alcanza con tocar una sola capa: si el cambio afecta repository, service y views, las tres necesitan tests.
+- Antes de tocar código existente, correr la suite de tests actual (al menos la de la app afectada) para tener una baseline de qué pasa y qué falla ANTES del cambio.
+- Después del cambio, volver a correr esa misma suite. Si un test que antes pasaba ahora falla, no alcanza con arreglar el test para que vuelva a pasar sin revisar por qué: hay que confirmar explícitamente si la ruptura es la consecuencia esperada de haber cambiado la lógica, o un efecto colateral no buscado sobre otra funcionalidad. Reportar ambos casos al usuario, no corregir el test en silencio.
+- Si hay cambios ya mezclados sin commitear y no se puede aislar fácilmente una baseline, usar `git stash` para comparar el estado sin el cambio contra el estado con el cambio, y restaurar los cambios con `git stash pop` al terminar la comparación.
+- Un test que falla desde antes del cambio (no relacionado a lo que se está tocando) se reporta como preexistente, no se "arregla" de paso salvo que el usuario lo pida explícitamente.

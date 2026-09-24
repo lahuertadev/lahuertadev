@@ -8,9 +8,10 @@ from .exceptions import CheckAlreadyEndorsedException, CheckInvalidStateExceptio
 
 class CheckService:
 
-    def __init__(self, check_repository, client_repository=None):
+    def __init__(self, check_repository, client_repository=None, supplier_repository=None):
         self.check_repository = check_repository
         self.client_repository = client_repository
+        self.supplier_repository = supplier_repository
 
     @transaction.atomic
     def endorse_check(self, check, pago_compra):
@@ -42,8 +43,9 @@ class CheckService:
 
     @transaction.atomic
     def credit_check(self, check):
-        if not check.estado or check.estado.descripcion != check_status.DEPOSITADO:
-            raise CheckInvalidTransitionException('Solo se pueden acreditar cheques en estado DEPOSITADO.')
+        valid_states = (check_status.DEPOSITADO, check_status.ENDOSADO)
+        if not check.estado or check.estado.descripcion not in valid_states:
+            raise CheckInvalidTransitionException('Solo se pueden acreditar cheques en estado DEPOSITADO o ENDOSADO.')
 
         credited_state = EstadoCheque.objects.get(descripcion=check_status.ACREDITADO)
         self.check_repository.update(check, {'estado': credited_state})
@@ -51,8 +53,9 @@ class CheckService:
 
     @transaction.atomic
     def reject_check(self, check):
-        if not check.estado or check.estado.descripcion != check_status.DEPOSITADO:
-            raise CheckInvalidTransitionException('Solo se pueden rechazar cheques en estado DEPOSITADO.')
+        valid_states = (check_status.DEPOSITADO, check_status.ENDOSADO)
+        if not check.estado or check.estado.descripcion not in valid_states:
+            raise CheckInvalidTransitionException('Solo se pueden rechazar cheques en estado DEPOSITADO o ENDOSADO.')
 
         rejected_state = EstadoCheque.objects.get(descripcion=check_status.RECHAZADO)
         self.check_repository.update(check, {'estado': rejected_state})
@@ -61,5 +64,10 @@ class CheckService:
             client = check.pago_cliente.cliente
             client.cuenta_corriente = Decimal(str(client.cuenta_corriente)) + Decimal(str(check.pago_cliente.importe))
             self.client_repository.update_balance(client)
+
+        if check.endosado and self.supplier_repository and check.pago_compra:
+            supplier = check.pago_compra.compra.proveedor
+            supplier.cuenta_corriente = Decimal(str(supplier.cuenta_corriente)) + Decimal(str(check.pago_compra.importe_abonado))
+            self.supplier_repository.update_balance(supplier)
 
         return check

@@ -24,20 +24,26 @@ class OwnCheckRepository(IOwnCheckRepository):
                     OwnCheck.objects
                     .filter(pagocompra__compra__proveedor_id__isnull=False)
                     .exclude(pagocompra__compra__proveedor_id=supplier_id)
-                    .values_list('numero', flat=True)
+                    .values_list('id', flat=True)
                     .distinct()
                 )
-                queryset = queryset.exclude(numero__in=checks_other_supplier)
+                queryset = queryset.exclude(id__in=checks_other_supplier)
         return queryset
 
-    def get_by_id(self, numero):
+    def get_by_id(self, id):
         return (
             OwnCheck.objects
             .select_related('banco')
             .prefetch_related('pagocompra_set__compra__proveedor')
-            .filter(numero=numero)
+            .filter(id=id)
             .first()
         )
+
+    def exists_duplicate(self, number, bank, exclude_id=None):
+        queryset = OwnCheck.objects.filter(numero=number, banco=bank)
+        if exclude_id is not None:
+            queryset = queryset.exclude(id=exclude_id)
+        return queryset.exists()
 
     def create(self, data: dict):
         return OwnCheck.objects.create(**data)

@@ -1,3 +1,4 @@
+import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,6 +7,8 @@ from .interfaces import ICheckRepository
 from .serializers import CheckWriteSerializer, CheckResponseSerializer, EndorseCheckSerializer, CheckQueryParamsSerializer
 from .exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException, CheckLinkedToPaymentException, CheckInvalidTransitionException
 from .factory import build_check_service
+
+logger = logging.getLogger(__name__)
 
 
 class CheckViewSet(viewsets.ViewSet):
@@ -26,26 +29,27 @@ class CheckViewSet(viewsets.ViewSet):
         params_serializer.is_valid(raise_exception=True)
         params = params_serializer.validated_data
 
-        endosado_raw = params.get('endosado')
-        endosado = None
-        if endosado_raw == 'true':
-            endosado = True
-        elif endosado_raw == 'false':
-            endosado = False
+        endorsed_raw = params.get('endosado')
+        endorsed = None
+        if endorsed_raw == 'true':
+            endorsed = True
+        elif endorsed_raw == 'false':
+            endorsed = False
 
         try:
             checks = self.repository.get_all(
-                banco=params.get('banco'),
-                estado=params.get('estado'),
-                endosado=endosado,
-                fecha_deposito_desde=params.get('fecha_deposito_desde'),
-                fecha_deposito_hasta=params.get('fecha_deposito_hasta'),
+                bank=params.get('banco'),
+                state=params.get('estado'),
+                endorsed=endorsed,
+                deposit_date_from=params.get('fecha_deposito_desde'),
+                deposit_date_to=params.get('fecha_deposito_hasta'),
             )
             serializer = CheckResponseSerializer(checks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Error al listar cheques")
+            return Response({'detail': 'Error al obtener los cheques.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, pk=None):
         '''
@@ -63,6 +67,7 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al obtener cheque pk=%s", pk)
             return Response(
                 {'detail': 'Error al obtener el cheque.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -80,8 +85,9 @@ class CheckViewSet(viewsets.ViewSet):
             response_serializer = CheckResponseSerializer(check)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Error al crear cheque")
+            return Response({'detail': 'Error al crear el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
         '''
@@ -112,6 +118,7 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al actualizar cheque pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar el cheque.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -146,6 +153,7 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al actualizar cheque pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar el cheque.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -182,6 +190,7 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al eliminar cheque pk=%s", pk)
             return Response(
                 {'detail': 'Error al eliminar el cheque.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -217,6 +226,7 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al endosar cheque pk=%s", pk)
             return Response(
                 {'detail': 'Error al endosar el cheque.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -242,6 +252,7 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al depositar cheque pk=%s", pk)
             return Response({'detail': 'Error al depositar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='credit')
@@ -264,6 +275,7 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al acreditar cheque pk=%s", pk)
             return Response({'detail': 'Error al acreditar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'], url_path='reject')
@@ -286,4 +298,5 @@ class CheckViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al rechazar cheque pk=%s", pk)
             return Response({'detail': 'Error al rechazar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

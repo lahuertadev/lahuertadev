@@ -8,7 +8,11 @@ class IOwnCheckRepository(ABC):
         pass
 
     @abstractmethod
-    def get_by_id(self, numero):
+    def get_by_id(self, id):
+        pass
+
+    @abstractmethod
+    def exists_duplicate(self, number, bank, exclude_id=None):
         pass
 
     @abstractmethod

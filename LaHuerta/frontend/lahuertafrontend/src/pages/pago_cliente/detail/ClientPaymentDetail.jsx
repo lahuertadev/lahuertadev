@@ -6,6 +6,7 @@ import { clientPaymentUrl } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
+import Toast from '../../../components/Toast';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
@@ -42,10 +43,19 @@ const ClientPaymentDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '' });
 
   const handleDelete = async () => {
-    await axios.delete(`${clientPaymentUrl}${id}/`);
-    navigate('/client-payment');
+    try {
+      await axios.delete(`${clientPaymentUrl}${id}/`);
+      navigate('/client-payment');
+    } catch (err) {
+      console.error('Error eliminando el pago:', err);
+      const msg = err?.response?.data?.detail || 'Error al eliminar el pago.';
+      setToast({ open: true, message: msg });
+    } finally {
+      setConfirmOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -86,8 +96,17 @@ const ClientPaymentDetail = () => {
     );
   }
 
+  const isRechazado = payment.cheque?.estado === 'RECHAZADO';
+
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        onClose={() => setToast({ open: false, message: '' })}
+        duration={8000}
+        responsive
+      />
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
@@ -99,8 +118,9 @@ const ClientPaymentDetail = () => {
       </nav>
 
       {/* 1. Cliente */}
-      <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Cliente" cols={1}>
+      <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Cliente" cols={3}>
         <Field label="Razón Social" value={payment.cliente.razon_social} />
+        <Field label="CUIT" value={payment.cliente.cuit} />
       </SectionCard>
 
       {/* 2. Datos del pago */}
@@ -111,6 +131,12 @@ const ClientPaymentDetail = () => {
           <span className="text-sm font-semibold text-on-surface">{formatCurrency(payment.importe)}</span>
         </div>
         <Field label="Tipo de pago" value={payment.tipo_pago.descripcion} />
+        <div className="flex flex-col gap-1">
+          <span className={labelCls}>Estado</span>
+          <span className={`text-sm font-semibold ${isRechazado ? 'text-red-500' : 'text-on-surface'}`}>
+            {isRechazado ? 'Rechazado' : 'Acreditado'}
+          </span>
+        </div>
         {payment.observaciones && (
           <div className="md:col-span-3 flex flex-col gap-1">
             <span className={labelCls}>Observaciones</span>
@@ -123,6 +149,7 @@ const ClientPaymentDetail = () => {
       {payment.cheque && (
         <SectionCard icon={<CreditCardIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
           <Field label="N° de cheque" value={payment.cheque.numero} />
+          <Field label="Banco" value={payment.cheque.banco_descripcion} />
           <Field label="Fecha de emisión" value={formatDate(payment.cheque.fecha_emision)} />
           <Field label="Fecha de depósito" value={formatDate(payment.cheque.fecha_deposito)} />
         </SectionCard>

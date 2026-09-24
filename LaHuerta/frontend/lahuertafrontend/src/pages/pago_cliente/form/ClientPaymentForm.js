@@ -10,6 +10,7 @@ import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -36,6 +37,8 @@ const SectionCard = ({ icon, title, children, cols = 3 }) => (
 const FieldError = ({ error, touched }) =>
   touched && error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null;
 
+const lockedSelectCls = 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed';
+
 // ── Componente principal ──────────────────────────────────────────────────────
 const ClientPaymentForm = () => {
   const [selectOptions, setSelectOptions] = useState({ clients: [], paymentTypes: [], banks: [] });
@@ -55,6 +58,7 @@ const ClientPaymentForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [toast, setToast] = useState({ open: false, message: '' });
+  const [checkEndosado, setCheckEndosado] = useState(false);
 
   const loadInitialOptions = async () => {
     const [clients, paymentTypes, banks] = await Promise.all([
@@ -77,6 +81,7 @@ const ClientPaymentForm = () => {
       const response = await axios.get(`${clientPaymentUrl}${id}/`);
       const data = response.data;
       const check = data.cheque;
+      setCheckEndosado(!!check?.endosado);
       setInitialValues({
         client: data.cliente.id,
         amount: data.importe,
@@ -190,12 +195,21 @@ const ClientPaymentForm = () => {
 
             {/* 1. Datos del pago */}
             <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Pago" cols={3}>
+              {checkEndosado && (
+                <div className="md:col-span-3 flex items-start gap-3 px-4 py-3 rounded-lg border bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400">
+                  <WarningAmberIcon sx={{ fontSize: 18 }} className="shrink-0 mt-0.5" />
+                  <p className="text-sm">
+                    Este cheque ya fue endosado a un proveedor. No se puede modificar el cliente, el importe, el tipo de pago ni los datos del cheque (número, banco, fechas).
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col gap-1">
                 <label className={labelCls}>Cliente</label>
                 <select
                   value={values.client}
                   onChange={(e) => setFieldValue('client', e.target.value)}
-                  className={inputCls(touched.client && errors.client)}
+                  disabled={checkEndosado}
+                  className={checkEndosado ? lockedSelectCls : inputCls(touched.client && errors.client)}
                 >
                   <option value="">Seleccionar...</option>
                   {selectOptions.clients.map((opt) => (
@@ -211,6 +225,7 @@ const ClientPaymentForm = () => {
                   value={values.amount}
                   onChange={(raw) => setFieldValue('amount', raw)}
                   hasError={touched.amount && Boolean(errors.amount)}
+                  disabled={checkEndosado}
                 />
                 <FieldError error={errors.amount} touched={touched.amount} />
               </div>
@@ -228,7 +243,8 @@ const ClientPaymentForm = () => {
                 <select
                   value={values.paymentType}
                   onChange={(e) => setFieldValue('paymentType', e.target.value)}
-                  className={inputCls(touched.paymentType && errors.paymentType)}
+                  disabled={checkEndosado}
+                  className={checkEndosado ? lockedSelectCls : inputCls(touched.paymentType && errors.paymentType)}
                 >
                   <option value="">Seleccionar...</option>
                   {selectOptions.paymentTypes.map((opt) => (
@@ -262,12 +278,10 @@ const ClientPaymentForm = () => {
                     value={values.chequeNumero}
                     onChange={handleChange}
                     placeholder="Nº de cheque"
-                    disabled={!!(id && values.chequeNumero)}
+                    disabled={checkEndosado}
                     className={
-                      (id && values.chequeNumero
-                        ? 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed'
-                        : inputCls(touched.chequeNumero && errors.chequeNumero)
-                      ) + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+                      (checkEndosado ? lockedSelectCls : inputCls(touched.chequeNumero && errors.chequeNumero)) +
+                      ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
                     }
                   />
                   <FieldError error={errors.chequeNumero} touched={touched.chequeNumero} />
@@ -277,7 +291,8 @@ const ClientPaymentForm = () => {
                   <select
                     value={values.chequeBanco}
                     onChange={(e) => setFieldValue('chequeBanco', e.target.value)}
-                    className={inputCls(touched.chequeBanco && errors.chequeBanco)}
+                    disabled={checkEndosado}
+                    className={checkEndosado ? lockedSelectCls : inputCls(touched.chequeBanco && errors.chequeBanco)}
                   >
                     <option value="">Seleccionar...</option>
                     {selectOptions.banks.map((opt) => (
@@ -292,14 +307,16 @@ const ClientPaymentForm = () => {
                     value={values.chequeFechaEmision}
                     onChange={(date) => setFieldValue('chequeFechaEmision', date)}
                     hasError={touched.chequeFechaEmision && Boolean(errors.chequeFechaEmision)}
+                    disabled={checkEndosado}
                   />
                   <FieldError error={errors.chequeFechaEmision} touched={touched.chequeFechaEmision} />
                 </div>
                 <div className="md:col-span-3 flex items-center gap-6 bg-surface-low/50 border border-border-subtle px-5 py-4 rounded-xl">
-                  <label className="flex items-center gap-3 cursor-pointer flex-1">
+                  <label className={`flex items-center gap-3 flex-1 ${checkEndosado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                     <input
                       type="checkbox"
                       checked={values.chequeDiferido}
+                      disabled={checkEndosado}
                       onChange={(e) => {
                         setFieldValue('chequeDiferido', e.target.checked);
                         if (!e.target.checked) setFieldValue('chequeFechaDeposito', null);
@@ -319,6 +336,7 @@ const ClientPaymentForm = () => {
                         value={values.chequeFechaDeposito}
                         onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
                         hasError={false}
+                        disabled={checkEndosado}
                       />
                     </div>
                   )}

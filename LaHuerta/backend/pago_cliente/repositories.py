@@ -6,7 +6,12 @@ class ClientPaymentRepository(IClientPaymentRepository):
 
     def get_all(self, client_id=None, business_name=None, amount_min=None, amount_max=None,
                 date_from=None, date_to=None, payment_type_id=None):
-        qs = PagoCliente.objects.select_related('cliente', 'tipo_pago').all()
+        qs = (
+            PagoCliente.objects
+            .select_related('cliente', 'tipo_pago')
+            .prefetch_related('cheque_set__banco', 'cheque_set__estado')
+            .all()
+        )
         if client_id:
             qs = qs.filter(cliente_id=client_id)
         if business_name:
@@ -27,6 +32,7 @@ class ClientPaymentRepository(IClientPaymentRepository):
         return (
             PagoCliente.objects
             .select_related('cliente', 'tipo_pago')
+            .prefetch_related('cheque_set__banco', 'cheque_set__estado')
             .filter(id=id)
             .first()
         )

@@ -54,8 +54,11 @@ class ClientPaymentResponseSerializer(serializers.ModelSerializer):
         return {
             'numero': check.numero,
             'banco': check.banco.id,
+            'banco_descripcion': check.banco.descripcion,
             'fecha_emision': check.fecha_emision,
             'fecha_deposito': check.fecha_deposito,
+            'endosado': check.endosado,
+            'estado': check.estado.descripcion if check.estado else None,
         }
 
     class Meta:

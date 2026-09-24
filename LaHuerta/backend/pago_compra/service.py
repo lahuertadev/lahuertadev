@@ -35,7 +35,7 @@ class PurchasePaymentService:
 
         own_check = None
         if data['tipo_pago'].descripcion == 'Cheque Propio':
-            own_check = self.own_check_repository.get_by_id(data['own_check_numero'])
+            own_check = self.own_check_repository.get_by_id(data['own_check_id'])
             if not own_check:
                 raise OwnCheckNotFoundException('Cheque propio no encontrado.')
             already_used = (
@@ -56,7 +56,7 @@ class PurchasePaymentService:
         )
 
         if data['tipo_pago'].descripcion == 'Cheque':
-            check = self.check_repository.get_by_id(data['cheque_numero'])
+            check = self.check_repository.get_by_id(data['cheque_id'])
             if not check:
                 raise CheckNotFoundException('Cheque no encontrado.')
             self.check_service.endorse_check(check, payment)
