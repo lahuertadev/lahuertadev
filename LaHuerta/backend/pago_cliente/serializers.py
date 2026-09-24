@@ -58,6 +58,7 @@ class ClientPaymentResponseSerializer(serializers.ModelSerializer):
             'fecha_emision': check.fecha_emision,
             'fecha_deposito': check.fecha_deposito,
             'endosado': check.endosado,
+            'estado': check.estado.descripcion if check.estado else None,
         }
 
     class Meta:
