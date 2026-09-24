@@ -8,6 +8,7 @@ import ReceiptIcon from '@mui/icons-material/Receipt';
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/PersonOutline';
+import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 
@@ -159,6 +160,22 @@ const CheckDetail = () => {
           <Field label="CUIT" value={check.cliente.cuit} />
           <Field label="Razón Social" value={check.cliente.razon_social} />
           <Field label="Fecha de pago" value={formatDate(check.cliente.fecha_pago)} />
+        </SectionCard>
+      )}
+
+      {/* 4. Pago asociado (si fue endosado) */}
+      {check.pago_compra && (
+        <SectionCard
+          icon={<PaymentsIcon sx={{ fontSize: 20 }} />}
+          title="Pago Asociado"
+          tooltip="Pago de compra al que se endosó este cheque"
+        >
+          <Field label="Proveedor" value={check.pago_compra.proveedor} />
+          <Field label="Fecha de pago" value={formatDate(check.pago_compra.fecha_pago)} />
+          <div className="flex flex-col gap-1">
+            <span className={labelCls}>Importe abonado</span>
+            <span className="text-sm font-semibold text-on-surface">{formatCurrency(check.pago_compra.importe_abonado)}</span>
+          </div>
         </SectionCard>
       )}
 

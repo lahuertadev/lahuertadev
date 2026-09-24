@@ -5,7 +5,9 @@ from .interfaces import ICheckRepository
 class CheckRepository(ICheckRepository):
 
     def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None):
-        queryset = Cheque.objects.select_related('banco', 'estado', 'pago_cliente__cliente', 'pago_compra').all()
+        queryset = Cheque.objects.select_related(
+            'banco', 'estado', 'pago_cliente__cliente', 'pago_compra__compra__proveedor',
+        ).all()
         if bank:
             queryset = queryset.filter(banco__descripcion__icontains=bank)
         if state:
@@ -21,7 +23,7 @@ class CheckRepository(ICheckRepository):
     def get_by_id(self, id):
         return (
             Cheque.objects
-            .select_related('banco', 'estado', 'pago_cliente__cliente', 'pago_compra')
+            .select_related('banco', 'estado', 'pago_cliente__cliente', 'pago_compra__compra__proveedor')
             .filter(id=id)
             .first()
         )
