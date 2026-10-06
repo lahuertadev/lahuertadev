@@ -5,6 +5,7 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 
 ## Alcance
 - Crear, editar y eliminar compras.
+- Cargar de una vez varias compras a distintos proveedores para una misma fecha (carga masiva).
 - Listar compras con filtros por proveedor, importe y rango de fechas.
 - Cada compra tiene uno o más ítems (productos) con cantidad, precio por bulto y precio unitario.
 - El importe final se calcula como: `Σ(cantidad × precio_bulto) - seña`.
@@ -13,8 +14,8 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 ## Flujo de uso
 1. El usuario accede a **Compras** desde el menú principal.
 2. Ve el listado de compras con número, fecha, proveedor, bultos, seña e importe.
-3. Hace clic en **Nueva compra** para abrir el formulario.
-4. Selecciona el proveedor (autocomplete), ingresa fecha, bultos y seña (opcional).
+3. Hace clic en **Nueva compra** y elige el tipo de carga: **Carga simple** (un proveedor para una fecha) o **Carga masiva** (ver más abajo).
+4. En la carga simple, selecciona el proveedor (autocomplete), ingresa fecha, bultos y seña (opcional).
 5. Agrega productos a la tabla de ítems: selecciona producto, ingresa cantidad, precio por bulto y precio unitario.
 6. El formulario calcula el subtotal por ítem y el total general en tiempo real.
 7. Confirma. El sistema guarda la compra, actualiza la cuenta corriente del proveedor y redirige al listado.
@@ -26,20 +27,54 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 - Los bultos deben ser un número entero mayor a 0.
 - Al menos un producto es requerido.
 - No se puede repetir el mismo producto en una misma compra.
+- Si el proveedor ya tiene una compra cargada en esa fecha, se muestra un aviso debajo del proveedor y otra vez al confirmar. No es bloqueante: se puede guardar igual. Al editar, la propia compra no cuenta.
 - Cantidad y precio por bulto son obligatorios por ítem.
 - El precio unitario es opcional.
 
 ## Pantallas involucradas
 - `/buy` — Listado de compras
-- `/buy/create` — Formulario de nueva compra
+- `/buy/create` — Elección del tipo de carga (simple o masiva)
+- `/buy/create/simple` — Formulario de nueva compra (un proveedor)
+- `/buy/create/bulk` — Carga masiva de compras
 - `/buy/edit/:id` — Formulario de edición de compra
 
 ## Endpoints involucrados
 - `GET /buy/` — Listado con filtros opcionales (`proveedor_id`, `fecha_desde`, `fecha_hasta`, `importe_min`, `importe_max`)
 - `POST /buy/` — Crear compra
+- `POST /buy/bulk/` — Crear varias compras para una misma fecha (carga masiva)
 - `GET /buy/:id/` — Detalle de compra
 - `PUT /buy/:id/` — Actualizar compra
 - `DELETE /buy/:id/` — Eliminar compra
+
+## Carga masiva
+
+### Objetivo
+En el Mercado Central se compra en una misma fecha a varios proveedores (uno por puesto). La carga masiva permite registrar todas esas compras en una sola sesión, sin volver a cargar la fecha ni reiniciar el formulario por cada proveedor. El resultado es el mismo que cargarlas una por una: **una compra separada por proveedor**.
+
+### Flujo de uso
+1. En **Nueva compra** se elige **Carga masiva**.
+2. Se ingresa la fecha una sola vez, arriba de todo. Todas las compras de la carga usan esa fecha.
+3. Se completa el primer bloque: proveedor, seña (opcional), productos y vacíos, igual que en la carga simple.
+4. Con **Agregar proveedor** se suma otro bloque, y así por cada proveedor de la planilla. Cada bloque se puede compactar con la flecha de su encabezado, que muestra el proveedor y el total de esa compra.
+5. Si el proveedor elegido ya tiene una compra en esa fecha, se avisa debajo del selector (sin bloquear).
+6. Se presiona **Confirmar N compras**. Antes de guardar, el sistema muestra una advertencia agrupada por proveedor si:
+   - el proveedor ya tiene una compra cargada para esa fecha, o
+   - faltan vacíos (misma regla que en la carga simple).
+   El usuario puede volver a revisar o guardar igual.
+7. Si todas se guardan, vuelve al listado de compras con un aviso de éxito.
+8. Si alguna falla, las que se guardaron quedan marcadas como **guardadas** (con su número de compra) y bloqueadas, y las que fallaron muestran su error. Se corrigen y se vuelve a confirmar: solo se envían las que faltan.
+
+### Validaciones importantes
+- La fecha es obligatoria y queda fija una vez que hay compras guardadas en la carga.
+- Un proveedor no puede repetirse en la misma carga: al elegirlo en un bloque, desaparece del selector de los demás.
+- Un mismo producto puede cargarse para distintos proveedores, pero no dos veces para el mismo (igual que en la carga simple).
+- Cada compra se valida y guarda de forma independiente: un error en una no impide guardar las otras.
+
+### Endpoint
+`POST /buy/bulk/` recibe `{ fecha, compras: [{ proveedor, senia, items, vacios }] }` y responde `{ creadas: [{ index, compra }], errores: [{ index, errores }] }`, donde `index` es la posición de la compra en la lista enviada.
+- `201` — se guardaron todas.
+- `207` — se guardaron algunas.
+- `400` — no se guardó ninguna, o la carga es inválida (sin fecha, sin compras o con un proveedor repetido).
 
 ## Vacíos
 
