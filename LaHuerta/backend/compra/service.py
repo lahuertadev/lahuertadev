@@ -51,6 +51,24 @@ class BuyService:
 
         return buy
 
+    def create_bulk_buys(self, buys: list[tuple[int, dict]]):
+        '''
+        Crea varias compras de forma independiente: cada una corre en su propia
+        transacción (create_buy), así una que falla no revierte las demás.
+        Recibe pares (index, data) y devuelve (created, failed) con esos mismos índices;
+        failed trae la excepción de cada compra para que la view la registre.
+        '''
+        created = []
+        failed = []
+
+        for index, data in buys:
+            try:
+                created.append((index, self.create_buy(data)))
+            except Exception as e:
+                failed.append((index, e))
+
+        return created, failed
+
     @transaction.atomic
     def update_buy(self, buy_id: int, data: dict):
         compra = self.buy_repository.get_by_id(buy_id)

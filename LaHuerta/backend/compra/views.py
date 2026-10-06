@@ -1,3 +1,4 @@
+import logging
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .repositories import BuyRepository
@@ -6,11 +7,14 @@ from .service import BuyService
 from .serializers import (
     BuyResponseSerializer,
     BuyCreateSerializer,
+    BuyBulkCreateSerializer,
     BuyUpdateSerializer,
     BuyQueryParamsSerializer,
 )
 from .exceptions import BuyNotFoundException
 from .factory import build_buy_service
+
+logger = logging.getLogger(__name__)
 
 
 class BuyViewSet(viewsets.ViewSet):
@@ -45,6 +49,7 @@ class BuyViewSet(viewsets.ViewSet):
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
         except Exception:
+            logger.exception("Error al listar compras")
             return Response({'detail': 'Error al obtener las compras.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, pk=None):
@@ -64,6 +69,7 @@ class BuyViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al obtener compra pk=%s", pk)
             return Response({'detail': 'Error al obtener la compra.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request):
@@ -80,8 +86,56 @@ class BuyViewSet(viewsets.ViewSet):
             response_serializer = BuyResponseSerializer(buy)
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception:
+            logger.exception("Error al crear compra")
+            return Response({'detail': 'Error al crear la compra.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def bulk_create(self, request):
+        '''
+        Carga masiva: registra varias compras (una por proveedor) para una misma fecha.
+        Cada compra se valida y guarda de forma independiente: las válidas se guardan
+        aunque otras fallen. Responde 201 si se guardaron todas, 207 si algunas y 400 si ninguna.
+        '''
+        serializer = BuyBulkCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            buy_date = serializer.validated_data['fecha']
+            valid_buys = []
+            errors = []
+
+            for index, buy_data in enumerate(serializer.validated_data['compras']):
+                buy_serializer = BuyCreateSerializer(data={**buy_data, 'fecha': buy_date})
+                if buy_serializer.is_valid():
+                    valid_buys.append((index, buy_serializer.validated_data))
+                else:
+                    errors.append({'index': index, 'errores': buy_serializer.errors})
+
+            created, failed = self.service.create_bulk_buys(valid_buys)
+            for index, error in failed:
+                logger.error("Error al crear compra en carga masiva index=%s", index, exc_info=error)
+                errors.append({'index': index, 'errores': {'detail': 'Error al guardar la compra.'}})
+
+            response_data = {
+                'creadas': [
+                    {'index': index, 'compra': BuyResponseSerializer(buy).data}
+                    for index, buy in created
+                ],
+                'errores': sorted(errors, key=lambda error: error['index']),
+            }
+
+            if not errors:
+                response_status = status.HTTP_201_CREATED
+            elif created:
+                response_status = status.HTTP_207_MULTI_STATUS
+            else:
+                response_status = status.HTTP_400_BAD_REQUEST
+
+            return Response(response_data, status=response_status)
+
+        except Exception:
+            logger.exception("Error en carga masiva de compras")
+            return Response({'detail': 'Error al registrar la carga masiva de compras.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
         '''
@@ -105,6 +159,7 @@ class BuyViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al actualizar compra pk=%s", pk)
             return Response({'detail': 'Error al actualizar la compra.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def partial_update(self, request, pk=None):
@@ -128,6 +183,7 @@ class BuyViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al actualizar compra pk=%s", pk)
             return Response({'detail': 'Error al actualizar la compra.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, pk=None):
@@ -142,4 +198,5 @@ class BuyViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al eliminar compra pk=%s", pk)
             return Response({'detail': 'Error al eliminar la compra.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
