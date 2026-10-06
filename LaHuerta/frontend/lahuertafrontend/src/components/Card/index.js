@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useSpotlight from '../../hooks/useSpotlight';
 import ReceiptLongOutlined from '@mui/icons-material/ReceiptLongOutlined';
 import PeopleAltOutlined from '@mui/icons-material/PeopleAltOutlined';
 import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
@@ -8,6 +9,8 @@ import LocalShippingOutlined from '@mui/icons-material/LocalShippingOutlined';
 import ShoppingCartOutlined from '@mui/icons-material/ShoppingCartOutlined';
 import SellOutlined from '@mui/icons-material/SellOutlined';
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
+import AddShoppingCartOutlined from '@mui/icons-material/AddShoppingCartOutlined';
+import PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined';
 
 const ICONS = {
   expense: ReceiptLongOutlined,
@@ -18,41 +21,15 @@ const ICONS = {
   purchases: ShoppingCartOutlined,
   priceList: SellOutlined,
   reports: BarChartOutlined,
+  singlePurchase: AddShoppingCartOutlined,
+  bulkPurchase: PlaylistAddOutlined,
 };
 
 export default function AccessCard({ title, description, url, icon, size = 'compact' }) {
   const navigate = useNavigate();
   const cardRef = useRef(null);
 
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card) return undefined;
-
-    const canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!canHover || reducedMotion) return undefined;
-
-    const handleMove = (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      card.style.setProperty('--mx', `${x}px`);
-      card.style.setProperty('--my', `${y}px`);
-      card.style.setProperty('--rx', `${((y / rect.height) - 0.5) * -4}deg`);
-      card.style.setProperty('--ry', `${((x / rect.width) - 0.5) * 4}deg`);
-    };
-    const handleLeave = () => {
-      card.style.setProperty('--rx', '0deg');
-      card.style.setProperty('--ry', '0deg');
-    };
-
-    card.addEventListener('pointermove', handleMove);
-    card.addEventListener('pointerleave', handleLeave);
-    return () => {
-      card.removeEventListener('pointermove', handleMove);
-      card.removeEventListener('pointerleave', handleLeave);
-    };
-  }, []);
+  useSpotlight(cardRef);
 
   const Icon = ICONS[icon];
   const isFeatured = size === 'featured';
