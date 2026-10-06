@@ -49,6 +49,8 @@ import BillPrintView from "./pages/factura/print/PrintView";
 import InvoicePrintView from "./pages/factura/invoice-print/InvoicePrintView";
 import BuyList from "./pages/compra/list";
 import CompraForm from "./pages/compra/form/CompraForm";
+import BuyTypeSelection from "./pages/compra/create/BuyTypeSelection";
+import CompraBulkForm from "./pages/compra/bulk/CompraBulkForm";
 import CompraDetail from "./pages/compra/detail/CompraDetail";
 import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
@@ -265,7 +267,15 @@ const router = createBrowserRouter([
       },
       {
         path: 'buy/create',
+        element: <BuyTypeSelection />,
+      },
+      {
+        path: 'buy/create/simple',
         element: <CompraForm />,
+      },
+      {
+        path: 'buy/create/bulk',
+        element: <CompraBulkForm />,
       },
       {
         path: 'buy/edit/:id',
