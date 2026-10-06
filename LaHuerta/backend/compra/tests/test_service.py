@@ -118,6 +118,9 @@ class FakeBuyProductRepo(IBuyProductRepository):
         self.created = []
         self.replaced = []
 
+    def verify_product_on_buys(self, product_id):
+        return False
+
     def create_products(self, buy, products):
         self.created.append((buy, products))
 
@@ -403,3 +406,83 @@ class TestDeleteBuy:
         service.delete_buy(buy_id)
 
         assert service.buy_repository.get_by_id(buy_id) is None
+
+
+# ── Tests: create_bulk_buys ────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+class TestCreateBulkBuys:
+
+    def _data(self, supplier, *prices):
+        return {'proveedor': supplier, 'fecha': '2024-01-01', 'items': _make_products(*prices)}
+
+    def test_crea_una_compra_por_proveedor(self):
+        service = _make_service()
+        supplier_a = _make_supplier()
+        supplier_b = _make_supplier()
+
+        created, failed = service.create_bulk_buys([
+            (0, self._data(supplier_a, 1000)),
+            (1, self._data(supplier_b, 500)),
+        ])
+
+        assert [index for index, _ in created] == [0, 1]
+        assert failed == []
+        assert created[0][1].proveedor is supplier_a
+        assert created[1][1].proveedor is supplier_b
+
+    def test_cada_compra_ajusta_la_cc_de_su_proveedor(self):
+        service = _make_service()
+        supplier_a = _make_supplier(cc=Decimal('100.00'))
+        supplier_b = _make_supplier(cc=Decimal('0'))
+
+        service.create_bulk_buys([
+            (0, self._data(supplier_a, 1000)),
+            (1, self._data(supplier_b, 500)),
+        ])
+
+        assert supplier_a.cuenta_corriente == Decimal('1100.00')
+        assert supplier_b.cuenta_corriente == Decimal('500.00')
+
+    def test_una_compra_que_falla_no_impide_guardar_las_demas(self):
+        service = _make_service()
+        original_create = service.buy_repository.create
+
+        def create_failing_for_b(proveedor, **kwargs):
+            if proveedor is supplier_b:
+                raise Exception('Error al guardar la compra.')
+            return original_create(proveedor=proveedor, **kwargs)
+
+        service.buy_repository.create = create_failing_for_b
+        supplier_a = _make_supplier()
+        supplier_b = _make_supplier()
+        supplier_c = _make_supplier()
+
+        created, failed = service.create_bulk_buys([
+            (0, self._data(supplier_a, 1000)),
+            (1, self._data(supplier_b, 500)),
+            (2, self._data(supplier_c, 300)),
+        ])
+
+        assert [index for index, _ in created] == [0, 2]
+        assert [index for index, _ in failed] == [1]
+        assert str(failed[0][1]) == 'Error al guardar la compra.'
+        assert supplier_b.cuenta_corriente == Decimal('0')
+
+    def test_conserva_los_indices_recibidos(self):
+        service = _make_service()
+
+        created, _ = service.create_bulk_buys([
+            (3, self._data(_make_supplier(), 1000)),
+            (7, self._data(_make_supplier(), 500)),
+        ])
+
+        assert [index for index, _ in created] == [3, 7]
+
+    def test_lista_vacia_no_crea_nada(self):
+        service = _make_service()
+
+        created, failed = service.create_bulk_buys([])
+
+        assert created == []
+        assert failed == []
