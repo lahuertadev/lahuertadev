@@ -8,6 +8,13 @@ from producto.models import Producto
 from categoria.models import Categoria
 from tipo_contenedor.models import TipoContenedor
 from tipo_unidad.models import TipoUnidad
+from tipo_venta.models import TipoVenta
+from decimal import Decimal
+from provincia.models import Provincia
+from municipio.models import Municipio
+from localidad.models import Localidad
+from tipo_condicion_iva.models import TipoCondicionIva
+from cliente.models import Cliente
 
 
 @pytest.mark.django_db
@@ -143,6 +150,55 @@ class TestPricesListRepository:
 
         assert ListaPrecios.objects.count() == 0
 
+    # ------------------------- CLIENTES ASIGNADOS --------------
+    def _create_client(self, cuit, business_name, price_list):
+        province, _ = Provincia.objects.get_or_create(id='06', defaults={'nombre': 'Buenos Aires'})
+        municipality, _ = Municipio.objects.get_or_create(id='064270', defaults={'nombre': 'CABA', 'provincia': province})
+        locality, _ = Localidad.objects.get_or_create(id='0642701009', defaults={'nombre': 'CABA', 'municipio': municipality})
+        iva_condition, _ = TipoCondicionIva.objects.get_or_create(descripcion='RI')
+        return Cliente.objects.create(
+            cuit=cuit,
+            razon_social=business_name,
+            cuenta_corriente=Decimal('0.00'),
+            telefono='1122334455',
+            localidad=locality,
+            condicion_IVA=iva_condition,
+            lista_precios=price_list,
+        )
+
+    def test_count_assigned_clients(self):
+        assigned_list = ListaPrecios.objects.create(nombre="Lista Asignada", descripcion="D")
+        other_list = ListaPrecios.objects.create(nombre="Lista Libre", descripcion="D")
+        self._create_client('20111111111', 'Cliente Uno', assigned_list)
+        self._create_client('20222222222', 'Cliente Dos', assigned_list)
+        self._create_client('20333333333', 'Cliente Tres', None)
+
+        assert self.repository.count_assigned_clients(assigned_list) == 2
+        assert self.repository.count_assigned_clients(other_list) == 0
+
+    def test_get_missing_client_ids(self):
+        client = self._create_client('20444444444', 'Cliente Existente', None)
+
+        assert self.repository.get_missing_client_ids([client.id]) == []
+        assert self.repository.get_missing_client_ids([client.id, 9998, 9999]) == [9998, 9999]
+
+    def test_assign_to_clients_moves_clients_from_other_list(self):
+        new_list = ListaPrecios.objects.create(nombre="Lista Nueva", descripcion="D")
+        old_list = ListaPrecios.objects.create(nombre="Lista Vieja", descripcion="D")
+        client_with_old_list = self._create_client('20555555555', 'Cliente Con Lista', old_list)
+        client_without_list = self._create_client('20666666666', 'Cliente Sin Lista', None)
+        untouched_client = self._create_client('20777777777', 'Cliente No Elegido', old_list)
+
+        assigned = self.repository.assign_to_clients(new_list, [client_with_old_list.id, client_without_list.id])
+
+        assert assigned == 2
+        client_with_old_list.refresh_from_db()
+        client_without_list.refresh_from_db()
+        untouched_client.refresh_from_db()
+        assert client_with_old_list.lista_precios_id == new_list.id
+        assert client_without_list.lista_precios_id == new_list.id
+        assert untouched_client.lista_precios_id == old_list.id
+
     # ------------------------- DUPLICATE -----------------------
     def test_generate_unique_name_no_collision(self):
         """
@@ -179,24 +235,26 @@ class TestPricesListRepository:
         Test que verifica que duplicate_prices_list copia correctamente
         """
 
-        category = Categoria.objects.create(descripcion='Frutas')
-        container_type = TipoContenedor.objects.create(descripcion='Cajón')
-        unit_type = TipoUnidad.objects.create(descripcion='kg')
+        category, _ = Categoria.objects.get_or_create(descripcion='Frutas')
+        container_type, _ = TipoContenedor.objects.get_or_create(descripcion='Cajón')
+        unit_type, _ = TipoUnidad.objects.get_or_create(descripcion='Kilogramo', defaults={'tipo_medicion': 'PESO'})
+        bulk_sale_type, _ = TipoVenta.objects.get_or_create(descripcion='Bulto')
+        unit_sale_type, _ = TipoVenta.objects.get_or_create(descripcion='Unidad')
 
         product_1 = Producto.objects.create(
-            descripcion='Manzana',
+            descripcion='Manzana Dup',
             categoria=category,
             tipo_contenedor=container_type,
             tipo_unidad=unit_type,
-            bulto=10
+            peso_aproximado=18,
         )
 
         product_2 = Producto.objects.create(
-            descripcion='Banana',
+            descripcion='Banana Dup',
             categoria=category,
             tipo_contenedor=container_type,
             tipo_unidad=unit_type,
-            bulto=15
+            peso_aproximado=20,
         )
 
         original_list = ListaPrecios.objects.create(
@@ -204,44 +262,36 @@ class TestPricesListRepository:
             descripcion='Descripción de prueba'
         )
 
-        ListaPreciosProducto.objects.create(
-            lista_precios=original_list,
-            producto=product_1,
-            precio_unitario=100,
-            precio_bulto=900
-        )
-
-        ListaPreciosProducto.objects.create(
-            lista_precios=original_list,
-            producto=product_2,
-            precio_unitario=150,
-            precio_bulto=2000
-        )
+        # Un registro por producto y tipo de venta (Bulto y Unidad), como se cargan desde la app.
+        for product, bulk_price, unit_price in [(product_1, 80000, 4700), (product_2, 29000, 1600)]:
+            ListaPreciosProducto.objects.create(
+                lista_precios=original_list, producto=product, tipo_venta=bulk_sale_type, precio=bulk_price
+            )
+            ListaPreciosProducto.objects.create(
+                lista_precios=original_list, producto=product, tipo_venta=unit_sale_type, precio=unit_price
+            )
 
         new_list = self.repository.duplicate_prices_list(original_list)
 
         # Verificaciones
         assert new_list is not None
-        assert new_list.nombre == 'Copia de Lista Original'
+        assert new_list.nombre == 'Copia De Lista Original'
         assert new_list.descripcion == 'Descripción de prueba'
         assert new_list.id != original_list.id
 
         # Verificar que se copiaron los productos
-        productos_originales = ListaPreciosProducto.objects.filter(lista_precios=original_list).count()
-        productos_nuevos = ListaPreciosProducto.objects.filter(lista_precios=new_list).count()
-        assert productos_originales == productos_nuevos
+        original_items = ListaPreciosProducto.objects.filter(lista_precios=original_list).count()
+        new_items = ListaPreciosProducto.objects.filter(lista_precios=new_list).count()
+        assert original_items == new_items == 4
 
-        # Verificar que los precios se copiaron correctamente
-        original_product = ListaPreciosProducto.objects.get(
-            lista_precios=original_list,
-            producto=product_1
-        )
-        new_product = ListaPreciosProducto.objects.get(
-            lista_precios=new_list,
-            producto=product_1
-        )
-        assert original_product.precio_unitario == new_product.precio_unitario
-        assert original_product.precio_bulto == new_product.precio_bulto
+        # Verificar que los precios se copiaron correctamente, por producto y tipo de venta
+        for original_item in ListaPreciosProducto.objects.filter(lista_precios=original_list):
+            new_item = ListaPreciosProducto.objects.get(
+                lista_precios=new_list,
+                producto=original_item.producto,
+                tipo_venta=original_item.tipo_venta,
+            )
+            assert new_item.precio == original_item.precio
 
     def test_duplicate_prices_list_empty_list(self):
         """
@@ -257,7 +307,7 @@ class TestPricesListRepository:
         new_list = self.repository.duplicate_prices_list(original_list)
 
         assert new_list is not None
-        assert new_list.nombre == 'Copia de Lista Vacía'
+        assert new_list.nombre == 'Copia De Lista Vacía'
         
         productos_count = ListaPreciosProducto.objects.filter(lista_precios=new_list).count()
         assert productos_count == 0
@@ -273,13 +323,13 @@ class TestPricesListRepository:
 
         # Primera duplicación
         copy_1 = self.repository.duplicate_prices_list(original_list)
-        assert copy_1.nombre == 'Copia de Lista Test'
+        assert copy_1.nombre == 'Copia De Lista Test'
 
         # Segunda duplicación
         copy_2 = self.repository.duplicate_prices_list(original_list)
-        assert copy_2.nombre == 'Copia de Lista Test (1)'
+        assert copy_2.nombre == 'Copia De Lista Test (1)'
 
         # Tercera duplicación
         copy_3 = self.repository.duplicate_prices_list(original_list)
-        assert copy_3.nombre == 'Copia de Lista Test (2)'
+        assert copy_3.nombre == 'Copia De Lista Test (2)'
 

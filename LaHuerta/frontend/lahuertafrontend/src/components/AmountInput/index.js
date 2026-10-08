@@ -28,7 +28,8 @@ const formatDisplay = (raw, allowNegative = false) => {
   return isNegative ? `-${formatted}` : formatted;
 };
 
-const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0,00', allowNegative = false, disabled = false }) => {
+// suffix: texto opcional dentro del input, a la derecha (ej. la unidad: kg, u, b).
+const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0,00', allowNegative = false, disabled = false, suffix = '' }) => {
 
   const handleChange = (e) => {
     const input = e.target.value;
@@ -57,7 +58,7 @@ const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0
     }
   };
 
-  return (
+  const input = (
     <input
       name={name}
       type="text"
@@ -67,8 +68,19 @@ const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0
       onBlur={handleBlur}
       placeholder={placeholder}
       disabled={disabled}
-      className={inputCls(hasError, disabled)}
+      className={`${inputCls(hasError, disabled)}${suffix ? ' pr-10' : ''}`}
     />
+  );
+
+  if (!suffix) return input;
+
+  return (
+    <div className="relative w-full">
+      {input}
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-on-surface-muted whitespace-nowrap">
+        {suffix}
+      </span>
+    </div>
   );
 };
 

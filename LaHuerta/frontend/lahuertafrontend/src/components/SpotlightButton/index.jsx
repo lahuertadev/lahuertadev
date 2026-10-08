@@ -12,6 +12,11 @@ const VARIANTS = {
     className: 'border border-border-subtle bg-surface-card text-on-surface-muted hover:border-red-400 hover:text-red-500 hover:shadow-md',
     glow: 'rgb(239 68 68 / 0.18)',
   },
+  // Acción destructiva (ej. Eliminar seleccionados): rojo translúcido para que se lea en ambos temas.
+  danger: {
+    className: 'border border-red-500/30 bg-red-500/10 text-red-500 hover:border-red-500/60 hover:shadow-md',
+    glow: 'rgb(239 68 68 / 0.22)',
+  },
   // Acción principal (ej. Confirmar). Azul fijo para que el texto blanco se lea en ambos temas.
   primary: {
     className: 'border border-blue-lahuerta bg-blue-lahuerta text-white hover:shadow-md hover:brightness-110',
@@ -25,7 +30,7 @@ const DISABLED_CLASS = 'border border-border-subtle bg-surface-low text-on-surfa
  * SpotlightButton — botón con el efecto de luz que sigue al cursor (mismo que AccessCard).
  *
  * Props:
- *   variant   — 'outline' (default) | 'cancel' | 'primary'
+ *   variant   — 'outline' (default) | 'cancel' | 'danger' | 'primary'
  *   onClick, disabled, type, aria-*
  *   className — clases extra (tamaño / ancho)
  *   children  — contenido del botón

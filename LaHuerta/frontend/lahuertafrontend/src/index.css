@@ -131,6 +131,24 @@ input[type='number']::-webkit-inner-spin-button {
   margin: 0;
 }
 
+/* Flecha de los selects nativos en todo el sitio: la del navegador queda pegada al borde
+   derecho y no se puede mover, así que se oculta y se dibuja una propia separada del borde
+   (misma distancia que el padding izquierdo del texto). El selector con :not([multiple])
+   tiene más especificidad que las utilidades de Tailwind (px-3) que se cargan después. */
+select:not([multiple]) {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23596064' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+.dark select:not([multiple]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239aa4ab' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
 /* Scroll acorde al tema en todo el sitio (listas desplegables, tablas con scroll
    horizontal, cualquier contenedor con overflow), en vez de repetirlo selector por
    selector. scrollbar-color/-width son heredables (alcanza con :root para Firefox),

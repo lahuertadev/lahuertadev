@@ -6,12 +6,12 @@ import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { formatCurrency } from '../../../utils/currency';
 import AmountInput from '../../../components/AmountInput';
 import CustomInput from '../../../components/Input';
 import BasicSelect from '../../../components/Select';
 import CountUp from '../../../components/CountUp';
+import FieldWarning from '../../../components/FieldWarning';
 import { EMPTY_ITEM, EMPTY_VACIO, calculateItemSubtotal, calculateBlockTotals, formatTelefono, getExistingBuyWarning } from './buyBlockUtils';
 
 const autocompleteSx = (hasError) => ({
@@ -188,10 +188,7 @@ const BuyBlock = ({
             error={errors.supplier}
           />
           {existingBuyDate && (
-            <p className="flex items-center gap-1 mt-1 text-xs font-medium text-amber-500">
-              <WarningAmberIcon sx={{ fontSize: 16 }} />
-              {getExistingBuyWarning(existingBuyDate)} Podés guardarla igual.
-            </p>
+            <FieldWarning>{getExistingBuyWarning(existingBuyDate)} Podés guardarla igual.</FieldWarning>
           )}
         </div>
 
