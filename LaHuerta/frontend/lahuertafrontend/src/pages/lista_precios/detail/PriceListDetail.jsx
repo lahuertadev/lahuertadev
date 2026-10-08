@@ -5,11 +5,13 @@ import { priceListUrl, priceListProductUrl, saleTypeUrl } from '../../../constan
 import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
 import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Alert, useMediaQuery } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
-import IconLabelButtons from '../../../components/Button';
-import CustomInput from '../../../components/Input';
+import BackButton from '../../../components/BackButton';
+import SpotlightButton from '../../../components/SpotlightButton';
+import { useToast } from '../../../context/ToastContext';
+import AssignClientsDialog from '../shared/AssignClientsDialog';
+import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
 import { getCategoryColor } from '../../../constants/categoryColors';
 import '../../../styles/print-price-list.css';
 import logoLaHuerta from '../../../assets/logo-lahuerta.jpg';
@@ -34,6 +36,7 @@ const PriceListDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
+  const { showToast } = useToast();
   const [priceList, setPriceList] = useState(null);
   const [products, setProducts] = useState([]);
   const [saleTypes, setSaleTypes] = useState([]);
@@ -43,6 +46,7 @@ const PriceListDetail = () => {
   const [openDuplicateDialog, setOpenDuplicateDialog] = useState(false);
   const [duplicateError, setDuplicateError] = useState(null);
   const [duplicateSuccess, setDuplicateSuccess] = useState(false);
+  const [openAssignDialog, setOpenAssignDialog] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,9 +130,9 @@ const PriceListDetail = () => {
     return (
       <div className="container mx-auto p-4">
         <p className="text-red-600">Error al cargar la lista de precios. {error}</p>
-        <Button startIcon={<ArrowBackIcon />} onClick={handleBack} color="primary" variant="outlined" sx={{ mt: 2 }}>
-          Volver al listado
-        </Button>
+        <div className="mt-2">
+          <BackButton onClick={handleBack} label="Volver al listado" />
+        </div>
       </div>
     );
   }
@@ -143,101 +147,59 @@ const PriceListDetail = () => {
           </Alert>
         )}
 
-        {/* HEADER DEL DOCUMENTO - oculto en impresión */}
-        <Paper className="no-print" sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider' }}>
+        <AssignClientsDialog
+          open={openAssignDialog}
+          priceList={priceList}
+          onClose={() => setOpenAssignDialog(false)}
+          onAssigned={(assigned) =>
+            showToast(`La lista se asignó a ${assigned} cliente${assigned === 1 ? '' : 's'} correctamente.`)
+          }
+        />
 
-          {/* TÍTULO Y BOTONES */}
-          <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, pb: 2, borderBottom: '1px solid',borderColor: 'divider'}}>
-            <Box>
-              <Typography variant="h5" fontWeight="bold">
-                Detalle
-              </Typography>
-              <Typography variant="h6">
-                {priceList.nombre}
-              </Typography>
-            </Box>
+        {/* HEADER DEL DOCUMENTO - oculto en impresión. Mismo patrón que "Editar lista". */}
+        <div className="no-print bg-surface-card rounded-xl shadow-sm border border-border-subtle mb-6">
+          <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border-subtle">
+            <div className="min-w-0">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-accent">Lista de precios</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-on-surface break-words">{priceList.nombre}</h1>
+              <p className="mt-1 text-sm text-on-surface-muted break-words">{priceList.descripcion || 'Sin descripción'}</p>
+            </div>
+            {/* Mismo tamaño que Duplicar / Descargar PDF */}
+            <BackButton onClick={handleBack} className="shrink-0 px-5 py-2.5 text-sm" />
+          </div>
 
+          <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-6 py-5">
+            {[
+              { label: 'Fecha de creación', value: formatDate(priceList.fecha_creacion) },
+              { label: 'Última actualización', value: formatDate(priceList.fecha_actualizacion) },
+              { label: 'Productos', value: new Set(products.map((p) => p.producto.id)).size },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-lg border border-border-subtle bg-surface-low px-4 py-3">
+                <dt className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-muted">{label}</dt>
+                <dd className="mt-1 text-base font-semibold text-on-surface">{value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 px-6 py-4 border-t border-border-subtle">
             {!isMobile && (
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <IconLabelButtons
-                  label="Duplicar"
-                  icon={<ContentCopyIcon />}
-                  onClick={handleDuplicateClick}
-                />
-
-                <IconLabelButtons
-                  label="Descargar PDF"
-                  icon={<DownloadOutlinedIcon />}
-                  onClick={handlePrint}
-                />
-
-                <Button
-                  startIcon={<ArrowBackIcon />}
-                  onClick={handleBack}
-                  color="primary"
-                  variant="outlined"
-                >
-                  Volver
-                </Button>
-              </Box>
+              <SpotlightButton variant="outline" onClick={() => setOpenAssignDialog(true)} className="w-full sm:w-auto px-5 py-2.5 text-sm">
+                <GroupAddOutlinedIcon sx={{ fontSize: 18 }} />
+                Asignar a clientes
+              </SpotlightButton>
             )}
-          </Box>
-
-          <Box className="no-print" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, pt: 1 }}>
-            <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
-              <CustomInput
-                readOnly
-                multiline
-                label="Descripción"
-                name="descripcion"
-                value={priceList.descripcion || '—'}
-                onChange={() => {}}
-              />
-            </Box>
-            <CustomInput
-              readOnly
-              label="Fecha de Creación"
-              name="fechaCreacion"
-              value={formatDate(priceList.fecha_creacion)}
-              onChange={() => {}}
-            />
-            <CustomInput
-              readOnly
-              label="Última Actualización"
-              name="fechaActualizacion"
-              value={formatDate(priceList.fecha_actualizacion)}
-              onChange={() => {}}
-            />
-            <CustomInput
-              readOnly
-              label="Cantidad de Productos"
-              name="cantidadProductos"
-              value={String(new Set(products.map((p) => p.producto.id)).size)}
-              onChange={() => {}}
-            />
-          </Box>
-
-          {isMobile && (
-            <Box className="no-print" sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 3 }}>
-              <IconLabelButtons
-                label="Descargar PDF"
-                icon={<DownloadOutlinedIcon />}
-                onClick={handlePrint}
-                sx={{ width: '100%' }}
-              />
-
-              <Button
-                startIcon={<ArrowBackIcon />}
-                onClick={handleBack}
-                color="primary"
-                variant="outlined"
-                fullWidth
-              >
-                Volver
-              </Button>
-            </Box>
-          )}
-        </Paper>
+            {!isMobile && (
+              <SpotlightButton variant="outline" onClick={handleDuplicateClick} className="w-full sm:w-auto px-5 py-2.5 text-sm">
+                <ContentCopyIcon sx={{ fontSize: 18 }} />
+                Duplicar
+              </SpotlightButton>
+            )}
+            <SpotlightButton variant="primary" onClick={handlePrint} className="w-full sm:w-auto px-5 py-2.5 text-sm">
+              <DownloadOutlinedIcon sx={{ fontSize: 18 }} />
+              Descargar PDF
+            </SpotlightButton>
+          </div>
+        </div>
 
         {/* Tabla de productos - esto sí se imprime. En mobile se oculta en pantalla (ver print-price-list.css)
             pero se mantiene en el DOM para que "Imprimir / Descargar PDF" siga generando el PDF completo. */}
