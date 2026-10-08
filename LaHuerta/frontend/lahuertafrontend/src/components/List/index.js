@@ -187,7 +187,8 @@ const GenericList = ({ data, onAdd }) => {
             <h2 className="text-lg font-semibold text-on-surface">{title}</h2>
             {subtitle && <p className="mt-1 text-sm text-on-surface-muted">{subtitle}</p>}
           </div>
-          <div className="flex items-center gap-3">
+          {/* En mobile (título arriba, botones abajo) los botones van centrados */}
+          <div className="flex items-center justify-center sm:justify-end gap-3">
             {hasFilters && (
               <SpotlightButton
                 variant={showFilters ? 'primary' : 'outline'}
