@@ -32,6 +32,9 @@ import RoundedCheckbox from '../RoundedCheckbox';
 // contra el contenido más largo. El mayor determina el mínimo.
 // Se aplica a todas las columnas sin ancho fijo (width), tanto si tienen flex
 // explícito como si no, para evitar que se achiquen por debajo del texto.
+// En mobile el contenido no cuenta: un texto largo (ej. un nombre extenso) inflaría la
+// columna y generaría scroll horizontal. Ahí las columnas se reparten el ancho de la
+// pantalla y la celda corta el texto con "…".
 function calculateColumnWidths(rows, columns, isMobile = false) {
   const contentCharWidth = isMobile ? 7 : 9;
   const headerCharWidth = 9; // headers siempre en uppercase con letter-spacing
@@ -45,7 +48,7 @@ function calculateColumnWidths(rows, columns, isMobile = false) {
     const contentLengths = rows.length
       ? rows.map((row) => (row[column.field] != null ? String(row[column.field]).length : 0))
       : [0];
-    const maxContentLength = Math.max(...contentLengths);
+    const maxContentLength = isMobile ? 0 : Math.max(...contentLengths);
     const minWidthFloor = column.minWidth || (isMobile ? 60 : 80);
     const minWidth = Math.max(
       titleLength * headerCharWidth + padding,

@@ -1,6 +1,8 @@
 from .models import ListaPrecios
 from .interfaces import IPricesListRepository
 from lista_precios_producto.models import ListaPreciosProducto
+from core.text import capitalize_words
+from cliente.models import Cliente
 
 class PricesListRepository(IPricesListRepository):
     
@@ -39,6 +41,26 @@ class PricesListRepository(IPricesListRepository):
     def destroy_prices_list(self, prices_list):
         prices_list.delete()
 
+    def count_assigned_clients(self, prices_list):
+        '''
+        Cantidad de clientes que tienen asignada esta lista de precios.
+        '''
+        return Cliente.objects.filter(lista_precios=prices_list).count()
+
+    def get_missing_client_ids(self, client_ids):
+        '''
+        Devuelve los ids de la lista que no corresponden a ningún cliente.
+        '''
+        existing_ids = set(Cliente.objects.filter(id__in=client_ids).values_list('id', flat=True))
+        return sorted(set(client_ids) - existing_ids)
+
+    def assign_to_clients(self, prices_list, client_ids):
+        '''
+        Asigna la lista de precios a todos los clientes indicados en un único UPDATE
+        (si tenían otra lista, pasan a esta). Devuelve la cantidad de clientes actualizados.
+        '''
+        return Cliente.objects.filter(id__in=client_ids).update(lista_precios=prices_list)
+
     def generate_unique_name(self, base_name):
         """
         Genera un nombre único para una lista de precios.
@@ -59,7 +81,7 @@ class PricesListRepository(IPricesListRepository):
         Genera automáticamente un nombre único agregando "Copia de" al nombre original.
         """
 
-        base_name = f"Copia de {original_list.nombre}"
+        base_name = capitalize_words(f"Copia de {original_list.nombre}")
         new_name = self.generate_unique_name(base_name)
 
         new_list = ListaPrecios(

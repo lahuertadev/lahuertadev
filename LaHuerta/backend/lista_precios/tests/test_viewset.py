@@ -1,29 +1,33 @@
 import pytest
-from unittest.mock import Mock
 
+from django.utils import timezone
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
+from core.text import capitalize_words
 from lista_precios.models import ListaPrecios
 from lista_precios.views import PricesListViewSet
 from lista_precios.interfaces import IPricesListRepository
 
 
-def _mock_model_instance(model_cls, **attrs):
-    mock_obj = Mock(spec=model_cls)
-    for k, v in attrs.items():
-        setattr(mock_obj, k, v)
-    if "id" in attrs:
-        mock_obj.pk = attrs["id"]
-    mock_obj._meta = Mock()
-    mock_obj._meta.model = model_cls
-    return mock_obj
+def _build_price_list(**attrs):
+    '''
+    Instancia real de ListaPrecios sin guardar en la DB. Las fechas se completan a mano
+    (auto_now solo se aplica al hacer save) para que el serializer de respuesta pueda formatearlas.
+    '''
+    now = timezone.now()
+    return ListaPrecios(fecha_creacion=now, fecha_actualizacion=now, **attrs)
 
 
 class FakeRepo(IPricesListRepository):
     def __init__(self):
         self._items = {}
+        # id de lista -> cantidad de clientes asignados (por defecto ninguno)
+        self.assigned_clients = {}
+        # ids de clientes que "existen" y asignaciones hechas (cliente -> lista)
+        self.existing_client_ids = {1, 2, 3}
+        self.client_assignments = {}
 
     def get_all_prices_list(self, nombre=None):
         items = list(self._items.values())
@@ -36,7 +40,7 @@ class FakeRepo(IPricesListRepository):
 
     def create_prices_list(self, data):
         new_id = 1 if not self._items else max(self._items.keys()) + 1
-        obj = _mock_model_instance(ListaPrecios, id=new_id, nombre=data["nombre"], descripcion=data["descripcion"])
+        obj = _build_price_list(id=new_id, nombre=data["nombre"], descripcion=data["descripcion"])
         self._items[new_id] = obj
         return obj
 
@@ -57,6 +61,17 @@ class FakeRepo(IPricesListRepository):
     def destroy_prices_list(self, prices_list):
         self._items.pop(int(prices_list.id), None)
 
+    def count_assigned_clients(self, prices_list):
+        return self.assigned_clients.get(prices_list.id, 0)
+
+    def get_missing_client_ids(self, client_ids):
+        return sorted(set(client_ids) - self.existing_client_ids)
+
+    def assign_to_clients(self, prices_list, client_ids):
+        for client_id in client_ids:
+            self.client_assignments[client_id] = prices_list.id
+        return len(client_ids)
+
     def generate_unique_name(self, base_name):
         existing_names = [item.nombre for item in self._items.values()]
         new_name = base_name
@@ -67,14 +82,13 @@ class FakeRepo(IPricesListRepository):
         return new_name
 
     def duplicate_prices_list(self, original_list):
-        base_name = f"Copia de {original_list.nombre}"
+        base_name = capitalize_words(f"Copia de {original_list.nombre}")
         new_name = self.generate_unique_name(base_name)
-        
+
         new_id = 1 if not self._items else max(self._items.keys()) + 1
-        obj = _mock_model_instance(
-            ListaPrecios, 
-            id=new_id, 
-            nombre=new_name, 
+        obj = _build_price_list(
+            id=new_id,
+            nombre=new_name,
             descripcion=original_list.descripcion
         )
         self._items[new_id] = obj
@@ -186,6 +200,16 @@ def test_create_success(factory, viewset):
 
 
 @pytest.mark.django_db
+def test_create_capitalizes_name(factory, viewset):
+    request = factory.post("/price_list/", {"nombre": "copia de lista mino", "descripcion": ""}, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.create(drf_request)
+
+    assert response.status_code == 201
+    assert response.data["nombre"] == "Copia De Lista Mino"
+
+
+@pytest.mark.django_db
 def test_create_validation_error(factory, viewset):
     request = factory.post("/price_list/", {"nombre": "", "descripcion": ""}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
@@ -218,6 +242,20 @@ def test_update_success(factory, viewset):
 
     assert response.status_code == 200
     assert response.data["nombre"] == "New"
+
+
+@pytest.mark.django_db
+def test_update_capitalizes_name(factory, viewset):
+    created = viewset.repository.create_prices_list({"nombre": "Old", "descripcion": "Old"})
+
+    request = factory.put(
+        f"/price_list/{created.id}/", {"nombre": "LISTA  mayorista", "descripcion": "New"}, format="json"
+    )
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.update(drf_request, pk=created.id)
+
+    assert response.status_code == 200
+    assert response.data["nombre"] == "Lista Mayorista"
 
 
 @pytest.mark.django_db
@@ -275,6 +313,18 @@ def test_partial_update_success(factory, viewset):
 
 
 @pytest.mark.django_db
+def test_partial_update_capitalizes_name(factory, viewset):
+    created = viewset.repository.create_prices_list({"nombre": "Lista", "descripcion": "Desc"})
+
+    request = factory.patch(f"/price_list/{created.id}/", {"nombre": "lista de verano"}, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.partial_update(drf_request, pk=created.id)
+
+    assert response.status_code == 200
+    assert response.data["nombre"] == "Lista De Verano"
+
+
+@pytest.mark.django_db
 def test_partial_update_duplicate_name_error(factory, viewset):
     """
     Test que verifica que PATCH devuelve error al intentar cambiar a un nombre existente
@@ -313,6 +363,83 @@ def test_delete_success(factory, viewset):
     assert response.status_code == 204
 
 
+@pytest.mark.django_db
+def test_delete_blocked_when_assigned_to_one_client(factory, viewset):
+    created = viewset.repository.create_prices_list({"nombre": "Asignada", "descripcion": "D"})
+    viewset.repository.assigned_clients[created.id] = 1
+
+    request = factory.delete(f"/price_list/{created.id}/")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.destroy(drf_request, pk=created.id)
+
+    assert response.status_code == 400
+    assert "asignada a 1 cliente." in response.data["error"]
+    assert viewset.repository.get_prices_list_by_id(created.id) is not None
+
+
+@pytest.mark.django_db
+def test_delete_blocked_when_assigned_to_many_clients(factory, viewset):
+    created = viewset.repository.create_prices_list({"nombre": "Asignada", "descripcion": "D"})
+    viewset.repository.assigned_clients[created.id] = 3
+
+    request = factory.delete(f"/price_list/{created.id}/")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.destroy(drf_request, pk=created.id)
+
+    assert response.status_code == 400
+    assert "asignada a 3 clientes" in response.data["error"]
+    assert viewset.repository.get_prices_list_by_id(created.id) is not None
+
+
+# ------------------------- ASSIGN CLIENTS ------------------
+def _assign_clients(factory, viewset, price_list_id, data):
+    request = factory.post(f"/price_list/{price_list_id}/assign_clients/", data, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+    return viewset.assign_clients(drf_request, pk=price_list_id)
+
+
+@pytest.mark.django_db
+def test_assign_clients_success(factory, viewset):
+    created = viewset.repository.create_prices_list({"nombre": "Lista", "descripcion": "D"})
+
+    response = _assign_clients(factory, viewset, created.id, {"client_ids": [1, 2]})
+
+    assert response.status_code == 200
+    assert response.data == {"assigned": 2}
+    assert viewset.repository.client_assignments == {1: created.id, 2: created.id}
+
+
+@pytest.mark.django_db
+def test_assign_clients_price_list_not_found(factory, viewset):
+    response = _assign_clients(factory, viewset, 999, {"client_ids": [1]})
+
+    assert response.status_code == 404
+    assert "no existe" in response.data["error"].lower()
+
+
+@pytest.mark.django_db
+def test_assign_clients_empty_list_error(factory, viewset):
+    created = viewset.repository.create_prices_list({"nombre": "Lista", "descripcion": "D"})
+
+    response = _assign_clients(factory, viewset, created.id, {"client_ids": []})
+
+    assert response.status_code == 400
+    assert "client_ids" in response.data
+    assert viewset.repository.client_assignments == {}
+
+
+@pytest.mark.django_db
+def test_assign_clients_missing_clients_error(factory, viewset):
+    created = viewset.repository.create_prices_list({"nombre": "Lista", "descripcion": "D"})
+
+    response = _assign_clients(factory, viewset, created.id, {"client_ids": [1, 50]})
+
+    assert response.status_code == 400
+    assert "50" in response.data["error"]
+    # No se asigna a nadie si alguno no existe
+    assert viewset.repository.client_assignments == {}
+
+
 # ------------------------- DUPLICATE -----------------------
 @pytest.mark.django_db
 def test_duplicate_not_found(factory, viewset):
@@ -340,7 +467,7 @@ def test_duplicate_success(factory, viewset):
 
     assert response.status_code == 201
     assert "id" in response.data
-    assert response.data["nombre"] == "Copia de Lista Original"
+    assert response.data["nombre"] == "Copia De Lista Original"
     assert response.data["descripcion"] == "Desc Original"
     assert response.data["id"] != created.id
 
@@ -358,7 +485,7 @@ def test_duplicate_unique_names(factory, viewset):
     response1 = viewset.duplicate(drf_request1, pk=created.id)
 
     assert response1.status_code == 201
-    assert response1.data["nombre"] == "Copia de Lista Test"
+    assert response1.data["nombre"] == "Copia De Lista Test"
 
     # Segunda duplicación
     request2 = factory.post(f"/price_list/{created.id}/duplicate/")
@@ -366,7 +493,7 @@ def test_duplicate_unique_names(factory, viewset):
     response2 = viewset.duplicate(drf_request2, pk=created.id)
 
     assert response2.status_code == 201
-    assert response2.data["nombre"] == "Copia de Lista Test (1)"
+    assert response2.data["nombre"] == "Copia De Lista Test (1)"
 
     # Tercera duplicación
     request3 = factory.post(f"/price_list/{created.id}/duplicate/")
@@ -374,7 +501,7 @@ def test_duplicate_unique_names(factory, viewset):
     response3 = viewset.duplicate(drf_request3, pk=created.id)
 
     assert response3.status_code == 201
-    assert response3.data["nombre"] == "Copia de Lista Test (2)"
+    assert response3.data["nombre"] == "Copia De Lista Test (2)"
 
 
 @pytest.mark.django_db

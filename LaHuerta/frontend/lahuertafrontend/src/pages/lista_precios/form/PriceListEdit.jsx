@@ -18,32 +18,32 @@ import {
   Snackbar,
   useMediaQuery,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBackOutlined';
-import SaveIcon from '@mui/icons-material/SaveOutlined';
 import AddIcon from '@mui/icons-material/AddCircleOutline';
 import CustomInput from '../../../components/Input';
+import AmountInput from '../../../components/AmountInput';
+import BackButton from '../../../components/BackButton';
+import FieldWarning from '../../../components/FieldWarning';
+import SpotlightButton from '../../../components/SpotlightButton';
 import DataGridDemo from '../../../components/Grid';
-import { getCategoryColor } from '../../../constants/categoryColors';
-
-const categoryBadgeStyle = (categoryName) => {
-  const { bg, color } = getCategoryColor(categoryName);
-  return {
-    display: 'inline-block',
-    padding: '2px 10px',
-    borderRadius: '6px',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    lineHeight: '18px',
-    backgroundColor: bg,
-    color,
-    whiteSpace: 'nowrap',
-  };
-};
+import AssignClientsDialog from '../shared/AssignClientsDialog';
+import { useToast } from '../../../context/ToastContext';
+import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
+import {
+  SALE_TYPE_BULK,
+  SALE_TYPE_UNIT,
+  findSaleType,
+  getSuggestedUnitPrice,
+  getUnitAbbreviation,
+  isSamePrice,
+  isSaleType,
+  sortSaleTypes,
+} from '../../../utils/priceList';
 
 const PriceListEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
+  const { showToast } = useToast();
 
   // La edición de listas de precios (grilla de precios por producto) no entra cómoda en mobile.
   // Ahí mandamos al detalle, que ya tiene nombre/descripción, tabla de solo lectura y el botón
@@ -65,9 +65,13 @@ const PriceListEdit = () => {
   const [saving, setSaving] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openAssignDialog, setOpenAssignDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [newPrices, setNewPrices] = useState({});
+  // Productos cuyo precio por unidad se editó a mano: cambiar el bulto ya no lo pisa con la sugerencia.
+  const [editedUnitPriceProductIds, setEditedUnitPriceProductIds] = useState(new Set());
+  const [newUnitPriceEdited, setNewUnitPriceEdited] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [listName, setListName] = useState('');
   const [listDescription, setListDescription] = useState('');
@@ -145,7 +149,7 @@ const PriceListEdit = () => {
     const changes = products.some((product) => {
       const original = originalProducts.find(p => p.id === product.id);
       if (!original) return false;
-      return String(product.precio) !== String(original.precio);
+      return !isSamePrice(product.precio, original.precio);
     });
     setHasChanges(changes || listMetadataChanged);
   }, [products, originalProducts, listMetadataChanged]);
@@ -162,15 +166,82 @@ const PriceListEdit = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasChanges]);
 
-  const handlePriceChange = (productId, tipoVentaId, value) => {
+  const bulkSaleType = findSaleType(saleTypes, SALE_TYPE_BULK);
+  const unitSaleType = findSaleType(saleTypes, SALE_TYPE_UNIT);
+
+  const handlePriceChange = (productId, saleTypeId, value) => {
     if (value && !/^\d*\.?\d*$/.test(value)) return;
+
+    // AmountInput re-emite el valor normalizado al salir del campo: si el número no cambió,
+    // solo se actualiza el texto, sin marcar edición manual ni recalcular la unidad.
+    const currentEntry = products.find(item => item.producto?.id === productId && item.tipo_venta?.id === saleTypeId);
+    if (currentEntry && isSamePrice(currentEntry.precio, value)) {
+      setProducts(prev => prev.map(item => (item === currentEntry ? { ...item, precio: value } : item)));
+      return;
+    }
+
+    const isBulkChange = saleTypeId === bulkSaleType?.id;
+    const isUnitChange = saleTypeId === unitSaleType?.id;
+    const shouldSuggestUnitPrice = isBulkChange && !editedUnitPriceProductIds.has(productId);
+
+    if (isUnitChange) {
+      // Si se vacía el precio por unidad, vuelve a quedar a cargo de la sugerencia.
+      setEditedUnitPriceProductIds(prev => {
+        const next = new Set(prev);
+        if (value === '') next.delete(productId);
+        else next.add(productId);
+        return next;
+      });
+    }
+
     setProducts(prev =>
-      prev.map(item =>
-        item.producto?.id === productId && item.tipo_venta?.id === tipoVentaId
-          ? { ...item, precio: value }
-          : item
-      )
+      prev.map(item => {
+        if (item.producto?.id !== productId) return item;
+        if (item.tipo_venta?.id === saleTypeId) return { ...item, precio: value };
+        if (shouldSuggestUnitPrice && isSaleType(item.tipo_venta, SALE_TYPE_UNIT)) {
+          // Sin sugerencia posible (bulto vacío o producto sin peso/cantidad) se conserva el valor actual.
+          return { ...item, precio: getSuggestedUnitPrice(value, item.producto) || item.precio };
+        }
+        return item;
+      })
     );
+  };
+
+  const closeAddDialog = () => {
+    setOpenAddDialog(false);
+    setSelectedProduct(null);
+    setNewPrices({});
+    setNewUnitPriceEdited(false);
+  };
+
+  // Diálogo "Agregar Producto": misma sugerencia de precio por unidad que en la grilla.
+  const handleNewPriceChange = (saleTypeId, value) => {
+    if (value && !/^\d*\.?\d*$/.test(value)) return;
+
+    if (saleTypeId === unitSaleType?.id) {
+      // AmountInput re-emite el mismo valor al salir del campo: eso no cuenta como edición manual.
+      if (!isSamePrice(newPrices[saleTypeId], value)) setNewUnitPriceEdited(value !== '');
+      setNewPrices(prev => ({ ...prev, [saleTypeId]: value }));
+      return;
+    }
+
+    setNewPrices(prev => {
+      const next = { ...prev, [saleTypeId]: value };
+      if (saleTypeId === bulkSaleType?.id && unitSaleType && !newUnitPriceEdited) {
+        next[unitSaleType.id] = getSuggestedUnitPrice(value, selectedProduct) || prev[unitSaleType.id];
+      }
+      return next;
+    });
+  };
+
+  const handleSelectedProductChange = (product) => {
+    setSelectedProduct(product);
+    if (bulkSaleType && unitSaleType && !newUnitPriceEdited) {
+      setNewPrices(prev => ({
+        ...prev,
+        [unitSaleType.id]: getSuggestedUnitPrice(prev[bulkSaleType.id], product) || prev[unitSaleType.id],
+      }));
+    }
   };
 
   const handleDeleteProduct = (productId) => {
@@ -189,7 +260,7 @@ const PriceListEdit = () => {
       await Promise.all(itemsToDelete.map(item => axios.delete(`${priceListProductUrl}${item.id}/`)));
       setProducts(prev => prev.filter(p => p.producto?.id !== productId));
       setOriginalProducts(prev => prev.filter(p => p.producto?.id !== productId));
-      setSnackbar({ open: true, message: 'Producto eliminado correctamente', severity: 'success' });
+      showToast('El producto se eliminó de la lista correctamente.');
     } catch (err) {
       console.error('Error deleting product:', err);
       setSnackbar({ open: true, message: 'Error al eliminar el producto', severity: 'error' });
@@ -260,7 +331,7 @@ const PriceListEdit = () => {
         }
 
         const original = originalProducts.find(p => p.id === product.id);
-        if (original && String(product.precio) !== String(original.precio)) {
+        if (original && !isSamePrice(product.precio, original.precio)) {
           try {
             await axios.patch(`${priceListProductUrl}${product.id}/`, {
               precio: parseFloat(product.precio),
@@ -275,7 +346,7 @@ const PriceListEdit = () => {
 
       setProducts(updatedProducts);
       if (errorCount === 0) {
-        setSnackbar({ open: true, message: `${successCount} cambios guardados correctamente`, severity: 'success' });
+        showToast('La lista de precios se actualizó correctamente.');
         setOriginalProducts(JSON.parse(JSON.stringify(updatedProducts)));
         setHasChanges(false);
       } else {
@@ -331,10 +402,8 @@ const PriceListEdit = () => {
 
       setProducts([...products, ...responses.map(r => r.data)]);
       setOriginalProducts([...originalProducts, ...responses.map(r => r.data)]);
-      setOpenAddDialog(false);
-      setSelectedProduct(null);
-      setNewPrices({});
-      setSnackbar({ open: true, message: 'Producto agregado correctamente', severity: 'success' });
+      closeAddDialog();
+      showToast('El producto se agregó a la lista correctamente.');
     } catch (err) {
       console.error('Error adding product:', err);
       setSnackbar({ open: true, message: err.response?.data?.error || 'Error al agregar el producto', severity: 'error' });
@@ -352,7 +421,7 @@ const PriceListEdit = () => {
     const currentItems = products.filter(p => p.producto?.id === productId);
     return currentItems.some(item => {
       const original = originalProducts.find(p => p.id === item.id);
-      return original && String(item.precio) !== String(original.precio);
+      return original && !isSamePrice(item.precio, original.precio);
     });
   };
 
@@ -378,99 +447,56 @@ const PriceListEdit = () => {
   }
 
   return (
-    <div className="container mx-auto h-full flex flex-col rounded p-4">
-      <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto' }}>
-        {/* Header */}
-        <Paper sx={{ p: 3, mb: 3, border: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', justifyContent: 'space-between', mb: 2, gap: { xs: 3, md: 0 } }}>
-            <Box sx={{ flex: 1, width: '100%', mr: { xs: 0, md: 3 } }}>
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-                Editar Lista de Precios
-              </Typography>
+    <div className="w-full max-w-7xl mx-auto pb-12">
+      <Box sx={{ width: '100%' }}>
+        {/* Encabezado + información general en una misma card, para que el título no quede suelto */}
+        <div className="bg-surface-card rounded-xl shadow-sm border border-border-subtle mb-6">
+          <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-border-subtle">
+            <div>
+              <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-accent">Lista de precios</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-on-surface">Editar lista</h1>
+              <p className="mt-1 text-sm text-on-surface-muted">Modificá el nombre, la descripción o los precios de los productos.</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <SpotlightButton variant="outline" onClick={() => setOpenAssignDialog(true)} className="px-5 py-2.5 text-sm">
+                <GroupAddOutlinedIcon sx={{ fontSize: 18 }} />
+                Asignar a clientes
+              </SpotlightButton>
+              <BackButton onClick={handleBack} className="px-5 py-2.5 text-sm" />
+            </div>
+          </div>
 
-              <div className="mb-4">
-                <CustomInput
-                  label="Nombre de la lista"
-                  name="listName"
-                  value={listName}
-                  onChange={(e) => setListName(e.target.value)}
-                  maxLength={30}
-                  hint={`${listName.length}/30 caracteres`}
-                />
-              </div>
-
-              <CustomInput
-                label="Descripción"
-                name="listDescription"
-                value={listDescription}
-                onChange={(e) => setListDescription(e.target.value)}
-                multiline
-                maxLength={200}
-                hint={`${listDescription.length}/200 caracteres`}
-              />
-            </Box>
-
-            <Box sx={{ display: 'flex', flexDirection: 'column', width: { xs: '100%', md: 'auto' }, minWidth: { xs: 0, md: 200 } }}>
-              {/* Espaciadores invisibles (solo en desktop): replican el alto del título y del label de
-                  "Nombre de la lista" para que los botones arranquen justo en el borde superior del
-                  recuadro del input. En mobile los botones van apilados después de los campos, sin espaciador. */}
-              <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Typography variant="h5" fontWeight="bold" sx={{ mb: 2, visibility: 'hidden' }}>
-                  .
-                </Typography>
-                <label className="block text-[0.6875rem] font-bold uppercase tracking-wider mb-1.5" style={{ visibility: 'hidden' }}>
-                  .
-                </label>
-              </Box>
-
-              <Button
-                startIcon={<AddIcon />}
-                onClick={() => setOpenAddDialog(true)}
-                color="primary"
-                variant="contained"
-                fullWidth
-                sx={{ mb: 2 }}
-              >
-                Agregar Producto
-              </Button>
-
-              <Button
-                startIcon={<SaveIcon />}
-                onClick={handleSaveChanges}
-                color="success"
-                variant="contained"
-                disabled={!hasChanges || saving}
-                fullWidth
-                sx={{ mb: 2 }}
-              >
-                {saving ? 'Guardando...' : 'Guardar Cambios'}
-              </Button>
-
-              <Button
-                startIcon={<ArrowBackIcon />}
-                onClick={handleBack}
-                color="primary"
-                variant="outlined"
-                fullWidth
-              >
-                Volver
-              </Button>
-            </Box>
-          </Box>
-
-          {hasChanges && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              Tenés cambios sin guardar. Recordá hacer click en "Guardar Cambios".
-            </Alert>
-          )}
-        </Paper>
+          <div className="p-6 space-y-4">
+            <CustomInput
+              label="Nombre de la lista"
+              name="listName"
+              value={listName}
+              onChange={(e) => setListName(e.target.value)}
+              maxLength={30}
+              hint={`${listName.length}/30 caracteres`}
+            />
+            <CustomInput
+              label="Descripción"
+              name="listDescription"
+              value={listDescription}
+              onChange={(e) => setListDescription(e.target.value)}
+              multiline
+              maxLength={200}
+              hint={`${listDescription.length}/200 caracteres`}
+            />
+          </div>
+        </div>
 
         {/* Tabla editable */}
         <Paper sx={{ border: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
             <Typography variant="h6" fontWeight="bold">
               Productos ({new Set(products.map(p => p.producto?.id).filter(Boolean)).size})
             </Typography>
+            <SpotlightButton variant="outline" onClick={() => setOpenAddDialog(true)} className="px-5 py-2.5 text-sm">
+              <AddIcon fontSize="small" />
+              Agregar producto
+            </SpotlightButton>
           </Box>
 
           {products.length === 0 ? (
@@ -480,16 +506,9 @@ const PriceListEdit = () => {
               </Typography>
             </Box>
           ) : (() => {
-            // Columnas de precio: una por cada tipo_venta del catálogo (Unidad, Bulto, etc.),
+            // Columnas de precio: una por cada tipo_venta del catálogo (Bulto, Unidad, etc.),
             // no solo los que ya tienen algún precio cargado en esta lista puntual.
-            const tipoVentaColumns = [...saleTypes].sort((a, b) => a.id - b.id);
-
-            const getAbreviacion = (producto, tipoVenta) => {
-              const desc = tipoVenta?.descripcion?.toLowerCase();
-              if (desc === 'unidad') return producto?.tipo_unidad?.abreviacion || '';
-              if (desc === 'bulto')  return producto?.tipo_contenedor?.abreviacion || '';
-              return '';
-            };
+            const tipoVentaColumns = sortSaleTypes(saleTypes);
 
             // Pivot: una fila por producto
             const rowMap = {};
@@ -501,7 +520,6 @@ const PriceListEdit = () => {
                   id: prodId,
                   producto: item.producto,
                   descripcion: item.producto.descripcion,
-                  categoria: item.producto.categoria?.descripcion || '—',
                   pesoAprox: `${item.producto.peso_aproximado ?? item.producto.cantidad_por_bulto ?? '—'} ${item.producto.tipo_unidad?.abreviacion || ''}`.trim(),
                   items: {},
                 };
@@ -510,29 +528,14 @@ const PriceListEdit = () => {
                 rowMap[prodId].items[item.tipo_venta.id] = item;
               }
             });
-            const rows = Object.values(rowMap).sort((a, b) => {
-              const catA = a.producto.categoria?.descripcion || '';
-              const catB = b.producto.categoria?.descripcion || '';
-              const catCmp = catA.localeCompare(catB);
-              return catCmp !== 0 ? catCmp : a.producto.descripcion.localeCompare(b.producto.descripcion);
-            });
+            // Orden alfabético por producto (la categoría no se muestra en la edición).
+            const rows = Object.values(rowMap).sort((a, b) => a.producto.descripcion.localeCompare(b.producto.descripcion));
 
             const columns = [
               { field: 'descripcion', headerName: 'Producto', flex: 1, align: 'center', headerAlign: 'center' },
-              {
-                field: 'categoria',
-                headerName: 'Categoría',
-                width: 140,
-                align: 'center',
-                headerAlign: 'center',
-                hiddenOnMobile: true,
-                renderCell: (params) => (
-                  <span style={categoryBadgeStyle(params.value)}>{params.value}</span>
-                ),
-              },
               ...tipoVentaColumns.map(tv => ({
                 field: `precio_${tv.id}`,
-                headerName: tv.descripcion,
+                headerName: `Precio ${tv.descripcion}`,
                 minWidth: 180,
                 flex: 1,
                 sortable: false,
@@ -543,17 +546,11 @@ const PriceListEdit = () => {
                   if (!entry) return <Typography variant="body2" color="text.disabled">—</Typography>;
                   return (
                     <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', height: '100%' }}>
-                      <TextField
-                        type="text"
+                      <AmountInput
+                        name={`precio_${params.row.producto.id}_${tv.id}`}
                         value={entry.precio}
-                        onChange={(e) => handlePriceChange(params.row.producto.id, tv.id, e.target.value)}
-                        size="small"
-                        fullWidth
-                        inputProps={{ style: { textAlign: 'right' } }}
-                        InputProps={{
-                          startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
-                          endAdornment: <span style={{ marginLeft: '4px', color: 'var(--color-on-surface-muted)', fontSize: '0.85em', whiteSpace: 'nowrap' }}>{getAbreviacion(params.row.producto, tv)}</span>,
-                        }}
+                        onChange={(raw) => handlePriceChange(params.row.producto.id, tv.id, raw)}
+                        suffix={getUnitAbbreviation(params.row.producto, tv)}
                       />
                     </Box>
                   );
@@ -578,10 +575,28 @@ const PriceListEdit = () => {
             );
           })()}
         </Paper>
+
+        {/* Acciones: mismo patrón que los formularios de Compras */}
+        <div className="flex flex-col items-center gap-3 mt-6 pt-4 border-t border-border-subtle">
+          {hasChanges && <FieldWarning>Tenés cambios sin guardar.</FieldWarning>}
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <SpotlightButton variant="cancel" onClick={handleBack} className="w-full sm:w-auto px-6 py-2.5 text-sm">
+              Cancelar
+            </SpotlightButton>
+            <SpotlightButton
+              variant="primary"
+              onClick={handleSaveChanges}
+              disabled={!hasChanges || saving}
+              className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
+            >
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </SpotlightButton>
+          </div>
+        </div>
       </Box>
 
       {/* Dialog para agregar producto */}
-      <Dialog open={openAddDialog} onClose={() => { setOpenAddDialog(false); setSelectedProduct(null); setNewPrices({}); }} maxWidth="sm" fullWidth>
+      <Dialog open={openAddDialog} onClose={closeAddDialog} maxWidth="sm" fullWidth>
         <DialogTitle>Agregar Producto a la Lista</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
@@ -589,45 +604,50 @@ const PriceListEdit = () => {
               options={allProducts}
               getOptionLabel={(option) => `${option.descripcion} (${option.categoria?.descripcion || 'Sin categoría'})`}
               value={selectedProduct}
-              onChange={(_, newValue) => setSelectedProduct(newValue)}
+              onChange={(_, newValue) => handleSelectedProductChange(newValue)}
               renderInput={(params) => (
                 <TextField {...params} label="Producto" placeholder="Buscá un producto" />
               )}
             />
             {/* Un campo de precio por cada tipo de venta existente en la lista */}
-            {[...new Set(products.map(p => p.tipo_venta?.id).filter(Boolean))]
-              .map(tvId => saleTypes.find(st => st.id === tvId))
-              .filter(Boolean)
-              .sort((a, b) => a.id - b.id)
-              .map(tv => (
-                <TextField
-                  key={tv.id}
-                  label={`Precio ${tv.descripcion}`}
-                  type="text"
-                  value={newPrices[tv.id] || ''}
-                  onChange={(e) => {
-                    if (!e.target.value || /^\d*\.?\d*$/.test(e.target.value)) {
-                      setNewPrices(prev => ({ ...prev, [tv.id]: e.target.value }));
-                    }
-                  }}
-                  fullWidth
-                  InputProps={{
-                    startAdornment: <span style={{ marginRight: '4px' }}>$</span>,
-                  }}
-                />
+            {sortSaleTypes(
+              [...new Set(products.map(p => p.tipo_venta?.id).filter(Boolean))]
+                .map(tvId => saleTypes.find(st => st.id === tvId))
+                .filter(Boolean)
+            ).map(tv => (
+                <div key={tv.id}>
+                  <label className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5">
+                    Precio {tv.descripcion}
+                  </label>
+                  <AmountInput
+                    name={`nuevo_precio_${tv.id}`}
+                    value={newPrices[tv.id] || ''}
+                    onChange={(raw) => handleNewPriceChange(tv.id, raw)}
+                    suffix={getUnitAbbreviation(selectedProduct, tv)}
+                  />
+                </div>
               ))
             }
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setOpenAddDialog(false); setSelectedProduct(null); setNewPrices({}); }} color="primary">
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1.5 }}>
+          <SpotlightButton variant="cancel" onClick={closeAddDialog} className="px-5 py-2.5 text-sm">
             Cancelar
-          </Button>
-          <Button onClick={handleAddProduct} variant="contained" color="primary">
+          </SpotlightButton>
+          <SpotlightButton variant="primary" onClick={handleAddProduct} className="px-5 py-2.5 text-sm">
             Agregar
-          </Button>
+          </SpotlightButton>
         </DialogActions>
       </Dialog>
+
+      <AssignClientsDialog
+        open={openAssignDialog}
+        priceList={{ id: Number(id), nombre: listName }}
+        onClose={() => setOpenAssignDialog(false)}
+        onAssigned={(assigned) =>
+          showToast(`La lista se asignó a ${assigned} cliente${assigned === 1 ? '' : 's'} correctamente.`)
+        }
+      />
 
       {/* Dialog para confirmar eliminación */}
       <Dialog

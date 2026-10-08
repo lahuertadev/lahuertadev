@@ -22,6 +22,18 @@ class IPricesListRepository(ABC):
         pass
 
     @abstractmethod
+    def count_assigned_clients(self, prices_list):
+        pass
+
+    @abstractmethod
+    def get_missing_client_ids(self, client_ids):
+        pass
+
+    @abstractmethod
+    def assign_to_clients(self, prices_list, client_ids):
+        pass
+
+    @abstractmethod
     def generate_unique_name(self, base_name):
         pass
 

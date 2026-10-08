@@ -68,6 +68,26 @@ class BuyCreateSerializer(serializers.Serializer):
         return items
 
 
+class BuyBulkCreateSerializer(serializers.Serializer):
+    '''
+    DTO para la carga masiva (POST /buy/bulk/): una fecha y varias compras.
+    Cada compra se valida después por separado con BuyCreateSerializer,
+    para poder informar los errores por compra sin rechazar las válidas.
+    '''
+    fecha = serializers.DateField()
+    compras = serializers.ListField(child=serializers.DictField())
+
+    def validate_compras(self, buys):
+        if not buys:
+            raise serializers.ValidationError('La carga debe tener al menos una compra.')
+
+        supplier_ids = [buy.get('proveedor') for buy in buys if buy.get('proveedor')]
+        if len(supplier_ids) != len(set(map(str, supplier_ids))):
+            raise serializers.ValidationError('No se puede cargar más de una compra para el mismo proveedor.')
+
+        return buys
+
+
 class BuyUpdateSerializer(serializers.Serializer):
     '''
     DTO para editar una compra (PUT / PATCH).

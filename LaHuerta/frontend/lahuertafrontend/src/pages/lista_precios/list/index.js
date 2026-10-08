@@ -19,6 +19,9 @@ const columns = [
 
 const data = {
   title: 'Listas de Precios',
+  subtitle: 'Gestioná las listas y sus precios por bulto y por unidad.',
+  deleteSuccessMessage: (count) =>
+    count === 1 ? 'La lista de precios se eliminó correctamente.' : `Se eliminaron ${count} listas de precios correctamente.`,
   fetchUrl: {
     baseUrl: priceListUrl,
     createUrl: '/price-list/create',

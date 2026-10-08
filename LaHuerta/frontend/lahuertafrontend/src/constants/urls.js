@@ -72,6 +72,7 @@ export const supplierUrl = `${API_BASE}/supplier/`;
 
 //! Buy (Compra)
 export const buyUrl = `${API_BASE}/buy/`;
+export const buyBulkUrl = `${API_BASE}/buy/bulk/`;
 
 //! Market
 export const marketUrl = `${API_BASE}/market/`;
