@@ -6,6 +6,7 @@ import { clientUrl, priceListUrl } from '../../../constants/urls';
 import RoundedCheckbox from '../../../components/RoundedCheckbox';
 import SpotlightButton from '../../../components/SpotlightButton';
 import { matchesClientSearch } from '../../../utils/priceList';
+import dialogPaperSx from './dialogPaperSx';
 
 /**
  * AssignClientsDialog — asigna una lista de precios a varios clientes de una vez.
@@ -19,17 +20,6 @@ import { matchesClientSearch } from '../../../utils/priceList';
  *   onClose    — () => void
  *   onAssigned — (assignedCount) => void, después de asignar con éxito
  */
-// Mismo look que el resto de los diálogos de la app: fondo de card del tema (sin la capa
-// clara que MUI le suma al Paper en modo oscuro), borde sutil y esquinas redondeadas.
-const paperSx = {
-  backgroundColor: 'var(--color-surface-card)',
-  backgroundImage: 'none',
-  border: '1px solid var(--color-border-subtle)',
-  borderRadius: '16px',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-  fontFamily: 'inherit',
-};
-
 const AssignClientsDialog = ({ open, priceList, onClose, onAssigned }) => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -102,7 +92,7 @@ const AssignClientsDialog = ({ open, priceList, onClose, onAssigned }) => {
   };
 
   return (
-    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth PaperProps={{ sx: paperSx }}>
+    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth PaperProps={{ sx: dialogPaperSx }}>
       <div className="p-6">
         {/* Encabezado */}
         <h2 className="text-lg font-semibold text-on-surface">Asignar a Clientes</h2>
@@ -190,15 +180,15 @@ const AssignClientsDialog = ({ open, priceList, onClose, onAssigned }) => {
         </div>
 
         {/* Acciones */}
-        <div className="flex justify-end gap-3 mt-3">
-        <SpotlightButton variant="cancel" onClick={onClose} disabled={saving} className="px-5 py-2.5 text-sm">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-3">
+        <SpotlightButton variant="cancel" onClick={onClose} disabled={saving} className="w-full sm:w-auto px-5 py-2.5 text-sm">
           Cancelar
         </SpotlightButton>
         <SpotlightButton
           variant="primary"
           onClick={handleAssign}
           disabled={saving || selectedIds.size === 0}
-          className="px-5 py-2.5 text-sm"
+          className="w-full sm:w-auto px-5 py-2.5 text-sm"
         >
           {saving
             ? 'Asignando…'
