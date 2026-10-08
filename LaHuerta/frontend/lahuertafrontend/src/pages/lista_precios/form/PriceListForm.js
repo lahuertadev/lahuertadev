@@ -14,6 +14,7 @@ import Toast from '../../../components/Toast';
 import { useToast } from '../../../context/ToastContext';
 import FieldWarning from '../../../components/FieldWarning';
 import SpotlightButton from '../../../components/SpotlightButton';
+import BackButton from '../../../components/BackButton';
 import {
   SALE_TYPE_BULK,
   SALE_TYPE_UNIT,
@@ -227,14 +228,17 @@ const PriceListForm = () => {
         onClose={() => setToast({ open: false, message: '' })}
       />
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/price-list')}>Lista de Precios</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">Nueva Lista de Precios</span>
-      </nav>
+      {/* Breadcrumbs + Volver arriba a la derecha, como en Editar lista y Detalle */}
+      <div className="flex items-center justify-between gap-4">
+        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+          <span className="text-xs">›</span>
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/price-list')}>Lista de Precios</span>
+          <span className="text-xs">›</span>
+          <span className="text-on-surface font-semibold">Nueva Lista de Precios</span>
+        </nav>
+        <BackButton onClick={() => navigate('/price-list')} className="shrink-0 px-5 py-2.5 text-sm" />
+      </div>
 
       {/* 1. Información General */}
       <SectionCard icon={<ListAltOutlinedIcon sx={{ fontSize: 20 }} />} title="Información General">
