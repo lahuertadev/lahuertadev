@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import DataGridDemo from '../Grid';
 import AlertDialog from '../DialogAlert';
-import IconLabelButtons from '../Button';
+import SpotlightButton from '../SpotlightButton';
 import CustomInput from '../Input';
 import BasicDatePicker from '../DatePicker';
 import BasicSelect from '../Select';
 import Toast from '../Toast';
+import { useToast } from '../../context/ToastContext';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
@@ -19,6 +20,9 @@ import CloseIcon from '@mui/icons-material/Close';
  *
  * Props del objeto `data`:
  *   title         — título de la sección (string)
+ *   subtitle      — texto descriptivo debajo del título (opcional)
+ *   deleteSuccessMessage — (count) => string. Opcional: si está, muestra un toast de éxito
+ *                   al eliminar (count = cantidad de registros eliminados).
  *   fetchUrl      — { baseUrl, createUrl, editUrl, detailUrl? }
  *   columns       — definición de columnas para DataGridDemo
  *   mapData       — (responseData) => rows[]   función para transformar la respuesta
@@ -32,7 +36,7 @@ import CloseIcon from '@mui/icons-material/Close';
  *                   si no se pasa, navega a fetchUrl.createUrl
  */
 const GenericList = ({ data, onAdd }) => {
-  const { title, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true } = data;
+  const { title, subtitle, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +48,7 @@ const GenericList = ({ data, onAdd }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({});
   const [toast, setToast] = useState({ open: false, message: '' });
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,6 +110,7 @@ const GenericList = ({ data, onAdd }) => {
   };
 
   const handleDeleteConfirm = async () => {
+    const deletedCount = itemToDelete ? 1 : selectedIds.length;
     try {
       if (itemToDelete) {
         await axios.delete(`${fetchUrl.baseUrl}${itemToDelete}/`);
@@ -119,6 +125,7 @@ const GenericList = ({ data, onAdd }) => {
           }
         }
       }
+      if (deleteSuccessMessage) showToast(deleteSuccessMessage(deletedCount));
     } catch (err) {
       console.error('Error eliminando:', err);
       const msg =
@@ -176,27 +183,30 @@ const GenericList = ({ data, onAdd }) => {
       {/* Card: título + acciones */}
       <div className="bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-on-surface">{title}</h2>
+          <div>
+            <h2 className="text-lg font-semibold text-on-surface">{title}</h2>
+            {subtitle && <p className="mt-1 text-sm text-on-surface-muted">{subtitle}</p>}
+          </div>
           <div className="flex items-center gap-3">
             {hasFilters && (
-              <button
+              <SpotlightButton
+                variant={showFilters ? 'primary' : 'outline'}
                 onClick={() => setShowFilters((v) => !v)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${
-                  showFilters
-                    ? 'bg-blue-lahuerta text-white border-blue-lahuerta'
-                    : 'bg-blue-lahuerta/10 text-blue-lahuerta border-blue-lahuerta/20 hover:bg-blue-lahuerta/15'
-                }`}
+                className="px-4 py-2 text-sm"
               >
                 <FilterAltOutlinedIcon fontSize="small" />
                 Filtros
-              </button>
+              </SpotlightButton>
             )}
             {showAdd && (
-              <IconLabelButtons
-                label={newLabelText || ''}
-                icon={<AddCircleOutlineIcon />}
+              <SpotlightButton
+                variant="primary"
                 onClick={onAdd || (() => navigate(fetchUrl.createUrl))}
-              />
+                className="px-4 py-2 text-sm"
+              >
+                {newLabelText || ''}
+                <AddCircleOutlineIcon fontSize="small" />
+              </SpotlightButton>
             )}
           </div>
         </div>
@@ -236,13 +246,10 @@ const GenericList = ({ data, onAdd }) => {
 
         {selectedIds.length > 0 && (
           <div className="px-6 py-4 border-t border-border-subtle flex justify-end">
-            <button
-              onClick={() => handleOpenConfirmDialog(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition-all"
-            >
+            <SpotlightButton variant="danger" onClick={() => handleOpenConfirmDialog(true)} className="px-4 py-2 text-sm">
               <DeleteIcon fontSize="small" />
               Eliminar {selectedIds.length} seleccionado{selectedIds.length !== 1 ? 's' : ''}
-            </button>
+            </SpotlightButton>
           </div>
         )}
       </div>
@@ -313,18 +320,12 @@ const GenericList = ({ data, onAdd }) => {
 
           {/* Footer — pegado abajo */}
           <div className="px-5 pt-5 pb-8 border-t border-border-subtle space-y-2 shrink-0">
-            <button
-              onClick={applyFilters}
-              className="w-full bg-blue-lahuerta hover:bg-blue-lahuerta/90 text-white py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all active:scale-[0.98]"
-            >
+            <SpotlightButton variant="primary" onClick={applyFilters} className="w-full py-2.5 text-sm">
               Aplicar Filtros
-            </button>
-            <button
-              onClick={clearFilters}
-              className="w-full bg-surface-low hover:bg-border-subtle text-on-surface-muted py-2.5 rounded-lg font-bold text-sm border border-border-subtle transition-all"
-            >
+            </SpotlightButton>
+            <SpotlightButton variant="cancel" onClick={clearFilters} className="w-full py-2.5 text-sm">
               Limpiar Filtros
-            </button>
+            </SpotlightButton>
           </div>
         </aside>
       </>
