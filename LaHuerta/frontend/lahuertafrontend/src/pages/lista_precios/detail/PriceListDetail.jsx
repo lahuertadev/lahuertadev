@@ -4,13 +4,14 @@ import axios from 'axios';
 import { priceListUrl, priceListProductUrl, saleTypeUrl } from '../../../constants/urls';
 import { formatDate } from '../../../utils/date';
 import { formatCurrency } from '../../../utils/currency';
-import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, Alert, useMediaQuery } from '@mui/material';
+import { Box, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, Alert, useMediaQuery } from '@mui/material';
 import DownloadOutlinedIcon from '@mui/icons-material/DownloadOutlined';
 import ContentCopyIcon from '@mui/icons-material/ContentCopyOutlined';
 import BackButton from '../../../components/BackButton';
 import SpotlightButton from '../../../components/SpotlightButton';
 import { useToast } from '../../../context/ToastContext';
 import AssignClientsDialog from '../shared/AssignClientsDialog';
+import dialogPaperSx from '../shared/dialogPaperSx';
 import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
 import { getCategoryColor } from '../../../constants/categoryColors';
 import '../../../styles/print-price-list.css';
@@ -45,7 +46,6 @@ const PriceListDetail = () => {
   const [duplicating, setDuplicating] = useState(false);
   const [openDuplicateDialog, setOpenDuplicateDialog] = useState(false);
   const [duplicateError, setDuplicateError] = useState(null);
-  const [duplicateSuccess, setDuplicateSuccess] = useState(false);
   const [openAssignDialog, setOpenAssignDialog] = useState(false);
 
   useEffect(() => {
@@ -85,25 +85,22 @@ const PriceListDetail = () => {
   const handleDuplicateClick = () => {
     setOpenDuplicateDialog(true);
     setDuplicateError(null);
-    setDuplicateSuccess(false);
   };
 
   const handleDuplicateConfirm = async () => {
     setDuplicating(true);
     setDuplicateError(null);
-    
+
     try {
       const response = await axios.post(`${priceListUrl}${id}/duplicate/`);
-      setDuplicateSuccess(true);
-      
-      // Redirigir a la página de edición de la nueva lista después de 2 segundos
-      setTimeout(() => {
-        navigate(`/price-list/edit/${response.data.id}`);
-      }, 2000);
+      // Mismo patrón que crear/editar/eliminar: toast global y directo a la edición de la copia.
+      setOpenDuplicateDialog(false);
+      showToast(`La lista se duplicó correctamente como "${response.data.nombre}".`);
+      navigate(`/price-list/edit/${response.data.id}`);
     } catch (err) {
       console.error('Error duplicando lista:', err);
       setDuplicateError(
-        err.response?.data?.error || 
+        err.response?.data?.error ||
         'Error al duplicar la lista de precios. Intente nuevamente.'
       );
     } finally {
@@ -112,7 +109,7 @@ const PriceListDetail = () => {
   };
 
   const handleDuplicateClose = () => {
-    if (!duplicating && !duplicateSuccess) {
+    if (!duplicating) {
       setOpenDuplicateDialog(false);
       setDuplicateError(null);
     }
@@ -388,53 +385,46 @@ const PriceListDetail = () => {
         onClose={handleDuplicateClose}
         maxWidth="sm"
         fullWidth
+        PaperProps={{ sx: dialogPaperSx }}
       >
-        <DialogTitle>
-          Duplicar Lista de Precios
-        </DialogTitle>
-        <DialogContent>
-          {duplicateSuccess ? (
-            <Alert severity="success" sx={{ mt: 1 }}>
-              Lista duplicada exitosamente. Redirigiendo a la edición...
-            </Alert>
-          ) : (
-            <>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                ¿Estás seguro que querés duplicar la lista de precios <strong>"{priceList?.nombre}"</strong>?
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Se creará una nueva lista con el nombre "Copia de {priceList?.nombre}" 
-                con todos los productos y precios de esta lista. Podrás editar el nombre 
-                y los precios en la página de edición.
-              </Typography>
-              {duplicateError && (
-                <Alert severity="error" sx={{ mt: 2 }}>
-                  {duplicateError}
-                </Alert>
-              )}
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          {!duplicateSuccess && (
-            <>
-              <Button 
-                onClick={handleDuplicateClose} 
-                disabled={duplicating}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleDuplicateConfirm}
-                color="primary"
-                variant="contained"
-                disabled={duplicating}
-              >
-                {duplicating ? 'Duplicando...' : 'Duplicar'}
-              </Button>
-            </>
-          )}
-        </DialogActions>
+        <div className="p-5 sm:p-6">
+          {/* Encabezado con ícono, mismo patrón que el diálogo de confirmación del sitio */}
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-lahuerta/10 text-accent">
+              <ContentCopyIcon sx={{ fontSize: 20 }} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-on-surface">Duplicar Lista de Precios</h2>
+              <p className="mt-1 text-sm text-on-surface-muted">
+                Se crea una copia con todos los productos y precios. Después podés cambiarle el nombre y los precios en la edición.
+              </p>
+            </div>
+          </div>
+
+          {/* Resumen de la copia */}
+          <dl className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="min-w-0 rounded-lg border border-border-subtle bg-surface-low px-4 py-3">
+              <dt className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-muted">Nueva lista</dt>
+              <dd className="mt-1 text-sm font-semibold text-on-surface break-words">Copia De {priceList?.nombre}</dd>
+            </div>
+            <div className="rounded-lg border border-border-subtle bg-surface-low px-4 py-3">
+              <dt className="text-[0.6875rem] font-bold uppercase tracking-wider text-on-surface-muted">Productos</dt>
+              <dd className="mt-1 text-sm font-semibold text-on-surface">{new Set(products.map((p) => p.producto.id)).size}</dd>
+            </div>
+          </dl>
+
+          {duplicateError && <p className="mt-4 text-xs font-medium text-red-500">{duplicateError}</p>}
+
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 mt-6">
+            <SpotlightButton variant="cancel" onClick={handleDuplicateClose} disabled={duplicating} className="w-full sm:w-auto px-5 py-2.5 text-sm">
+              Cancelar
+            </SpotlightButton>
+            <SpotlightButton variant="primary" onClick={handleDuplicateConfirm} disabled={duplicating} className="w-full sm:w-auto px-5 py-2.5 text-sm">
+              <ContentCopyIcon sx={{ fontSize: 18 }} />
+              {duplicating ? 'Duplicando…' : 'Duplicar'}
+            </SpotlightButton>
+          </div>
+        </div>
       </Dialog>
     </div>
   );
