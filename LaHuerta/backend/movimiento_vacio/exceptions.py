@@ -1,0 +1,2 @@
+class EmptyMovementNotFoundException(Exception):
+    pass
