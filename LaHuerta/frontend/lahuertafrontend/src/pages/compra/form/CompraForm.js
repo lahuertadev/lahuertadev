@@ -14,7 +14,7 @@ import BuyPageHeader from '../shared/BuyPageHeader';
 import BuyFormActions from '../shared/BuyFormActions';
 import useBuyOptions from '../shared/useBuyOptions';
 import useExistingBuySuppliers from '../shared/useExistingBuySuppliers';
-import { createEmptyBlock, validateBlock, getVaciosWarnings, getExistingBuyWarning, buildBuyPayload } from '../shared/buyBlockUtils';
+import { createEmptyBlock, validateBlock, getExistingBuyWarning, buildBuyPayload } from '../shared/buyBlockUtils';
 
 const CompraForm = () => {
   const navigate = useNavigate();
@@ -59,18 +59,13 @@ const CompraForm = () => {
             tipo_venta: item.tipo_venta?.id ?? null,
             precio: item.precio_bulto,
           })),
-          vacios: (buy.vacios || []).map((v) => ({
-            tipo_contenedor: v.tipo_contenedor.id,
-            cantidad: v.cantidad,
-            precio_unitario: v.precio_unitario,
-          })),
         });
       })
       .catch(console.error);
   }, [id, isEdit]);
 
-  // ── Limpiar advertencias al modificar items o vacíos ──────────────
-  useEffect(() => { setWarnings([]); setShowWarningsDialog(false); }, [block.items, block.vacios]);
+  // ── Limpiar advertencias al modificar items ───────────────────────
+  useEffect(() => { setWarnings([]); setShowWarningsDialog(false); }, [block.items]);
 
   // ── Validación ─────────────────────────────────────────────────────
   const validate = () => {
@@ -91,11 +86,8 @@ const CompraForm = () => {
 
     setErrors({});
 
-    // Advertencias no bloqueantes: compra ya cargada al proveedor en la fecha y vacíos faltantes.
-    const nextWarnings = [
-      ...(hasExistingBuy ? [getExistingBuyWarning(fecha)] : []),
-      ...getVaciosWarnings(block, options.saleTypes, options.containerTypes),
-    ];
+    // Advertencia no bloqueante: compra ya cargada al proveedor en la fecha.
+    const nextWarnings = hasExistingBuy ? [getExistingBuyWarning(fecha)] : [];
     if (nextWarnings.length > 0) {
       setWarnings(nextWarnings);
       setShowWarningsDialog(true);
@@ -130,7 +122,6 @@ const CompraForm = () => {
 
   // El botón Confirmar queda habilitado recién cuando el formulario está completo:
   // proveedor + fecha cargados y al menos un producto con cantidad y precio válidos.
-  // Los vacíos son opcionales, así que no forman parte de esta validación.
   const isFormComplete = Object.keys(validate()).length === 0;
 
   // ── Render ─────────────────────────────────────────────────────────
@@ -144,7 +135,7 @@ const CompraForm = () => {
 
       <BuyPageHeader
         title={isEdit ? `Editar compra #${String(id).padStart(8, '0')}` : 'Carga simple'}
-        subtitle={isEdit ? 'Modificá los datos, productos o vacíos de la compra.' : 'Una compra a un proveedor para una fecha específica.'}
+        subtitle={isEdit ? 'Modificá los datos o productos de la compra.' : 'Una compra a un proveedor para una fecha específica.'}
         onBack={() => navigate(backPath)}
       />
 
