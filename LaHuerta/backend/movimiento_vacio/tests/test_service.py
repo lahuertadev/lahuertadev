@@ -5,6 +5,7 @@ from unittest.mock import Mock
 from movimiento_vacio.service import EmptyMovementService
 from movimiento_vacio.interfaces import IEmptyMovementRepository
 from movimiento_vacio.exceptions import EmptyMovementNotFoundException
+from movimiento_vacio.enums import EmptyMovementType
 from proveedor.interfaces import ISupplierRepository
 
 
@@ -106,7 +107,7 @@ class TestCreateMovement:
     def test_importe_es_suma_de_cantidad_por_precio(self):
         service = _make_service()
 
-        movement = _create(service, _make_supplier(), 'DEVOLUCION', (18, 4000), (10, 2000))
+        movement = _create(service, _make_supplier(), EmptyMovementType.RETURN, (18, 4000), (10, 2000))
 
         assert movement.importe == Decimal('92000')
 
@@ -114,7 +115,7 @@ class TestCreateMovement:
         service = _make_service()
         supplier = _make_supplier(cc=Decimal('1000.00'))
 
-        _create(service, supplier, 'CARGA', (100, 4000))
+        _create(service, supplier, EmptyMovementType.LOAD, (100, 4000))
 
         assert supplier.cuenta_corriente == Decimal('401000.00')
         assert len(service.supplier_repository.updated) == 1
@@ -123,7 +124,7 @@ class TestCreateMovement:
         service = _make_service()
         supplier = _make_supplier(cc=Decimal('400000.00'))
 
-        _create(service, supplier, 'DEVOLUCION', (18, 4000))
+        _create(service, supplier, EmptyMovementType.RETURN, (18, 4000))
 
         assert supplier.cuenta_corriente == Decimal('328000.00')
 
@@ -131,8 +132,8 @@ class TestCreateMovement:
         service = _make_service()
         supplier = _make_supplier()
 
-        _create(service, supplier, 'CARGA', (100, 4000))
-        _create(service, supplier, 'DEVOLUCION', (70, 4000))
+        _create(service, supplier, EmptyMovementType.LOAD, (100, 4000))
+        _create(service, supplier, EmptyMovementType.RETURN, (70, 4000))
 
         # Los 30 vacíos no devueltos quedan como deuda en la CC.
         assert supplier.cuenta_corriente == Decimal('120000')
@@ -140,7 +141,7 @@ class TestCreateMovement:
     def test_create_persiste_renglones(self):
         service = _make_service()
 
-        movement = _create(service, _make_supplier(), 'CARGA', (5, 1000), (3, 2000))
+        movement = _create(service, _make_supplier(), EmptyMovementType.LOAD, (5, 1000), (3, 2000))
 
         assert len(service.empty_movement_repository.created_containers) == 1
         created_movement, containers = service.empty_movement_repository.created_containers[0]
@@ -161,7 +162,7 @@ class TestUpdateMovement:
     def test_update_renglones_recalcula_importe_y_ajusta_cc_por_diferencia(self):
         service = _make_service()
         supplier = _make_supplier()
-        movement = _create(service, supplier, 'CARGA', (10, 1000))  # CC = 10000
+        movement = _create(service, supplier, EmptyMovementType.LOAD, (10, 1000))  # CC = 10000
 
         service.update_movement(movement.id, {'contenedores': _make_containers((15, 1000))})
 
@@ -172,9 +173,9 @@ class TestUpdateMovement:
     def test_update_de_carga_a_devolucion_invierte_el_efecto(self):
         service = _make_service()
         supplier = _make_supplier()
-        movement = _create(service, supplier, 'CARGA', (10, 1000))  # CC = 10000
+        movement = _create(service, supplier, EmptyMovementType.LOAD, (10, 1000))  # CC = 10000
 
-        service.update_movement(movement.id, {'tipo': 'DEVOLUCION'})
+        service.update_movement(movement.id, {'tipo': EmptyMovementType.RETURN})
 
         assert supplier.cuenta_corriente == Decimal('-10000')
 
@@ -182,7 +183,7 @@ class TestUpdateMovement:
         service = _make_service()
         old_supplier = _make_supplier()
         new_supplier = _make_supplier(cc=Decimal('500'))
-        movement = _create(service, old_supplier, 'DEVOLUCION', (10, 1000))  # old CC = -10000
+        movement = _create(service, old_supplier, EmptyMovementType.RETURN, (10, 1000))  # old CC = -10000
 
         service.update_movement(movement.id, {'proveedor': new_supplier})
 
@@ -193,7 +194,7 @@ class TestUpdateMovement:
     def test_update_sin_cambios_de_importe_no_toca_cc(self):
         service = _make_service()
         supplier = _make_supplier()
-        movement = _create(service, supplier, 'CARGA', (10, 1000))
+        movement = _create(service, supplier, EmptyMovementType.LOAD, (10, 1000))
         updates_before = len(service.supplier_repository.updated)
 
         service.update_movement(movement.id, {'fecha': '2026-07-20', 'nro_comprobante': None})
@@ -218,7 +219,7 @@ class TestDeleteMovement:
     def test_delete_carga_revierte_cc(self):
         service = _make_service()
         supplier = _make_supplier()
-        movement = _create(service, supplier, 'CARGA', (10, 1000))
+        movement = _create(service, supplier, EmptyMovementType.LOAD, (10, 1000))
 
         service.delete_movement(movement.id)
 
@@ -228,7 +229,7 @@ class TestDeleteMovement:
     def test_delete_devolucion_revierte_cc(self):
         service = _make_service()
         supplier = _make_supplier(cc=Decimal('50000'))
-        movement = _create(service, supplier, 'DEVOLUCION', (10, 1000))  # CC = 40000
+        movement = _create(service, supplier, EmptyMovementType.RETURN, (10, 1000))  # CC = 40000
 
         service.delete_movement(movement.id)
 

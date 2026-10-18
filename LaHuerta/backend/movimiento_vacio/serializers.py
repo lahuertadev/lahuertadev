@@ -1,6 +1,7 @@
 from decimal import Decimal
 from rest_framework import serializers
 from .models import MovimientoVacio, MovimientoVacioContenedor
+from .enums import EmptyMovementType
 from proveedor.models import Proveedor
 from proveedor.serializers import SupplierSerializer
 from tipo_contenedor.models import TipoContenedor
@@ -72,7 +73,7 @@ class EmptyMovementCreateSerializer(serializers.Serializer):
     '''
     proveedor = serializers.PrimaryKeyRelatedField(queryset=Proveedor.objects.all())
     fecha = serializers.DateField()
-    tipo = serializers.ChoiceField(choices=MovimientoVacio.TIPO_CHOICES)
+    tipo = serializers.ChoiceField(choices=EmptyMovementType.choices)
     nro_comprobante = serializers.CharField(max_length=30, required=False, allow_blank=True, allow_null=True, default=None)
     contenedores = EmptyMovementContainerCreateSerializer(many=True)
 
@@ -91,7 +92,7 @@ class EmptyMovementUpdateSerializer(serializers.Serializer):
     '''
     proveedor = serializers.PrimaryKeyRelatedField(queryset=Proveedor.objects.all(), required=False)
     fecha = serializers.DateField(required=False)
-    tipo = serializers.ChoiceField(choices=MovimientoVacio.TIPO_CHOICES, required=False)
+    tipo = serializers.ChoiceField(choices=EmptyMovementType.choices, required=False)
     nro_comprobante = serializers.CharField(max_length=30, required=False, allow_blank=True, allow_null=True)
     contenedores = EmptyMovementContainerCreateSerializer(many=True, required=False)
 
@@ -104,7 +105,7 @@ class EmptyMovementUpdateSerializer(serializers.Serializer):
 
 class EmptyMovementQueryParamsSerializer(serializers.Serializer):
     proveedor    = serializers.CharField(required=False, allow_blank=True)
-    tipo         = serializers.ChoiceField(choices=MovimientoVacio.TIPO_CHOICES, required=False)
+    tipo         = serializers.ChoiceField(choices=EmptyMovementType.choices, required=False)
     fecha_desde  = serializers.DateField(required=False)
     fecha_hasta  = serializers.DateField(required=False)
     importe      = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)

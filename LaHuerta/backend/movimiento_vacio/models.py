@@ -1,10 +1,7 @@
 from django.db import models
 from proveedor.models import Proveedor
 from tipo_contenedor.models import TipoContenedor
-
-# Tipos de movimiento de vacíos
-MOVEMENT_TYPE_LOAD   = 'CARGA'
-MOVEMENT_TYPE_RETURN = 'DEVOLUCION'
+from .enums import EmptyMovementType
 
 
 class MovimientoVacio(models.Model):
@@ -12,14 +9,9 @@ class MovimientoVacio(models.Model):
     Vale de vacíos de un proveedor.
     CARGA suma su importe a la cuenta corriente del proveedor; DEVOLUCION lo resta.
     '''
-    TIPO_CHOICES = [
-        (MOVEMENT_TYPE_LOAD, 'Carga'),
-        (MOVEMENT_TYPE_RETURN, 'Devolución'),
-    ]
-
     proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
     fecha = models.DateField()
-    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
+    tipo = models.CharField(max_length=10, choices=EmptyMovementType.choices)
     nro_comprobante = models.CharField(max_length=30, null=True, blank=True)
     importe = models.DecimalField(max_digits=10, decimal_places=2)
 

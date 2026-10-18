@@ -9,6 +9,7 @@ from proveedor.models import Proveedor
 from tipo_contenedor.models import TipoContenedor
 from movimiento_vacio.models import MovimientoVacio
 from movimiento_vacio.views import EmptyMovementViewSet
+from movimiento_vacio.enums import EmptyMovementType
 
 URL = '/empty-movement/'
 
@@ -43,7 +44,7 @@ def _line(container_type, quantity=18, price='4000.00'):
     return {'tipo_contenedor': container_type.id, 'cantidad': quantity, 'precio_unitario': price}
 
 
-def _payload(supplier, movement_type='DEVOLUCION', lines=None, **extra):
+def _payload(supplier, movement_type=EmptyMovementType.RETURN, lines=None, **extra):
     return {
         'proveedor': supplier.id,
         'fecha': '2026-07-14',
@@ -74,7 +75,7 @@ class TestCreate:
         supplier = db_setup['supplier_a']
 
         response = _create(factory, _payload(
-            supplier, 'DEVOLUCION', [_line(db_setup['crate'], 18, '4000.00')], nro_comprobante='264768',
+            supplier, EmptyMovementType.RETURN, [_line(db_setup['crate'], 18, '4000.00')], nro_comprobante='264768',
         ))
 
         assert response.status_code == 201
@@ -87,7 +88,7 @@ class TestCreate:
     def test_carga_valida_suma_a_la_cc(self, factory, db_setup):
         supplier = db_setup['supplier_a']
 
-        response = _create(factory, _payload(supplier, 'CARGA', [
+        response = _create(factory, _payload(supplier, EmptyMovementType.LOAD, [
             _line(db_setup['crate'], 10, '4000.00'),
             _line(db_setup['cage'], 5, '2000.00'),
         ]))
@@ -98,20 +99,20 @@ class TestCreate:
 
     def test_nro_comprobante_vacio_se_guarda_como_null(self, factory, db_setup):
         response = _create(factory, _payload(
-            db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'])], nro_comprobante='',
+            db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'])], nro_comprobante='',
         ))
 
         assert response.status_code == 201
         assert response.data['nro_comprobante'] is None
 
     def test_sin_renglones_responde_400(self, factory, db_setup):
-        response = _create(factory, _payload(db_setup['supplier_a'], 'CARGA', []))
+        response = _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, []))
 
         assert response.status_code == 400
         assert 'contenedores' in response.data
 
     def test_tipo_de_contenedor_repetido_responde_400(self, factory, db_setup):
-        response = _create(factory, _payload(db_setup['supplier_a'], 'CARGA', [
+        response = _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, [
             _line(db_setup['crate'], 10), _line(db_setup['crate'], 8),
         ]))
 
@@ -119,12 +120,12 @@ class TestCreate:
         assert 'contenedores' in response.data
 
     def test_contenedor_que_no_requiere_vacio_responde_400(self, factory, db_setup):
-        response = _create(factory, _payload(db_setup['supplier_a'], 'CARGA', [_line(db_setup['no_empty'])]))
+        response = _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['no_empty'])]))
 
         assert response.status_code == 400
 
     def test_cantidad_cero_responde_400(self, factory, db_setup):
-        response = _create(factory, _payload(db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'], 0)]))
+        response = _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'], 0)]))
 
         assert response.status_code == 400
 
@@ -143,7 +144,7 @@ class TestCreate:
 
     def test_error_inesperado_responde_500_sin_exponer_la_excepcion(self, factory, db_setup):
         with patch('movimiento_vacio.service.EmptyMovementService.create_movement', side_effect=Exception('boom')):
-            response = _create(factory, _payload(db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'])]))
+            response = _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'])]))
 
         assert response.status_code == 500
         assert 'boom' not in str(response.data)
@@ -155,18 +156,18 @@ class TestCreate:
 class TestListRetrieve:
 
     def test_list_filtra_por_nombre_de_proveedor_tipo_e_importe(self, factory, db_setup):
-        _create(factory, _payload(db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'])]))
-        _create(factory, _payload(db_setup['supplier_a'], 'DEVOLUCION', [_line(db_setup['crate'])]))
-        _create(factory, _payload(db_setup['supplier_b'], 'DEVOLUCION', [_line(db_setup['crate'])]))
+        _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'])]))
+        _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.RETURN, [_line(db_setup['crate'])]))
+        _create(factory, _payload(db_setup['supplier_b'], EmptyMovementType.RETURN, [_line(db_setup['crate'])]))
 
         view = EmptyMovementViewSet.as_view({'get': 'list'})
-        request = factory.get(URL, {'proveedor': 'proveedor a', 'tipo': 'DEVOLUCION', 'importe': '72000'})
+        request = factory.get(URL, {'proveedor': 'proveedor a', 'tipo': EmptyMovementType.RETURN, 'importe': '72000'})
         force_authenticate(request, user=Mock(is_authenticated=True))
         response = view(request)
 
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['tipo'] == 'DEVOLUCION'
+        assert response.data[0]['tipo'] == EmptyMovementType.RETURN
         assert response.data[0]['proveedor']['id'] == db_setup['supplier_a'].id
 
     def test_list_importe_invalido_responde_400(self, factory, db_setup):
@@ -179,7 +180,7 @@ class TestListRetrieve:
         assert 'importe' in response.data
 
     def test_retrieve_existente_devuelve_renglones(self, factory, db_setup):
-        created = _create(factory, _payload(db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'])]))
+        created = _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'])]))
 
         response = _call(factory, 'get', 'retrieve', pk=created.data['id'])
 
@@ -202,15 +203,15 @@ class TestUpdate:
         supplier_a = db_setup['supplier_a']
         supplier_b = db_setup['supplier_b']
         created = _create(factory, _payload(
-            supplier_a, 'CARGA', [_line(db_setup['crate'], 10, '1000.00')], nro_comprobante='111',
+            supplier_a, EmptyMovementType.LOAD, [_line(db_setup['crate'], 10, '1000.00')], nro_comprobante='111',
         ))
 
         response = _call(factory, 'put', 'update', _payload(
-            supplier_b, 'DEVOLUCION', [_line(db_setup['cage'], 5, '2000.00')],
+            supplier_b, EmptyMovementType.RETURN, [_line(db_setup['cage'], 5, '2000.00')],
         ), pk=created.data['id'])
 
         assert response.status_code == 200
-        assert response.data['tipo'] == 'DEVOLUCION'
+        assert response.data['tipo'] == EmptyMovementType.RETURN
         assert response.data['proveedor']['id'] == supplier_b.id
         assert len(response.data['contenedores']) == 1
         assert response.data['contenedores'][0]['tipo_contenedor']['id'] == db_setup['cage'].id
@@ -222,7 +223,7 @@ class TestUpdate:
         assert supplier_b.cuenta_corriente == Decimal('-10000.00')
 
     def test_put_sin_todos_los_campos_responde_400(self, factory, db_setup):
-        created = _create(factory, _payload(db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'])]))
+        created = _create(factory, _payload(db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'])]))
 
         response = _call(factory, 'put', 'update', {'fecha': '2026-07-15'}, pk=created.data['id'])
 
@@ -232,14 +233,14 @@ class TestUpdate:
 
     def test_put_inexistente_responde_404(self, factory, db_setup):
         response = _call(factory, 'put', 'update', _payload(
-            db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'])],
+            db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'])],
         ), pk=9999)
 
         assert response.status_code == 404
 
     def test_patch_solo_modifica_lo_enviado(self, factory, db_setup):
         created = _create(factory, _payload(
-            db_setup['supplier_a'], 'CARGA', [_line(db_setup['crate'], 10, '1000.00')], nro_comprobante='111',
+            db_setup['supplier_a'], EmptyMovementType.LOAD, [_line(db_setup['crate'], 10, '1000.00')], nro_comprobante='111',
         ))
 
         response = _call(factory, 'patch', 'partial_update', {'fecha': '2026-07-20'}, pk=created.data['id'])
@@ -247,12 +248,12 @@ class TestUpdate:
         assert response.status_code == 200
         assert response.data['fecha'] == '2026-07-20'
         assert response.data['nro_comprobante'] == '111'
-        assert response.data['tipo'] == 'CARGA'
+        assert response.data['tipo'] == EmptyMovementType.LOAD
         assert len(response.data['contenedores']) == 1
 
     def test_patch_renglones_ajusta_cc_por_diferencia(self, factory, db_setup):
         supplier = db_setup['supplier_a']
-        created = _create(factory, _payload(supplier, 'CARGA', [_line(db_setup['crate'], 10, '1000.00')]))
+        created = _create(factory, _payload(supplier, EmptyMovementType.LOAD, [_line(db_setup['crate'], 10, '1000.00')]))
 
         response = _call(factory, 'patch', 'partial_update', {
             'contenedores': [_line(db_setup['crate'], 15, '1000.00')],
@@ -266,7 +267,7 @@ class TestUpdate:
     def test_patch_cambio_de_proveedor_mueve_el_saldo(self, factory, db_setup):
         supplier_a = db_setup['supplier_a']
         supplier_b = db_setup['supplier_b']
-        created = _create(factory, _payload(supplier_a, 'DEVOLUCION', [_line(db_setup['crate'], 10, '1000.00')]))
+        created = _create(factory, _payload(supplier_a, EmptyMovementType.RETURN, [_line(db_setup['crate'], 10, '1000.00')]))
 
         response = _call(factory, 'patch', 'partial_update', {'proveedor': supplier_b.id}, pk=created.data['id'])
 
@@ -289,7 +290,7 @@ class TestDestroy:
 
     def test_destroy_elimina_y_revierte_cc(self, factory, db_setup):
         supplier = db_setup['supplier_a']
-        created = _create(factory, _payload(supplier, 'CARGA', [_line(db_setup['crate'], 10, '1000.00')]))
+        created = _create(factory, _payload(supplier, EmptyMovementType.LOAD, [_line(db_setup['crate'], 10, '1000.00')]))
 
         response = _call(factory, 'delete', 'destroy', pk=created.data['id'])
 

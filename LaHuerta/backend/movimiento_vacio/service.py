@@ -2,7 +2,7 @@ from django.db import transaction
 from decimal import Decimal
 from .interfaces import IEmptyMovementRepository
 from .exceptions import EmptyMovementNotFoundException
-from .models import MOVEMENT_TYPE_RETURN
+from .enums import EmptyMovementType
 from proveedor.interfaces import ISupplierRepository
 
 
@@ -101,7 +101,7 @@ class EmptyMovementService:
         Efecto sobre la CC del proveedor: la carga suma deuda, la devolución la descuenta.
         '''
         amount = Decimal(str(amount))
-        return -amount if movement_type == MOVEMENT_TYPE_RETURN else amount
+        return -amount if movement_type == EmptyMovementType.RETURN else amount
 
     def _adjust_supplier_balance(self, old_supplier, new_supplier, old_effect: Decimal, new_effect: Decimal) -> None:
         if old_supplier != new_supplier:

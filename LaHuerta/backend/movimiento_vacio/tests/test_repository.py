@@ -6,6 +6,7 @@ from proveedor.models import Proveedor
 from tipo_contenedor.models import TipoContenedor
 from movimiento_vacio.models import MovimientoVacio, MovimientoVacioContenedor
 from movimiento_vacio.repositories import EmptyMovementRepository
+from movimiento_vacio.enums import EmptyMovementType
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ def _make_container_type(description='Cajón Test'):
     return TipoContenedor.objects.create(descripcion=description, abreviacion='c')
 
 
-def _make_movement(supplier, movement_type='CARGA', date='2026-07-14', amount=Decimal('1000.00')):
+def _make_movement(supplier, movement_type=EmptyMovementType.LOAD, date='2026-07-14', amount=Decimal('1000.00')):
     return MovimientoVacio.objects.create(
         proveedor=supplier, fecha=date, tipo=movement_type, importe=amount,
     )
@@ -82,10 +83,10 @@ class TestGetAll:
 
     def test_filtra_por_tipo(self):
         supplier = _make_supplier()
-        _make_movement(supplier, movement_type='CARGA')
-        movement_return = _make_movement(supplier, movement_type='DEVOLUCION')
+        _make_movement(supplier, movement_type=EmptyMovementType.LOAD)
+        movement_return = _make_movement(supplier, movement_type=EmptyMovementType.RETURN)
 
-        result = list(self.repo.get_all(movement_type='DEVOLUCION'))
+        result = list(self.repo.get_all(movement_type=EmptyMovementType.RETURN))
 
         assert result == [movement_return]
 
@@ -119,13 +120,13 @@ class TestCrud:
         supplier = _make_supplier()
 
         movement = self.repo.create(
-            supplier=supplier, date='2026-07-14', movement_type='DEVOLUCION',
+            supplier=supplier, date='2026-07-14', movement_type=EmptyMovementType.RETURN,
             receipt_number='264768', amount=Decimal('72000.00'),
         )
 
         saved = MovimientoVacio.objects.get(id=movement.id)
         assert saved.proveedor == supplier
-        assert saved.tipo == 'DEVOLUCION'
+        assert saved.tipo == EmptyMovementType.RETURN
         assert saved.nro_comprobante == '264768'
         assert saved.importe == Decimal('72000.00')
 
