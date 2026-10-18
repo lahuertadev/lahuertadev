@@ -74,7 +74,7 @@ En el Mercado Central se compra en una misma fecha a varios proveedores (uno por
 - `400` — no se guardó ninguna, o la carga es inválida (sin fecha, sin compras o con un proveedor repetido).
 
 ## Vacíos
-Los vacíos **no se cargan en la compra**. Como el proveedor a veces los incluye en la misma factura y a veces los informa aparte (o más tarde), se registran en una pantalla propia: **Proveedores → Carga/Devolución de vacíos**. Ver [vacios.md](vacios.md).
+Los vacíos **no se cargan en la compra**. Como el proveedor a veces los incluye en la misma factura y a veces los informa aparte (o más tarde), se registran en una pantalla propia: **Proveedores → Vacíos**. Ver [vacios.md](vacios.md).
 
 Los formularios de compra (carga simple y masiva) muestran un aviso fijo recordándolo.
 
