@@ -1,0 +1,8 @@
+# Entorno virtual local: las dependencias se instalan en la imagen (pip install)
+venv
+# Archivos generados por Python y por los tests
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+htmlcov
