@@ -1,6 +1,9 @@
 services:
   db:
     image: mysql:8.0
+    # Todos los servicios se levantan solos si el servidor se reinicia o el contenedor se cae.
+    # Sin esto quedan detenidos tras un reinicio del VPS y la limpieza de Docker de Dokploy los borra.
+    restart: unless-stopped
     volumes:
       - mysql_data:/var/lib/mysql
     env_file:
@@ -21,6 +24,7 @@ services:
   backend:
     build:
       context: ./backend
+    restart: unless-stopped
     env_file:
       - .env
     volumes:
@@ -49,11 +53,13 @@ services:
       args:
         REACT_APP_API_BASE_URL: https://lahuerta-app.com/api
         REACT_APP_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+    restart: unless-stopped
     networks:
       - lahuerta_network
 
   nginx:
     image: nginx:alpine
+    restart: unless-stopped
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./backend/staticfiles:/app/staticfiles
