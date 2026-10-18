@@ -25,6 +25,7 @@ const ICONS = {
   bulkPurchase: PlaylistAddOutlined,
 };
 
+// size: 'compact' (default), 'featured' (ocupa dos columnas, con "Más usado") o 'large' (más grande, ej. pantallas de selección).
 export default function AccessCard({ title, description, url, icon, size = 'compact' }) {
   const navigate = useNavigate();
   const cardRef = useRef(null);
@@ -33,6 +34,7 @@ export default function AccessCard({ title, description, url, icon, size = 'comp
 
   const Icon = ICONS[icon];
   const isFeatured = size === 'featured';
+  const isLarge = size === 'large';
 
   return (
     <button
@@ -40,7 +42,7 @@ export default function AccessCard({ title, description, url, icon, size = 'comp
       type="button"
       onClick={() => navigate(url)}
       style={{ transform: 'perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))' }}
-      className={`group relative flex w-full cursor-pointer flex-col items-start justify-between gap-1 rounded-2xl border border-border-subtle bg-surface-card p-3 text-left transition-[border-color,box-shadow] duration-200 hover:border-accent/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${isFeatured ? 'sm:col-span-2' : ''}`}
+      className={`group relative flex w-full cursor-pointer flex-col items-start justify-between rounded-2xl border border-border-subtle bg-surface-card text-left ${isLarge ? 'gap-4 p-5 sm:p-6' : 'gap-1 p-3'} transition-[border-color,box-shadow] duration-200 hover:border-accent/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${isFeatured ? 'sm:col-span-2' : ''}`}
     >
       <span
         aria-hidden="true"
@@ -51,8 +53,8 @@ export default function AccessCard({ title, description, url, icon, size = 'comp
       />
       <span className="relative flex flex-col items-start gap-1">
         {Icon && (
-          <span className={`flex h-8 w-8 items-center justify-center rounded-xl bg-accent/15 text-accent ${isFeatured ? 'sm:h-9 sm:w-9' : ''}`}>
-            <Icon fontSize="small" />
+          <span className={`flex items-center justify-center rounded-xl bg-accent/15 text-accent ${isLarge ? 'h-11 w-11' : 'h-8 w-8'} ${isFeatured ? 'sm:h-9 sm:w-9' : ''}`}>
+            <Icon fontSize={isLarge ? 'medium' : 'small'} />
           </span>
         )}
         {isFeatured && (
@@ -60,8 +62,8 @@ export default function AccessCard({ title, description, url, icon, size = 'comp
         )}
       </span>
       <span className="relative">
-        <h2 className={`text-sm font-semibold text-on-surface ${isFeatured ? 'sm:text-base' : ''}`}>{title}</h2>
-        <p className="text-xs text-on-surface-muted">{description}</p>
+        <h2 className={`font-semibold text-on-surface ${isLarge ? 'text-base sm:text-lg' : 'text-sm'} ${isFeatured ? 'sm:text-base' : ''}`}>{title}</h2>
+        <p className={`text-on-surface-muted ${isLarge ? 'mt-1 text-sm' : 'text-xs'}`}>{description}</p>
       </span>
     </button>
   );

@@ -234,7 +234,7 @@ const CompraBulkForm = () => {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto py-6 px-4 sm:px-6 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-5xl">
+    <div className="container mx-auto py-6 px-4 sm:px-6 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-7xl">
       <Toast
         open={toast.open}
         message={toast.message}

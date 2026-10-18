@@ -19,20 +19,21 @@ const BUY_TYPES = [
 ];
 
 // Paso previo a "Nueva compra": elegir entre la carga simple y la carga masiva.
+// Mismo ancho que el listado, los formularios y el detalle (max-w-7xl) para que no haya salto visual entre pantallas.
 const BuyTypeSelection = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="container mx-auto py-6 px-4 sm:px-6 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-3xl">
+    <div className="container mx-auto py-6 px-4 sm:px-6 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-7xl">
       <BuyPageHeader
         title="Nueva compra"
         subtitle="¿Qué tipo de carga querés realizar?"
         onBack={() => navigate('/buy')}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {BUY_TYPES.map((buyType) => (
-          <AccessCard key={buyType.url} {...buyType} />
+          <AccessCard key={buyType.url} {...buyType} size="large" />
         ))}
       </div>
     </div>

@@ -33,6 +33,7 @@ export const headerOptions = [
   {
     text: 'Proveedores',
     icon: <LocalShippingOutlinedIcon sx={iconSx} />,
+    path: '/supplier',
     children: [
       { text: 'Proveedores', icon: <LocalShippingOutlinedIcon sx={iconSx} />, path: '/supplier' },
       { text: 'Compras', icon: <ShoppingCartOutlinedIcon sx={iconSx} />, path: '/buy' },
