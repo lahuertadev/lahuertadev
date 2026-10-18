@@ -54,13 +54,10 @@ En el Mercado Central se compra en una misma fecha a varios proveedores (uno por
 ### Flujo de uso
 1. En **Nueva compra** se elige **Carga masiva**.
 2. Se ingresa la fecha una sola vez, arriba de todo. Todas las compras de la carga usan esa fecha.
-3. Se completa el primer bloque: proveedor, seña (opcional), productos y vacíos, igual que en la carga simple.
+3. Se completa el primer bloque: proveedor, seña (opcional) y productos, igual que en la carga simple.
 4. Con **Agregar proveedor** se suma otro bloque, y así por cada proveedor de la planilla. Cada bloque se puede compactar con la flecha de su encabezado, que muestra el proveedor y el total de esa compra.
 5. Si el proveedor elegido ya tiene una compra en esa fecha, se avisa debajo del selector (sin bloquear).
-6. Se presiona **Confirmar N compras**. Antes de guardar, el sistema muestra una advertencia agrupada por proveedor si:
-   - el proveedor ya tiene una compra cargada para esa fecha, o
-   - faltan vacíos (misma regla que en la carga simple).
-   El usuario puede volver a revisar o guardar igual.
+6. Se presiona **Confirmar N compras**. Antes de guardar, el sistema muestra una advertencia agrupada por proveedor si el proveedor ya tiene una compra cargada para esa fecha. El usuario puede volver a revisar o guardar igual.
 7. Si todas se guardan, vuelve al listado de compras con un aviso de éxito.
 8. Si alguna falla, las que se guardaron quedan marcadas como **guardadas** (con su número de compra) y bloqueadas, y las que fallaron muestran su error. Se corrigen y se vuelve a confirmar: solo se envían las que faltan.
 
@@ -71,38 +68,19 @@ En el Mercado Central se compra en una misma fecha a varios proveedores (uno por
 - Cada compra se valida y guarda de forma independiente: un error en una no impide guardar las otras.
 
 ### Endpoint
-`POST /buy/bulk/` recibe `{ fecha, compras: [{ proveedor, senia, items, vacios }] }` y responde `{ creadas: [{ index, compra }], errores: [{ index, errores }] }`, donde `index` es la posición de la compra en la lista enviada.
+`POST /buy/bulk/` recibe `{ fecha, compras: [{ proveedor, senia, items }] }` y responde `{ creadas: [{ index, compra }], errores: [{ index, errores }] }`, donde `index` es la posición de la compra en la lista enviada.
 - `201` — se guardaron todas.
 - `207` — se guardaron algunas.
 - `400` — no se guardó ninguna, o la carga es inválida (sin fecha, sin compras o con un proveedor repetido).
 
 ## Vacíos
+Los vacíos **no se cargan en la compra**. Como el proveedor a veces los incluye en la misma factura y a veces los informa aparte (o más tarde), se registran en una pantalla propia: **Proveedores → Vacíos**. Ver [vacios.md](vacios.md).
 
-### Concepto
-En el mercado, muchos productos se compran dentro de contenedores retornables (cajones, jaulas, bandejas) que tienen un valor de depósito. Ese depósito se llama **vacío**. Cuando el contenedor se devuelve al proveedor, el valor del vacío se reintegra. Si no se devuelve, se cobra el producto más el vacío.
-
-### Registro en la compra
-Al crear o editar una compra se puede registrar la cantidad de vacíos por tipo de contenedor, junto con el precio de depósito de cada uno. Este registro sirve para tener trazabilidad y gestionar las devoluciones futuras.
-
-### Tipos de contenedor y vacíos
-No todos los tipos de contenedor generan vacíos. La regla está definida en el campo `requiere_vacio` del modelo `TipoContenedor`:
-
-| Tipo de contenedor | Requiere vacío | Motivo |
-|--------------------|---------------|--------|
-| Cajón | Sí | Contenedor de madera/metal retornable |
-| Jaula | Sí | Contenedor metálico retornable |
-| Bandeja | Sí | Bandeja retornable |
-| Bolsa | No | Envase descartable |
-| Unidad | No | Productos que se venden sueltos (ej: sandía). No hay contenedor que devolver |
-| Riestra | No | Se vende la tira sola, sin contenedor retornable |
-| Caja | No | Caja de cartón descartable (reemplaza al cajón de madera en algunos productos, ej: manzana) |
-
-### Advertencia en el formulario
-Si se compran productos con tipo de venta **Bulto** y su contenedor requiere vacío, el sistema muestra una advertencia si los vacíos cargados son insuficientes o no fueron registrados. El usuario puede guardar de todas formas (por ejemplo, cuando el proveedor usa cajas de cartón en lugar de cajones de madera y no cobra el vacío).
+Los formularios de compra (carga simple y masiva) muestran un aviso fijo recordándolo.
 
 ## Consideraciones
 - La cuenta corriente del proveedor (`cuenta_corriente`) se actualiza automáticamente en el backend con cada operación de compra.
 - Al editar una compra y cambiar el proveedor, el sistema ajusta el balance de ambos proveedores.
 - Al eliminar una compra, el importe se revierte en la cuenta corriente del proveedor.
 - El precio unitario no afecta el cálculo del importe total; es un dato informativo para la gestión de precios de venta.
-- Los vacíos **no afectan el importe** de la compra. Son únicamente un registro para gestionar devoluciones.
+- Los vacíos **no forman parte de la compra** ni de su importe: impactan en la cuenta corriente del proveedor a través de sus propios movimientos (ver [vacios.md](vacios.md)).

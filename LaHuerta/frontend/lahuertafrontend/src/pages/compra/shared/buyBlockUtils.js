@@ -1,6 +1,6 @@
 import { formatDate } from '../../../utils/date';
 
-// Lógica compartida del bloque de compra (proveedor + productos + vacíos),
+// Lógica compartida del bloque de compra (proveedor + productos),
 // usada por la carga simple (CompraForm) y la carga masiva (CompraBulkForm).
 
 export const EMPTY_ITEM = {
@@ -10,18 +10,11 @@ export const EMPTY_ITEM = {
   precio: '',
 };
 
-export const EMPTY_VACIO = {
-  tipo_contenedor: null,
-  cantidad: '',
-  precio_unitario: '',
-};
-
 export const createEmptyBlock = () => ({
   supplier: null,
   hasSign: false,
   sign: '',
   items: [{ ...EMPTY_ITEM }],
-  vacios: [],
 });
 
 export const formatTelefono = (raw = '') => {
@@ -79,34 +72,6 @@ export const validateBlock = (block) => {
   return nextErrors;
 };
 
-// ── Advertencia de vacíos ────────────────────────────────────────────
-export const getVaciosWarnings = (block, saleTypes, containerTypes) => {
-  const bulkSaleType = saleTypes.find((saleType) => saleType.descripcion.toLowerCase() === 'bulto');
-  if (!bulkSaleType) return [];
-
-  const required = {};
-  block.items.forEach((item) => {
-    if (item.tipo_venta !== bulkSaleType.id || !item.producto?.tipo_contenedor) return;
-    const quantity = parseFloat(item.cantidad_producto) || 0;
-    if (quantity <= 0) return;
-    const { id, descripcion } = item.producto.tipo_contenedor;
-    if (!required[id]) required[id] = { descripcion, quantity: 0 };
-    required[id].quantity += quantity;
-  });
-
-  return Object.entries(required).flatMap(([containerTypeId, { descripcion, quantity }]) => {
-    const containerType = containerTypes.find((ct) => ct.id === Number(containerTypeId));
-    if (!containerType?.requiere_vacio) return [];
-    const vacio = block.vacios.find((v) => v.tipo_contenedor === Number(containerTypeId));
-    const vacioQuantity = vacio ? (parseFloat(vacio.cantidad) || 0) : 0;
-    if (vacioQuantity >= quantity) return [];
-    const plural = quantity !== 1 ? 's' : '';
-    if (vacioQuantity === 0)
-      return [`No se cargaron vacíos para "${descripcion}" (${quantity} bulto${plural} comprado${plural}).`];
-    return [`Los vacíos de "${descripcion}" cargados son ${vacioQuantity}, pero se compran ${quantity} bulto${plural}.`];
-  });
-};
-
 // ── Compra existente en la fecha ─────────────────────────────────────
 export const getExistingBuyWarning = (date) =>
   `Ya hay una compra cargada para este proveedor el ${formatDate(date)}.`;
@@ -117,16 +82,10 @@ export const getExistingBuyWarning = (date) =>
 export const buildBuyPayload = (block) => {
   const { signValue } = calculateBlockTotals(block);
   const filledItems = block.items.filter((item) => item.producto !== null);
-  const filledVacios = block.vacios.filter((v) => v.tipo_contenedor && parseFloat(v.cantidad) > 0);
 
   return {
     proveedor: block.supplier.id,
     senia: signValue,
-    vacios: filledVacios.map((v) => ({
-      tipo_contenedor: v.tipo_contenedor,
-      cantidad: parseFloat(v.cantidad),
-      precio_unitario: parseFloat(v.precio_unitario) || 0,
-    })),
     items: filledItems.map((item) => {
       const quantity = parseFloat(item.cantidad_producto) || 1;
       const boxPrice = parseFloat(item.precio) || 0;

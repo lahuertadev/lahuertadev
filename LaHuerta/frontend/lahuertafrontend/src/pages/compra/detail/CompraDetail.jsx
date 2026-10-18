@@ -81,7 +81,7 @@ const CompraDetail = () => {
 
   if (error || !compra) {
     return (
-      <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar la compra.</p>
         <button
           onClick={() => navigate('/buy')}
@@ -97,7 +97,7 @@ const CompraDetail = () => {
   const number = String(compra.id).padStart(8, '0');
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
 
       {/* Breadcrumbs */}
       <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">

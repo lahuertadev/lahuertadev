@@ -12,43 +12,21 @@ import CustomInput from '../../../components/Input';
 import BasicSelect from '../../../components/Select';
 import CountUp from '../../../components/CountUp';
 import FieldWarning from '../../../components/FieldWarning';
-import { EMPTY_ITEM, EMPTY_VACIO, calculateItemSubtotal, calculateBlockTotals, formatTelefono, getExistingBuyWarning } from './buyBlockUtils';
-
-const autocompleteSx = (hasError) => ({
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: 'var(--color-surface-low)',
-    borderRadius: '0.5rem',
-    fontSize: '0.875rem',
-    padding: '0 !important',
-    '& fieldset': {
-      borderColor: hasError ? '#f87171' : 'var(--color-border-subtle)',
-    },
-    '&:hover fieldset': {
-      borderColor: hasError ? '#f87171' : '#4a7bc4',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: '#4a7bc4',
-      borderWidth: '1px',
-    },
-  },
-  '& .MuiInputBase-input': {
-    padding: '0.625rem 0.75rem !important',
-    fontSize: '0.875rem',
-    color: 'var(--color-on-surface)',
-  },
-});
+import EmptiesNotice from './EmptiesNotice';
+import { EMPTY_ITEM, calculateItemSubtotal, calculateBlockTotals, formatTelefono, getExistingBuyWarning } from './buyBlockUtils';
 
 // Label chico en mayúsculas, mismo patrón que ya usan CustomInput/BasicSelect en el resto del sitio.
 const mobileLabelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1';
 
 /**
- * BuyBlock — una compra a un proveedor: proveedor, seña, productos y vacíos.
+ * BuyBlock — una compra a un proveedor: proveedor, seña y productos.
+ * Los vacíos no se cargan acá: se registran aparte (Proveedores → Vacíos).
  * Componente controlado, compartido por la carga simple y la carga masiva.
  *
  * Props:
- *   block               — { supplier, hasSign, sign, items, vacios } (ver createEmptyBlock)
+ *   block               — { supplier, hasSign, sign, items } (ver createEmptyBlock)
  *   onChange            — (updater: prevBlock => nextBlock) => void
- *   options             — { suppliers, products, saleTypes, containerTypes } (ver useBuyOptions)
+ *   options             — { suppliers, products, saleTypes } (ver useBuyOptions)
  *   errors              — errores de validación del bloque (ver validateBlock)
  *   excludedSupplierIds — proveedores que no se ofrecen en el selector (ya elegidos en otro bloque)
  *   title               — título de la primera sección
@@ -69,13 +47,12 @@ const BuyBlock = ({
   compact = false,
 }) => {
   const isMobile = useMediaQuery('(max-width:600px)');
-  const { suppliers, products, saleTypes, containerTypes } = options;
-  const { items, vacios, supplier: selectedSupplier } = block;
+  const { suppliers, products, saleTypes } = options;
+  const { items, supplier: selectedSupplier } = block;
   const { subtotal, signValue, total } = calculateBlockTotals(block);
 
   const updateBlock = useCallback((changes) => onChange((prev) => ({ ...prev, ...changes })), [onChange]);
   const updateItems = useCallback((updater) => onChange((prev) => ({ ...prev, items: updater(prev.items) })), [onChange]);
-  const updateVacios = (updater) => onChange((prev) => ({ ...prev, vacios: updater(prev.vacios) }));
 
   // ── Helpers de items ───────────────────────────────────────────────
   const addItem = () => updateItems((prev) => [...prev, { ...EMPTY_ITEM }]);
@@ -111,27 +88,6 @@ const BuyBlock = ({
   const availableSuppliers = suppliers.filter(
     (s) => s.id === selectedSupplier?.id || !excludedSupplierIds.includes(s.id)
   );
-
-  // ── Helpers de vacíos ──────────────────────────────────────────────
-  const addVacio = () => updateVacios((prev) => [...prev, { ...EMPTY_VACIO }]);
-
-  const removeVacio = (index) => updateVacios((prev) => prev.filter((_, i) => i !== index));
-
-  const updateVacio = (index, field, value) => {
-    updateVacios((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
-  };
-
-  const getAvailableContainerTypes = (currentIndex) => {
-    const usedIds = vacios
-      .filter((_, i) => i !== currentIndex)
-      .map((v) => v.tipo_contenedor)
-      .filter(Boolean);
-    return containerTypes.filter((ct) => !usedIds.includes(ct.id));
-  };
 
   // ── Auto-agregar fila ──────────────────────────────────────────────
   useEffect(() => {
@@ -466,130 +422,8 @@ const BuyBlock = ({
 
       </div>{/* fin sección Productos */}
 
-      {/* Sección: Vacíos */}
-      <div className={`space-y-4 ${compact ? '' : 'mb-6'}`}>
-        {sectionTitle('Vacíos')}
-
-        {vacios.length === 0 ? (
-          <p className="text-sm text-on-surface-muted">Sin vacíos registrados.</p>
-        ) : isMobile ? (
-          <div className="space-y-3">
-            {vacios.map((vacio, index) => (
-              <div key={index} className="border border-border-subtle rounded-lg p-3 bg-surface-card space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className={mobileLabelCls}>Vacío {index + 1}</span>
-                  <IconButton size="small" onClick={() => removeVacio(index)} color="error">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </div>
-
-                <BasicSelect
-                  label="Tipo"
-                  name={`vacio_tipo_${index}`}
-                  value={
-                    vacio.tipo_contenedor
-                      ? {
-                          name: containerTypes.find((ct) => ct.id === vacio.tipo_contenedor)?.descripcion,
-                          value: vacio.tipo_contenedor,
-                        }
-                      : null
-                  }
-                  options={getAvailableContainerTypes(index).map((ct) => ({ name: ct.descripcion, value: ct.id }))}
-                  onChange={(e) => updateVacio(index, 'tipo_contenedor', e.target.value?.value ?? null)}
-                />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={mobileLabelCls}>Cantidad</label>
-                    <TextField
-                      type="number"
-                      size="small"
-                      fullWidth
-                      inputProps={{ min: 0, step: 1 }}
-                      value={vacio.cantidad}
-                      onChange={(e) => updateVacio(index, 'cantidad', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className={mobileLabelCls}>Precio seña</label>
-                    <AmountInput
-                      name={`vacio_precio_${index}`}
-                      value={vacio.precio_unitario}
-                      onChange={(raw) => updateVacio(index, 'precio_unitario', raw)}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="bg-surface-low text-on-surface">
-                  <th className="border border-border-subtle px-2 py-2 text-center">Tipo</th>
-                  <th className="border border-border-subtle px-2 py-2 text-center w-28">Cantidad</th>
-                  <th className="border border-border-subtle px-2 py-2 text-center w-36">Precio seña</th>
-                  <th className="border border-border-subtle px-2 py-2 w-10"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {vacios.map((vacio, index) => (
-                  <tr key={index} className="hover:bg-surface-low">
-                    <td className="border border-border-subtle px-2 py-1">
-                      <BasicSelect
-                        name={`vacio_tipo_${index}`}
-                        value={
-                          vacio.tipo_contenedor
-                            ? {
-                                name: containerTypes.find((ct) => ct.id === vacio.tipo_contenedor)?.descripcion,
-                                value: vacio.tipo_contenedor,
-                              }
-                            : null
-                        }
-                        options={getAvailableContainerTypes(index).map((ct) => ({ name: ct.descripcion, value: ct.id }))}
-                        onChange={(e) => updateVacio(index, 'tipo_contenedor', e.target.value?.value ?? null)}
-                      />
-                    </td>
-                    <td className="border border-border-subtle px-2 py-1">
-                      <TextField
-                        type="number"
-                        size="small"
-                        fullWidth
-                        inputProps={{ min: 0, step: 1 }}
-                        value={vacio.cantidad}
-                        onChange={(e) => updateVacio(index, 'cantidad', e.target.value)}
-                        sx={{ ...autocompleteSx(false), '& input': { textAlign: 'right' } }}
-                      />
-                    </td>
-                    <td className="border border-border-subtle px-2 py-1">
-                      <AmountInput
-                        name={`vacio_precio_${index}`}
-                        value={vacio.precio_unitario}
-                        onChange={(raw) => updateVacio(index, 'precio_unitario', raw)}
-                      />
-                    </td>
-                    <td className="border border-border-subtle px-1 py-1 text-center">
-                      <IconButton size="small" onClick={() => removeVacio(index)} color="error">
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={addVacio}
-          className="flex items-center gap-1 bg-transparent border-none text-blue-lahuerta text-sm font-medium cursor-pointer hover:underline hover:underline-offset-2 focus:outline-none"
-          style={{ background: 'transparent', boxShadow: 'none' }}
-        >
-          <AddCircleOutlineIcon fontSize="small" /> Agregar vacío
-        </button>
-      </div>{/* fin sección Vacíos */}
+      {/* En la carga masiva el aviso se muestra una sola vez, arriba de los bloques */}
+      {!compact && <EmptiesNotice className="mb-6" />}
     </>
   );
 };

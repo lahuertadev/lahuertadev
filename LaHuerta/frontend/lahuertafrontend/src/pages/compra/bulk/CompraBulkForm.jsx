@@ -20,13 +20,13 @@ import BasicDatePicker from '../../../components/DatePicker';
 import AlertDialog from '../../../components/DialogAlert';
 import BuyBlock from '../shared/BuyBlock';
 import BuyPageHeader from '../shared/BuyPageHeader';
+import EmptiesNotice from '../shared/EmptiesNotice';
 import BuyFormActions from '../shared/BuyFormActions';
 import useBuyOptions from '../shared/useBuyOptions';
 import useExistingBuySuppliers from '../shared/useExistingBuySuppliers';
 import {
   createEmptyBlock,
   validateBlock,
-  getVaciosWarnings,
   buildBuyPayload,
   calculateBlockTotals,
   formatTelefono,
@@ -38,14 +38,11 @@ const FIELD_LABELS = {
   proveedor: 'Proveedor',
   senia: 'Seña',
   items: 'Productos',
-  vacios: 'Vacíos',
   producto: 'Producto',
   tipo_venta: 'Tipo de venta',
   cantidad_producto: 'Cantidad',
   precio_bulto: 'Precio',
   precio_unitario: 'Precio unitario',
-  tipo_contenedor: 'Tipo de contenedor',
-  cantidad: 'Cantidad',
   detail: null,
   non_field_errors: null,
 };
@@ -145,14 +142,13 @@ const CompraBulkForm = () => {
 
     setErrors({});
 
-    // Advertencias por proveedor: compra ya cargada en la fecha y vacíos faltantes.
+    // Advertencias por proveedor: compra ya cargada en la fecha.
     const nextWarnings = pendingEntries
       .map((entry) => {
         const messages = [];
         if (existingSupplierIds.includes(entry.block.supplier.id)) {
           messages.push(getExistingBuyWarning(buyDate));
         }
-        messages.push(...getVaciosWarnings(entry.block, options.saleTypes, options.containerTypes));
         return { supplierName: entry.block.supplier.nombre, messages };
       })
       .filter((warning) => warning.messages.length > 0);
@@ -238,7 +234,7 @@ const CompraBulkForm = () => {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="container mx-auto py-6 px-4 sm:px-6 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-5xl">
+    <div className="container mx-auto py-6 px-4 sm:px-6 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-7xl">
       <Toast
         open={toast.open}
         message={toast.message}
@@ -269,6 +265,8 @@ const CompraBulkForm = () => {
             : 'Todas las compras de esta carga se registran con esta fecha.'}
         </p>
       </div>
+
+      <EmptiesNotice className="mb-6" />
 
       {resultMessage && (
         <div className="flex items-start gap-2 mb-6 p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-sm text-on-surface">
