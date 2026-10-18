@@ -5,6 +5,7 @@ import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
+import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined';
@@ -38,6 +39,7 @@ export const headerOptions = [
       { text: 'Proveedores', icon: <LocalShippingOutlinedIcon sx={iconSx} />, path: '/supplier' },
       { text: 'Compras', icon: <ShoppingCartOutlinedIcon sx={iconSx} />, path: '/buy' },
       { text: 'Pagos de Compras', icon: <PaymentsOutlinedIcon sx={iconSx} />, path: '/purchase-payment' },
+      { text: 'Vacíos', icon: <Inventory2OutlinedIcon sx={iconSx} />, path: '/empty-movement' },
       { text: 'Cheques emitidos', icon: <PaymentOutlinedIcon sx={iconSx} />, path: '/own-check' },
     ],
   },

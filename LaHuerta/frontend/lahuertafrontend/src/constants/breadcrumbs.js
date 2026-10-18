@@ -24,6 +24,7 @@ export const breadcrumbsMap = {
   '/price-list':       [HOME, FINANZAS, { label: 'Listas de Precios' }],
   '/supplier':         [HOME, { label: 'Proveedores' }],
   '/purchase-payment': [HOME, PROVEEDORES, { label: 'Pagos de Compras' }],
+  '/empty-movement':   [HOME, PROVEEDORES, { label: 'Vacíos' }],
   '/market':           [HOME, CATALOGOS, { label: 'Mercados' }],
   '/condition-iva-type': [HOME, CATALOGOS, { label: 'Condición de IVA' }],
   '/category':         [HOME, CATALOGOS, { label: 'Categorías' }],

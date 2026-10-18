@@ -11,6 +11,8 @@ import SellOutlined from '@mui/icons-material/SellOutlined';
 import BarChartOutlined from '@mui/icons-material/BarChartOutlined';
 import AddShoppingCartOutlined from '@mui/icons-material/AddShoppingCartOutlined';
 import PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined';
+import MoveToInboxOutlined from '@mui/icons-material/MoveToInboxOutlined';
+import OutboxOutlined from '@mui/icons-material/OutboxOutlined';
 
 const ICONS = {
   expense: ReceiptLongOutlined,
@@ -23,6 +25,8 @@ const ICONS = {
   reports: BarChartOutlined,
   singlePurchase: AddShoppingCartOutlined,
   bulkPurchase: PlaylistAddOutlined,
+  emptyLoad: MoveToInboxOutlined,
+  emptyReturn: OutboxOutlined,
 };
 
 // size: 'compact' (default), 'featured' (ocupa dos columnas, con "Más usado") o 'large' (más grande, ej. pantallas de selección).

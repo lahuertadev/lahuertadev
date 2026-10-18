@@ -20,7 +20,7 @@ const mobileLabelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted u
 
 /**
  * BuyBlock — una compra a un proveedor: proveedor, seña y productos.
- * Los vacíos no se cargan acá: se registran aparte (Proveedores → Carga/Devolución de vacíos).
+ * Los vacíos no se cargan acá: se registran aparte (Proveedores → Vacíos).
  * Componente controlado, compartido por la carga simple y la carga masiva.
  *
  * Props:
