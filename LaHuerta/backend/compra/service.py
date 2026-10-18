@@ -3,7 +3,6 @@ from decimal import Decimal
 from .interfaces import IBuyRepository
 from .exceptions import BuyNotFoundException
 from compra_producto.interfaces import IBuyProductRepository
-from compra_vacio.interfaces import IBuyEmptyRepository
 from proveedor.interfaces import ISupplierRepository
 
 # Estados de pago de una compra
@@ -18,18 +17,15 @@ class BuyService:
         self,
         buy_repository: IBuyRepository,
         buy_product_repository: IBuyProductRepository,
-        buy_empty_repository: IBuyEmptyRepository,
         supplier_repository: ISupplierRepository,
     ):
         self.buy_repository = buy_repository
         self.buy_product_repository = buy_product_repository
-        self.buy_empty_repository = buy_empty_repository
         self.supplier_repository = supplier_repository
 
     @transaction.atomic
     def create_buy(self, data: dict):
         products = data.pop('items')
-        empties = data.pop('vacios', [])
         supplier = data['proveedor']
         sign = Decimal(str(data.get('senia', 0)))
 
@@ -43,7 +39,6 @@ class BuyService:
         )
 
         self.buy_product_repository.create_products(buy, products)
-        self.buy_empty_repository.create_empties(buy, empties)
 
         # La CC refleja la deuda neta: importe total menos la seña ya abonada.
         supplier.cuenta_corriente += amount - sign
@@ -86,7 +81,6 @@ class BuyService:
             compra.fecha = data['fecha']
 
         products = data.get('items', None)
-        empties = data.get('vacios', None)
 
         if products is not None:
             # Importe es siempre el total bruto de la factura (sin descontar seña).
@@ -95,9 +89,6 @@ class BuyService:
             self.buy_product_repository.replace_products(compra, products)
         else:
             new_importe = old_importe
-
-        if empties is not None:
-            self.buy_empty_repository.replace_empties(compra, empties)
 
         compra.senia = new_senia
 

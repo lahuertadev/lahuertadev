@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class CompraVacioConfig(AppConfig):
+class MovimientoVacioConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'compra_vacio'
+    name = 'movimiento_vacio'

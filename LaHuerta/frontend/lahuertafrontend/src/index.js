@@ -55,6 +55,11 @@ import CompraDetail from "./pages/compra/detail/CompraDetail";
 import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
 import PurchasePaymentDetail from "./pages/pago_compra/detail/PurchasePaymentDetail";
+import EmptyMovementList from "./pages/movimiento_vacio/list";
+import EmptyMovementTypeSelection from "./pages/movimiento_vacio/create/EmptyMovementTypeSelection";
+import { EMPTY_MOVEMENT_TYPE_CONFIG } from "./constants/emptyMovementTypes";
+import EmptyMovementForm from "./pages/movimiento_vacio/form/EmptyMovementForm";
+import EmptyMovementDetail from "./pages/movimiento_vacio/detail/EmptyMovementDetail";
 import ClientReport from "./pages/reporte";
 import UsersList from "./pages/usuario/list";
 import UserDetail from "./pages/usuario/detail/UserDetail";
@@ -296,6 +301,27 @@ const router = createBrowserRouter([
       {
         path: 'purchase-payment/detail/:id',
         element: <PurchasePaymentDetail />,
+      },
+      {
+        path: 'empty-movement',
+        element: <EmptyMovementList />,
+      },
+      {
+        path: 'empty-movement/create',
+        element: <EmptyMovementTypeSelection />,
+      },
+      // Un formulario por tipo de movimiento (carga, devolución), con el tipo precargado.
+      ...Object.entries(EMPTY_MOVEMENT_TYPE_CONFIG).map(([type, { path }]) => ({
+        path: `empty-movement/create/${path}`,
+        element: <EmptyMovementForm defaultType={type} />,
+      })),
+      {
+        path: 'empty-movement/edit/:id',
+        element: <EmptyMovementForm />,
+      },
+      {
+        path: 'empty-movement/detail/:id',
+        element: <EmptyMovementDetail />,
       },
       {
         path: 'bank',
