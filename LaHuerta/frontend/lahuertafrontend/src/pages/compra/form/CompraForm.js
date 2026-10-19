@@ -11,7 +11,7 @@ import AlertDialog from '../../../components/DialogAlert';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BuyBlock from '../shared/BuyBlock';
 import BuyPageHeader from '../shared/BuyPageHeader';
-import BuyFormActions from '../shared/BuyFormActions';
+import FormActions from '../../../components/FormActions';
 import useBuyOptions from '../shared/useBuyOptions';
 import useExistingBuySuppliers from '../shared/useExistingBuySuppliers';
 import { createEmptyBlock, validateBlock, getExistingBuyWarning, buildBuyPayload } from '../shared/buyBlockUtils';
@@ -176,7 +176,7 @@ const CompraForm = () => {
         onCancel={() => setShowWarningsDialog(false)}
       />
 
-      <BuyFormActions
+      <FormActions
         onCancel={() => navigate('/buy')}
         onConfirm={handleSave}
         confirmLabel={saving ? 'Guardando…' : 'Confirmar'}

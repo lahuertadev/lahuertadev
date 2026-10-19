@@ -21,7 +21,7 @@ import AlertDialog from '../../../components/DialogAlert';
 import BuyBlock from '../shared/BuyBlock';
 import BuyPageHeader from '../shared/BuyPageHeader';
 import EmptiesNotice from '../shared/EmptiesNotice';
-import BuyFormActions from '../shared/BuyFormActions';
+import FormActions from '../../../components/FormActions';
 import useBuyOptions from '../shared/useBuyOptions';
 import useExistingBuySuppliers from '../shared/useExistingBuySuppliers';
 import {
@@ -419,7 +419,7 @@ const CompraBulkForm = () => {
         onCancel={() => setShowWarningsDialog(false)}
       />
 
-      <BuyFormActions
+      <FormActions
         onCancel={() => navigate('/buy')}
         cancelLabel={savedCount > 0 ? 'Salir' : 'Cancelar'}
         onConfirm={handleSave}

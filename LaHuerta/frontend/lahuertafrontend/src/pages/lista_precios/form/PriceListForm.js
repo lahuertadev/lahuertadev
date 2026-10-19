@@ -14,6 +14,7 @@ import Toast from '../../../components/Toast';
 import { useToast } from '../../../context/ToastContext';
 import FieldWarning from '../../../components/FieldWarning';
 import SpotlightButton from '../../../components/SpotlightButton';
+import FormActions from '../../../components/FormActions';
 import BackButton from '../../../components/BackButton';
 import {
   SALE_TYPE_BULK,
@@ -403,19 +404,12 @@ const PriceListForm = () => {
       </section>
 
       {/* Action Bar */}
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border-subtle">
-        <SpotlightButton variant="cancel" onClick={() => navigate('/price-list')} className="w-full sm:w-auto px-6 py-2.5 text-sm">
-          Cancelar
-        </SpotlightButton>
-        <SpotlightButton
-          variant="primary"
-          onClick={handleSave}
-          disabled={saving || !isFormComplete}
-          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
-        >
-          {saving ? 'Guardando...' : 'Registrar Lista'}
-        </SpotlightButton>
-      </div>
+      <FormActions
+        onCancel={() => navigate('/price-list')}
+        onConfirm={handleSave}
+        confirmLabel={saving ? 'Guardando...' : 'Registrar Lista'}
+        confirmDisabled={saving || !isFormComplete}
+      />
     </div>
   );
 };
