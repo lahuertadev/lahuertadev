@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from movimiento_vacio.service import EmptyMovementService
 from movimiento_vacio.interfaces import IEmptyMovementRepository
 from movimiento_vacio.exceptions import EmptyMovementNotFoundException
-from movimiento_vacio.enums import EmptyMovementType
+from movimiento_vacio.constants import EmptyMovementType
 from proveedor.interfaces import ISupplierRepository
 
 

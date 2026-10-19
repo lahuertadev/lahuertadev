@@ -9,7 +9,7 @@ from proveedor.models import Proveedor
 from tipo_contenedor.models import TipoContenedor
 from movimiento_vacio.models import MovimientoVacio
 from movimiento_vacio.views import EmptyMovementViewSet
-from movimiento_vacio.enums import EmptyMovementType
+from movimiento_vacio.constants import EmptyMovementType
 
 URL = '/empty-movement/'
 

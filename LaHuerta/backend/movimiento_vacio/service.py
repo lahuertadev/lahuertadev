@@ -2,7 +2,7 @@ from django.db import transaction
 from decimal import Decimal
 from .interfaces import IEmptyMovementRepository
 from .exceptions import EmptyMovementNotFoundException
-from .enums import EmptyMovementType
+from .constants import EmptyMovementType
 from proveedor.interfaces import ISupplierRepository
 
 

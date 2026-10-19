@@ -6,7 +6,7 @@ from proveedor.models import Proveedor
 from tipo_contenedor.models import TipoContenedor
 from movimiento_vacio.models import MovimientoVacio, MovimientoVacioContenedor
 from movimiento_vacio.repositories import EmptyMovementRepository
-from movimiento_vacio.enums import EmptyMovementType
+from movimiento_vacio.constants import EmptyMovementType
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
