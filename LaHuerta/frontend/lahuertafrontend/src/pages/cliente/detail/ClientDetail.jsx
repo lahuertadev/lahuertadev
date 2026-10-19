@@ -7,6 +7,8 @@ import { getActiveBadgeStyle } from '../../../constants/statusBadge';
 import { formatCuit } from '../../../utils/cuit';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { extractErrorMessage } from '../../../utils/errors';
+import { useToast } from '../../../context/ToastContext';
 import AlertDialog from '../../../components/DialogAlert';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
@@ -55,10 +57,18 @@ const ClientDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { showToast } = useToast();
 
   const handleDelete = async () => {
-    await axios.delete(`${clientUrl}${id}/`);
-    navigate('/client');
+    try {
+      await axios.delete(`${clientUrl}${id}/`);
+      showToast('El cliente se eliminó correctamente.');
+      navigate('/client');
+    } catch (err) {
+      console.error('Error eliminando cliente:', err);
+      setConfirmOpen(false);
+      showToast(extractErrorMessage(err, 'No se pudo eliminar el cliente.'), { variant: 'error' });
+    }
   };
 
   useEffect(() => {
@@ -129,7 +139,7 @@ const ClientDetail = () => {
       {/* 3. Facturación */}
       <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Facturación">
         <Field label="Condición IVA" value={client.condicion_IVA?.descripcion} />
-        <Field label="Lista de Precios" value={client.lista_precios?.nombre} />
+        <Field label="Lista de Precios" value={client.lista_precios ? client.lista_precios.nombre : 'Precio manual'} />
       </SectionCard>
 
       {/* 4. Cuenta Corriente */}

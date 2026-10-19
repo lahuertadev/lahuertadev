@@ -25,6 +25,8 @@ const mapClientData = (data) => {
 
 const data = {
   title: 'Clientes',
+  deleteSuccessMessage: (count) =>
+    count === 1 ? 'El cliente se eliminó correctamente.' : `Se eliminaron ${count} clientes correctamente.`,
   fetchUrl: {
     baseUrl: clientUrl,
     createUrl: '/client/create',

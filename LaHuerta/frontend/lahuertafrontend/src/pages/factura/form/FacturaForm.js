@@ -126,7 +126,8 @@ const FacturaForm = () => {
   const isDebitNote = DEBIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
   const isCreditNote = CREDIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
   const isNoteType = isDebitNote || isCreditNote;
-  const isManualPrice = MANUAL_PRICE_CODES.has(selectedBillType?.codigo_afip);
+  const clientWithoutPriceList = Boolean(selectedClient) && !selectedClient.lista_precios;
+  const isManualPrice = MANUAL_PRICE_CODES.has(selectedBillType?.codigo_afip) || clientWithoutPriceList;
   const isElectronic = selectedBillType?.codigo_afip != null;
 
   // ── Load options ───────────────────────────────────────────────────
@@ -214,7 +215,7 @@ const FacturaForm = () => {
 
   // ── Load client prices ─────────────────────────────────────────────
   useEffect(() => {
-    if (!selectedClient) {
+    if (!selectedClient?.lista_precios) {
       setClientPrices({});
       return;
     }
@@ -524,6 +525,8 @@ const FacturaForm = () => {
             value={selectedClient?.id || ''}
             onChange={(e) => {
               const client = clients.find((c) => String(c.id) === e.target.value) || null;
+              const priceModeChanged = Boolean(client?.lista_precios) !== Boolean(selectedClient?.lista_precios);
+              if (!isNoteType && priceModeChanged) setItems([{ ...EMPTY_ITEM }]);
               setSelectedClient(client);
             }}
             className={inputCls(Boolean(errors.client))}
@@ -555,6 +558,8 @@ const FacturaForm = () => {
             value={selectedBillType?.id || ''}
             onChange={(e) => {
               const billType = billTypes.find((bt) => String(bt.id) === e.target.value) || null;
+              const noteTypeChanged = MANUAL_PRICE_CODES.has(billType?.codigo_afip) !== isNoteType;
+              if (noteTypeChanged) setItems([{ ...EMPTY_ITEM }]);
               setSelectedBillType(billType);
               setAssociatedBill(null);
             }}
@@ -597,7 +602,7 @@ const FacturaForm = () => {
       </SectionCard>
 
       {/* 2. Prompt de carga — solo para ND/NC con factura asociada seleccionada */}
-      {isManualPrice && associatedBill && loadMode === null && (
+      {isNoteType && associatedBill && loadMode === null && (
         <div className="bg-surface-card border border-border-subtle rounded-xl shadow-sm p-6 flex flex-col gap-4">
           <p className="text-sm font-semibold text-on-surface">
             ¿Cómo querés cargar los productos?
@@ -656,7 +661,7 @@ const FacturaForm = () => {
       )}
 
       {/* 5. Productos */}
-      {selectedClient && (!isManualPrice || loadMode !== null) && (
+      {selectedClient && (!isNoteType || loadMode !== null) && (
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <span className="text-blue-lahuerta">
@@ -664,6 +669,11 @@ const FacturaForm = () => {
             </span>
             <h2 className="text-base font-semibold text-on-surface">Productos</h2>
           </div>
+          {clientWithoutPriceList && !isNoteType && (
+            <p className="px-1 text-xs text-on-surface-muted">
+              El cliente no tiene lista de precios: ingresá el precio de cada producto.
+            </p>
+          )}
 
           <div className="bg-surface-card rounded-xl shadow-sm border border-border-subtle overflow-hidden">
             {/* Toolbar */}

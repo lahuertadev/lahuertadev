@@ -7,6 +7,7 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { extractErrorMessage } from '../../../utils/errors';
 import { clientUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
+import { useToast } from '../../../context/ToastContext';
 import BasicDatePicker from '../../../components/DatePicker';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
@@ -16,6 +17,10 @@ import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import AmountInput from '../../../components/AmountInput';
+import Tooltip from '@mui/material/Tooltip';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import FormActions from '../../../components/FormActions';
+import BackButton from '../../../components/BackButton';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -83,6 +88,26 @@ const SectionCard = ({ icon, title, children, cols = 3 }) => (
 const FieldError = ({ error, touched }) =>
   touched && error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null;
 
+const HelpTooltip = ({ text }) => (
+  <Tooltip title={text} placement="top" arrow>
+    <HelpOutlineIcon sx={{ fontSize: 15, color: '#9ca3af', cursor: 'help', '&:hover': { color: '#4a7bc4' } }} />
+  </Tooltip>
+);
+
+const PRICE_LIST_HELP = (
+  <ul className="list-disc pl-4 space-y-1">
+    <li><strong>Sí:</strong> el precio se toma de la lista asignada.</li>
+    <li><strong>No:</strong> el precio se ingresa a mano al facturar.</li>
+  </ul>
+);
+
+const STATE_HELP = (
+  <ul className="list-disc pl-4 space-y-1">
+    <li><strong>Activo:</strong> el cliente sigue operando.</li>
+    <li><strong>Inactivo:</strong> conserva su historial, pero no aparece al asignar listas de precios.</li>
+  </ul>
+);
+
 // ── Componente principal ──────────────────────────────────────────────────────
 const ClientForm = () => {
   const [selectOptions, setSelectOptions] = useState({
@@ -102,6 +127,7 @@ const ClientForm = () => {
     district: null,
     address: '',
     ivaCondition: null,
+    usesPriceList: true,
     priceList: null,
     phone: '',
     salesStartDate: null,
@@ -112,6 +138,7 @@ const ClientForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [toast, setToast] = useState({ open: false, message: '' });
+  const { showToast } = useToast();
 
   const loadInitialOptions = async () => {
     const ivaCondition = await loadOptions(ConditionIvaTypeUrl, (data) =>
@@ -174,6 +201,7 @@ const ClientForm = () => {
         district,
         address: data.domicilio,
         ivaCondition: { name: data.condicion_IVA.descripcion, value: data.condicion_IVA.id },
+        usesPriceList: data.lista_precios != null,
         priceList: data.lista_precios ? { name: data.lista_precios.nombre, value: data.lista_precios.id } : null,
         phone: data.telefono,
         salesStartDate: data.fecha_inicio_ventas,
@@ -192,6 +220,10 @@ const ClientForm = () => {
     city: Yup.object().nullable().required('El municipio es obligatorio'),
     district: Yup.object().nullable().required('La localidad es obligatoria'),
     ivaCondition: Yup.object().nullable().required('La Condición de IVA es obligatoria'),
+    priceList: Yup.object().nullable().when('usesPriceList', {
+      is: true,
+      then: (schema) => schema.required('La lista de precios es obligatoria'),
+    }),
     salesStartDate: Yup.string().nullable().required('Fecha de inicio de ventas es obligatoria'),
   });
 
@@ -209,7 +241,7 @@ const ClientForm = () => {
     },
     domicilio: values.address,
     condicion_IVA: values.ivaCondition?.value,
-    lista_precios: values.priceList?.value || null,
+    lista_precios: values.usesPriceList ? values.priceList?.value : null,
     telefono: values.phone,
     fecha_inicio_ventas: values.salesStartDate,
     nombre_fantasia: values.fantasyName,
@@ -225,6 +257,7 @@ const ClientForm = () => {
       } else {
         await axios.post(clientUrl, mappedValues);
       }
+      showToast(id ? 'El cliente se actualizó correctamente.' : 'El cliente se creó correctamente.');
       navigate('/client');
     } catch (error) {
       console.error('Error enviando el formulario:', error);
@@ -252,22 +285,25 @@ const ClientForm = () => {
       enableReinitialize
       onSubmit={handleSubmit}
     >
-      {({ values, errors, touched, handleChange, setFieldValue, setFieldTouched, setValues, setTouched }) => (
-        <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      {({ values, errors, touched, handleChange, setFieldValue, setFieldTouched, setValues, setTouched, isSubmitting }) => (
+        <Form className="w-full max-w-7xl mx-auto space-y-8 pb-12">
           <Toast
             open={toast.open}
             message={toast.message}
             onClose={() => setToast({ open: false, message: '' })}
           />
 
-          {/* Breadcrumbs */}
-          <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-            <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
-            <span className="text-xs">›</span>
-            <span className="text-on-surface font-semibold">{id ? 'Editar Cliente' : 'Nuevo Cliente'}</span>
-          </nav>
+          {/* Breadcrumbs + Volver arriba a la derecha */}
+          <div className="flex items-center justify-between gap-4">
+            <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+              <span className="text-xs">›</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+              <span className="text-xs">›</span>
+              <span className="text-on-surface font-semibold">{id ? 'Editar Cliente' : 'Nuevo Cliente'}</span>
+            </nav>
+            <BackButton onClick={() => navigate('/client')} className="shrink-0 px-5 py-2.5 text-sm" />
+          </div>
 
           {/* 1. Datos de la Empresa */}
           <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
@@ -399,25 +435,52 @@ const ClientForm = () => {
               <FieldError error={errors.ivaCondition} touched={touched.ivaCondition} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className={labelCls}>Lista de Precios</label>
-              <select
-                value={values.priceList?.value || ''}
-                onChange={(e) => {
-                  const selected = selectOptions.priceLists.find(o => String(o.value) === e.target.value) || null;
-                  setFieldValue('priceList', selected);
-                }}
-                className={inputCls(false)}
-              >
-                <option value="">Seleccionar...</option>
-                {selectOptions.priceLists.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.name}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <label className={`${labelCls} !mb-0`}>¿Se le factura con lista de precios?</label>
+                <HelpTooltip text={PRICE_LIST_HELP} />
+              </div>
+              <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
+                <span className="text-sm font-medium text-on-surface-muted">{values.usesPriceList ? 'Sí' : 'No'}</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={values.usesPriceList}
+                    onChange={(e) => {
+                      setFieldValue('usesPriceList', e.target.checked);
+                      if (!e.target.checked) {
+                        setFieldValue('priceList', null);
+                        setFieldTouched('priceList', false, false);
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-lahuerta after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white" />
+                </label>
+              </div>
             </div>
+            {values.usesPriceList && (
+              <div className="flex flex-col gap-1">
+                <label className={labelCls}>Lista de Precios</label>
+                <select
+                  value={values.priceList?.value || ''}
+                  onChange={(e) => {
+                    const selected = selectOptions.priceLists.find(o => String(o.value) === e.target.value) || null;
+                    setFieldValue('priceList', selected);
+                  }}
+                  className={inputCls(touched.priceList && errors.priceList)}
+                >
+                  <option value="">Seleccionar...</option>
+                  {selectOptions.priceLists.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.name}</option>
+                  ))}
+                </select>
+                <FieldError error={errors.priceList} touched={touched.priceList} />
+              </div>
+            )}
           </SectionCard>
 
           {/* 4. Saldo de cuenta corriente */}
-          <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente" cols={2}>
+          <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente">
             <div className="flex flex-col gap-1">
               <label className={labelCls}>Saldo inicial</label>
               <AmountInput
@@ -465,7 +528,10 @@ const ClientForm = () => {
           {/* 6. Estado */}
           <SectionCard icon={<VerifiedUserIcon sx={{ fontSize: 20 }} />} title="Estado">
             <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
-              <span className="text-sm font-medium text-on-surface-muted">Cliente activo</span>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-on-surface-muted">
+                {values.state ? 'Cliente activo' : 'Cliente inactivo'}
+                <HelpTooltip text={STATE_HELP} />
+              </span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -478,22 +544,12 @@ const ClientForm = () => {
             </div>
           </SectionCard>
 
-          {/* Action Bar */}
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border-subtle">
-            <button
-              type="button"
-              onClick={() => navigate('/client')}
-              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all"
-            >
-              {id ? 'Guardar cambios' : 'Registrar Cliente'}
-            </button>
-          </div>
+          <FormActions
+            onCancel={() => navigate('/client')}
+            confirmType="submit"
+            confirmLabel={isSubmitting ? 'Guardando...' : id ? 'Guardar cambios' : 'Registrar Cliente'}
+            confirmDisabled={isSubmitting}
+          />
 
         </Form>
       )}
