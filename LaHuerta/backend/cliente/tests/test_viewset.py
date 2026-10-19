@@ -222,6 +222,26 @@ def test_create_campos_obligatorios_faltantes(factory):
     assert 'cuit' in response.data
 
 
+@pytest.mark.django_db
+def test_create_con_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    payload = _base_payload(db_setup, lista_precios=price_list.id)
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['lista_precios']['id'] == price_list.id
+
+
+@pytest.mark.django_db
+def test_create_sin_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, lista_precios=None)
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['lista_precios'] is None
+    assert Cliente.objects.get(id=response.data['id']).lista_precios is None
+
+
 # ── UPDATE ─────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
@@ -259,6 +279,37 @@ def test_update_not_found(factory, db_setup):
         pk=9999,
     )
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_update_quita_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    client.lista_precios = ListaPrecios.objects.create(descripcion='Lista General')
+    client.save()
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=None)
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['lista_precios'] is None
+    client.refresh_from_db()
+    assert client.lista_precios is None
+
+
+@pytest.mark.django_db
+def test_update_asigna_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=price_list.id)
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['lista_precios']['id'] == price_list.id
 
 
 # ── PARTIAL UPDATE ─────────────────────────────────────────────────────────────

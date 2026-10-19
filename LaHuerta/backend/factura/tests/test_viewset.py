@@ -282,6 +282,51 @@ def test_patch_ok(factory, viewset, mock_service, fk_data):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_patch_price_not_found_returns_400(factory, viewset, mock_service, fk_data):
+    cliente, bill_type, producto, tipo_venta = fk_data
+    mock_service.update_bill.side_effect = PriceNotFoundError("sin precio")
+
+    request = factory.patch("/bill/1/", {
+        "items": [{"producto": producto.id, "tipo_venta": tipo_venta.id, "cantidad": "5"}],
+    }, format="json")
+    response = viewset.partial_update(Request(request, parsers=[JSONParser()]), pk=1)
+    assert response.status_code == 400
+    assert response.data["detail"] == "sin precio"
+
+
+@pytest.mark.django_db
+def test_put_price_not_found_returns_400(factory, viewset, mock_service, fk_data):
+    cliente, bill_type, producto, tipo_venta = fk_data
+    mock_service.update_bill.side_effect = PriceNotFoundError("sin precio")
+
+    request = factory.put("/bill/1/", {
+        "cliente": cliente.id, "tipo_factura": bill_type.id,
+        "fecha": str(date.today()),
+        "items": [{"producto": producto.id, "tipo_venta": tipo_venta.id, "cantidad": "5"}],
+    }, format="json")
+    response = viewset.update(Request(request, parsers=[JSONParser()]), pk=1)
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_create_cliente_sin_lista_con_precio_manual_ok(factory, viewset, mock_service, fk_data):
+    cliente, bill_type, producto, tipo_venta = fk_data
+    cliente.lista_precios = None
+    cliente.save()
+    mock_service.create_bill.return_value = _make_bill_mock(cliente, bill_type)
+
+    request = factory.post("/bill/", {
+        "cliente": cliente.id, "tipo_factura": bill_type.id,
+        "fecha": str(date.today()),
+        "items": [{"producto": producto.id, "tipo_venta": tipo_venta.id, "cantidad": "5", "precio_aplicado": "1200.00"}],
+    }, format="json")
+    response = viewset.create(Request(request, parsers=[JSONParser()]))
+    assert response.status_code == 201
+    sent_items = mock_service.create_bill.call_args[0][0]['items']
+    assert sent_items[0]['precio_aplicado'] == Decimal("1200.00")
+
+
 # ── destroy ────────────────────────────────────────────────────────────────────
 
 def test_destroy_not_found(factory, viewset, mock_service):

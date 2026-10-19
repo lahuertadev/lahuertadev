@@ -22,7 +22,7 @@ class BillItemCreateSerializer(serializers.Serializer):
     '''
     DTO de escritura para crear ítems de una factura.
     Para facturas normales, precio_aplicado se resuelve en el service desde la lista del cliente.
-    Para ND/NC, precio_aplicado viene del frontend y se usa directamente.
+    Para ND/NC o clientes sin lista de precios, precio_aplicado viene del frontend y se usa directamente.
     iva_rate es la alícuota de IVA del ítem (default 10.5). Solo aplica para comprobantes electrónicos.
     '''
     producto = serializers.PrimaryKeyRelatedField(queryset=Producto.objects.all())
