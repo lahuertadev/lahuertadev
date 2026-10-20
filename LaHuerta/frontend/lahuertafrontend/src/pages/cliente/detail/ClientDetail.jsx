@@ -19,7 +19,7 @@ import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BackButton from '../../../components/BackButton';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -97,29 +97,27 @@ const ClientDetail = () => {
 
   if (error || !client) {
     return (
-      <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el cliente.</p>
-        <button
-          onClick={() => navigate('/client')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/client')} label="Volver al listado" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{client.razon_social}</span>
-      </nav>
+      {/* Breadcrumbs + Volver arriba a la derecha, separados del contenido con la misma línea que el pie */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+          <span className="text-xs">›</span>
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+          <span className="text-xs">›</span>
+          <span className="text-on-surface font-semibold">{client.razon_social}</span>
+        </nav>
+        <BackButton onClick={() => navigate('/client')} className="shrink-0 px-5 py-2.5 text-sm" />
+      </div>
 
       {/* 1. Datos de la Empresa */}
       <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
@@ -193,23 +191,9 @@ const ClientDetail = () => {
                 <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate('/client')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/client')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
             <button
               type="button"
               onClick={() => navigate(`/client/edit/${id}`)}

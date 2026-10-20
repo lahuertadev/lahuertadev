@@ -21,6 +21,7 @@ import Tooltip from '@mui/material/Tooltip';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import FormActions from '../../../components/FormActions';
 import BackButton from '../../../components/BackButton';
+import Switch from '../../../components/Switch';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -293,8 +294,8 @@ const ClientForm = () => {
             onClose={() => setToast({ open: false, message: '' })}
           />
 
-          {/* Breadcrumbs + Volver arriba a la derecha */}
-          <div className="flex items-center justify-between gap-4">
+          {/* Breadcrumbs + Volver arriba a la derecha, separados del contenido con la misma línea que el pie */}
+          <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
             <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
               <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
               <span className="text-xs">›</span>
@@ -441,21 +442,17 @@ const ClientForm = () => {
               </div>
               <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
                 <span className="text-sm font-medium text-on-surface-muted">{values.usesPriceList ? 'Sí' : 'No'}</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={values.usesPriceList}
-                    onChange={(e) => {
-                      setFieldValue('usesPriceList', e.target.checked);
-                      if (!e.target.checked) {
-                        setFieldValue('priceList', null);
-                        setFieldTouched('priceList', false, false);
-                      }
-                    }}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-lahuerta after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white" />
-                </label>
+                <Switch
+                  checked={values.usesPriceList}
+                  ariaLabel="¿Se le factura con lista de precios?"
+                  onChange={(checked) => {
+                    setFieldValue('usesPriceList', checked);
+                    if (!checked) {
+                      setFieldValue('priceList', null);
+                      setFieldTouched('priceList', false, false);
+                    }
+                  }}
+                />
               </div>
             </div>
             {values.usesPriceList && (
@@ -527,20 +524,21 @@ const ClientForm = () => {
 
           {/* 6. Estado */}
           <SectionCard icon={<VerifiedUserIcon sx={{ fontSize: 20 }} />} title="Estado">
-            <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
-              <span className="flex items-center gap-1.5 text-sm font-medium text-on-surface-muted">
-                {values.state ? 'Cliente activo' : 'Cliente inactivo'}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <label className={`${labelCls} !mb-0`}>Estado</label>
                 <HelpTooltip text={STATE_HELP} />
-              </span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
+              </div>
+              <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
+                <span className="text-sm font-medium text-on-surface-muted">
+                  {values.state ? 'Cliente activo' : 'Cliente inactivo'}
+                </span>
+                <Switch
                   checked={values.state}
-                  onChange={(e) => setFieldValue('state', e.target.checked)}
-                  className="sr-only peer"
+                  ariaLabel="Cliente activo"
+                  onChange={(checked) => setFieldValue('state', checked)}
                 />
-                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-lahuerta after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white" />
-              </label>
+              </div>
             </div>
           </SectionCard>
 
@@ -548,7 +546,7 @@ const ClientForm = () => {
             onCancel={() => navigate('/client')}
             confirmType="submit"
             confirmLabel={isSubmitting ? 'Guardando...' : id ? 'Guardar cambios' : 'Registrar Cliente'}
-            confirmDisabled={isSubmitting}
+            confirmDisabled={isSubmitting || !validationSchema.isValidSync(values)}
           />
 
         </Form>
