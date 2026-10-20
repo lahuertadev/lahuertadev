@@ -13,7 +13,9 @@ import './App.css';
 function App() {
   const { user } = useAuth();
   const theme = useDarkModeSync();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // En web el menú arranca abierto y mantiene el estado que elija el usuario al navegar; en mobile arranca cerrado.
+  // 599.95px = breakpoint 'sm' de MUI, el mismo que usa Header para decidir si es mobile.
+  const [drawerOpen, setDrawerOpen] = useState(() => !window.matchMedia('(max-width:599.95px)').matches);
 
   // Fuerza Django para que cree la cookie csrftoken apenas arranca la app.
   useEffect(() => {
