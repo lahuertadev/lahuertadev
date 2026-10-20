@@ -45,6 +45,9 @@ const buildTabsData = (facturaOptions, remitoOptions) => [
       canDelete: (row) => !row.cae,
       canEdit: (row) => !row.cae,
       title: 'Facturas',
+      subtitle: 'Facturas, notas de débito y notas de crédito emitidas en ARCA.',
+      deleteSuccessMessage: (count) =>
+        count === 1 ? 'El comprobante se eliminó correctamente.' : `Se eliminaron ${count} comprobantes correctamente.`,
       newLabelText: 'Nueva Factura',
       mapData: mapBills((bill) => bill.tipo_factura.codigo_afip !== null),
     },
@@ -71,6 +74,9 @@ const buildTabsData = (facturaOptions, remitoOptions) => [
       canDelete: (row) => !row.cae,
       canEdit: (row) => !row.cae,
       title: 'Remitos',
+      subtitle: 'Remitos de entrega, sin emisión en ARCA.',
+      deleteSuccessMessage: (count) =>
+        count === 1 ? 'El remito se eliminó correctamente.' : `Se eliminaron ${count} remitos correctamente.`,
       newLabelText: 'Nuevo Remito',
       mapData: mapBills((bill) => bill.tipo_factura.codigo_afip === null),
     },
