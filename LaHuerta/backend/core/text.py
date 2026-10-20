@@ -8,6 +8,8 @@ COMPANY_TYPES = {
     'sh': 'S.H.',
     'sca': 'S.C.A.',
     'scs': 'S.C.S.',
+    'saci': 'S.A.C.I.',
+    'sacif': 'S.A.C.I.F.',
 }
 
 

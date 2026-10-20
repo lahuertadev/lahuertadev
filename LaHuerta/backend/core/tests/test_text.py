@@ -36,3 +36,8 @@ def test_capitalize_words_company_types_with_dots_and_case():
 
 def test_capitalize_words_company_type_only_as_whole_word():
     assert capitalize_words('sabores de salta') == 'Sabores De Salta'
+
+
+def test_capitalize_words_company_types_saci():
+    assert capitalize_words('hospital privado modelo SACI') == 'Hospital Privado Modelo S.A.C.I.'
+    assert capitalize_words('molinos S.A.C.I.F.') == 'Molinos S.A.C.I.F.'
