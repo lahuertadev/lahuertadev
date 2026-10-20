@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from core.mixins import CapitalizedFieldsMixin
 from .models import Cliente
 from tipo_condicion_iva.models import TipoCondicionIva
 from localidad.models import Localidad
@@ -7,10 +8,11 @@ from localidad.serializers import DistrictResponseSerializer
 from tipo_condicion_iva.serializers import ConditionIvaTypeSerializer
 from lista_precios.serializers import PricesListSerializer
 
-class ClientCreateSerializer(serializers.ModelSerializer):
+class ClientCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
     '''
     DTO para la creación o modificación de clientes.
     '''
+    capitalized_fields = ('razon_social', 'nombre_fantasia', 'domicilio')
 
     cuit = serializers.RegexField(
         regex=r'^\d{11}$',
@@ -58,14 +60,15 @@ class ClientCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_razon_social(self, value):
-        if Cliente.objects.filter(razon_social=value).exists():
+        if Cliente.objects.filter(razon_social__iexact=value).exists():
             raise serializers.ValidationError('La razón social ya se encuentra registrada.')
         return value
 
-class ClientUpdateSerializer(serializers.ModelSerializer):
+class ClientUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
     '''
     DTO para la creación o modificación de clientes.
     '''
+    capitalized_fields = ('razon_social', 'nombre_fantasia', 'domicilio')
 
     cuit = serializers.RegexField(
         regex=r'^\d{11}$',
@@ -111,7 +114,7 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
         return cuit
 
     def validate_razon_social(self, razon_social):
-        if Cliente.objects.filter(razon_social=razon_social).exclude(id=self.instance.id).exists():
+        if Cliente.objects.filter(razon_social__iexact=razon_social).exclude(id=self.instance.id).exists():
             raise serializers.ValidationError('La razón social ya se encuentra registrada.')
         return razon_social
 

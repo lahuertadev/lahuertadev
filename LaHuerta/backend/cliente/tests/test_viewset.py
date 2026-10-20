@@ -35,7 +35,7 @@ def db_setup(db):
     condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
     cliente = Cliente.objects.create(
         cuit='20123456789',
-        razon_social='Cliente Test SA',
+        razon_social='Cliente Test S.A.',
         cuenta_corriente=Decimal('10000.00'),
         telefono='1122334455',
         localidad=localidad,
@@ -122,7 +122,7 @@ def test_list_returns_clients(factory, db_setup):
     response = vs.list(Request(factory.get('/client/'), parsers=[JSONParser()]))
     assert response.status_code == 200
     assert len(response.data) == 1
-    assert response.data[0]['razon_social'] == 'Cliente Test SA'
+    assert response.data[0]['razon_social'] == 'Cliente Test S.A.'
 
 
 @pytest.mark.django_db
@@ -177,7 +177,7 @@ def test_create_success(factory, db_setup):
     payload = _base_payload(db_setup)
     response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 201
-    assert response.data['razon_social'] == 'Nuevo Cliente SRL'
+    assert response.data['razon_social'] == 'Nuevo Cliente S.R.L.'
 
 
 @pytest.mark.django_db
@@ -209,7 +209,8 @@ def test_create_cuit_duplicado(factory, db_setup):
 @pytest.mark.django_db
 def test_create_razon_social_duplicada(factory, db_setup):
     vs, _ = _make_viewset()
-    payload = _base_payload(db_setup, razon_social='Cliente Test SA')
+    # Escrita distinto a la existente ('Cliente Test S.A.'): se normaliza y choca igual.
+    payload = _base_payload(db_setup, razon_social='cliente TEST sa')
     response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
 
@@ -240,6 +241,22 @@ def test_create_sin_lista_de_precios(factory, db_setup):
     assert response.status_code == 201
     assert response.data['lista_precios'] is None
     assert Cliente.objects.get(id=response.data['id']).lista_precios is None
+
+
+@pytest.mark.django_db
+def test_create_capitaliza_nombres_y_domicilio(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(
+        db_setup,
+        razon_social='comedor iGLESIA San Justo sa',
+        nombre_fantasia='el COMEDOR de  san justo',
+        domicilio='av. de mayo 301',
+    )
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['razon_social'] == 'Comedor Iglesia San Justo S.A.'
+    assert response.data['nombre_fantasia'] == 'El Comedor De San Justo'
+    assert response.data['domicilio'] == 'Av. De Mayo 301'
 
 
 # ── UPDATE ─────────────────────────────────────────────────────────────────────
@@ -310,6 +327,19 @@ def test_update_asigna_lista_de_precios(factory, db_setup):
     )
     assert response.status_code == 200
     assert response.data['lista_precios']['id'] == price_list.id
+
+
+@pytest.mark.django_db
+def test_update_capitaliza_razon_social(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social='verdulería LOS hermanos srl')
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['razon_social'] == 'Verdulería Los Hermanos S.R.L.'
 
 
 # ── PARTIAL UPDATE ─────────────────────────────────────────────────────────────

@@ -20,3 +20,19 @@ def test_capitalize_words_keeps_accents():
 def test_capitalize_words_empty_values():
     assert capitalize_words('') == ''
     assert capitalize_words(None) is None
+
+
+def test_capitalize_words_company_types():
+    assert capitalize_words('comedor iGLESIA San Justo sa') == 'Comedor Iglesia San Justo S.A.'
+    assert capitalize_words('kona srl') == 'Kona S.R.L.'
+    assert capitalize_words('empresa SAS') == 'Empresa S.A.S.'
+
+
+def test_capitalize_words_company_types_with_dots_and_case():
+    assert capitalize_words('clöe s.a') == 'Clöe S.A.'
+    assert capitalize_words('clöe S.A.') == 'Clöe S.A.'
+    assert capitalize_words('migogus S.r.l.') == 'Migogus S.R.L.'
+
+
+def test_capitalize_words_company_type_only_as_whole_word():
+    assert capitalize_words('sabores de salta') == 'Sabores De Salta'
