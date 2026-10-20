@@ -33,7 +33,8 @@ import { useCsrfToken } from '../../hooks/useCsrfToken';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeMode } from '../../context/ThemeModeContext';
 import { ROLE_CONFIG } from '../../constants/roles';
-import logoLaHuerta from '../../assets/logo-lahuerta-sin-fondo.png';
+// Logo sobre un círculo blanco para que se vea igual en tema claro y oscuro.
+import logoLaHuerta from '../../assets/logo-lahuerta-fondo-blanco.png';
 
 const drawerWidth = 240;
 
@@ -376,7 +377,19 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
             <MenuOpenIcon sx={theme.direction === 'rtl' ? undefined : { transform: 'scaleX(-1)' }} />
           </IconButton>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
-            <img src={logoLaHuerta} alt="La Huerta" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+            <img
+              src={logoLaHuerta}
+              alt="La Huerta"
+              // Borde y sombra suaves: en tema claro marcan el círculo blanco contra el fondo blanco.
+              style={{
+                height: 40,
+                width: 40,
+                objectFit: 'contain',
+                borderRadius: '50%',
+                border: '1px solid var(--color-border-subtle)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+              }}
+            />
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
               {title}
             </Typography>
