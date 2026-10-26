@@ -9,7 +9,7 @@ const Footer = ({ open }) => {
         open ? 'sm:ml-[240px] sm:w-[calc(100%-240px)]' : 'sm:ml-[65px] sm:w-[calc(100%-65px)]'
       }`}
     >
-      <p className="text-xs font-medium text-on-surface-muted whitespace-nowrap">La Huerta</p>
+      <p className="text-xs font-medium text-on-surface-muted whitespace-nowrap">La Huerta<sup className="ml-0.5 text-[0.6rem]">®</sup></p>
       <p className="hidden sm:block text-xs font-medium text-on-surface-muted text-center whitespace-nowrap">v{version}</p>
       <div className="flex items-center gap-2 px-3 py-1 bg-surface-card rounded-full border border-border-subtle justify-self-end whitespace-nowrap">
         <span className="w-2 h-2 shrink-0 rounded-full bg-emerald-500 animate-pulse"></span>
