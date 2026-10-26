@@ -10,7 +10,7 @@ Avisar a cada usuario, dentro de la aplicación, los cambios funcionales nuevos 
 - Marcar una novedad como vista ("Entendido") para un usuario.
 - Dirigir una novedad a un solo rol (ej. solo administración) o a todos.
 
-No incluye: la sección visual del Inicio ni la pantalla de historial (frontend), ni los tutoriales (DEV-138).
+No incluye: los tutoriales y el botón "Ver cómo se usa" (DEV-138).
 
 ## Qué se anuncia
 Solo cambios **funcionales** (ej. facturar a clientes sin lista de precios). Los ajustes visuales chicos que se entienden solos (textos cortados con "…", orden de botones en formularios) no se cargan como novedad.
@@ -33,9 +33,11 @@ Que un usuario **no tenga fila** en `novedad_usuario` para una novedad significa
 4. Guardar. Si la fecha de publicación es futura, la novedad aparece recién ese día.
 
 ### Ver y marcar una novedad
-1. El usuario entra al Inicio y ve sus novedades pendientes, las más recientes primero.
-2. Con **Entendido** la novedad se marca como vista para ese usuario y deja de aparecerle en el Inicio. A los demás usuarios les sigue apareciendo.
-3. Desde **Ver todas las novedades** consulta el historial completo, con cuáles vio y cuáles siguen vigentes.
+1. El usuario entra al Inicio y, entre los avisos de cumpleaños y las tarjetas de acceso, ve el carrusel **Novedades** con sus pendientes (máximo 3, las más recientes).
+2. El carrusel muestra una novedad a la vez y pasa solo a la siguiente cada 7 segundos. Se pausa con el mouse encima o al tocarlo en el celular, y se puede cambiar con las flechas, los puntos o deslizando.
+3. **Ir a …** lleva a la pantalla de la novedad.
+4. Con **Entendido** la novedad se marca como vista para ese usuario y sale del carrusel. A los demás usuarios les sigue apareciendo.
+5. Desde **Ver todas las novedades** consulta el historial completo (`/news`), con filtros Todas / No vistas / Vigentes / Vencidas. El historial es solo de consulta.
 
 ## Validaciones y reglas importantes
 - **Vigencia:** una novedad es vigente si `fecha_publicacion <= hoy <= vigente_hasta`. Se evalúa al consultar; no hay proceso programado que active o desactive novedades.
@@ -52,8 +54,11 @@ Que un usuario **no tenga fila** en `novedad_usuario` para una novedad significa
 
 ## Pantallas involucradas
 - Admin de Django → Novedades (carga).
-- Inicio y pantalla de historial de novedades (frontend, pendiente).
+- Inicio: carrusel de novedades (`components/NewsPanel`).
+- Todas las novedades: historial (`pages/novedad/NewsHistory.jsx`, ruta `/news`).
 
 ## Consideraciones
 - La primera novedad (DEV-135, facturar a clientes sin lista de precios) se carga con una migración de datos de la app `novedad`.
 - Hay que definir quién redacta y publica las novedades en cada deploy.
+- Si no hay novedades pendientes, el carrusel no aparece. Con una sola, no muestra flechas ni puntos.
+- Con la opción "reducir movimiento" del sistema operativo el carrusel no avanza solo.
