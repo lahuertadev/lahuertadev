@@ -41,3 +41,14 @@ def test_capitalize_words_company_type_only_as_whole_word():
 def test_capitalize_words_company_types_saci():
     assert capitalize_words('hospital privado modelo SACI') == 'Hospital Privado Modelo S.A.C.I.'
     assert capitalize_words('molinos S.A.C.I.F.') == 'Molinos S.A.C.I.F.'
+
+
+def test_capitalize_words_roman_numerals_uppercase():
+    assert capitalize_words('PEREZ RODRIGO Y LABRADOR ROSA MARIA SOCIEDAD CAP I SECC IV') == \
+        'Perez Rodrigo Y Labrador Rosa Maria Sociedad Cap I Secc IV'
+    assert capitalize_words('colegio juan xxiii') == 'Colegio Juan XXIII'
+    assert capitalize_words('etapa ii y iii') == 'Etapa II Y III'
+
+
+def test_capitalize_words_common_words_are_not_roman():
+    assert capitalize_words('mi almacén di mix') == 'Mi Almacén Di Mix'
