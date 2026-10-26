@@ -115,6 +115,7 @@ const CheckList = () => {
 
   const data = {
     title: 'Cheques',
+    subtitle: 'Cheques recibidos de clientes: estado, depósito y endoso.',
     fetchUrl: { baseUrl: checkUrl, detailUrl: '/check/detail' },
     columns: [...columns, actionsColumn],
     mapData: mapCheckData,

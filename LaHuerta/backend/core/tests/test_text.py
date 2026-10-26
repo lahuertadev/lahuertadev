@@ -20,3 +20,35 @@ def test_capitalize_words_keeps_accents():
 def test_capitalize_words_empty_values():
     assert capitalize_words('') == ''
     assert capitalize_words(None) is None
+
+
+def test_capitalize_words_company_types():
+    assert capitalize_words('comedor iGLESIA San Justo sa') == 'Comedor Iglesia San Justo S.A.'
+    assert capitalize_words('kona srl') == 'Kona S.R.L.'
+    assert capitalize_words('empresa SAS') == 'Empresa S.A.S.'
+
+
+def test_capitalize_words_company_types_with_dots_and_case():
+    assert capitalize_words('clöe s.a') == 'Clöe S.A.'
+    assert capitalize_words('clöe S.A.') == 'Clöe S.A.'
+    assert capitalize_words('migogus S.r.l.') == 'Migogus S.R.L.'
+
+
+def test_capitalize_words_company_type_only_as_whole_word():
+    assert capitalize_words('sabores de salta') == 'Sabores De Salta'
+
+
+def test_capitalize_words_company_types_saci():
+    assert capitalize_words('hospital privado modelo SACI') == 'Hospital Privado Modelo S.A.C.I.'
+    assert capitalize_words('molinos S.A.C.I.F.') == 'Molinos S.A.C.I.F.'
+
+
+def test_capitalize_words_roman_numerals_uppercase():
+    assert capitalize_words('PEREZ RODRIGO Y LABRADOR ROSA MARIA SOCIEDAD CAP I SECC IV') == \
+        'Perez Rodrigo Y Labrador Rosa Maria Sociedad Cap I Secc IV'
+    assert capitalize_words('colegio juan xxiii') == 'Colegio Juan XXIII'
+    assert capitalize_words('etapa ii y iii') == 'Etapa II Y III'
+
+
+def test_capitalize_words_common_words_are_not_roman():
+    assert capitalize_words('mi almacén di mix') == 'Mi Almacén Di Mix'

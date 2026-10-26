@@ -20,7 +20,7 @@ import BasicSelect from '../../../components/Select';
 import CustomInput from '../../../components/Input';
 import AmountInput from '../../../components/AmountInput';
 import CountUp from '../../../components/CountUp';
-import SpotlightButton from '../../../components/SpotlightButton';
+import FormActions from '../../../components/FormActions';
 
 const EMPTY_LINE = { tipo_contenedor: null, cantidad: '', precio_unitario: '' };
 
@@ -408,20 +408,12 @@ const EmptyMovementForm = ({ defaultType = EMPTY_MOVEMENT_TYPES.LOAD }) => {
         </div>
       </div>
 
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-center gap-3 sm:gap-4 mt-6 pt-4 border-t border-border-subtle">
-        <SpotlightButton variant="cancel" onClick={() => navigate('/empty-movement')} className="w-full sm:w-auto px-6 py-2.5 text-sm">
-          Cancelar
-        </SpotlightButton>
-
-        <SpotlightButton
-          variant="primary"
-          onClick={handleSave}
-          disabled={saving || !isFormComplete}
-          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
-        >
-          {saving ? 'Guardando…' : 'Confirmar'}
-        </SpotlightButton>
-      </div>
+      <FormActions
+        onCancel={() => navigate('/empty-movement')}
+        onConfirm={handleSave}
+        confirmLabel={saving ? 'Guardando…' : 'Confirmar'}
+        confirmDisabled={saving || !isFormComplete}
+      />
     </div>
   );
 };

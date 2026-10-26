@@ -10,9 +10,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import AccountCircle from '@mui/icons-material/AccountCircleOutlined';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
@@ -22,8 +20,6 @@ import PersonIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
-import PushPinIcon from '@mui/icons-material/PushPin';
-import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -37,7 +33,8 @@ import { useCsrfToken } from '../../hooks/useCsrfToken';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeMode } from '../../context/ThemeModeContext';
 import { ROLE_CONFIG } from '../../constants/roles';
-import logoLaHuerta from '../../assets/logo-lahuerta-sin-fondo.png';
+// Logo sobre un círculo blanco para que se vea igual en tema claro y oscuro.
+import logoLaHuerta from '../../assets/logo-lahuerta-fondo-blanco.png';
 
 const drawerWidth = 240;
 
@@ -157,7 +154,6 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
   const setOpen = onOpenChange;
-  const [pinned, setPinned] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const csrfToken = useCsrfToken();
   const navigate = useNavigate();
@@ -183,24 +179,13 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
 
   const handleDrawerClose = () => {
     setOpen(false);
-    setPinned(false);
   };
 
-  // Al anclar, el menú queda abierto y no se cierra al navegar entre pantallas.
-  // Al desanclar, vuelve al comportamiento normal (se abre/cierra manualmente).
-  const handleTogglePin = () => {
-    setPinned((prev) => {
-      const next = !prev;
-      if (next) setOpen(true);
-      return next;
-    });
-  };
-
+  // En web el menú mantiene el estado que eligió el usuario (abierto o cerrado) al navegar.
+  // En mobile se cierra siempre al elegir una opción: no tiene sentido dejarlo tapando la pantalla.
   const handleNavigate = (path) => {
     if (!path) return;
-    // En mobile el menú siempre se cierra al navegar, sin importar el ancla: no tiene
-    // sentido dejarlo fijo abierto tapando la pantalla en una vista chica.
-    if (isMobile || !pinned) handleDrawerClose();
+    if (isMobile) handleDrawerClose();
     navigate(path);
   };
 
@@ -252,18 +237,9 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
   const drawerMenuContent = (
     <>
       <DrawerHeader>
-        {/* Anclar el menú no aplica en mobile: ahí siempre se cierra al elegir una opción. */}
-        {!isMobile && (
-          <IconButton
-            onClick={handleTogglePin}
-            aria-label={pinned ? 'Desanclar menú' : 'Anclar menú'}
-            sx={{ color: pinned ? BLUE : 'var(--color-on-surface-muted)' }}
-          >
-            {pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
-          </IconButton>
-        )}
-        <IconButton onClick={handleDrawerClose} sx={{ color: 'var(--color-on-surface-muted)' }}>
-          {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        <IconButton onClick={handleDrawerClose} aria-label="Cerrar menú" sx={{ color: 'var(--color-on-surface-muted)' }}>
+          {/* Tres líneas con flecha "<": cerrar el menú */}
+          <MenuOpenIcon sx={theme.direction === 'rtl' ? { transform: 'scaleX(-1)' } : undefined} />
         </IconButton>
       </DrawerHeader>
       <Divider />
@@ -397,10 +373,23 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
               open && { display: 'none' },
             ]}
           >
-            <MenuIcon />
+            {/* Tres líneas con flecha ">": abrir el menú (mismo ícono que cerrar, espejado) */}
+            <MenuOpenIcon sx={theme.direction === 'rtl' ? undefined : { transform: 'scaleX(-1)' }} />
           </IconButton>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
-            <img src={logoLaHuerta} alt="La Huerta" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+            <img
+              src={logoLaHuerta}
+              alt="La Huerta"
+              // Borde y sombra suaves: en tema claro marcan el círculo blanco contra el fondo blanco.
+              style={{
+                height: 40,
+                width: 40,
+                objectFit: 'contain',
+                borderRadius: '50%',
+                border: '1px solid var(--color-border-subtle)',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+              }}
+            />
             <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
               {title}
             </Typography>

@@ -21,6 +21,7 @@ const mapClientPaymentData = (data) => {
 
 const buildData = (paymentTypeOptions) => ({
   title: 'Pagos de Clientes',
+  subtitle: 'Registrá los pagos de los clientes y su imputación a facturas.',
   fetchUrl: {
     baseUrl: clientPaymentUrl,
     createUrl: '/client-payment/create',

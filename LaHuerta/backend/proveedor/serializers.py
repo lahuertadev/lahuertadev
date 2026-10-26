@@ -1,14 +1,16 @@
 from rest_framework import serializers
+from core.mixins import CapitalizedFieldsMixin
 from .models import Proveedor
 from mercado.models import Mercado
 from mercado.serializers import MarketSerializer
 from .exceptions import SupplierNameAlreadyExistsException
 
 
-class SupplierCreateSerializer(serializers.ModelSerializer):
+class SupplierCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
     '''
     DTO para la creación de proveedores.
     '''
+    capitalized_fields = ('nombre', 'nombre_fantasia')
     mercado = serializers.PrimaryKeyRelatedField(queryset=Mercado.objects.all())
     nave = serializers.IntegerField(required=False, allow_null=True)
     cuenta_corriente = serializers.DecimalField(
@@ -27,15 +29,16 @@ class SupplierCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'puesto', 'nave', 'telefono', 'cuenta_corriente', 'nombre_fantasia', 'mercado']
 
     def validate_nombre(self, value):
-        if Proveedor.objects.filter(nombre=value).exists():
+        if Proveedor.objects.filter(nombre__iexact=value).exists():
             raise SupplierNameAlreadyExistsException('El nombre ya se encuentra registrado.')
         return value
 
 
-class SupplierUpdateSerializer(serializers.ModelSerializer):
+class SupplierUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
     '''
     DTO para la modificación de proveedores.
     '''
+    capitalized_fields = ('nombre', 'nombre_fantasia')
     mercado = serializers.PrimaryKeyRelatedField(queryset=Mercado.objects.all())
     nave = serializers.IntegerField(required=False, allow_null=True)
     cuenta_corriente = serializers.DecimalField(
@@ -55,7 +58,7 @@ class SupplierUpdateSerializer(serializers.ModelSerializer):
 
     def validate_nombre(self, value):
         instance = self.instance
-        if Proveedor.objects.filter(nombre=value).exclude(id=instance.id).exists():
+        if Proveedor.objects.filter(nombre__iexact=value).exclude(id=instance.id).exists():
             raise SupplierNameAlreadyExistsException('El nombre ya se encuentra registrado.')
         return value
 

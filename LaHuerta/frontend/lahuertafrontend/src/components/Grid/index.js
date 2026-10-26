@@ -35,6 +35,10 @@ import RoundedCheckbox from '../RoundedCheckbox';
 // En mobile el contenido no cuenta: un texto largo (ej. un nombre extenso) inflaría la
 // columna y generaría scroll horizontal. Ahí las columnas se reparten el ancho de la
 // pantalla y la celda corta el texto con "…".
+// En desktop el contenido cuenta hasta MAX_CONTENT_CHARS: más allá de eso la celda corta
+// con "…" (y muestra el texto completo en un tooltip) en vez de ensanchar la columna.
+const MAX_CONTENT_CHARS = 28;
+
 function calculateColumnWidths(rows, columns, isMobile = false) {
   const contentCharWidth = isMobile ? 7 : 9;
   const headerCharWidth = 9; // headers siempre en uppercase con letter-spacing
@@ -48,7 +52,7 @@ function calculateColumnWidths(rows, columns, isMobile = false) {
     const contentLengths = rows.length
       ? rows.map((row) => (row[column.field] != null ? String(row[column.field]).length : 0))
       : [0];
-    const maxContentLength = isMobile ? 0 : Math.max(...contentLengths);
+    const maxContentLength = isMobile ? 0 : Math.min(Math.max(...contentLengths), MAX_CONTENT_CHARS);
     const minWidthFloor = column.minWidth || (isMobile ? 60 : 80);
     const minWidth = Math.max(
       titleLength * headerCharWidth + padding,
@@ -63,6 +67,59 @@ function calculateColumnWidths(rows, columns, isMobile = false) {
     return { ...column, minWidth, flex: isMobile ? 1 : minWidth };
   });
 }
+
+// Celda de texto que corta con "…" y, solo si el texto quedó cortado, muestra el
+// contenido completo en un tooltip: al pasar el mouse en desktop, o manteniendo apretado
+// en mobile. En mobile el toque corto sigue abriendo el detalle; el toque largo que abrió
+// el tooltip no lo abre.
+function TruncatedCell({ value, align = 'left' }) {
+  const [isTruncated, setIsTruncated] = React.useState(false);
+  const isTouchingRef = React.useRef(false);
+  const openedByLongPressRef = React.useRef(false);
+  const text = value == null ? '' : String(value);
+
+  const checkTruncated = (e) => setIsTruncated(e.currentTarget.scrollWidth > e.currentTarget.clientWidth);
+
+  return (
+    <Tooltip
+      title={isTruncated ? text : ''}
+      placement="top"
+      arrow
+      enterTouchDelay={600}
+      onOpen={() => {
+        if (isTouchingRef.current) openedByLongPressRef.current = true;
+      }}
+    >
+      <span
+        onMouseEnter={checkTruncated}
+        onTouchStart={(e) => {
+          isTouchingRef.current = true;
+          openedByLongPressRef.current = false;
+          checkTruncated(e);
+        }}
+        onTouchEnd={() => {
+          isTouchingRef.current = false;
+        }}
+        onContextMenu={(e) => {
+          if (isTouchingRef.current) e.preventDefault();
+        }}
+        onClick={(e) => {
+          if (openedByLongPressRef.current) {
+            openedByLongPressRef.current = false;
+            e.stopPropagation();
+          }
+        }}
+        style={{ display: 'block', width: '100%', textAlign: align, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', WebkitTouchCallout: 'none' }}
+      >
+        {text}
+      </span>
+    </Tooltip>
+  );
+}
+
+// Las columnas sin renderCell propio usan TruncatedCell.
+const withTruncatedCells = (columns) =>
+  columns.map((column) => (column.renderCell ? column : { ...column, renderCell: (params) => <TruncatedCell value={params.formattedValue ?? params.value} align={column.align} /> }));
 
 const actionButtonSx = {
   display: 'inline-flex',
@@ -185,7 +242,7 @@ export default function DataGridDemo({
     showEdit ? editColumn : null,
     showDelete ? deleteColumn : null,
   ].filter(Boolean);
-  const adjustedColumns = calculateColumnWidths(rows, processedColumns, isMobile).concat(actionColumns);
+  const adjustedColumns = withTruncatedCells(calculateColumnWidths(rows, processedColumns, isMobile)).concat(actionColumns);
 
   return (
     <Box sx={{ width: '100%' }}>

@@ -247,15 +247,71 @@ def test_resolve_prices_sin_entrada_raises():
 def test_use_manual_prices_sin_precio_raises():
     service, *_ = _make_service()
     products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5')}]
-    with pytest.raises(PriceNotFoundError):
-        service._use_manual_prices(products)
+    with pytest.raises(PriceNotFoundError, match='Motivo de prueba'):
+        service._use_manual_prices(products, 'Motivo de prueba.')
 
 
 def test_use_manual_prices_con_precio_ok():
     service, *_ = _make_service()
     products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100')}]
-    result = service._use_manual_prices(products)
+    result = service._use_manual_prices(products, 'Motivo de prueba.')
     assert result == products
+
+
+# ── _get_products_with_price ───────────────────────────────────────────────────
+
+def test_get_products_with_price_cliente_con_lista_usa_lista():
+    service, _, __, ___, price_repo, ____ = _make_service()
+    client = _make_client()
+    entry = Mock()
+    entry.precio = Decimal('500')
+    price_repo.get_by_product_and_sale_type.return_value = entry
+    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('999')}]
+
+    result = service._get_products_with_price(client, _make_bill_type(codigo_afip=None), products)
+
+    assert result[0]['precio_aplicado'] == Decimal('500')
+    price_repo.get_by_product_and_sale_type.assert_called_once()
+
+
+def test_get_products_with_price_cliente_sin_lista_usa_precio_manual():
+    service, _, __, ___, price_repo, ____ = _make_service()
+    client = _make_client(lista_precios_id=None)
+    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('750')}]
+
+    result = service._get_products_with_price(client, _make_bill_type(codigo_afip=None), products)
+
+    assert result[0]['precio_aplicado'] == Decimal('750')
+    price_repo.get_by_product_and_sale_type.assert_not_called()
+
+
+def test_get_products_with_price_cliente_sin_lista_sin_precio_raises():
+    service, *_ = _make_service()
+    client = _make_client(lista_precios_id=None)
+    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2')}]
+
+    with pytest.raises(PriceNotFoundError, match='no tiene lista de precios'):
+        service._get_products_with_price(client, _make_bill_type(codigo_afip=None), products)
+
+
+def test_get_products_with_price_nota_credito_usa_precio_manual_aunque_tenga_lista():
+    service, _, __, ___, price_repo, ____ = _make_service()
+    client = _make_client()
+    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('300')}]
+
+    result = service._get_products_with_price(client, _make_bill_type(codigo_afip=3), products)
+
+    assert result[0]['precio_aplicado'] == Decimal('300')
+    price_repo.get_by_product_and_sale_type.assert_not_called()
+
+
+def test_get_products_with_price_nota_debito_sin_precio_raises():
+    service, *_ = _make_service()
+    client = _make_client()
+    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2')}]
+
+    with pytest.raises(PriceNotFoundError, match='Notas de Débito y Crédito'):
+        service._get_products_with_price(client, _make_bill_type(codigo_afip=2), products)
 
 
 # ── _validate_debit_note ───────────────────────────────────────────────────────
@@ -466,6 +522,70 @@ def test_create_bill_wsfe_error_propagates():
         service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
 
 
+def test_create_bill_cliente_sin_lista_usa_precio_manual():
+    service, bill_repo, bill_product_repo, client_repo, price_repo, arca = _make_service()
+    client = _make_client(lista_precios_id=None, cuenta_corriente=Decimal("0"))
+    bill_type = _make_bill_type(codigo_afip=None)
+    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('4'), 'precio_aplicado': Decimal('250')}]
+    bill_repo.create.return_value = _make_bill_mock()
+    bill_repo.get_last_receipt_number.return_value = 0
+
+    service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
+
+    price_repo.get_by_product_and_sale_type.assert_not_called()
+    _, kwargs = bill_repo.create.call_args
+    assert kwargs['subtotal'] == Decimal('1000')
+    assert kwargs['total'] == Decimal('1000')
+    saved_products = bill_product_repo.create_products.call_args[0][1]
+    assert saved_products[0]['precio_aplicado'] == Decimal('250')
+    assert client.cuenta_corriente == Decimal('1000')
+
+
+def test_create_bill_cliente_sin_lista_electronica_aplica_iva_sobre_precio_manual():
+    service, bill_repo, _, __, price_repo, arca = _make_service()
+    client = _make_client(lista_precios_id=None)
+    bill_type = _make_bill_type(codigo_afip=1)
+    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
+    bill_repo.create.return_value = _make_bill_mock()
+
+    service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
+
+    _, kwargs = bill_repo.create.call_args
+    assert kwargs['subtotal'] == Decimal('10000')
+    assert kwargs['total'] == Decimal('11050.00')
+    arca.emit_receipt.assert_called_once()
+
+
+def test_create_bill_cliente_sin_lista_sin_precio_raises():
+    service, bill_repo, bill_product_repo, client_repo, price_repo, arca = _make_service()
+    client = _make_client(lista_precios_id=None)
+    bill_type = _make_bill_type(codigo_afip=None)
+    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('4')}]
+
+    with pytest.raises(PriceNotFoundError):
+        service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
+
+    bill_repo.create.assert_not_called()
+    client_repo.update_balance.assert_not_called()
+
+
+def test_create_bill_cliente_con_lista_ignora_precio_enviado():
+    service, bill_repo, bill_product_repo, _, price_repo, __ = _make_service()
+    client = _make_client()
+    bill_type = _make_bill_type(codigo_afip=None)
+    entry = Mock()
+    entry.precio = Decimal('1000')
+    price_repo.get_by_product_and_sale_type.return_value = entry
+    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('1')}]
+    bill_repo.create.return_value = _make_bill_mock()
+    bill_repo.get_last_receipt_number.return_value = 0
+
+    service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
+
+    saved_products = bill_product_repo.create_products.call_args[0][1]
+    assert saved_products[0]['precio_aplicado'] == Decimal('1000')
+
+
 # ── update_bill ────────────────────────────────────────────────────────────────
 
 def test_update_bill_not_found():
@@ -519,6 +639,67 @@ def test_update_bill_con_items_recalcula_subtotal_y_total():
     assert bill.subtotal == Decimal("10000")
     assert bill.total == Decimal("10000")
     bill_product_repo.replace_products.assert_called_once()
+
+
+def test_update_bill_cliente_sin_lista_usa_precio_manual():
+    service, bill_repo, bill_product_repo, client_repo, price_repo, __ = _make_service()
+    client = _make_client(lista_precios_id=None, cuenta_corriente=Decimal("1000"))
+    bill = Mock()
+    bill.total = Decimal("1000")
+    bill.cae = None
+    bill.cliente = client
+    bill.tipo_factura = _make_bill_type(codigo_afip=None)
+    bill_repo.get_by_id.return_value = bill
+
+    service.update_bill(1, {
+        'items': [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('3'), 'precio_aplicado': Decimal('500')}]
+    })
+
+    price_repo.get_by_product_and_sale_type.assert_not_called()
+    assert bill.subtotal == Decimal("1500")
+    assert bill.total == Decimal("1500")
+    assert client.cuenta_corriente == Decimal("1500")
+    bill_product_repo.replace_products.assert_called_once()
+
+
+def test_update_bill_cliente_sin_lista_sin_precio_raises():
+    service, bill_repo, bill_product_repo, *_ = _make_service()
+    client = _make_client(lista_precios_id=None)
+    bill = Mock()
+    bill.total = Decimal("1000")
+    bill.cae = None
+    bill.cliente = client
+    bill.tipo_factura = _make_bill_type(codigo_afip=None)
+    bill_repo.get_by_id.return_value = bill
+
+    with pytest.raises(PriceNotFoundError):
+        service.update_bill(1, {
+            'items': [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('3')}]
+        })
+
+    bill_product_repo.replace_products.assert_not_called()
+
+
+def test_update_bill_cambio_a_cliente_sin_lista_usa_precio_manual():
+    service, bill_repo, _, __, price_repo, ___ = _make_service()
+    old_client = _make_client(cuenta_corriente=Decimal("1000"))
+    new_client = _make_client(lista_precios_id=None, cuenta_corriente=Decimal("0"))
+    bill = Mock()
+    bill.total = Decimal("1000")
+    bill.cae = None
+    bill.cliente = old_client
+    bill.tipo_factura = _make_bill_type(codigo_afip=None)
+    bill_repo.get_by_id.return_value = bill
+
+    service.update_bill(1, {
+        'cliente': new_client,
+        'items': [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('400')}]
+    })
+
+    price_repo.get_by_product_and_sale_type.assert_not_called()
+    assert bill.total == Decimal("800")
+    assert old_client.cuenta_corriente == Decimal("0")
+    assert new_client.cuenta_corriente == Decimal("800")
 
 
 # ── delete_bill ────────────────────────────────────────────────────────────────

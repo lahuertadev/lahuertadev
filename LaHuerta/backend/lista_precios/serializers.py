@@ -1,16 +1,14 @@
 from rest_framework import serializers
-from core.text import capitalize_words
+from core.mixins import CapitalizedFieldsMixin
 from .models import ListaPrecios
 
 
-class CapitalizedNameMixin:
+class CapitalizedNameMixin(CapitalizedFieldsMixin):
     '''
     El nombre de la lista se guarda siempre con cada palabra en mayúscula
     (ej. "lista mayorista" -> "Lista Mayorista"), tanto al crear como al editar.
     '''
-
-    def validate_nombre(self, value):
-        return capitalize_words(value)
+    capitalized_fields = ('nombre',)
 
 class PricesListSerializer(serializers.ModelSerializer):
     '''

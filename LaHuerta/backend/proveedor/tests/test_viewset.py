@@ -188,7 +188,7 @@ def test_retrieve_success(factory, viewset):
 def test_create_success(factory, viewset):
     mercado = Mercado.objects.create(descripcion='Belgrano')
     payload = {
-        'nombre': 'NuevoProv',
+        'nombre': 'nuevo PROV',
         'puesto': 5,
         'nave': 2,
         'telefono': '1234567',
@@ -201,7 +201,7 @@ def test_create_success(factory, viewset):
     response = viewset.create(drf_request)
 
     assert response.status_code == 201
-    assert response.data['nombre'] == 'NuevoProv'
+    assert response.data['nombre'] == 'Nuevo Prov'
     assert response.data['mercado']['id'] == mercado.id
 
 
@@ -260,7 +260,7 @@ def test_update_success(factory, viewset):
         mercado=_mock_mercado(mercado.id, 'Belgrano'),
     )
     payload = {
-        'nombre': 'NombreActualizado',
+        'nombre': 'nombre actualizado',
         'puesto': 3,
         'telefono': '9876543',
         'nombre_fantasia': 'NF Nuevo',
@@ -272,7 +272,7 @@ def test_update_success(factory, viewset):
     response = viewset.update(drf_request, pk=supplier.id)
 
     assert response.status_code == 200
-    assert response.data['nombre'] == 'NombreActualizado'
+    assert response.data['nombre'] == 'Nombre Actualizado'
 
 
 @pytest.mark.django_db
@@ -324,12 +324,12 @@ def test_partial_update_success(factory, viewset):
         mercado=_mock_mercado(mercado.id, 'Belgrano'),
     )
 
-    request = factory.patch(f'/supplier/{supplier.id}/', {'nombre': 'NombreParcial'}, format='json')
+    request = factory.patch(f'/supplier/{supplier.id}/', {'nombre': 'nombre parcial'}, format='json')
     drf_request = Request(request, parsers=[JSONParser()])
     response = viewset.partial_update(drf_request, pk=supplier.id)
 
     assert response.status_code == 200
-    assert response.data['nombre'] == 'NombreParcial'
+    assert response.data['nombre'] == 'Nombre Parcial'
 
 
 # ------------------------- DELETE --------------------------
@@ -353,3 +353,28 @@ def test_destroy_success(factory, viewset):
 
     assert response.status_code == 204
     assert viewset.supplier_repository.get_supplier_by_id(supplier.id) is None
+
+
+@pytest.mark.django_db
+def test_create_duplicate_nombre_escrito_distinto(factory, viewset):
+    mercado = Mercado.objects.create(descripcion='Belgrano')
+    Proveedor.objects.create(
+        nombre='Los Hermanos',
+        puesto=1,
+        telefono='1234567',
+        nombre_fantasia='',
+        cuenta_corriente=0,
+        mercado=mercado,
+    )
+
+    payload = {
+        'nombre': 'LOS hermanos',
+        'puesto': 2,
+        'telefono': '9999999',
+        'nombre_fantasia': 'NF',
+        'mercado': mercado.id,
+    }
+    request = factory.post('/supplier/', payload, format='json')
+    response = viewset.create(Request(request, parsers=[JSONParser()]))
+
+    assert response.status_code == 400

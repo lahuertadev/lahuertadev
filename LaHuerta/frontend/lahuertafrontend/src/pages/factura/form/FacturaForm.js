@@ -19,8 +19,14 @@ import {
 } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { formatCuit } from '../../../utils/cuit';
 import Toast from '../../../components/Toast';
+import { useToast } from '../../../context/ToastContext';
 import CustomInput from '../../../components/Input';
+import AmountInput from '../../../components/AmountInput';
+import CountUp from '../../../components/CountUp';
+import FormActions from '../../../components/FormActions';
+import BackButton from '../../../components/BackButton';
 
 const DEBIT_NOTE_CODES = new Set([2, 7, 12, 52]);
 const CREDIT_NOTE_CODES = new Set([3, 8, 13, 53]);
@@ -77,6 +83,7 @@ const autocompleteSx = (hasError) => ({
   '& .MuiOutlinedInput-root': {
     backgroundColor: 'var(--color-surface-low)',
     borderRadius: '0.5rem',
+    minHeight: '2.75rem', // mismo alto que los inputs y selects del formulario
     fontSize: '0.875rem',
     padding: '0 !important',
     '& fieldset': {
@@ -96,6 +103,25 @@ const autocompleteSx = (hasError) => ({
     color: 'var(--color-on-surface)',
   },
 });
+
+// Normaliza para buscar sin distinguir mayúsculas ni acentos.
+const normalizeText = (text = '') =>
+  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+// Filtra clientes por razón social, nombre de fantasía o CUIT (con o sin guiones).
+const filterClients = (options, { inputValue }) => {
+  const term = normalizeText(inputValue).trim();
+  if (!term) return options;
+
+  const isCuitSearch = /^[\d\s-]+$/.test(term);
+  const cuitDigits = term.replace(/\D/g, '');
+
+  return options.filter((client) =>
+    normalizeText(client.razon_social).includes(term) ||
+    normalizeText(client.nombre_fantasia || '').includes(term) ||
+    (isCuitSearch && client.cuit.includes(cuitDigits))
+  );
+};
 
 // ── Componente principal ───────────────────────────────────────────────────────
 const FacturaForm = () => {
@@ -122,11 +148,13 @@ const FacturaForm = () => {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState({ open: false, message: '' });
+  const { showToast } = useToast();
 
   const isDebitNote = DEBIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
   const isCreditNote = CREDIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
   const isNoteType = isDebitNote || isCreditNote;
-  const isManualPrice = MANUAL_PRICE_CODES.has(selectedBillType?.codigo_afip);
+  const clientWithoutPriceList = Boolean(selectedClient) && !selectedClient.lista_precios;
+  const isManualPrice = MANUAL_PRICE_CODES.has(selectedBillType?.codigo_afip) || clientWithoutPriceList;
   const isElectronic = selectedBillType?.codigo_afip != null;
 
   // ── Load options ───────────────────────────────────────────────────
@@ -214,7 +242,7 @@ const FacturaForm = () => {
 
   // ── Load client prices ─────────────────────────────────────────────
   useEffect(() => {
-    if (!selectedClient) {
+    if (!selectedClient?.lista_precios) {
       setClientPrices({});
       return;
     }
@@ -474,6 +502,8 @@ const FacturaForm = () => {
         response = await axios.post(billUrl, payload);
       }
 
+      const receipt = `${selectedBillType.label} N° ${response.data.numero_comprobante}`;
+      showToast(isEdit ? `${receipt} se actualizó correctamente.` : `${receipt} se generó correctamente.`);
       navigate(`/bill/detail/${response.data.id}`);
     } catch (error) {
       const message =
@@ -489,50 +519,72 @@ const FacturaForm = () => {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
       <Toast
         open={toast.open}
         message={toast.message}
         onClose={() => setToast({ open: false, message: '' })}
       />
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span
-          className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
-          onClick={() => navigate('/')}
-        >
-          Home
-        </span>
-        <span className="text-xs">›</span>
-        <span
-          className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
-          onClick={() => navigate('/bill')}
-        >
-          Facturas
-        </span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">
-          {isEdit ? `Editar #${String(id).padStart(8, '0')}` : 'Nueva'}
-        </span>
-      </nav>
+      {/* Breadcrumbs + Volver arriba a la derecha, separados del contenido con la misma línea que el pie */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+          <span
+            className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
+            onClick={() => navigate('/')}
+          >
+            Home
+          </span>
+          <span className="text-xs">›</span>
+          <span
+            className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
+            onClick={() => navigate('/bill')}
+          >
+            Facturas
+          </span>
+          <span className="text-xs">›</span>
+          <span className="text-on-surface font-semibold">
+            {isEdit ? `Editar #${String(id).padStart(8, '0')}` : 'Nueva'}
+          </span>
+        </nav>
+        <BackButton onClick={() => navigate('/bill')} className="shrink-0 px-5 py-2.5 text-sm" />
+      </div>
 
       {/* 1. Datos de la factura */}
-      <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de la Factura" cols={3}>
-        <div className="md:col-span-2 flex flex-col gap-1">
+      <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de la Factura" cols={2}>
+        <div className="flex flex-col gap-1">
           <label className={labelCls}>Cliente *</label>
-          <select
-            value={selectedClient?.id || ''}
-            onChange={(e) => {
-              const client = clients.find((c) => String(c.id) === e.target.value) || null;
+          <Autocomplete
+            options={clients}
+            value={selectedClient}
+            onChange={(_, client) => {
+              const priceModeChanged = Boolean(client?.lista_precios) !== Boolean(selectedClient?.lista_precios);
+              if (!isNoteType && priceModeChanged) setItems([{ ...EMPTY_ITEM }]);
               setSelectedClient(client);
             }}
-            className={inputCls(Boolean(errors.client))}
-          >
-            <option value="">Seleccionar cliente...</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.label}</option>
-            ))}
-          </select>
+            filterOptions={filterClients}
+            getOptionLabel={(client) => client.label}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            noOptionsText="No se encontraron clientes"
+            size="small"
+            renderOption={(props, client) => (
+              <li {...props} key={client.id}>
+                <div className="flex flex-col">
+                  <span className="text-sm">{client.razon_social}</span>
+                  <span className="text-xs opacity-70">
+                    {formatCuit(client.cuit)}{client.nombre_fantasia ? ` · ${client.nombre_fantasia}` : ''}
+                  </span>
+                </div>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder="Buscar por CUIT, razón social o nombre de fantasía..."
+                size="small"
+                sx={autocompleteSx(Boolean(errors.client))}
+              />
+            )}
+          />
           <FieldError message={errors.client} />
         </div>
 
@@ -549,22 +601,30 @@ const FacturaForm = () => {
         </div>
 
         {/* Tipo de facturación */}
-        <div className="md:col-span-2 flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <label className={labelCls}>Tipo de facturación *</label>
-          <select
-            value={selectedBillType?.id || ''}
-            onChange={(e) => {
-              const billType = billTypes.find((bt) => String(bt.id) === e.target.value) || null;
+          <Autocomplete
+            options={billTypes}
+            value={selectedBillType}
+            onChange={(_, billType) => {
+              const noteTypeChanged = MANUAL_PRICE_CODES.has(billType?.codigo_afip) !== isNoteType;
+              if (noteTypeChanged) setItems([{ ...EMPTY_ITEM }]);
               setSelectedBillType(billType);
               setAssociatedBill(null);
             }}
-            className={inputCls(Boolean(errors.billType))}
-          >
-            <option value="">Seleccionar...</option>
-            {billTypes.map((bt) => (
-              <option key={bt.id} value={bt.id}>{bt.label}</option>
-            ))}
-          </select>
+            getOptionLabel={(billType) => billType.label}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            noOptionsText="No se encontraron tipos de facturación"
+            size="small"
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder="Buscar tipo de facturación..."
+                size="small"
+                sx={autocompleteSx(Boolean(errors.billType))}
+              />
+            )}
+          />
           <FieldError message={errors.billType} />
         </div>
 
@@ -597,7 +657,7 @@ const FacturaForm = () => {
       </SectionCard>
 
       {/* 2. Prompt de carga — solo para ND/NC con factura asociada seleccionada */}
-      {isManualPrice && associatedBill && loadMode === null && (
+      {isNoteType && associatedBill && loadMode === null && (
         <div className="bg-surface-card border border-border-subtle rounded-xl shadow-sm p-6 flex flex-col gap-4">
           <p className="text-sm font-semibold text-on-surface">
             ¿Cómo querés cargar los productos?
@@ -656,7 +716,7 @@ const FacturaForm = () => {
       )}
 
       {/* 5. Productos */}
-      {selectedClient && (!isManualPrice || loadMode !== null) && (
+      {selectedClient && (!isNoteType || loadMode !== null) && (
         <section className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <span className="text-blue-lahuerta">
@@ -664,6 +724,11 @@ const FacturaForm = () => {
             </span>
             <h2 className="text-base font-semibold text-on-surface">Productos</h2>
           </div>
+          {clientWithoutPriceList && !isNoteType && (
+            <p className="px-1 text-xs text-on-surface-muted">
+              El cliente no tiene lista de precios: ingresá el precio de cada producto.
+            </p>
+          )}
 
           <div className="bg-surface-card rounded-xl shadow-sm border border-border-subtle overflow-hidden">
             {/* Toolbar */}
@@ -783,19 +848,11 @@ const FacturaForm = () => {
                       {/* Precio */}
                       <td className="px-2 py-2 align-middle border-b border-border-subtle">
                         {isManualPrice ? (
-                          <TextField
-                            type="number"
-                            size="small"
-                            fullWidth
-                            inputProps={{ min: 0, step: 0.01 }}
+                          <AmountInput
+                            name={`precio_${index}`}
                             value={item.precio_aplicado}
-                            onChange={(e) => updateItem(index, 'precio_aplicado', e.target.value)}
-                            sx={{
-                              ...autocompleteSx(Boolean(errors[`item_${index}_precio`])),
-                              '& input': { textAlign: 'right' },
-                              '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': { display: 'none' },
-                              '& input[type=number]': { MozAppearance: 'textfield' },
-                            }}
+                            onChange={(raw) => updateItem(index, 'precio_aplicado', raw)}
+                            hasError={Boolean(errors[`item_${index}_precio`])}
                           />
                         ) : (
                           <div className="px-1 text-right text-sm text-on-surface tabular-nums">
@@ -860,38 +917,24 @@ const FacturaForm = () => {
               <span className="text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider">
                 Total
               </span>
-              <span className="text-xl font-bold text-on-surface tabular-nums">
-                {formatCurrency(total)}
-              </span>
+              <CountUp value={total} className="text-xl font-bold text-on-surface" />
             </div>
           </div>
         </section>
       )}
 
-      {/* Action bar */}
-      <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
-        <button
-          type="button"
-          onClick={() => navigate('/bill')}
-          className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={
-            saving ||
-            !items.some((item) => {
-              const subtotal = calculateSubtotal(item);
-              return subtotal !== null && subtotal > 0;
-            })
-          }
-          className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Confirmar'}
-        </button>
-      </div>
+      <FormActions
+        onCancel={() => navigate('/bill')}
+        onConfirm={handleSave}
+        confirmLabel={saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Confirmar'}
+        confirmDisabled={
+          saving ||
+          !items.some((item) => {
+            const subtotal = calculateSubtotal(item);
+            return subtotal !== null && subtotal > 0;
+          })
+        }
+      />
     </div>
   );
 };
