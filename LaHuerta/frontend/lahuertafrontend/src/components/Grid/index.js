@@ -69,16 +69,47 @@ function calculateColumnWidths(rows, columns, isMobile = false) {
 }
 
 // Celda de texto que corta con "…" y, solo si el texto quedó cortado, muestra el
-// contenido completo en un tooltip al pasar el mouse.
+// contenido completo en un tooltip: al pasar el mouse en desktop, o manteniendo apretado
+// en mobile. En mobile el toque corto sigue abriendo el detalle; el toque largo que abrió
+// el tooltip no lo abre.
 function TruncatedCell({ value, align = 'left' }) {
   const [isTruncated, setIsTruncated] = React.useState(false);
+  const isTouchingRef = React.useRef(false);
+  const openedByLongPressRef = React.useRef(false);
   const text = value == null ? '' : String(value);
 
+  const checkTruncated = (e) => setIsTruncated(e.currentTarget.scrollWidth > e.currentTarget.clientWidth);
+
   return (
-    <Tooltip title={isTruncated ? text : ''} placement="top" arrow>
+    <Tooltip
+      title={isTruncated ? text : ''}
+      placement="top"
+      arrow
+      enterTouchDelay={600}
+      onOpen={() => {
+        if (isTouchingRef.current) openedByLongPressRef.current = true;
+      }}
+    >
       <span
-        onMouseEnter={(e) => setIsTruncated(e.currentTarget.scrollWidth > e.currentTarget.clientWidth)}
-        style={{ display: 'block', width: '100%', textAlign: align, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        onMouseEnter={checkTruncated}
+        onTouchStart={(e) => {
+          isTouchingRef.current = true;
+          openedByLongPressRef.current = false;
+          checkTruncated(e);
+        }}
+        onTouchEnd={() => {
+          isTouchingRef.current = false;
+        }}
+        onContextMenu={(e) => {
+          if (isTouchingRef.current) e.preventDefault();
+        }}
+        onClick={(e) => {
+          if (openedByLongPressRef.current) {
+            openedByLongPressRef.current = false;
+            e.stopPropagation();
+          }
+        }}
+        style={{ display: 'block', width: '100%', textAlign: align, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', WebkitTouchCallout: 'none' }}
       >
         {text}
       </span>
