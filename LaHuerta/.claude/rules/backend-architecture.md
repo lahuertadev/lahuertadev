@@ -26,6 +26,19 @@ Cuando aplique, seguir esta separación:
 - `urls.py`: rutas
 - `tests/`: tests por capa
 
+## Apps y modelos relacionados
+Una app representa una **funcionalidad**, no una tabla (convención de Django). Una app puede tener varios modelos en su `models.py`.
+
+- Una tabla intermedia o un modelo secundario va en la app de la funcionalidad a la que pertenece. Ej.: `NovedadUsuario` (tabla `novedad_usuario`) vive en la app `novedad`; `MovimientoVacioContenedor` en `movimiento_vacio`.
+- Crear una app aparte solo si el modelo tiene vida propia: endpoints, reglas de negocio o pantallas propias.
+- Las apps existentes separadas por tabla (`factura_producto`, `lista_precios_producto`, `compra_producto`, `cliente_dia_entrega`) se dejan como están: no moverlas, porque pasar un modelo de una app a otra con datos en producción es riesgoso y no aporta nada funcional. No tomarlas como patrón para casos nuevos.
+
+## Constantes
+Toda constante de una app (valores fijos, mapeos, listas de opciones, `TextChoices` compartidos) va en `constants.py` dentro de esa app, nunca suelta en `models.py`, `service.py`, `views.py` u otro archivo. Así queda un único lugar donde mirar los valores configurables. Ejemplos: `factura/constants.py`, `reporte/constants.py`, `novedad/constants.py`.
+
+- Los demás archivos de la app la importan desde ahí (`from .constants import DEFAULT_VALIDITY_DAYS`).
+- Excepción: las migraciones **no** importan constantes de la app. Una migración es una foto del momento en que se aplicó; si importara la constante y esta cambiara, la misma migración cargaría otros datos en una base nueva. En migraciones, el valor va escrito literal.
+
 ## Views
 - Deben ser delgadas.
 - Deben coordinar request, serializer, repository/service y response.

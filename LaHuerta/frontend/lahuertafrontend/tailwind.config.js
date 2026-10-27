@@ -29,6 +29,11 @@ module.exports = {
         'alert-accent':          'rgb(var(--color-alert-accent-rgb) / <alpha-value>)',
         'alert-surface':         'rgb(var(--color-alert-surface-rgb) / <alpha-value>)',
         'alert-border':          'rgb(var(--color-alert-border-rgb) / <alpha-value>)',
+        'news-accent':           'rgb(var(--color-news-accent-rgb) / <alpha-value>)',
+        'news-on-accent':        'rgb(var(--color-news-on-accent-rgb) / <alpha-value>)',
+        'news-surface':          'rgb(var(--color-news-surface-rgb) / <alpha-value>)',
+        'news-border':           'rgb(var(--color-news-border-rgb) / <alpha-value>)',
+        'access-card':           'rgb(var(--color-access-card-rgb) / <alpha-value>)',
       }
     },
   },

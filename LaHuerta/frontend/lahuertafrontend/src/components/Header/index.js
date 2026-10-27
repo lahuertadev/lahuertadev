@@ -71,8 +71,12 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
 })(({ theme }) => ({
   zIndex: theme.zIndex.drawer + 1,
-  backgroundColor: 'var(--color-surface-card)',
+  // Mismo color que el menú lateral y el footer: un solo marco alrededor del contenido.
+  backgroundColor: 'var(--color-surface-low)',
+  // En modo oscuro MUI suma una capa blanca semitransparente según la elevación, que lo aclaraba.
+  backgroundImage: 'none',
   color: 'var(--color-on-surface)',
+  borderBottom: '1px solid var(--color-border-subtle)',
   boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   transition: theme.transitions.create(['width', 'margin'], {
     easing: theme.transitions.easing.sharp,
@@ -377,22 +381,47 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
             <MenuOpenIcon sx={theme.direction === 'rtl' ? undefined : { transform: 'scaleX(-1)' }} />
           </IconButton>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
-            <img
-              src={logoLaHuerta}
-              alt="La Huerta"
-              // Borde y sombra suaves: en tema claro marcan el círculo blanco contra el fondo blanco.
-              style={{
-                height: 40,
-                width: 40,
-                objectFit: 'contain',
-                borderRadius: '50%',
-                border: '1px solid var(--color-border-subtle)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+            {/* Logo + título llevan al Inicio */}
+            <Box
+              component="button"
+              type="button"
+              aria-label="Ir al inicio"
+              onClick={() => handleNavigate('/')}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                minWidth: 0,
+                p: 0,
+                border: 0,
+                background: 'none',
+                color: 'inherit',
+                borderRadius: 2,
+                cursor: 'pointer',
+                '& img': { transition: 'transform 0.2s ease' },
+                '& .MuiTypography-root': { transition: 'color 0.2s ease' },
+                '&:hover img': { transform: 'scale(1.05)' },
+                '&:hover .MuiTypography-root': { color: 'var(--color-accent)' },
+                '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 },
               }}
-            />
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
-              {title}
-            </Typography>
+            >
+              <img
+                src={logoLaHuerta}
+                alt=""
+                // Borde y sombra suaves: en tema claro marcan el círculo blanco contra el fondo blanco.
+                style={{
+                  height: 40,
+                  width: 40,
+                  objectFit: 'contain',
+                  borderRadius: '50%',
+                  border: '1px solid var(--color-border-subtle)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+                }}
+              />
+              <Typography variant="h6" noWrap component="span" sx={{ fontWeight: 700 }}>
+                {title}
+              </Typography>
+            </Box>
           </Box>
           {/* Info de usuario + menú desplegable */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

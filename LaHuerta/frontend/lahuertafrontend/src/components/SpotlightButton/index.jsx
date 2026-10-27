@@ -22,6 +22,16 @@ const VARIANTS = {
     className: 'border border-blue-lahuerta bg-blue-lahuerta text-white hover:shadow-md hover:brightness-110',
     glow: 'rgb(255 255 255 / 0.28)',
   },
+  // Acción principal dentro del panel de Novedades (verde azulado, combina con el recuadro).
+  news: {
+    className: 'border border-news-accent bg-news-accent text-news-on-accent hover:shadow-md hover:brightness-110 dark:hover:brightness-90',
+    glow: 'var(--color-news-glow)',
+  },
+  // Acción secundaria dentro del panel de Novedades.
+  newsOutline: {
+    className: 'border border-news-border bg-surface-card text-news-accent hover:border-news-accent/60 hover:shadow-md',
+    glow: 'rgb(var(--color-news-accent-rgb) / 0.22)',
+  },
 };
 
 const DISABLED_CLASS = 'border border-border-subtle bg-surface-low text-on-surface-muted cursor-not-allowed opacity-70';
@@ -30,7 +40,7 @@ const DISABLED_CLASS = 'border border-border-subtle bg-surface-low text-on-surfa
  * SpotlightButton — botón con el efecto de luz que sigue al cursor (mismo que AccessCard).
  *
  * Props:
- *   variant   — 'outline' (default) | 'cancel' | 'danger' | 'primary'
+ *   variant   — 'outline' (default) | 'cancel' | 'danger' | 'primary' | 'news' | 'newsOutline'
  *   onClick, disabled, type, aria-*
  *   className — clases extra (tamaño / ancho)
  *   children  — contenido del botón

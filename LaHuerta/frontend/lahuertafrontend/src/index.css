@@ -3,6 +3,18 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Entrada palabra por palabra de las novedades (efecto Blur Text, NewsPanel). */
+@keyframes newsBlurIn {
+  from { opacity: 0; filter: blur(10px); transform: translateY(6px); }
+  to   { opacity: 1; filter: blur(0); transform: none; }
+}
+
+/* Barra de progreso del punto activo del carrusel de novedades (NewsPanel). */
+@keyframes newsProgress {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
 /* Tokens de design system: modo claro (default) y oscuro (clase .dark en <html>)
    Cada token va dos veces: como color completo (var(--color-x), para CSS/sx directo)
    y como tripleta RGB (--color-x-rgb, para que Tailwind pueda aplicarle opacidad con /NN). */
@@ -35,6 +47,19 @@
   --color-alert-surface-rgb:  250 245 255;
   --color-alert-border:       #e9d5ff;
   --color-alert-border-rgb:   233 213 255;
+  --color-news-accent:        #0f766e;
+  --color-news-accent-rgb:    15 118 110;
+  --color-news-on-accent:     #ffffff;
+  --color-news-on-accent-rgb: 255 255 255;
+  /* Brillo del hover del botón Entendido: claro sobre el verde oscuro */
+  --color-news-glow:          rgb(255 255 255 / 0.28);
+  --color-news-surface:       #e3f9f3;
+  --color-news-surface-rgb:   227 249 243;
+  --color-news-border:        #7cf0dc;
+  --color-news-border-rgb:    124 240 220;
+  /* Tarjetas de acceso del Inicio: levemente azuladas para despegarse del fondo */
+  --color-access-card:        #f4f8fd;
+  --color-access-card-rgb:    244 248 253;
 }
 
 .dark {
@@ -66,6 +91,18 @@
   --color-alert-surface-rgb:  39 31 51;
   --color-alert-border:       #4a2f6b;
   --color-alert-border-rgb:   74 47 107;
+  --color-news-accent:        #5eead4;
+  --color-news-accent-rgb:    94 234 212;
+  --color-news-on-accent:     #10201f;
+  --color-news-on-accent-rgb: 16 32 31;
+  /* En oscuro el botón es verde claro: el brillo blanco no se ve, se usa uno oscuro */
+  --color-news-glow:          rgb(16 32 31 / 0.22);
+  --color-news-surface:       #172a29;
+  --color-news-surface-rgb:   23 42 41;
+  --color-news-border:        #1f4d49;
+  --color-news-border-rgb:    31 77 73;
+  --color-access-card:        #22282c;
+  --color-access-card-rgb:    34 40 44;
 }
 
 body {
