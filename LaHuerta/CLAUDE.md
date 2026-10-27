@@ -36,6 +36,10 @@ Antes de implementar:
 - Toda funcionalidad nueva o cambio funcional relevante debe evaluar si requiere crear o actualizar documentación en `docs/funcionalidades/`.
 - Seguir la regla `functional-documentation.md`.
 
+## Novedades de la plataforma
+- Todo cambio funcional nuevo lleva su novedad para el Inicio, cargada con una migración de datos de la app `novedad`.
+- Seguir la regla `platform-news.md`.
+
 ## Ejecución de tests después de cada cambio
 Después de cualquier cambio de código, correr todos los tests del backend para verificar que no se rompió ninguna funcionalidad existente.
 
