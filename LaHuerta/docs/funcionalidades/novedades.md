@@ -4,7 +4,7 @@
 Avisar a cada usuario, dentro de la aplicación, los cambios funcionales nuevos de la plataforma y llevar registro de quién ya los vio. Ver DEV-137.
 
 ## Alcance
-- Cargar novedades desde el admin de Django (no hay pantalla de alta propia por ahora).
+- Cargar novedades con una migración de datos de la app `novedad`, junto con el cambio funcional que anuncian (también se pueden cargar o corregir desde el admin de Django).
 - Listar las novedades pendientes de un usuario para el Inicio: vigentes y que todavía no marcó como vistas.
 - Listar el historial completo del usuario: vistas y no vistas, vigentes y vencidas.
 - Marcar una novedad como vista ("Entendido") para un usuario.
@@ -27,10 +27,11 @@ Que un usuario **no tenga fila** en `novedad_usuario` para una novedad significa
 ## Flujo de uso
 
 ### Publicar una novedad
-1. Entrar al admin de Django → **Novedades** → **Agregar**.
-2. Completar título, descripción y fecha de publicación. Opcionalmente: pantalla (nombre que se muestra en "Ir a …" y ruta del frontend, ej. `/bill/`), clave de tutorial y rol destino.
-3. Dejar **vigente hasta** vacío para usar el default (publicación + 30 días), o cargar otra fecha (ej. 15 días para un ajuste chico, 45-60 para un cambio grande).
-4. Guardar. Si la fecha de publicación es futura, la novedad aparece recién ese día.
+La carga el desarrollador en la misma rama del cambio funcional, con una migración de datos (ver la regla `.claude/rules/platform-news.md`):
+1. Crear `backend/novedad/migrations/00XX_novedad_<tema>.py` con título, descripción, fecha de publicación, vigente hasta (publicación + 30 días por defecto) y, si aplica, pantalla y rol destino.
+2. La novedad llega a producción con el deploy, al aplicarse las migraciones. Si la fecha de publicación es futura, aparece recién ese día.
+
+El admin de Django (**Novedades**) queda para corregir o desactivar una novedad ya publicada. Si se carga desde ahí y **vigente hasta** queda vacío, se completa con publicación + 30 días.
 
 ### Ver y marcar una novedad
 1. El usuario entra al Inicio y, entre los avisos de cumpleaños y las tarjetas de acceso, ve el carrusel **Novedades** con sus pendientes (máximo 3, las más recientes).
@@ -58,7 +59,7 @@ Que un usuario **no tenga fila** en `novedad_usuario` para una novedad significa
 - Todas las novedades: historial (`pages/novedad/NewsHistory.jsx`, ruta `/news`).
 
 ## Consideraciones
-- La primera novedad (DEV-135, facturar a clientes sin lista de precios) se carga con una migración de datos de la app `novedad`.
-- Hay que definir quién redacta y publica las novedades en cada deploy.
+- Las novedades iniciales se cargan con la migración `0002_novedades_iniciales`: facturar a clientes sin lista de precios (DEV-135), vacíos por proveedor (DEV-123), listas de precios por producto (DEV-117) y carga masiva de compras (DEV-121), publicadas el 26/10/2026.
+- Cada cambio funcional lleva su novedad; los ajustes visuales chicos no.
 - Si no hay novedades pendientes, el carrusel no aparece. Con una sola, no muestra flechas ni puntos.
 - Con la opción "reducir movimiento" del sistema operativo el carrusel no avanza solo.
