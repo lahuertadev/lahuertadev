@@ -10,6 +10,7 @@ import { cardOptions } from '../constants/cardOptions';
 import { authCelebrationsUrl, newsUrl } from '../constants/urls';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useTutorial } from '../context/TutorialContext';
 import { extractErrorMessage } from '../utils/errors';
 
 const celebrationName = (celebration) =>
@@ -41,6 +42,7 @@ const celebrationMessage = (celebration, isSelf) => {
 const Home = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { canOfferTutorial, startTutorial } = useTutorial();
   const [celebrations, setCelebrations] = useState([]);
   const [news, setNews] = useState([]);
 
@@ -103,7 +105,13 @@ const Home = () => {
 
       <div className="mt-4 grid w-full content-start grid-flow-row-dense grid-cols-1 gap-2 sm:grid-cols-2 sm:auto-rows-[minmax(64px,auto)] lg:grid-cols-4 lg:auto-rows-[minmax(72px,auto)]">
         <AlertsPanel alerts={alerts} />
-        <NewsPanel news={news} onDismiss={handleDismissNews} historyUrl="/news" />
+        <NewsPanel
+          news={news}
+          onDismiss={handleDismissNews}
+          historyUrl="/news"
+          canStartTutorial={canOfferTutorial}
+          onStartTutorial={startTutorial}
+        />
         {cardOptions.map((card) => (
           <AccessCard
             key={card.url}
