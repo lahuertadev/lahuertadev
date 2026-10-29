@@ -29,6 +29,7 @@ const FormActions = ({
       onClick={onConfirm}
       disabled={confirmDisabled}
       className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
+      data-tour="form-confirm"
     >
       {confirmLabel}
     </SpotlightButton>

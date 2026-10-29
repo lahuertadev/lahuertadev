@@ -15,6 +15,7 @@ import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlin
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
+import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 
 const iconSx = { fontSize: 20 };
 
@@ -75,4 +76,6 @@ export const headerOptions = [
     path: '/user',
     roles: ['superuser'],
   },
+  // Guía de uso: `bottom` la ubica al pie del menú, separada de las secciones (DEV-138).
+  { text: 'Tutoriales', icon: <SchoolOutlinedIcon sx={iconSx} />, path: '/tutorials', bottom: true },
 ];

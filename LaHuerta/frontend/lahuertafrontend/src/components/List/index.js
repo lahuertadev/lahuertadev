@@ -204,6 +204,7 @@ const GenericList = ({ data, onAdd }) => {
                 variant="primary"
                 onClick={onAdd || (() => navigate(fetchUrl.createUrl))}
                 className="px-4 py-2 text-sm"
+                data-tour="list-add"
               >
                 {newLabelText || ''}
                 <AddCircleOutlineIcon fontSize="small" />

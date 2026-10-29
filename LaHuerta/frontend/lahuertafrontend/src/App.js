@@ -3,6 +3,9 @@ import axios from 'axios';
 import { ThemeProvider } from '@mui/material/styles';
 import MiniDrawer from './components/Header';
 import Footer from './components/Footer';
+import TutorialButton from './components/TutorialButton';
+import TutorialGuide from './components/TutorialGuide';
+import { TutorialProvider } from './context/TutorialContext';
 import { Outlet } from 'react-router-dom';
 import { headerOptions } from './constants/headerOptions';
 import { authCsrfUrl } from './constants/urls';
@@ -25,27 +28,33 @@ function App() {
   // Los items sin `roles` son visibles para cualquier usuario logueado.
   const visibleOptions = headerOptions.filter((opt) => !opt.roles || opt.roles.includes(user?.role));
 
+  // TutorialProvider va acá (y no en index.js) porque necesita el usuario logueado y el router;
+  // las pantallas de impresión quedan fuera del layout y no muestran el botón de tutoriales.
   return (
     <ThemeProvider theme={theme}>
-      <div className="App h-[100svh] flex flex-col overflow-hidden bg-surface">
-        <MiniDrawer
-          title='La Huerta'
-          menuOptions={visibleOptions}
-          open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-        />
-        {/* Mismo ancho de drawer (240/65) que Header y Footer aplican por su cuenta: Tailwind
-            necesita las clases arbitrarias completas y literales para compilarlas, así que no
-            se puede centralizar en una constante interpolada sin romper el JIT. */}
-        <main
-          className={`flex-grow overflow-y-auto px-4 sm:px-8 py-6 transition-[margin-left] duration-200 ease-in-out ${
-            drawerOpen ? 'sm:ml-[240px]' : 'sm:ml-[65px]'
-          }`}
-        >
-          <Outlet />
-        </main>
-        <Footer open={drawerOpen} />
-      </div>
+      <TutorialProvider>
+        <div className="App h-[100svh] flex flex-col overflow-hidden bg-surface">
+          <MiniDrawer
+            title='La Huerta'
+            menuOptions={visibleOptions}
+            open={drawerOpen}
+            onOpenChange={setDrawerOpen}
+          />
+          {/* Mismo ancho de drawer (240/65) que Header y Footer aplican por su cuenta: Tailwind
+              necesita las clases arbitrarias completas y literales para compilarlas, así que no
+              se puede centralizar en una constante interpolada sin romper el JIT. */}
+          <main
+            className={`flex-grow overflow-y-auto px-4 sm:px-8 py-6 transition-[margin-left] duration-200 ease-in-out ${
+              drawerOpen ? 'sm:ml-[240px]' : 'sm:ml-[65px]'
+            }`}
+          >
+            <Outlet />
+          </main>
+          <Footer open={drawerOpen} />
+          <TutorialButton />
+          <TutorialGuide />
+        </div>
+      </TutorialProvider>
     </ThemeProvider>
   );
 }

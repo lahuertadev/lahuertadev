@@ -170,6 +170,8 @@ export default function DataGridDemo({
               onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
               onClick={() => onDetail(params.row.id)}
+              data-tour="grid-detail"
+              data-tour-row={params.row.id}
             >
               <SearchIcon sx={{ fontSize: 18 }} />
             </button>
@@ -194,6 +196,8 @@ export default function DataGridDemo({
             onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
             onClick={() => onEdit(params.row.id)}
+            data-tour="grid-edit"
+            data-tour-row={params.row.id}
           >
             <EditIcon sx={{ fontSize: 18 }} />
           </button>
@@ -218,6 +222,8 @@ export default function DataGridDemo({
             onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
             onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
             onClick={() => onDelete(params.row.id)}
+            data-tour="grid-delete"
+            data-tour-row={params.row.id}
           >
             <DeleteIcon sx={{ fontSize: 18 }} />
           </button>
@@ -263,6 +269,8 @@ export default function DataGridDemo({
         disableColumnMenu
         autoHeight
         slots={{ baseCheckbox: RoundedCheckbox }}
+        // Para los tutoriales: cada fila ya trae su id en data-id (DataGrid).
+        slotProps={{ row: { 'data-tour': 'grid-row' } }}
         sx={{
           width: '100%',
           border: 'none',
