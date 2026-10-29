@@ -9,12 +9,14 @@ const BUY_TYPES = [
     description: 'Una compra a un proveedor para una fecha específica.',
     url: '/buy/create/simple',
     icon: 'singlePurchase',
+    tourId: 'buy-type-simple',
   },
   {
     title: 'Carga masiva',
     description: 'Varias compras a distintos proveedores para una misma fecha (ej. el día de Mercado Central). Se carga la fecha una sola vez y se guarda una compra por proveedor.',
     url: '/buy/create/bulk',
     icon: 'bulkPurchase',
+    tourId: 'buy-type-bulk',
   },
 ];
 
@@ -32,8 +34,10 @@ const BuyTypeSelection = () => {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {BUY_TYPES.map((buyType) => (
-          <AccessCard key={buyType.url} {...buyType} size="large" />
+        {BUY_TYPES.map(({ tourId, ...buyType }) => (
+          <div key={buyType.url} data-tour={tourId} className="flex">
+            <AccessCard {...buyType} size="large" />
+          </div>
         ))}
       </div>
     </div>
