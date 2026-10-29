@@ -53,6 +53,7 @@ urlpatterns = [
     path('api/', include('provincia.urls')),
     path('api/', include('municipio.urls')),
     path('api/', include('novedad.urls')),
+    path('api/', include('tutorial.urls')),
 ]
 
 if settings.DEBUG:
