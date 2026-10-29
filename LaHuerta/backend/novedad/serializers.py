@@ -5,6 +5,8 @@ from .models import Novedad
 
 class NewsResponseSerializer(serializers.ModelSerializer):
     seen = serializers.BooleanField(read_only=True)
+    # La clave del tutorial (no el id): el frontend identifica los tutoriales por clave.
+    tutorial_clave = serializers.SlugRelatedField(source='tutorial', slug_field='clave', read_only=True)
     is_current = serializers.SerializerMethodField()
 
     def get_is_current(self, obj):

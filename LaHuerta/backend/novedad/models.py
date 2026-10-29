@@ -16,7 +16,10 @@ class Novedad(models.Model):
     vigente_hasta = models.DateField(blank=True, help_text=f'Si se deja vacío, se completa con la fecha de publicación + {DEFAULT_VALIDITY_DAYS} días.')
     pantalla_nombre = models.CharField(max_length=60, blank=True, null=True, help_text='Ej. Facturación. Se muestra en el botón "Ir a ...".')
     pantalla_url = models.CharField(max_length=120, blank=True, null=True, help_text='Ruta del frontend, ej. /bill/')
-    tutorial_clave = models.CharField(max_length=60, blank=True, null=True)
+    tutorial = models.ForeignKey(
+        'tutorial.Tutorial', on_delete=models.SET_NULL, blank=True, null=True, related_name='novedades',
+        help_text='Tutorial guiado que se ofrece desde el aviso ("Ver tutorial").',
+    )
     rol_destino = models.CharField(
         max_length=20, choices=Usuario.ROLE_CHOICES, blank=True, null=True,
         help_text='Si se deja vacío, la ven todos los usuarios.',
