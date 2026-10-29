@@ -27,6 +27,8 @@ import AmountInput from '../../../components/AmountInput';
 import CountUp from '../../../components/CountUp';
 import FormActions from '../../../components/FormActions';
 import BackButton from '../../../components/BackButton';
+import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
+import { emitTutorialEvent } from '../../../utils/tutorial';
 
 const DEBIT_NOTE_CODES = new Set([2, 7, 12, 52]);
 const CREDIT_NOTE_CODES = new Set([3, 8, 13, 53]);
@@ -416,15 +418,19 @@ const FacturaForm = () => {
 
   const total = items.reduce((sum, item) => sum + (calculateItemTotal(item) ?? 0), 0);
 
+  // Línea con producto, cantidad, tipo de venta y (si es precio manual) precio.
+  const isItemComplete = (item) => {
+    const baseReady = Boolean(item.producto) && parseFloat(item.cantidad) > 0 && Boolean(item.tipo_venta);
+    const priceReady = isManualPrice ? parseFloat(item.precio_aplicado) > 0 : true;
+    return baseReady && priceReady;
+  };
+
   // ── Auto-add row ───────────────────────────────────────────────────
   useEffect(() => {
-    const lastItem = items[items.length - 1];
-    const baseReady = lastItem.producto && parseFloat(lastItem.cantidad) > 0 && lastItem.tipo_venta;
-    const priceReady = isManualPrice ? parseFloat(lastItem.precio_aplicado) > 0 : true;
-    if (baseReady && priceReady) {
+    if (isItemComplete(items[items.length - 1])) {
       setItems((previous) => [...previous, { ...EMPTY_ITEM }]);
     }
-  }, [items, isManualPrice]);
+  }, [items, isManualPrice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Validation ─────────────────────────────────────────────────────
   const validate = () => {
@@ -500,6 +506,7 @@ const FacturaForm = () => {
         response = await axios.put(`${billUrl}${id}/`, payload);
       } else {
         response = await axios.post(billUrl, payload);
+        emitTutorialEvent(TUTORIAL_EVENTS.billCreated, { id: response.data.id });
       }
 
       const receipt = `${selectedBillType.label} N° ${response.data.numero_comprobante}`;
@@ -551,7 +558,7 @@ const FacturaForm = () => {
 
       {/* 1. Datos de la factura */}
       <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de la Factura" cols={2}>
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1" data-tour="bill-client" data-tour-complete={Boolean(selectedClient)}>
           <label className={labelCls}>Cliente *</label>
           <Autocomplete
             options={clients}
@@ -589,7 +596,7 @@ const FacturaForm = () => {
         </div>
 
         {/* Fecha */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1" data-tour="bill-date">
           <label className={labelCls}>Fecha *</label>
           <input
             type="date"
@@ -601,7 +608,7 @@ const FacturaForm = () => {
         </div>
 
         {/* Tipo de facturación */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1" data-tour="bill-type" data-tour-complete={Boolean(selectedBillType)}>
           <label className={labelCls}>Tipo de facturación *</label>
           <Autocomplete
             options={billTypes}
@@ -730,7 +737,11 @@ const FacturaForm = () => {
             </p>
           )}
 
-          <div className="bg-surface-card rounded-xl shadow-sm border border-border-subtle overflow-hidden">
+          <div
+            className="bg-surface-card rounded-xl shadow-sm border border-border-subtle overflow-hidden"
+            data-tour="bill-items"
+            data-tour-complete={isItemComplete(items[0])}
+          >
             {/* Toolbar */}
             <div className="flex items-center justify-end px-4 py-3 border-b border-border-subtle">
               <button
