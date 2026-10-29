@@ -15,6 +15,8 @@ import FormActions from '../../../components/FormActions';
 import useBuyOptions from '../shared/useBuyOptions';
 import useExistingBuySuppliers from '../shared/useExistingBuySuppliers';
 import { createEmptyBlock, validateBlock, getExistingBuyWarning, buildBuyPayload } from '../shared/buyBlockUtils';
+import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
+import { emitTutorialEvent } from '../../../utils/tutorial';
 
 const CompraForm = () => {
   const navigate = useNavigate();
@@ -108,7 +110,8 @@ const CompraForm = () => {
       if (isEdit) {
         await axios.put(`${buyUrl}${id}/`, payload);
       } else {
-        await axios.post(buyUrl, payload);
+        const response = await axios.post(buyUrl, payload);
+        emitTutorialEvent(TUTORIAL_EVENTS.purchaseCreated, { id: response.data.id });
       }
 
       showToast(isEdit ? 'La compra se actualizó correctamente.' : 'La compra se cargó correctamente.');
@@ -146,7 +149,7 @@ const CompraForm = () => {
         errors={errors}
         existingBuyDate={hasExistingBuy ? fecha : null}
         dateField={
-          <>
+          <div data-tour="buy-date">
             <BasicDatePicker
               label="Fecha *"
               name="fecha"
@@ -155,7 +158,7 @@ const CompraForm = () => {
               hasError={Boolean(errors.fecha)}
             />
             {errors.fecha && <p className="text-red-500 text-xs mt-1">{errors.fecha}</p>}
-          </>
+          </div>
         }
       />
 

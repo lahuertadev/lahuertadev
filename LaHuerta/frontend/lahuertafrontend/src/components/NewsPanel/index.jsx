@@ -5,6 +5,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import SchoolIcon from '@mui/icons-material/SchoolOutlined';
 import SpotlightButton from '../SpotlightButton';
 import {
   NEWS_MAX_VISIBLE,
@@ -54,8 +55,11 @@ const BlurWords = ({ text, startDelay = 0, step }) => (
  *   news       — array de novedades
  *   onDismiss  — async (item) => void. "Entendido": marca la novedad como vista.
  *   historyUrl — ruta de "Ver todas las novedades"
+ *   canStartTutorial — (opcional) (key) => bool. Si la novedad tiene `tutorial_clave` y devuelve
+ *                      true (el tutorial existe para su rol y no lo completó), se ofrece "Ver tutorial".
+ *   onStartTutorial  — (opcional) (key) => void. Empieza el tutorial guiado.
  */
-export default function NewsPanel({ news = [], onDismiss, historyUrl }) {
+export default function NewsPanel({ news = [], onDismiss, historyUrl, canStartTutorial, onStartTutorial }) {
   const navigate = useNavigate();
   const [slide, setSlide] = useState(0);
   const [leaving, setLeaving] = useState(false);
@@ -112,6 +116,7 @@ export default function NewsPanel({ news = [], onDismiss, historyUrl }) {
   };
 
   const item = visibleNews[current];
+  const offersTutorial = Boolean(item.tutorial_clave && onStartTutorial && canStartTutorial?.(item.tutorial_clave));
   const titleWords = item.titulo.split(' ').length;
 
   const historyLink = (
@@ -174,11 +179,13 @@ export default function NewsPanel({ news = [], onDismiss, historyUrl }) {
         {/* Título y descripción juntos (como las tarjetas). Mobile: botones debajo a lo ancho,
             Entendido arriba (como FormActions). Desktop: botones a la derecha, al pie del texto. */}
         <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          {/* Alto fijo: título en una línea y descripción siempre en dos (line-clamp-2 + h-10 =
+              2 × 1.25rem), así el panel no cambia de tamaño entre una novedad y otra. */}
           <div className="flex min-w-0 flex-col gap-0.5">
-            <p className="text-sm font-bold text-on-surface">
+            <p className="line-clamp-1 text-sm font-bold text-on-surface" title={item.titulo}>
               <BlurWords text={item.titulo} step={TITLE_WORD_STEP_MS} />
             </p>
-            <p className="line-clamp-2 text-sm text-on-surface-muted" title={item.descripcion}>
+            <p className="line-clamp-2 h-10 text-sm text-on-surface-muted" title={item.descripcion}>
               <BlurWords
                 text={item.descripcion}
                 startDelay={DESCRIPTION_START_GAP_MS + titleWords * TITLE_WORD_STEP_MS}
@@ -187,24 +194,39 @@ export default function NewsPanel({ news = [], onDismiss, historyUrl }) {
             </p>
           </div>
 
-          <div className="flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:items-center">
-            {item.pantalla_url && (
-              <SpotlightButton
-                variant="newsOutline"
-                onClick={() => navigate(item.pantalla_url)}
-                className="w-full px-3 py-1.5 text-sm sm:w-auto"
-              >
-                Ir a {item.pantalla_nombre || 'la pantalla'}
-              </SpotlightButton>
-            )}
+          {/* Mobile: Entendido arriba a lo ancho y debajo, en una fila, "Ir a…" y "Ver tutorial";
+              el alto de las dos filas queda reservado aunque no haya botones secundarios.
+              Desktop: todos en una fila, Entendido al final. */}
+          <div className="flex min-h-[4.5rem] shrink-0 flex-col gap-2 sm:min-h-0 sm:flex-row sm:items-center">
             <SpotlightButton
               variant="news"
               disabled={leaving}
               onClick={() => handleDismiss(item)}
-              className="w-full px-4 py-1.5 text-sm sm:w-auto"
+              className="w-full px-4 py-1.5 text-sm sm:order-last sm:w-auto"
             >
               Entendido
             </SpotlightButton>
+            <div className="flex gap-2 sm:contents">
+              {item.pantalla_url && (
+                <SpotlightButton
+                  variant="newsOutline"
+                  onClick={() => navigate(item.pantalla_url)}
+                  className="min-w-0 flex-1 px-3 py-1.5 text-sm sm:flex-none"
+                >
+                  <span className="truncate">Ir a {item.pantalla_nombre || 'la pantalla'}</span>
+                </SpotlightButton>
+              )}
+              {offersTutorial && (
+                <SpotlightButton
+                  variant="newsOutline"
+                  onClick={() => onStartTutorial(item.tutorial_clave)}
+                  className="min-w-0 flex-1 px-3 py-1.5 text-sm sm:flex-none"
+                >
+                  <SchoolIcon sx={{ fontSize: 16 }} />
+                  Ver tutorial
+                </SpotlightButton>
+              )}
+            </div>
           </div>
         </div>
       </div>

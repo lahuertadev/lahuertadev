@@ -10,6 +10,7 @@ from rest_framework.exceptions import ValidationError
 
 from autenticacion.models import Usuario
 from novedad.models import Novedad
+from tutorial.models import Tutorial
 from novedad.views import NewsViewSet
 from novedad.interfaces import INewsRepository
 
@@ -89,6 +90,16 @@ def test_list_response_structure(factory, viewset, user):
     assert item['titulo'] == 'Facturar sin lista'
     assert item['seen'] is True
     assert item['is_current'] is True
+
+
+def test_list_exposes_tutorial_key(factory, viewset, user):
+    news = _make_news(1)
+    news.tutorial = Tutorial(id=2, clave='bills', titulo='Facturación', descripcion='', seccion='Clientes')
+    viewset.repository.items = [news, _make_news(2)]
+
+    response = viewset.list(_request(factory, user))
+
+    assert [item['tutorial_clave'] for item in response.data] == ['bills', None]
 
 
 def test_list_expired_is_not_current(factory, viewset, user):

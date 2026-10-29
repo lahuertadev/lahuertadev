@@ -12,6 +12,7 @@ import { ToastProvider } from "./context/ToastContext";
 import App from "./App";
 import Home from './pages/home';
 import NewsHistory from './pages/novedad/NewsHistory';
+import TutorialList from './pages/tutorial/TutorialList';
 import ExpenseForm from "./pages/gasto/form/ExpenseForm";
 import ExpenseDetail from "./pages/gasto/detail/ExpenseDetail";
 import ExpenseList from "./pages/gasto/list";
@@ -387,6 +388,10 @@ const router = createBrowserRouter([
       {
         path: '/news',
         element: <NewsHistory />,
+      },
+      {
+        path: '/tutorials',
+        element: <TutorialList />,
       },
     ],
   }

@@ -10,7 +10,7 @@ Avisar a cada usuario, dentro de la aplicación, los cambios funcionales nuevos 
 - Marcar una novedad como vista ("Entendido") para un usuario.
 - Dirigir una novedad a un solo rol (ej. solo administración) o a todos.
 
-No incluye: los tutoriales y el botón "Ver cómo se usa" (DEV-138).
+- Ofrecer el tutorial guiado de la novedad ("Ver tutorial"), si tiene uno (ver `tutoriales.md`, DEV-138).
 
 ## Qué se anuncia
 Solo cambios **funcionales** (ej. facturar a clientes sin lista de precios). Los ajustes visuales chicos que se entienden solos (textos cortados con "…", orden de botones en formularios) no se cargan como novedad.
@@ -19,7 +19,7 @@ Solo cambios **funcionales** (ej. facturar a clientes sin lista de precios). Los
 
 | Tabla | Qué guarda |
 |---|---|
-| `novedad` | Una fila por novedad: título, descripción, fecha de publicación, vigente hasta, pantalla (nombre y ruta) opcional, clave de tutorial opcional, rol destino opcional y si está activa. |
+| `novedad` | Una fila por novedad: título, descripción, fecha de publicación, vigente hasta, pantalla (nombre y ruta) opcional, tutorial guiado opcional (FK a `tutorial`, la API lo devuelve como `tutorial_clave`), rol destino opcional y si está activa. |
 | `novedad_usuario` | Una fila por cada usuario que marcó una novedad como vista, con la fecha y hora (`vista_en`). Un usuario no puede tener dos filas para la misma novedad. |
 
 Que un usuario **no tenga fila** en `novedad_usuario` para una novedad significa que todavía no la vio.
@@ -37,6 +37,7 @@ El admin de Django (**Novedades**) queda para corregir o desactivar una novedad 
 1. El usuario entra al Inicio y, entre los avisos de cumpleaños y las tarjetas de acceso, ve el carrusel **Novedades** con sus pendientes (máximo 3, las más recientes).
 2. El carrusel muestra una novedad a la vez y pasa solo a la siguiente cada 7 segundos. Se pausa con el mouse encima o al tocarlo en el celular, y se puede cambiar con las flechas, los puntos o deslizando.
 3. **Ir a …** lleva a la pantalla de la novedad.
+   Si la novedad tiene tutorial y el usuario todavía no lo completó, aparece **Ver tutorial**, que lo empieza (ver `tutoriales.md`).
 4. Con **Entendido** la novedad se marca como vista para ese usuario y sale del carrusel. A los demás usuarios les sigue apareciendo.
 5. Desde **Ver todas las novedades** consulta el historial completo (`/news`), con filtros Todas / No vistas / Vigentes / Vencidas. El historial es solo de consulta.
 
@@ -59,6 +60,7 @@ El admin de Django (**Novedades**) queda para corregir o desactivar una novedad 
 - Todas las novedades: historial (`pages/novedad/NewsHistory.jsx`, ruta `/news`).
 
 ## Consideraciones
+- La migración `0003_novedad_tutorial` cambia la clave de tutorial en texto por la relación con la tabla `tutorial` (DEV-138). La `0004_novedad_tutoriales` publica la novedad de los tutoriales guiados (con "Ir a Tutoriales") y le agrega a "Facturar a clientes sin lista de precios" el tutorial de Facturación (`bills`).
 - Las novedades iniciales se cargan con la migración `0002_novedades_iniciales`: facturar a clientes sin lista de precios (DEV-135), vacíos por proveedor (DEV-123), listas de precios por producto (DEV-117) y carga masiva de compras (DEV-121), publicadas el 26/10/2026.
 - Cada cambio funcional lleva su novedad; los ajustes visuales chicos no.
 - Si no hay novedades pendientes, el carrusel no aparece. Con una sola, no muestra flechas ni puntos.

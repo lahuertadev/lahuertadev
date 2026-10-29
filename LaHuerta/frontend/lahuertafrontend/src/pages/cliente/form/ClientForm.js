@@ -22,6 +22,8 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import FormActions from '../../../components/FormActions';
 import BackButton from '../../../components/BackButton';
 import Switch from '../../../components/Switch';
+import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
+import { emitTutorialEvent } from '../../../utils/tutorial';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -256,7 +258,8 @@ const ClientForm = () => {
       if (id) {
         await axios.put(`${clientUrl}${id}/`, mappedValues);
       } else {
-        await axios.post(clientUrl, mappedValues);
+        const response = await axios.post(clientUrl, mappedValues);
+        emitTutorialEvent(TUTORIAL_EVENTS.clientCreated, { id: response.data.id });
       }
       showToast(id ? 'El cliente se actualizó correctamente.' : 'El cliente se creó correctamente.');
       navigate('/client');
@@ -308,7 +311,7 @@ const ClientForm = () => {
 
           {/* 1. Datos de la Empresa */}
           <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-cuit">
               <label className={labelCls}>CUIT</label>
               <input
                 name="cuit"
@@ -322,7 +325,7 @@ const ClientForm = () => {
               />
               <FieldError error={errors.cuit} touched={touched.cuit} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-business-name">
               <label className={labelCls}>Razón Social</label>
               <input
                 name="businessName"
@@ -347,7 +350,7 @@ const ClientForm = () => {
 
           {/* 2. Datos de Dirección */}
           <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Datos de Dirección">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-province">
               <label className={labelCls}>Provincia</label>
               <select
                 value={values.province?.value || ''}
@@ -366,7 +369,7 @@ const ClientForm = () => {
               </select>
               <FieldError error={errors.province} touched={touched.province} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-city">
               <label className={labelCls}>Municipio</label>
               <select
                 value={values.city?.value || ''}
@@ -386,7 +389,7 @@ const ClientForm = () => {
               </select>
               <FieldError error={errors.city} touched={touched.city} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-district">
               <label className={labelCls}>Localidad</label>
               <select
                 value={values.district?.value || ''}
@@ -418,7 +421,7 @@ const ClientForm = () => {
 
           {/* 3. Datos de Facturación */}
           <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de Facturación">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-iva-condition">
               <label className={labelCls}>Condición de IVA</label>
               <select
                 value={values.ivaCondition?.value || ''}
@@ -435,7 +438,7 @@ const ClientForm = () => {
               </select>
               <FieldError error={errors.ivaCondition} touched={touched.ivaCondition} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-price-list">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <label className={`${labelCls} !mb-0`}>¿Se le factura con lista de precios?</label>
                 <HelpTooltip text={PRICE_LIST_HELP} />
@@ -456,7 +459,7 @@ const ClientForm = () => {
               </div>
             </div>
             {values.usesPriceList && (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1" data-tour="client-price-list-select">
                 <label className={labelCls}>Lista de Precios</label>
                 <select
                   value={values.priceList?.value || ''}
@@ -493,7 +496,7 @@ const ClientForm = () => {
 
           {/* 5. Fecha de Inicio de Ventas */}
           <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fecha de inicio de ventas">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-sales-start">
               <label className={labelCls}>Fecha de inicio</label>
               <BasicDatePicker
                 value={values.salesStartDate}
@@ -506,7 +509,7 @@ const ClientForm = () => {
 
           {/* 5. Contacto */}
           <SectionCard icon={<PhoneIcon sx={{ fontSize: 20 }} />} title="Contacto">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="client-phone">
               <label className={labelCls}>Teléfono</label>
               <input
                 name="phone"

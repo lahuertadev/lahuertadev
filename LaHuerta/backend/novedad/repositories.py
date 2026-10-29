@@ -16,7 +16,7 @@ class NewsRepository(INewsRepository):
         queryset = Novedad.objects.filter(activa=True, fecha_publicacion__lte=today)
         if user.role != Usuario.SUPERUSER:
             queryset = queryset.filter(Q(rol_destino__isnull=True) | Q(rol_destino=user.role))
-        return queryset.annotate(
+        return queryset.select_related('tutorial').annotate(
             seen=Exists(NovedadUsuario.objects.filter(novedad=OuterRef('pk'), usuario=user)),
         )
 

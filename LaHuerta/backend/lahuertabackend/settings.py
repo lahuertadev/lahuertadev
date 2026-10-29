@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'reporte',
     'arca',
     'novedad',
+    'tutorial',
 ]
 
 MIDDLEWARE = [

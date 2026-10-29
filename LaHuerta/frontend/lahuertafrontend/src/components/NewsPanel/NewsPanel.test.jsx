@@ -130,3 +130,32 @@ test('"Ver todas las novedades" lleva al historial', () => {
 
   expect(mockNavigate).toHaveBeenCalledWith('/news');
 });
+
+test('con tutorial disponible muestra "Ver tutorial" y lo empieza', () => {
+  const onStartTutorial = jest.fn();
+  renderPanel({
+    news: [makeNews(1, { tutorial_clave: 'client-without-price-list' })],
+    canStartTutorial: (key) => key === 'client-without-price-list',
+    onStartTutorial,
+  });
+
+  fireEvent.click(screen.getByText('Ver tutorial'));
+
+  expect(onStartTutorial).toHaveBeenCalledWith('client-without-price-list');
+});
+
+test('no ofrece el tutorial si ya lo completó o no es para su rol', () => {
+  renderPanel({
+    news: [makeNews(1, { tutorial_clave: 'client-without-price-list' })],
+    canStartTutorial: () => false,
+    onStartTutorial: jest.fn(),
+  });
+
+  expect(screen.queryByText('Ver tutorial')).not.toBeInTheDocument();
+});
+
+test('sin tutorial_clave no muestra "Ver tutorial"', () => {
+  renderPanel({ news: [makeNews(1)], canStartTutorial: () => true, onStartTutorial: jest.fn() });
+
+  expect(screen.queryByText('Ver tutorial')).not.toBeInTheDocument();
+});

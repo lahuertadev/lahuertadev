@@ -105,6 +105,7 @@ const BillList = () => {
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4">
       <Tabs
+        data-tour="bill-tabs"
         value={activeTab}
         onChange={(_, newValue) => setActiveTab(newValue)}
         sx={{
