@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
     operations = [migrations.RunPython(create_news, delete_news)]
 ```
 
-- Nombre del archivo: `00XX_novedad_<tema>.py` (ej. `0003_novedad_tutoriales.py`).
+- Nombre del archivo: `00XX_novedad_<tema>.py` (ej. `0004_novedad_tutoriales.py`).
 - Una novedad por cambio funcional; si la rama trae varios, una migración puede crear varias.
 - `vigente_hasta` va **calculado en la migración** con el número literal: el modelo histórico no ejecuta `Novedad.save()` y las migraciones no importan constantes de la app (ver `backend-architecture.md`). 30 días por defecto; 15 para un cambio chico, 45-60 para uno grande en un flujo central.
 - `fecha_publicacion`: la fecha en que se espera que salga a producción. Si el deploy se demora, actualizarla antes de mergear, para que la vigencia cuente desde que el usuario puede usar el cambio.
@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
 - **descripcion:** una o dos oraciones para el usuario, sin términos técnicos (máx. 500 caracteres; en el Inicio se ven dos líneas).
 - **pantalla_nombre / pantalla_url:** la pantalla donde se usa el cambio (ruta del frontend, ej. `/bill/`). Vacíos si no aplica a una pantalla.
 - **rol_destino:** vacío si es para todos; un rol (`administrator`, `employee`) si solo lo usa ese rol.
-- **tutorial_clave:** solo cuando exista el tutorial (DEV-138).
+- **tutorial:** el tutorial guiado del cambio, si tiene (DEV-138): en la migración, `Tutorial.objects.filter(clave='...').first()` con `apps.get_model('tutorial', 'Tutorial')`, y la migración depende de la de `tutorial` que lo crea. En el Inicio se ofrece "Ver tutorial" mientras el usuario no lo complete.
 
 ## Al proponer o cerrar una implementación
 Indicar, igual que con la documentación funcional:
