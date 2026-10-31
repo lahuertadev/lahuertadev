@@ -64,6 +64,8 @@ INSTALLED_APPS = [
     'localidad',
     'reporte',
     'arca',
+    'novedad',
+    'tutorial',
 ]
 
 MIDDLEWARE = [

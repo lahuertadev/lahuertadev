@@ -54,7 +54,7 @@ const Toast = ({ open, message, onClose, variant = 'error', duration = 4000, res
     : 'max-w-md';
 
   return (
-    <div className={wrapperCls}>
+    <div className={wrapperCls} data-tutorial-layer>
       <div className={`bg-surface-card border-l-4 ${border} shadow-xl rounded-lg p-4 flex items-center gap-4 ${boxCls}`}>
         <div className={`${iconBg} p-2 rounded-full shrink-0`}>
           <Icon sx={{ color: iconColor, fontSize: 20 }} />

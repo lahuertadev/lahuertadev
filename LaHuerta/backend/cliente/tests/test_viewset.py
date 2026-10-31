@@ -35,7 +35,7 @@ def db_setup(db):
     condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
     cliente = Cliente.objects.create(
         cuit='20123456789',
-        razon_social='Cliente Test SA',
+        razon_social='Cliente Test S.A.',
         cuenta_corriente=Decimal('10000.00'),
         telefono='1122334455',
         localidad=localidad,
@@ -122,7 +122,7 @@ def test_list_returns_clients(factory, db_setup):
     response = vs.list(Request(factory.get('/client/'), parsers=[JSONParser()]))
     assert response.status_code == 200
     assert len(response.data) == 1
-    assert response.data[0]['razon_social'] == 'Cliente Test SA'
+    assert response.data[0]['razon_social'] == 'Cliente Test S.A.'
 
 
 @pytest.mark.django_db
@@ -177,7 +177,7 @@ def test_create_success(factory, db_setup):
     payload = _base_payload(db_setup)
     response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 201
-    assert response.data['razon_social'] == 'Nuevo Cliente SRL'
+    assert response.data['razon_social'] == 'Nuevo Cliente S.R.L.'
 
 
 @pytest.mark.django_db
@@ -209,7 +209,8 @@ def test_create_cuit_duplicado(factory, db_setup):
 @pytest.mark.django_db
 def test_create_razon_social_duplicada(factory, db_setup):
     vs, _ = _make_viewset()
-    payload = _base_payload(db_setup, razon_social='Cliente Test SA')
+    # Escrita distinto a la existente ('Cliente Test S.A.'): se normaliza y choca igual.
+    payload = _base_payload(db_setup, razon_social='cliente TEST sa')
     response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
 
@@ -220,6 +221,60 @@ def test_create_campos_obligatorios_faltantes(factory):
     response = vs.create(Request(factory.post('/client/', {}, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
     assert 'cuit' in response.data
+
+
+@pytest.mark.django_db
+def test_create_con_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    payload = _base_payload(db_setup, lista_precios=price_list.id)
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['lista_precios']['id'] == price_list.id
+
+
+@pytest.mark.django_db
+def test_create_sin_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, lista_precios=None)
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['lista_precios'] is None
+    assert Cliente.objects.get(id=response.data['id']).lista_precios is None
+
+
+@pytest.mark.django_db
+def test_create_capitaliza_nombres_y_domicilio(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(
+        db_setup,
+        razon_social='comedor iGLESIA San Justo sa',
+        nombre_fantasia='el COMEDOR de  san justo',
+        domicilio='av. de mayo 301',
+    )
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['razon_social'] == 'Comedor Iglesia San Justo S.A.'
+    assert response.data['nombre_fantasia'] == 'El Comedor De San Justo'
+    assert response.data['domicilio'] == 'Av. De Mayo 301'
+
+
+@pytest.mark.django_db
+def test_create_normaliza_abreviaturas_de_las_direcciones(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(
+        db_setup,
+        razon_social='dr gomez srl',
+        domicilio='AV corrientes 1234 pb',
+        localidad_entrega=db_setup['localidad'].id,
+        domicilio_entrega='ruta 3 km 45, esq gral paz',
+    )
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['domicilio'] == 'Av. Corrientes 1234 PB'
+    assert response.data['domicilio_entrega'] == 'Ruta 3 Km 45, Esq. Gral. Paz'
+    # La razón social no es una dirección: "Dr" queda como está.
+    assert response.data['razon_social'] == 'Dr Gomez S.R.L.'
 
 
 # ── UPDATE ─────────────────────────────────────────────────────────────────────
@@ -259,6 +314,268 @@ def test_update_not_found(factory, db_setup):
         pk=9999,
     )
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_update_quita_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    client.lista_precios = ListaPrecios.objects.create(descripcion='Lista General')
+    client.save()
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=None)
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['lista_precios'] is None
+    client.refresh_from_db()
+    assert client.lista_precios is None
+
+
+@pytest.mark.django_db
+def test_update_asigna_lista_de_precios(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=price_list.id)
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['lista_precios']['id'] == price_list.id
+
+
+@pytest.mark.django_db
+def test_update_capitaliza_razon_social(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social='verdulería LOS hermanos srl')
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['razon_social'] == 'Verdulería Los Hermanos S.R.L.'
+
+
+# ── DIRECCIÓN DE ENTREGA ───────────────────────────────────────────────────────
+
+class FakeDistrictService:
+    def __init__(self, district):
+        self.district = district
+        self.received = []
+
+    def create_or_get_district(self, district_data):
+        self.received.append(district_data)
+        return {'district': self.district} if self.district else None
+
+
+@pytest.fixture
+def delivery_district(db_setup):
+    municipio = db_setup['localidad'].municipio
+    return Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=municipio)
+
+
+def _set_delivery_address(client, district, address='Av. Corrientes 1234'):
+    client.localidad_entrega = district
+    client.domicilio_entrega = address
+    client.save()
+
+
+@pytest.mark.django_db
+def test_create_sin_direccion_de_entrega(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup)
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['localidad_entrega'] is None
+    assert response.data['domicilio_entrega'] is None
+
+
+@pytest.mark.django_db
+def test_create_con_direccion_de_entrega(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, localidad_entrega=delivery_district.id, domicilio_entrega='av. corrientes 1234')
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['domicilio_entrega'] == 'Av. Corrientes 1234'
+    assert response.data['localidad_entrega']['id'] == delivery_district.id
+    assert response.data['localidad_entrega']['municipio']['provincia']['id'] == '06'
+    client = Cliente.objects.get(id=response.data['id'])
+    assert client.localidad_entrega == delivery_district
+
+
+@pytest.mark.django_db
+def test_create_direccion_de_entrega_en_null_y_vacia(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, localidad_entrega=None, domicilio_entrega='')
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['domicilio_entrega'] is None
+
+
+@pytest.mark.django_db
+def test_create_localidad_de_entrega_sin_domicilio(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, localidad_entrega=delivery_district.id, domicilio_entrega='  ')
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 400
+    assert 'domicilio_entrega' in response.data
+
+
+@pytest.mark.django_db
+def test_create_domicilio_de_entrega_sin_localidad(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, domicilio_entrega='Av. Corrientes 1234')
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 400
+    assert 'localidad_entrega' in response.data
+
+
+@pytest.mark.django_db
+def test_create_resuelve_localidad_de_entrega_como_objeto(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    vs.district_service = FakeDistrictService(delivery_district)
+    georef_district = {
+        'id': delivery_district.id,
+        'nombre': 'Palermo',
+        'municipio': {'id': '064270', 'nombre': 'CABA', 'provincia': {'id': '06', 'nombre': 'Buenos Aires'}},
+    }
+    payload = _base_payload(db_setup, localidad_entrega=georef_district, domicilio_entrega='Av. Corrientes 1234')
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['localidad_entrega']['id'] == delivery_district.id
+    assert vs.district_service.received == [georef_district]
+
+
+@pytest.mark.django_db
+def test_create_localidad_de_entrega_que_no_se_puede_procesar(factory, db_setup):
+    vs, _ = _make_viewset()
+    vs.district_service = FakeDistrictService(None)
+    payload = _base_payload(
+        db_setup,
+        localidad_entrega={'id': '999', 'nombre': 'X', 'municipio': {'id': '1'}},
+        domicilio_entrega='Av. Corrientes 1234',
+    )
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 400
+    assert response.data['detail'] == 'Error al procesar la localidad de entrega.'
+    assert not Cliente.objects.filter(cuit=payload['cuit']).exists()
+
+
+@pytest.mark.django_db
+def test_retrieve_con_direccion_de_entrega(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    _set_delivery_address(client, delivery_district)
+    response = vs.retrieve(
+        Request(factory.get(f'/client/{client.id}/'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['domicilio_entrega'] == 'Av. Corrientes 1234'
+    assert response.data['localidad_entrega']['nombre'] == 'Palermo'
+
+
+@pytest.mark.django_db
+def test_update_agrega_direccion_de_entrega(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    payload = _base_payload(
+        db_setup,
+        cuit=client.cuit,
+        razon_social=client.razon_social,
+        localidad_entrega=delivery_district.id,
+        domicilio_entrega='Av. Corrientes 1234',
+    )
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    client.refresh_from_db()
+    assert client.localidad_entrega == delivery_district
+    assert client.domicilio_entrega == 'Av. Corrientes 1234'
+
+
+@pytest.mark.django_db
+def test_update_quita_direccion_de_entrega(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    _set_delivery_address(client, delivery_district)
+    payload = _base_payload(
+        db_setup,
+        cuit=client.cuit,
+        razon_social=client.razon_social,
+        localidad_entrega=None,
+        domicilio_entrega=None,
+    )
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['localidad_entrega'] is None
+    client.refresh_from_db()
+    assert client.localidad_entrega is None
+    assert client.domicilio_entrega is None
+
+
+@pytest.mark.django_db
+def test_update_localidad_de_entrega_sin_domicilio(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, localidad_entrega=delivery_district.id)
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 400
+    assert 'domicilio_entrega' in response.data
+    client.refresh_from_db()
+    assert client.localidad_entrega is None
+
+
+@pytest.mark.django_db
+def test_partial_update_cambia_solo_domicilio_de_entrega(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    _set_delivery_address(client, delivery_district)
+    response = vs.partial_update(
+        Request(factory.patch(f'/client/{client.id}/', {'domicilio_entrega': 'Thames 500'}, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert response.data['domicilio_entrega'] == 'Thames 500'
+    assert response.data['localidad_entrega']['id'] == delivery_district.id
+
+
+@pytest.mark.django_db
+def test_partial_update_localidad_de_entrega_sin_domicilio(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    response = vs.partial_update(
+        Request(factory.patch(f'/client/{client.id}/', {'localidad_entrega': delivery_district.id}, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 400
+    assert 'domicilio_entrega' in response.data
+
+
+@pytest.mark.django_db
+def test_partial_update_sin_tocar_entrega_no_la_exige(factory, db_setup, delivery_district):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    _set_delivery_address(client, delivery_district)
+    response = vs.partial_update(
+        Request(factory.patch(f'/client/{client.id}/', {'telefono': '9988776655'}, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    client.refresh_from_db()
+    assert client.localidad_entrega == delivery_district
 
 
 # ── PARTIAL UPDATE ─────────────────────────────────────────────────────────────

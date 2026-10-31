@@ -15,6 +15,10 @@ import FieldWarning from '../../../components/FieldWarning';
 import EmptiesNotice from './EmptiesNotice';
 import { EMPTY_ITEM, calculateItemSubtotal, calculateBlockTotals, formatTelefono, getExistingBuyWarning } from './buyBlockUtils';
 
+// Línea con producto, cantidad y precio cargados.
+const isItemComplete = (item) =>
+  Boolean(item?.producto) && parseFloat(item.cantidad_producto) > 0 && parseFloat(item.precio) > 0;
+
 // Label chico en mayúsculas, mismo patrón que ya usan CustomInput/BasicSelect en el resto del sitio.
 const mobileLabelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1';
 
@@ -91,12 +95,7 @@ const BuyBlock = ({
 
   // ── Auto-agregar fila ──────────────────────────────────────────────
   useEffect(() => {
-    const last = items[items.length - 1];
-    if (
-      last?.producto &&
-      parseFloat(last.cantidad_producto) > 0 &&
-      parseFloat(last.precio) > 0
-    ) {
+    if (isItemComplete(items[items.length - 1])) {
       updateItems((prev) => [...prev, { ...EMPTY_ITEM }]);
     }
   }, [items, updateItems]);
@@ -131,7 +130,11 @@ const BuyBlock = ({
 
       {/* Fila 1: Proveedor (+ Fecha en la carga simple) */}
       <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${compact ? 'mb-3' : 'mb-4'}`}>
-        <div className={dateField ? 'md:col-span-2' : 'md:col-span-3'}>
+        <div
+          className={dateField ? 'md:col-span-2' : 'md:col-span-3'}
+          data-tour="buy-supplier"
+          data-tour-complete={Boolean(selectedSupplier)}
+        >
           <BasicSelect
             label="Proveedor *"
             name="supplier"
@@ -185,7 +188,7 @@ const BuyBlock = ({
       )}
 
       {/* Fila 3: Switch seña */}
-      <div className={compact ? '' : 'mb-6'}>
+      <div className={compact ? '' : 'mb-6'} data-tour="buy-sign">
         <FormControlLabel
           control={
             <Switch
@@ -216,7 +219,7 @@ const BuyBlock = ({
         {sectionTitle('Productos', compact ? addItemButton : null)}
 
       {/* Tabla de productos */}
-      <div className="mb-4">
+      <div className="mb-4" data-tour="buy-items" data-tour-complete={isItemComplete(items[0])}>
         {!compact && <div className="flex items-center justify-end mb-2">{addItemButton}</div>}
 
         {isMobile ? (

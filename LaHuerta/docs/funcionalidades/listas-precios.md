@@ -38,7 +38,7 @@ Desde el **detalle** o desde **Editar lista**, el botón **Asignar a clientes** 
 3. Se marcan los clientes (o "Seleccionar todos" sobre lo filtrado) y se confirma con **Asignar a N clientes**.
 4. Los elegidos pasan a usar esta lista, aunque tuvieran otra; se avisa antes cuántos cambian de lista.
 
-El diálogo solo asigna, no desasigna: un cliente sin lista no se puede facturar. Para sacar a un cliente de una lista, se le asigna otra.
+El diálogo solo asigna, no desasigna. Para sacar a un cliente de una lista, se le asigna otra o, desde la edición del cliente, se marca que no se le factura con lista (pasa a precio manual, ver [Facturación](facturacion.md#clientes-sin-lista-de-precios)).
 
 Endpoint: `POST /price_list/{id}/assign_clients/` con `{ "client_ids": [...] }`. Si algún cliente no existe, no se asigna a ninguno.
 
@@ -48,7 +48,7 @@ Endpoint: `POST /price_list/{id}/assign_clients/` con `{ "client_ids": [...] }`.
 - El nombre de la lista es único. En creación, si ya existe una lista con ese nombre (sin distinguir mayúsculas ni espacios en los extremos), se muestra un aviso debajo del campo y no se puede registrar.
 - En creación, cada producto elegido debe tener Precio Bulto y Precio Unidad mayores a 0.
 - Un mismo producto no puede estar en dos filas de la misma lista: el selector no ofrece productos ya elegidos.
-- No se puede eliminar una lista asignada a uno o más clientes: quedarían sin lista y no se les podría facturar. Primero hay que asignarles otra lista.
+- No se puede eliminar una lista asignada a uno o más clientes: quedarían sin lista y pasarían a facturarse con precio manual sin que nadie lo decida. Primero hay que asignarles otra lista.
 
 ## Pantallas involucradas
 - `/price-list`: listado de listas de precios.

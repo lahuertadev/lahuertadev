@@ -10,9 +10,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import AccountCircle from '@mui/icons-material/AccountCircleOutlined';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
@@ -22,8 +20,6 @@ import PersonIcon from '@mui/icons-material/PersonOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
-import PushPinIcon from '@mui/icons-material/PushPin';
-import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -37,7 +33,8 @@ import { useCsrfToken } from '../../hooks/useCsrfToken';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeMode } from '../../context/ThemeModeContext';
 import { ROLE_CONFIG } from '../../constants/roles';
-import logoLaHuerta from '../../assets/logo-lahuerta-sin-fondo.png';
+// Logo sobre un círculo blanco para que se vea igual en tema claro y oscuro.
+import logoLaHuerta from '../../assets/logo-lahuerta-fondo-blanco.png';
 
 const drawerWidth = 240;
 
@@ -74,8 +71,12 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== 'open',
 })(({ theme }) => ({
   zIndex: theme.zIndex.drawer + 1,
-  backgroundColor: 'var(--color-surface-card)',
+  // Mismo color que el menú lateral y el footer: un solo marco alrededor del contenido.
+  backgroundColor: 'var(--color-surface-low)',
+  // En modo oscuro MUI suma una capa blanca semitransparente según la elevación, que lo aclaraba.
+  backgroundImage: 'none',
   color: 'var(--color-on-surface)',
+  borderBottom: '1px solid var(--color-border-subtle)',
   boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   transition: theme.transitions.create(['width', 'margin'], {
     easing: theme.transitions.easing.sharp,
@@ -157,7 +158,6 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const location = useLocation();
   const setOpen = onOpenChange;
-  const [pinned, setPinned] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
   const csrfToken = useCsrfToken();
   const navigate = useNavigate();
@@ -183,24 +183,13 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
 
   const handleDrawerClose = () => {
     setOpen(false);
-    setPinned(false);
   };
 
-  // Al anclar, el menú queda abierto y no se cierra al navegar entre pantallas.
-  // Al desanclar, vuelve al comportamiento normal (se abre/cierra manualmente).
-  const handleTogglePin = () => {
-    setPinned((prev) => {
-      const next = !prev;
-      if (next) setOpen(true);
-      return next;
-    });
-  };
-
+  // En web el menú mantiene el estado que eligió el usuario (abierto o cerrado) al navegar.
+  // En mobile se cierra siempre al elegir una opción: no tiene sentido dejarlo tapando la pantalla.
   const handleNavigate = (path) => {
     if (!path) return;
-    // En mobile el menú siempre se cierra al navegar, sin importar el ancla: no tiene
-    // sentido dejarlo fijo abierto tapando la pantalla en una vista chica.
-    if (isMobile || !pinned) handleDrawerClose();
+    if (isMobile) handleDrawerClose();
     navigate(path);
   };
 
@@ -249,137 +238,149 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
     }
   };
 
+  // Un ítem del menú: grupo desplegable o enlace directo.
+  const renderMenuOption = (item, { minHeight = 50 } = {}) => {
+    const isGroup = Array.isArray(item.children) && item.children.length > 0;
+    const isGroupOpen = Boolean(openGroups[item.text]);
+    const groupHasActiveChild = isGroup && item.children.some(c => isPathActive(c.path, location.pathname));
+    const itemActive = !isGroup && isPathActive(item.path, location.pathname);
+
+    const itemSx = (active) => ({
+      minHeight,
+      px: 1.5,
+      mx: 1,
+      borderRadius: '8px',
+      color: active ? BLUE : 'var(--color-on-surface-muted)',
+      backgroundColor: active ? `rgba(74,123,196,0.10)` : 'transparent',
+      '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE },
+      justifyContent: open ? 'initial' : 'center',
+    });
+
+    if (isGroup) {
+      const groupClickHandler = item.path
+        ? () => handleNavigate(item.path)
+        : () => toggleGroup(item.text);
+
+      return (
+        <React.Fragment key={item.text}>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              onClick={groupClickHandler}
+              sx={itemSx(groupHasActiveChild)}
+            >
+              <ListItemIcon
+                sx={[
+                  { minWidth: 0, justifyContent: 'center', color: 'inherit' },
+                  open ? { mr: 3 } : { mr: 'auto' },
+                ]}
+              >
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
+                sx={[open ? { opacity: 1 } : { opacity: 0 }]}
+              />
+              {open ? (
+                <IconButton
+                  size="small"
+                  onClick={(e) => { e.stopPropagation(); toggleGroup(item.text); }}
+                  sx={{ color: 'inherit', p: 0.5 }}
+                >
+                  {isGroupOpen ? <ExpandLess /> : <ExpandMore />}
+                </IconButton>
+              ) : null}
+            </ListItemButton>
+          </ListItem>
+
+          <Collapse in={isGroupOpen && open} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding sx={{ ml: 1, pl: 1, borderLeft: '1px solid rgba(74,123,196,0.15)' }}>
+              {item.children.map((child) => {
+                const childActive = isPathActive(child.path, location.pathname);
+                return (
+                  <ListItem key={child.text} disablePadding sx={{ display: 'block' }}>
+                    <ListItemButton
+                      onClick={() => handleNavigate(child.path)}
+                      sx={{
+                        minHeight: 40,
+                        pl: 3,
+                        pr: 2,
+                        mx: 1,
+                        borderRadius: '8px',
+                        color: childActive ? BLUE : 'var(--color-on-surface-muted)',
+                        backgroundColor: childActive ? 'rgba(74,123,196,0.06)' : 'transparent',
+                        fontWeight: childActive ? 600 : 400,
+                        '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE },
+                      }}
+                    >
+                      <ListItemText
+                        primary={child.text}
+                        primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: childActive ? 600 : 400 }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
+            </List>
+          </Collapse>
+        </React.Fragment>
+      );
+    }
+
+    return (
+      <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
+        <ListItemButton
+          onClick={() => handleNavigate(item.path)}
+          sx={itemSx(itemActive)}
+        >
+          <ListItemIcon
+            sx={[
+              { minWidth: 0, justifyContent: 'center', color: 'inherit' },
+              open ? { mr: 3 } : { mr: 'auto' },
+            ]}
+          >
+            {item.icon}
+          </ListItemIcon>
+          <ListItemText
+            primary={item.text}
+            primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
+            sx={[open ? { opacity: 1 } : { opacity: 0 }]}
+          />
+        </ListItemButton>
+      </ListItem>
+    );
+  };
+
   const drawerMenuContent = (
     <>
       <DrawerHeader>
-        {/* Anclar el menú no aplica en mobile: ahí siempre se cierra al elegir una opción. */}
-        {!isMobile && (
-          <IconButton
-            onClick={handleTogglePin}
-            aria-label={pinned ? 'Desanclar menú' : 'Anclar menú'}
-            sx={{ color: pinned ? BLUE : 'var(--color-on-surface-muted)' }}
-          >
-            {pinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
-          </IconButton>
-        )}
-        <IconButton onClick={handleDrawerClose} sx={{ color: 'var(--color-on-surface-muted)' }}>
-          {theme.direction === 'rtl' ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        <IconButton onClick={handleDrawerClose} aria-label="Cerrar menú" sx={{ color: 'var(--color-on-surface-muted)' }}>
+          {/* Tres líneas con flecha "<": cerrar el menú */}
+          <MenuOpenIcon sx={theme.direction === 'rtl' ? { transform: 'scaleX(-1)' } : undefined} />
         </IconButton>
       </DrawerHeader>
       <Divider />
       <List>
-        {menuOptions.map((item) => {
-          const isGroup = Array.isArray(item.children) && item.children.length > 0;
-          const isGroupOpen = Boolean(openGroups[item.text]);
-          const groupHasActiveChild = isGroup && item.children.some(c => isPathActive(c.path, location.pathname));
-          const itemActive = !isGroup && isPathActive(item.path, location.pathname);
-
-          const itemSx = (active) => ({
-            minHeight: 50,
-            px: 1.5,
-            mx: 1,
-            borderRadius: '8px',
-            color: active ? BLUE : 'var(--color-on-surface-muted)',
-            backgroundColor: active ? `rgba(74,123,196,0.10)` : 'transparent',
-            '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE },
-            justifyContent: open ? 'initial' : 'center',
-          });
-
-          if (isGroup) {
-            const groupClickHandler = item.path
-              ? () => handleNavigate(item.path)
-              : () => toggleGroup(item.text);
-
-            return (
-              <React.Fragment key={item.text}>
-                <ListItem disablePadding sx={{ display: 'block' }}>
-                  <ListItemButton
-                    onClick={groupClickHandler}
-                    sx={itemSx(groupHasActiveChild)}
-                  >
-                    <ListItemIcon
-                      sx={[
-                        { minWidth: 0, justifyContent: 'center', color: 'inherit' },
-                        open ? { mr: 3 } : { mr: 'auto' },
-                      ]}
-                    >
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={item.text}
-                      primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                      sx={[open ? { opacity: 1 } : { opacity: 0 }]}
-                    />
-                    {open ? (
-                      <IconButton
-                        size="small"
-                        onClick={(e) => { e.stopPropagation(); toggleGroup(item.text); }}
-                        sx={{ color: 'inherit', p: 0.5 }}
-                      >
-                        {isGroupOpen ? <ExpandLess /> : <ExpandMore />}
-                      </IconButton>
-                    ) : null}
-                  </ListItemButton>
-                </ListItem>
-
-                <Collapse in={isGroupOpen && open} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding sx={{ ml: 1, pl: 1, borderLeft: '1px solid rgba(74,123,196,0.15)' }}>
-                    {item.children.map((child) => {
-                      const childActive = isPathActive(child.path, location.pathname);
-                      return (
-                        <ListItem key={child.text} disablePadding sx={{ display: 'block' }}>
-                          <ListItemButton
-                            onClick={() => handleNavigate(child.path)}
-                            sx={{
-                              minHeight: 40,
-                              pl: 3,
-                              pr: 2,
-                              mx: 1,
-                              borderRadius: '8px',
-                              color: childActive ? BLUE : 'var(--color-on-surface-muted)',
-                              backgroundColor: childActive ? 'rgba(74,123,196,0.06)' : 'transparent',
-                              fontWeight: childActive ? 600 : 400,
-                              '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE },
-                            }}
-                          >
-                            <ListItemText
-                              primary={child.text}
-                              primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: childActive ? 600 : 400 }}
-                            />
-                          </ListItemButton>
-                        </ListItem>
-                      );
-                    })}
-                  </List>
-                </Collapse>
-              </React.Fragment>
-            );
-          }
-
-          return (
-            <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-                onClick={() => handleNavigate(item.path)}
-                sx={itemSx(itemActive)}
-              >
-                <ListItemIcon
-                  sx={[
-                    { minWidth: 0, justifyContent: 'center', color: 'inherit' },
-                    open ? { mr: 3 } : { mr: 'auto' },
-                  ]}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.text}
-                  primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600 }}
-                  sx={[open ? { opacity: 1 } : { opacity: 0 }]}
-                />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
+        {menuOptions.filter((item) => !item.bottom).map(renderMenuOption)}
       </List>
+      {/* Ítems con `bottom` (ej. Tutoriales): al pie del menú, separados del resto y con el mismo
+          alto que el Footer (py-4 + contenido + borde = 58px), así las dos líneas quedan alineadas. */}
+      {menuOptions.some((item) => item.bottom) && (
+        <List
+          disablePadding
+          sx={{
+            mt: 'auto',
+            height: 58,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            borderTop: '1px solid var(--color-border-subtle)',
+          }}
+        >
+          {menuOptions.filter((item) => item.bottom).map((item) => renderMenuOption(item, { minHeight: 44 }))}
+        </List>
+      )}
     </>
   );
 
@@ -397,13 +398,51 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
               open && { display: 'none' },
             ]}
           >
-            <MenuIcon />
+            {/* Tres líneas con flecha ">": abrir el menú (mismo ícono que cerrar, espejado) */}
+            <MenuOpenIcon sx={theme.direction === 'rtl' ? undefined : { transform: 'scaleX(-1)' }} />
           </IconButton>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
-            <img src={logoLaHuerta} alt="La Huerta" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
-            <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
-              {title}
-            </Typography>
+            {/* Logo + título llevan al Inicio */}
+            <Box
+              component="button"
+              type="button"
+              aria-label="Ir al inicio"
+              onClick={() => handleNavigate('/')}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                minWidth: 0,
+                p: 0,
+                border: 0,
+                background: 'none',
+                color: 'inherit',
+                borderRadius: 2,
+                cursor: 'pointer',
+                '& img': { transition: 'transform 0.2s ease' },
+                '& .MuiTypography-root': { transition: 'color 0.2s ease' },
+                '&:hover img': { transform: 'scale(1.05)' },
+                '&:hover .MuiTypography-root': { color: 'var(--color-accent)' },
+                '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 },
+              }}
+            >
+              <img
+                src={logoLaHuerta}
+                alt=""
+                // Borde y sombra suaves: en tema claro marcan el círculo blanco contra el fondo blanco.
+                style={{
+                  height: 40,
+                  width: 40,
+                  objectFit: 'contain',
+                  borderRadius: '50%',
+                  border: '1px solid var(--color-border-subtle)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+                }}
+              />
+              <Typography variant="h6" noWrap component="span" sx={{ fontWeight: 700 }}>
+                {title}
+              </Typography>
+            </Box>
           </Box>
           {/* Info de usuario + menú desplegable */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

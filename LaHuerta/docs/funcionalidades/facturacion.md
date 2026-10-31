@@ -11,6 +11,7 @@ Gestionar la emisión de comprobantes comerciales: Remitos, Facturas electrónic
 - Actualización automática de la cuenta corriente del cliente
 - Vista de impresión para Facturas/ND/NC (con QR AFIP) y para Remitos
 - Listado con tabs separadas (Facturas / Remitos) y filtros
+- Facturación con precio manual para clientes sin lista de precios
 
 ## Tipos de comprobante
 
@@ -40,7 +41,7 @@ La regla para la selección automática del tipo de factura según la condición
 2. Seleccionar cliente → el tipo se precarga automáticamente (Factura A o B según condición IVA)
 3. Cambiar el tipo a Remito si se desea
 4. Ingresar fecha e ítems (producto, cantidad, tipo de venta)
-5. El precio se resuelve automáticamente desde la lista de precios del cliente
+5. El precio se resuelve automáticamente desde la lista de precios del cliente (o se ingresa a mano si el cliente no tiene lista, ver [Clientes sin lista de precios](#clientes-sin-lista-de-precios))
 6. Confirmar → se asigna número de comprobante secuencial por tipo, sin contactar AFIP
 7. `subtotal = total` (sin IVA para remitos)
 8. La cuenta corriente del cliente aumenta en el valor del `total`
@@ -52,7 +53,7 @@ Se puede editar (fecha, cliente, productos) y eliminar siempre que no tenga pago
 1. Ir a Facturas → Nueva
 2. Seleccionar cliente → el tipo de factura se precarga automáticamente según su condición IVA
 3. Ingresar fecha e ítems con su alícuota de IVA por producto (default 10,5%, editable: 0%, 2,5%, 5%, 10,5%, 21%, 27%)
-4. El precio se resuelve desde la lista de precios del cliente
+4. El precio se resuelve desde la lista de precios del cliente (o se ingresa a mano si el cliente no tiene lista, ver [Clientes sin lista de precios](#clientes-sin-lista-de-precios))
 5. Confirmar → el sistema:
    - Calcula `subtotal` (suma de `cantidad × precio` sin IVA)
    - Calcula `total` (suma de `cantidad × precio × (1 + iva_rate/100)` por ítem)
@@ -89,11 +90,29 @@ Una vez emitida (con CAE) la factura **no puede editarse ni eliminarse**.
 
 La NC puede acreditar parcialmente (un ítem, una diferencia de precio) o totalmente (mismo importe que la factura original). El sistema no valida si el importe de la NC supera el de la factura original — es responsabilidad del operador.
 
+## Clientes sin lista de precios
+
+A algunos clientes no se les factura con lista: el precio se pone a mano en cada comprobante.
+
+**Configuración en el cliente:** en el alta y la edición del cliente, la sección *Datos de Facturación* tiene el interruptor **"¿Se le factura con lista de precios?"**:
+- **Sí**: se muestra el selector de lista, que es obligatorio.
+- **No**: el selector se oculta y el cliente se guarda sin lista.
+
+No hay un campo aparte: "se factura con lista" se deduce de si el cliente tiene `lista_precios` asignada. Al editar, el interruptor refleja ese estado. El detalle del cliente muestra el nombre de la lista o **"Precio manual"**.
+
+**Al facturar:**
+1. Se elige el cliente sin lista: el flujo es el mismo que con lista, pero los precios no se precargan.
+2. El precio de cada renglón se ingresa a mano y es obligatorio: sin precio no deja confirmar.
+3. Cada renglón guarda el precio usado (`precio_aplicado`), igual que con lista.
+4. Si se cambia a un cliente con el otro modo de precio (con lista ↔ sin lista), los renglones cargados se vacían.
+
+La edición de un remito sigue el mismo criterio: con lista se recalcula desde la lista, sin lista se usan los precios ingresados. Las Notas de Débito y Crédito siguen siempre con precio manual, tenga o no lista el cliente.
+
 ## Validaciones importantes
 
-**Remito:**
-- El cliente debe tener lista de precios asignada
-- Todos los productos deben tener precio en la lista del cliente
+**Remito y Factura electrónica:**
+- Si el cliente tiene lista, todos los productos deben tener precio en esa lista (el precio enviado desde el formulario se ignora)
+- Si el cliente no tiene lista, todos los ítems deben tener precio ingresado manualmente
 
 **Factura electrónica:**
 - El tipo de factura debe ser compatible con la condición IVA del cliente (Factura A solo para Responsable Inscripto)

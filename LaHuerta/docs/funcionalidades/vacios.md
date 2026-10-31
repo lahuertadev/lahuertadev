@@ -54,6 +54,7 @@ No incluye: control de stock de vacíos por proveedor (cuántos quedan pendiente
 - Edición: `/empty-movement/edit/:id`
 - Detalle: `/empty-movement/detail/:id`
 - Formularios de compra: muestran un aviso fijo de que los vacíos se cargan aparte.
+- Tutorial guiado de Vacíos (`empty-movements`, ver `tutoriales.md`): explica la diferencia entre carga y devolución, recorre el alta de una carga y las acciones del listado. Lo ofrece también la novedad de vacíos del Inicio.
 
 ## Endpoints
 - `GET /empty-movement/` — listado. Filtros: `proveedor` (búsqueda parcial por nombre o nombre de fantasía, sin distinguir mayúsculas), `tipo` (`CARGA` | `DEVOLUCION`), `importe` (coincidencia exacta), `fecha_desde`, `fecha_hasta`.
@@ -66,5 +67,5 @@ No incluye: control de stock de vacíos por proveedor (cuántos quedan pendiente
 ## Consideraciones
 - Modelo: `MovimientoVacio` (el vale: proveedor, fecha, tipo, N° de comprobante, importe) y `MovimientoVacioContenedor` (los renglones: tipo de contenedor, cantidad, precio unitario). La tabla de renglones resuelve la relación N:N entre movimientos y tipos de contenedor.
 - Antes, los vacíos se cargaban dentro de la compra (`compra_vacio`) sin afectar la cuenta corriente. Esa tabla se eliminó y sus registros no se migraron, porque nunca habían impactado en la cuenta corriente.
-- Los tipos de movimiento se definen en un solo lugar por capa: el enum `EmptyMovementType` (`movimiento_vacio/enums.py`) en el backend y `constants/emptyMovementTypes.js` en el frontend. Para agregar un tipo nuevo se suma en ambos (valor, etiqueta y efecto en la cuenta corriente en `EmptyMovementService._balance_effect`); la selección, las rutas, el filtro y los badges se arman a partir de esa constante.
+- Los tipos de movimiento se definen en un solo lugar por capa: `EmptyMovementType` (`movimiento_vacio/constants.py`) en el backend y `constants/emptyMovementTypes.js` en el frontend. Para agregar un tipo nuevo se suma en ambos (valor, etiqueta y efecto en la cuenta corriente en `EmptyMovementService._balance_effect`); la selección, las rutas, el filtro y los badges se arman a partir de esa constante.
 - El listado no permite eliminar varios movimientos a la vez, para evitar ajustes simultáneos sobre la cuenta corriente de un mismo proveedor.

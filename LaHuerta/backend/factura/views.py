@@ -51,6 +51,7 @@ class BillViewSet(viewsets.ViewSet):
             return Response(response_serializer.data, status=status.HTTP_200_OK)
 
         except Exception:
+            logger.exception("Error al listar facturas")
             return Response({'detail': 'Error al obtener las facturas.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, pk=None):
@@ -70,6 +71,7 @@ class BillViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al obtener la factura pk=%s", pk)
             return Response({'detail': 'Error al obtener la factura.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request):
@@ -97,6 +99,7 @@ class BillViewSet(viewsets.ViewSet):
             )
 
         except Exception as e:
+            logger.exception("Error al crear la factura")
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
@@ -125,7 +128,11 @@ class BillViewSet(viewsets.ViewSet):
         except BillAlreadyEmittedException as e:
             return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
 
+        except PriceNotFoundError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
+            logger.exception("Error al actualizar la factura pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar la factura.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -157,7 +164,11 @@ class BillViewSet(viewsets.ViewSet):
         except BillAlreadyEmittedException as e:
             return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
 
+        except PriceNotFoundError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
+            logger.exception("Error al actualizar la factura pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar la factura.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -181,6 +192,7 @@ class BillViewSet(viewsets.ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_409_CONFLICT)
 
         except Exception as e:
+            logger.exception("Error al eliminar la factura pk=%s", pk)
             return Response(
                 {'detail': 'Error al eliminar la factura.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

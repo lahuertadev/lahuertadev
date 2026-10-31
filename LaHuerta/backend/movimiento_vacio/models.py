@@ -1,7 +1,7 @@
 from django.db import models
 from proveedor.models import Proveedor
 from tipo_contenedor.models import TipoContenedor
-from .enums import EmptyMovementType
+from .constants import EmptyMovementType
 
 
 class MovimientoVacio(models.Model):

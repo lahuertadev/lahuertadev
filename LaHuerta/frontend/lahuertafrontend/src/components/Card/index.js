@@ -46,7 +46,7 @@ export default function AccessCard({ title, description, url, icon, size = 'comp
       type="button"
       onClick={() => navigate(url)}
       style={{ transform: 'perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))' }}
-      className={`group relative flex w-full cursor-pointer flex-col items-start justify-between rounded-2xl border border-border-subtle bg-surface-card text-left ${isLarge ? 'gap-4 p-5 sm:p-6' : 'gap-1 p-3'} transition-[border-color,box-shadow] duration-200 hover:border-accent/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${isFeatured ? 'sm:col-span-2' : ''}`}
+      className={`group relative flex w-full cursor-pointer flex-col items-start justify-between rounded-2xl border border-border-subtle bg-access-card text-left ${isLarge ? 'gap-4 p-5 sm:p-6' : 'gap-1 p-3'} transition-[border-color,box-shadow] duration-200 hover:border-accent/50 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${isFeatured ? 'sm:col-span-2' : ''}`}
     >
       <span
         aria-hidden="true"

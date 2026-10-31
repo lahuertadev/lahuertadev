@@ -154,6 +154,18 @@ def test_get_or_create_google_user_creates_new_user(repository):
     assert user.has_usable_password() is False
 
 @pytest.mark.django_db
+def test_get_or_create_google_user_capitalizes_names(repository):
+    user, created = repository.get_or_create_google_user(
+        email='lower-google@test.com',
+        first_name='maría',
+        last_name='GONZÁLEZ'
+    )
+
+    assert created is True
+    assert user.first_name == 'María'
+    assert user.last_name == 'González'
+
+@pytest.mark.django_db
 def test_get_or_create_google_user_generates_unique_username(repository, active_user):
     """
     active_user ya tiene username 'active' (mismo local-part que el nuevo email),

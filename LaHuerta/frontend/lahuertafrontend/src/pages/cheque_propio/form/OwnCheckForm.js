@@ -7,6 +7,10 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { ownCheckUrl, bankUrl } from '../../../constants/urls';
 import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import Toast from '../../../components/Toast';
+import BackButton from '../../../components/BackButton';
+import FormActions from '../../../components/FormActions';
+import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
+import { emitTutorialEvent } from '../../../utils/tutorial';
 import CustomInput from '../../../components/Input';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
@@ -135,7 +139,8 @@ const OwnCheckForm = () => {
       if (id) {
         await axios.put(`${ownCheckUrl}${id}/`, payload);
       } else {
-        await axios.post(ownCheckUrl, payload);
+        const response = await axios.post(ownCheckUrl, payload);
+        emitTutorialEvent(TUTORIAL_EVENTS.ownCheckCreated, { id: response.data.id });
       }
       navigate('/own-check');
     } catch (error) {
@@ -157,7 +162,7 @@ const OwnCheckForm = () => {
       enableReinitialize
       onSubmit={handleSubmit}
     >
-      {({ values, errors, touched, handleChange, setFieldValue }) => (
+      {({ values, errors, touched, handleChange, setFieldValue, isSubmitting }) => (
         <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
           <Toast
             open={toast.open}
@@ -165,16 +170,19 @@ const OwnCheckForm = () => {
             onClose={() => setToast({ open: false, message: '' })}
           />
 
-          {/* Breadcrumbs */}
-          <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
-            <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
-            <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
-            <span className="text-xs">›</span>
-            <span className="text-on-surface font-semibold">{id ? 'Editar cheque' : 'Nuevo cheque'}</span>
-          </nav>
+          {/* Breadcrumbs + Volver arriba a la derecha, separados del contenido con la misma línea que el pie */}
+          <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+            <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+              <span className="text-xs">›</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
+              <span className="text-xs">›</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
+              <span className="text-xs">›</span>
+              <span className="text-on-surface font-semibold">{id ? 'Editar cheque' : 'Nuevo cheque'}</span>
+            </nav>
+            <BackButton onClick={() => navigate('/own-check')} className="shrink-0 px-5 py-2.5 text-sm" />
+          </div>
 
           {/* 1. Datos del cheque */}
           <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
@@ -186,7 +194,7 @@ const OwnCheckForm = () => {
                 </p>
               </div>
             )}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="own-check-number">
               <FieldLabel text="Número" help="Número correlativo del cheque, impreso en la parte superior derecha." required />
               <CustomInput
                 name="numero"
@@ -199,7 +207,7 @@ const OwnCheckForm = () => {
               />
               <FieldError error={errors.numero} touched={touched.numero} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="own-check-bank">
               <FieldLabel text="Banco" help="Banco emisor de la cuenta contra la que se libra el cheque, indicado en el membrete superior." required />
               <select
                 value={values.bank}
@@ -214,7 +222,7 @@ const OwnCheckForm = () => {
               </select>
               <FieldError error={errors.bank} touched={touched.bank} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="own-check-amount">
               <FieldLabel text="Importe" help="Monto del cheque, tal como figura escrito en números y en letras en el cuerpo del cheque." required />
               <AmountInput
                 name="amount"
@@ -229,7 +237,7 @@ const OwnCheckForm = () => {
 
           {/* 2. Fechas */}
           <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fechas" cols={3}>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="own-check-issue-date">
               <FieldLabel text="Fecha de emisión" help="Fecha en la que se libra el cheque, escrita en el campo 'Fecha' del cheque." required />
               <BasicDatePicker
                 value={values.issueDate}
@@ -238,7 +246,7 @@ const OwnCheckForm = () => {
               />
               <FieldError error={errors.issueDate} touched={touched.issueDate} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="own-check-deposit-date">
               <FieldLabel text="Fecha de depósito" help="Fecha desde la cual el cheque puede depositarse (cheque diferido). Si el cheque es a la vista, dejar vacío." />
               <BasicDatePicker
                 value={values.depositDate}
@@ -248,7 +256,7 @@ const OwnCheckForm = () => {
               />
               <FieldError error={errors.depositDate} touched={touched.depositDate} />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1" data-tour="own-check-due-date">
               <FieldLabel text="Fecha de vencimiento" help="Fecha límite para cobrar el cheque, generalmente 30 días corridos después de la fecha de pago según la ley de cheques." required />
               <BasicDatePicker
                 value={values.dueDate}
@@ -270,22 +278,12 @@ const OwnCheckForm = () => {
             </div>
           </SectionCard>
 
-          {/* Action Bar */}
-          <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
-            <button
-              type="button"
-              onClick={() => navigate('/own-check')}
-              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all"
-            >
-              {id ? 'Guardar cambios' : 'Registrar Cheque'}
-            </button>
-          </div>
+          <FormActions
+            onCancel={() => navigate('/own-check')}
+            confirmType="submit"
+            confirmLabel={isSubmitting ? 'Guardando...' : id ? 'Guardar cambios' : 'Registrar Cheque'}
+            confirmDisabled={isSubmitting || !validationSchema.isValidSync(values)}
+          />
 
         </Form>
       )}

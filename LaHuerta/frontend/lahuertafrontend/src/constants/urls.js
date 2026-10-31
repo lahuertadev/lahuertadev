@@ -22,6 +22,12 @@ export const authCsrfUrl = `${API_BASE}/auth/csrf/`;
 //! Auth - Users (gestión de usuarios, solo Socio)
 export const authUsersUrl = `${API_BASE}/auth/users/`;
 
+//! News (novedades de la plataforma)
+export const newsUrl = `${API_BASE}/news/`;
+
+//! Tutorials (tutoriales guiados)
+export const tutorialUrl = `${API_BASE}/tutorials/`;
+
 //! Expense
 export const expenseUrl = `${API_BASE}/expense/`;
 

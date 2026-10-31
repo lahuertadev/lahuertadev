@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.db import transaction
 from .models import Usuario
 from .interfaces import IUserRepository
+from core.text import capitalize_words
 
 class UserRepository(IUserRepository):
 
@@ -62,8 +63,8 @@ class UserRepository(IUserRepository):
         user = Usuario(
             email=email,
             username=username,
-            first_name=first_name or '',
-            last_name=last_name or '',
+            first_name=capitalize_words(first_name or ''),
+            last_name=capitalize_words(last_name or ''),
             role=Usuario.EMPLOYEE,
             auth_provider=Usuario.GOOGLE,
             email_verified=True,

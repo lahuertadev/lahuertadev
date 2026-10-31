@@ -54,10 +54,7 @@ class BillService:
         if bill_type.codigo_afip in CREDIT_NOTE_CODES:
             self._validate_credit_note(bill_type, associated_bill)
 
-        if bill_type.codigo_afip in MANUAL_PRICE_CODES:
-            products_with_price = self._use_manual_prices(products)
-        else:
-            products_with_price = self._resolve_prices(client, products)
+        products_with_price = self._get_products_with_price(client, bill_type, products)
 
         subtotal = self._calculate_total_amount(products_with_price)
         total = self._compute_total(products_with_price, bill_type)
@@ -136,7 +133,7 @@ class BillService:
         products = data.get('items', None)
 
         if products is not None:
-            products_with_price = self._resolve_prices(new_client, products)
+            products_with_price = self._get_products_with_price(new_client, bill.tipo_factura, products)
             new_total_amount = self._calculate_total_amount(products_with_price)
             bill.subtotal = new_total_amount
             bill.total = new_total_amount
@@ -211,12 +208,33 @@ class BillService:
                 f'a una Factura {letter}.'
             )
 
-    def _use_manual_prices(self, products: list[dict]) -> list[dict]:
+    def _get_products_with_price(self, client, bill_type, products: list[dict]) -> list[dict]:
+        '''
+        Decide de dónde sale el precio de cada ítem:
+        - ND/NC: precio manual.
+        - Cliente sin lista de precios: precio manual.
+        - Resto: precio de la lista del cliente.
+        '''
+        if bill_type.codigo_afip in MANUAL_PRICE_CODES:
+            return self._use_manual_prices(
+                products,
+                'Para Notas de Débito y Crédito el precio debe ingresarse manualmente.',
+            )
+
+        if not client.lista_precios_id:
+            return self._use_manual_prices(
+                products,
+                f'El cliente {client.razon_social} no tiene lista de precios: '
+                'el precio debe ingresarse manualmente.',
+            )
+
+        return self._resolve_prices(client, products)
+
+    def _use_manual_prices(self, products: list[dict], reason: str) -> list[dict]:
         for product in products:
             if not product.get('precio_aplicado'):
                 raise PriceNotFoundError(
-                    f'El producto "{product["producto"]}" no tiene precio ingresado. '
-                    'Para Notas de Débito y Crédito el precio debe ingresarse manualmente.'
+                    f'El producto "{product["producto"]}" no tiene precio ingresado. {reason}'
                 )
         return products
 

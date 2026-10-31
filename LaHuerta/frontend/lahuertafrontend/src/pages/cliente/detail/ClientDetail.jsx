@@ -7,6 +7,8 @@ import { getActiveBadgeStyle } from '../../../constants/statusBadge';
 import { formatCuit } from '../../../utils/cuit';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { extractErrorMessage } from '../../../utils/errors';
+import { useToast } from '../../../context/ToastContext';
 import AlertDialog from '../../../components/DialogAlert';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
@@ -17,9 +19,13 @@ import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BackButton from '../../../components/BackButton';
+import SpotlightButton from '../../../components/SpotlightButton';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
+
+// Subtítulo de un grupo de campos dentro de una sección (ej. Facturación y Entrega en Dirección).
+const groupTitleCls = 'md:col-span-3 text-xs font-bold text-accent uppercase tracking-wider';
 
 const SectionCard = ({ icon, title, children, cols = 3 }) => (
   <section className="space-y-3">
@@ -55,10 +61,18 @@ const ClientDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { showToast } = useToast();
 
   const handleDelete = async () => {
-    await axios.delete(`${clientUrl}${id}/`);
-    navigate('/client');
+    try {
+      await axios.delete(`${clientUrl}${id}/`);
+      showToast('El cliente se eliminó correctamente.');
+      navigate('/client');
+    } catch (err) {
+      console.error('Error eliminando cliente:', err);
+      setConfirmOpen(false);
+      showToast(extractErrorMessage(err, 'No se pudo eliminar el cliente.'), { variant: 'error' });
+    }
   };
 
   useEffect(() => {
@@ -87,29 +101,27 @@ const ClientDetail = () => {
 
   if (error || !client) {
     return (
-      <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el cliente.</p>
-        <button
-          onClick={() => navigate('/client')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/client')} label="Volver al listado" />
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{client.razon_social}</span>
-      </nav>
+      {/* Breadcrumbs + Volver arriba a la derecha, separados del contenido con la misma línea que el pie */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+          <span className="text-xs">›</span>
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
+          <span className="text-xs">›</span>
+          <span className="text-on-surface font-semibold">{client.razon_social}</span>
+        </nav>
+        <BackButton onClick={() => navigate('/client')} className="shrink-0 px-5 py-2.5 text-sm" />
+      </div>
 
       {/* 1. Datos de la Empresa */}
       <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
@@ -118,18 +130,33 @@ const ClientDetail = () => {
         <Field label="Nombre Fantasía" value={client.nombre_fantasia} />
       </SectionCard>
 
-      {/* 2. Datos de Dirección */}
-      <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Datos de Dirección">
+      {/* 2. Dirección: la de facturación y la de entrega */}
+      <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Dirección">
+        <h3 className={groupTitleCls}>Facturación</h3>
         <Field label="Provincia" value={client.localidad?.municipio?.provincia?.nombre} />
         <Field label="Municipio" value={client.localidad?.municipio?.nombre} />
         <Field label="Localidad" value={client.localidad?.nombre} />
         <Field label="Dirección" value={client.domicilio} />
+
+        <div className="md:col-span-3 border-t border-border-subtle" />
+
+        <h3 className={groupTitleCls}>Entrega</h3>
+        {client.localidad_entrega ? (
+          <>
+            <Field label="Provincia" value={client.localidad_entrega.municipio?.provincia?.nombre} />
+            <Field label="Municipio" value={client.localidad_entrega.municipio?.nombre} />
+            <Field label="Localidad" value={client.localidad_entrega.nombre} />
+            <Field label="Dirección" value={client.domicilio_entrega} />
+          </>
+        ) : (
+          <Field label="Dirección" value="Igual a la de facturación" />
+        )}
       </SectionCard>
 
       {/* 3. Facturación */}
       <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Facturación">
         <Field label="Condición IVA" value={client.condicion_IVA?.descripcion} />
-        <Field label="Lista de Precios" value={client.lista_precios?.nombre} />
+        <Field label="Lista de Precios" value={client.lista_precios ? client.lista_precios.nombre : 'Precio manual'} />
       </SectionCard>
 
       {/* 4. Cuenta Corriente */}
@@ -163,52 +190,21 @@ const ClientDetail = () => {
         </div>
       </SectionCard>
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/client/edit/${id}`)}
-                className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/client')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/client')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/client/edit/${id}`)}
-              className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
-            >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
-            </button>
-          </div>
+      {/* Acciones: mismo layout que FormActions (abajo a la derecha; en mobile apiladas a lo ancho, la principal arriba).
+          En desktop se elimina desde el listado; en mobile no hay acciones en la grilla, por eso Eliminar va acá. */}
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-4 border-t border-border-subtle">
+        {isMobile && (
+          <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full sm:w-auto px-6 py-2.5 text-sm">
+            <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
+          </SpotlightButton>
         )}
+        <SpotlightButton
+          variant="primary"
+          onClick={() => navigate(`/client/edit/${id}`)}
+          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
+        >
+          <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+        </SpotlightButton>
       </div>
 
       <AlertDialog

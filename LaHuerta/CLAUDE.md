@@ -36,6 +36,15 @@ Antes de implementar:
 - Toda funcionalidad nueva o cambio funcional relevante debe evaluar si requiere crear o actualizar documentación en `docs/funcionalidades/`.
 - Seguir la regla `functional-documentation.md`.
 
+## Novedades de la plataforma
+- Todo cambio funcional nuevo lleva su novedad para el Inicio, cargada con una migración de datos de la app `novedad`.
+- Seguir la regla `platform-news.md`.
+
+## Tutoriales guiados
+- Toda funcionalidad nueva evalúa si lleva tutorial guiado; los tutoriales y sus pasos se cargan con migraciones de datos de la app `tutorial`.
+- Todo cambio en una pantalla que tiene tutorial valida que el tutorial siga funcionando (sus `data-tour`, eventos y rutas) antes de darse por terminado.
+- Seguir la regla `tutorials.md`.
+
 ## Ejecución de tests después de cada cambio
 Después de cualquier cambio de código, correr todos los tests del backend para verificar que no se rompió ninguna funcionalidad existente.
 

@@ -111,6 +111,28 @@ class TestClientRepository:
         })
         assert client.cuenta_corriente == Decimal('75000.50')
 
+    def test_create_client_con_direccion_de_entrega(self):
+        delivery_district = Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=self.localidad.municipio)
+        client = self.repository.create_client({
+            'cuit': '20123456789',
+            'razon_social': 'Cliente Con Entrega',
+            'cuenta_corriente': Decimal('0.00'),
+            'telefono': '1122334455',
+            'localidad': self.localidad,
+            'condicion_IVA': self.condicion_iva,
+            'localidad_entrega': delivery_district,
+            'domicilio_entrega': 'Av. Corrientes 1234',
+        })
+        client.refresh_from_db()
+        assert client.localidad_entrega == delivery_district
+        assert client.domicilio_entrega == 'Av. Corrientes 1234'
+
+    def test_create_client_sin_direccion_de_entrega(self):
+        client = self._make_client()
+        client.refresh_from_db()
+        assert client.localidad_entrega is None
+        assert client.domicilio_entrega is None
+
     # ── MODIFY ───────────────────────────────────────────────────────────────────
 
     def test_modify_client_actualiza_campos(self):
@@ -130,6 +152,24 @@ class TestClientRepository:
         self.repository.modify_client(client, {'cuenta_corriente': Decimal('-5000.00')})
         client.refresh_from_db()
         assert client.cuenta_corriente == Decimal('-5000.00')
+
+    def test_modify_client_agrega_direccion_de_entrega(self):
+        client = self._make_client()
+        delivery_district = Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=self.localidad.municipio)
+        self.repository.modify_client(client, {'localidad_entrega': delivery_district, 'domicilio_entrega': 'Thames 500'})
+        client.refresh_from_db()
+        assert client.localidad_entrega == delivery_district
+        assert client.domicilio_entrega == 'Thames 500'
+
+    def test_modify_client_quita_direccion_de_entrega(self):
+        client = self._make_client()
+        client.localidad_entrega = Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=self.localidad.municipio)
+        client.domicilio_entrega = 'Thames 500'
+        client.save()
+        self.repository.modify_client(client, {'localidad_entrega': None, 'domicilio_entrega': None})
+        client.refresh_from_db()
+        assert client.localidad_entrega is None
+        assert client.domicilio_entrega is None
 
     # ── DELETE ───────────────────────────────────────────────────────────────────
 

@@ -16,6 +16,14 @@ class Cliente(models.Model):
     nombre_fantasia = models.CharField(max_length=100, blank=True, null=True)
     estado = models.BooleanField(default=True)
     lista_precios = models.ForeignKey(ListaPrecios, on_delete=models.SET_NULL, null=True, blank=True)
+    domicilio_entrega = models.CharField(max_length=200, blank=True, null=True)
+    localidad_entrega = models.ForeignKey(
+        Localidad,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clientes_entrega',
+    )
 
     class Meta:
         db_table = 'cliente' 

@@ -2,11 +2,13 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import Usuario
 from .utils import validate_password_strength
+from core.mixins import CapitalizedFieldsMixin
 
-class UserRegisterSerializer(serializers.ModelSerializer):
+class UserRegisterSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
     """
     DTO para el registro de nuevos usuarios
     """
+    capitalized_fields = ('first_name', 'last_name')
     password = serializers.CharField(
         write_only=True,
         required=True,
@@ -190,10 +192,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
 
-class ProfileUpdateSerializer(serializers.ModelSerializer):
+class ProfileUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
     """
     DTO para editar los datos personales del propio usuario (self-service)
     """
+    capitalized_fields = ('first_name', 'last_name')
+    address_fields = ('address',)
     class Meta:
         model = Usuario
         fields = ['first_name', 'last_name', 'birth_date', 'address', 'phone']

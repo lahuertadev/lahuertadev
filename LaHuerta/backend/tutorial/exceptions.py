@@ -1,0 +1,2 @@
+class TutorialNotFoundException(Exception):
+    pass

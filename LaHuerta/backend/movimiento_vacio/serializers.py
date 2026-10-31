@@ -1,7 +1,7 @@
 from decimal import Decimal
 from rest_framework import serializers
 from .models import MovimientoVacio, MovimientoVacioContenedor
-from .enums import EmptyMovementType
+from .constants import EmptyMovementType
 from proveedor.models import Proveedor
 from proveedor.serializers import SupplierSerializer
 from tipo_contenedor.models import TipoContenedor
