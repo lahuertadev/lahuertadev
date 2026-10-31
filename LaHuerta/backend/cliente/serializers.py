@@ -41,7 +41,8 @@ class ClientCreateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
     '''
     DTO para la creación o modificación de clientes.
     '''
-    capitalized_fields = ('razon_social', 'nombre_fantasia', 'domicilio', 'domicilio_entrega')
+    capitalized_fields = ('razon_social', 'nombre_fantasia')
+    address_fields = ('domicilio', 'domicilio_entrega')
 
     cuit = serializers.RegexField(
         regex=r'^\d{11}$',
@@ -101,7 +102,8 @@ class ClientUpdateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
     '''
     DTO para la creación o modificación de clientes.
     '''
-    capitalized_fields = ('razon_social', 'nombre_fantasia', 'domicilio', 'domicilio_entrega')
+    capitalized_fields = ('razon_social', 'nombre_fantasia')
+    address_fields = ('domicilio', 'domicilio_entrega')
 
     cuit = serializers.RegexField(
         regex=r'^\d{11}$',

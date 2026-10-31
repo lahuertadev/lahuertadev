@@ -259,6 +259,24 @@ def test_create_capitaliza_nombres_y_domicilio(factory, db_setup):
     assert response.data['domicilio'] == 'Av. De Mayo 301'
 
 
+@pytest.mark.django_db
+def test_create_normaliza_abreviaturas_de_las_direcciones(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(
+        db_setup,
+        razon_social='dr gomez srl',
+        domicilio='AV corrientes 1234 pb',
+        localidad_entrega=db_setup['localidad'].id,
+        domicilio_entrega='ruta 3 km 45, esq gral paz',
+    )
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['domicilio'] == 'Av. Corrientes 1234 PB'
+    assert response.data['domicilio_entrega'] == 'Ruta 3 Km 45, Esq. Gral. Paz'
+    # La razón social no es una dirección: "Dr" queda como está.
+    assert response.data['razon_social'] == 'Dr Gomez S.R.L.'
+
+
 # ── UPDATE ─────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db

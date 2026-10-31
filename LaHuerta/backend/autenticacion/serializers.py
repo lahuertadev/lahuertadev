@@ -196,7 +196,8 @@ class ProfileUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerialize
     """
     DTO para editar los datos personales del propio usuario (self-service)
     """
-    capitalized_fields = ('first_name', 'last_name', 'address')
+    capitalized_fields = ('first_name', 'last_name')
+    address_fields = ('address',)
     class Meta:
         model = Usuario
         fields = ['first_name', 'last_name', 'birth_date', 'address', 'phone']
