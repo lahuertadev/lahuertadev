@@ -16,7 +16,7 @@ No incluye: datos de prueba ni modo "demo". Todo lo que se carga durante un tuto
 
 | Tutorial | Clave | Pantallas | Qué enseña |
 |---|---|---|---|
-| Clientes | `clients` | Clientes → Nuevo cliente | Alta de un cliente (con o sin lista de precios) y, en el listado, cómo ver el detalle, editar y eliminar. |
+| Clientes | `clients` | Clientes → Nuevo cliente | Alta de un cliente (con o sin lista de precios, con o sin dirección de entrega) y, en el listado, cómo ver el detalle, editar y eliminar. |
 | Facturación | `bills` | Facturación → Nueva factura | Qué hay en Facturas y en Remitos, y cómo hacer una factura (precio de la lista o a mano según el cliente). |
 | Pagos de Clientes | `client-payments` | Pagos de Clientes → Nuevo pago | Registrar un pago (con los datos del cheque si es con cheque) y las acciones del listado. |
 | Compras | `purchases` | Compras → Nueva compra → Carga simple | Diferencia entre carga simple y masiva, cargar una compra simple y las acciones del listado. |
@@ -36,7 +36,7 @@ No incluye: datos de prueba ni modo "demo". Todo lo que se carga durante un tuto
 
 ## Validaciones y reglas importantes
 - **Las validaciones del formulario siguen funcionando:** el tutorial no permite saltear campos obligatorios ni guarda datos de prueba. Si el guardado falla (ej. CUIT inválido), el tutorial se queda en ese paso y el error de la pantalla se ve encima del oscurecido.
-- **Pasos que dependen de lo que elige el usuario:** si un campo no aparece (ej. la lista de precios cuando el cliente no usa lista, o los datos del cheque cuando no paga con cheque), ese paso se saltea.
+- **Pasos que dependen de lo que elige el usuario:** si un campo no aparece (ej. la lista de precios cuando el cliente no usa lista, la dirección de entrega cuando se le entrega en la de facturación, o los datos del cheque cuando no paga con cheque), ese paso se saltea.
 - **Completado es definitivo:** si el usuario repite un tutorial completado y sale a mitad de camino, sigue figurando como completado.
 - **Oferta desde novedades:** si una novedad tiene tutorial y el usuario no lo completó, el aviso de la novedad muestra **Ver tutorial**. Si ya lo completó, no se le vuelve a ofrecer solo, pero sigue disponible en el birrete y en la sección Tutoriales.
 - **Por rol:** solo se ofrecen tutoriales de pantallas a las que el rol tiene acceso.
