@@ -21,6 +21,8 @@ import CustomInput from '../../../components/Input';
 import AmountInput from '../../../components/AmountInput';
 import CountUp from '../../../components/CountUp';
 import FormActions from '../../../components/FormActions';
+import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
+import { emitTutorialEvent } from '../../../utils/tutorial';
 
 const EMPTY_LINE = { tipo_contenedor: null, cantidad: '', precio_unitario: '' };
 
@@ -150,7 +152,10 @@ const EmptyMovementForm = ({ defaultType = EMPTY_MOVEMENT_TYPES.LOAD }) => {
     return nextErrors;
   };
 
-  const isFormComplete = Object.keys(validate()).length === 0;
+  const formErrors = validate();
+  const isFormComplete = Object.keys(formErrors).length === 0;
+  // Para el tutorial: los renglones están completos (al menos uno, con cantidad y precio válidos).
+  const areLinesComplete = !Object.keys(formErrors).some((key) => key.startsWith('line'));
 
   // ── Guardar ────────────────────────────────────────────────────────
   const handleSave = async () => {
@@ -182,7 +187,8 @@ const EmptyMovementForm = ({ defaultType = EMPTY_MOVEMENT_TYPES.LOAD }) => {
       if (isEdit) {
         await axios.put(`${emptyMovementUrl}${id}/`, payload);
       } else {
-        await axios.post(emptyMovementUrl, payload);
+        const response = await axios.post(emptyMovementUrl, payload);
+        emitTutorialEvent(TUTORIAL_EVENTS.emptyMovementCreated, { id: response.data.id });
       }
 
       showToast(isEdit ? 'El movimiento se actualizó correctamente.' : 'El movimiento se cargó correctamente.');
@@ -231,16 +237,18 @@ const EmptyMovementForm = ({ defaultType = EMPTY_MOVEMENT_TYPES.LOAD }) => {
         <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">Datos del movimiento</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <BasicSelect
-            label="Proveedor *"
-            name="supplier"
-            value={supplier ? { name: supplier.nombre, value: supplier.id } : null}
-            options={suppliers.map((s) => ({ name: s.nombre, value: s.id }))}
-            onChange={(e) => setSupplier(suppliers.find((s) => s.id === e.target.value?.value) || null)}
-            error={errors.supplier}
-          />
+          <div data-tour="empty-supplier" data-tour-complete={Boolean(supplier)}>
+            <BasicSelect
+              label="Proveedor *"
+              name="supplier"
+              value={supplier ? { name: supplier.nombre, value: supplier.id } : null}
+              options={suppliers.map((s) => ({ name: s.nombre, value: s.id }))}
+              onChange={(e) => setSupplier(suppliers.find((s) => s.id === e.target.value?.value) || null)}
+              error={errors.supplier}
+            />
+          </div>
 
-          <div>
+          <div data-tour="empty-date">
             <BasicDatePicker
               label="Fecha *"
               name="fecha"
@@ -251,27 +259,31 @@ const EmptyMovementForm = ({ defaultType = EMPTY_MOVEMENT_TYPES.LOAD }) => {
             {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
           </div>
 
-          <BasicSelect
-            label="Tipo *"
-            name="tipo"
-            value={EMPTY_MOVEMENT_TYPE_OPTIONS.find((option) => option.value === movementType) || null}
-            options={EMPTY_MOVEMENT_TYPE_OPTIONS}
-            onChange={(e) => setMovementType(e.target.value?.value || defaultType)}
-          />
+          <div data-tour="empty-type">
+            <BasicSelect
+              label="Tipo *"
+              name="tipo"
+              value={EMPTY_MOVEMENT_TYPE_OPTIONS.find((option) => option.value === movementType) || null}
+              options={EMPTY_MOVEMENT_TYPE_OPTIONS}
+              onChange={(e) => setMovementType(e.target.value?.value || defaultType)}
+            />
+          </div>
 
-          <CustomInput
-            label="N° de comprobante"
-            name="nro_comprobante"
-            value={receiptNumber}
-            onChange={(e) => setReceiptNumber(e.target.value)}
-            maxLength={30}
-            hint="Opcional: número del vale o factura del proveedor."
-          />
+          <div data-tour="empty-receipt">
+            <CustomInput
+              label="N° de comprobante"
+              name="nro_comprobante"
+              value={receiptNumber}
+              onChange={(e) => setReceiptNumber(e.target.value)}
+              maxLength={30}
+              hint="Opcional: número del vale o factura del proveedor."
+            />
+          </div>
         </div>
       </div>
 
       {/* Sección: Vacíos */}
-      <div className="space-y-4 mb-6">
+      <div className="space-y-4 mb-6" data-tour="empty-lines" data-tour-complete={areLinesComplete}>
         <h3 className="text-xl font-semibold text-on-surface border-b-2 border-border-subtle pb-2">Vacíos</h3>
 
         <div className="flex items-center justify-end">{addLineButton}</div>

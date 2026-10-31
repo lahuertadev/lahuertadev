@@ -43,6 +43,12 @@
   --color-accent-rgb:         74 123 196;
   --color-alert-accent:       #7e22ce;
   --color-alert-accent-rgb:   126 34 206;
+  /* Estado completado / exitoso (ej. tutorial completado) */
+  --color-success:            #15803d;
+  --color-success-rgb:        21 128 61;
+  /* Estado pendiente / a revisar (ej. tutorial sin hacer) */
+  --color-warning:            #c2410c;
+  --color-warning-rgb:        194 65 12;
   --color-alert-surface:      #faf5ff;
   --color-alert-surface-rgb:  250 245 255;
   --color-alert-border:       #e9d5ff;
@@ -87,6 +93,10 @@
   --color-accent-rgb:         147 197 253;
   --color-alert-accent:       #c084fc;
   --color-alert-accent-rgb:   192 132 252;
+  --color-success:            #4ade80;
+  --color-success-rgb:        74 222 128;
+  --color-warning:            #fb923c;
+  --color-warning-rgb:        251 146 60;
   --color-alert-surface:      #271f33;
   --color-alert-surface-rgb:  39 31 51;
   --color-alert-border:       #4a2f6b;

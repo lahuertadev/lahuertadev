@@ -17,6 +17,9 @@ from lista_precios_producto.serializers import PriceListProductSerializer
 from factura.models import Factura
 from pago_cliente.models import PagoCliente
 from django.db import IntegrityError
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ClientViewSet(ViewSet):
@@ -28,28 +31,6 @@ class ClientViewSet(ViewSet):
         super().__init__(**kwargs)
         self.client_repository = repository or ClientRepository()
         self.district_service = DistrictService()
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    def _resolve_localidad(self, data: dict) -> tuple[dict, object | None]:
-        '''
-        Si 'localidad' llega como objeto (dict), llama al servicio para
-        obtener/crear la instancia y reemplaza el valor por su ID.
-        Devuelve (data_modificado, district_instance | None).
-        '''
-        district = None
-        localidad_raw = data.get('localidad')
-
-        if isinstance(localidad_raw, dict):
-            result = self.district_service.create_or_get_district(localidad_raw)
-            district = result.get('district') if result else None
-            if not district:
-                return data, None
-            data = {**data, 'localidad': district.id}
-
-        return data, district
 
     # ------------------------------------------------------------------
     # Endpoints
@@ -72,6 +53,7 @@ class ClientViewSet(ViewSet):
             return Response(ClientResponseSerializer(clients, many=True).data, status=status.HTTP_200_OK)
 
         except Exception:
+            logger.exception("Error al listar clientes")
             return Response(
                 {'detail': 'Error al obtener los clientes.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -93,6 +75,7 @@ class ClientViewSet(ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al obtener cliente pk=%s", pk)
             return Response(
                 {'detail': 'Error al obtener el cliente.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -108,6 +91,13 @@ class ClientViewSet(ViewSet):
             if isinstance(request.data.get('localidad'), dict) and not district:
                 return Response(
                     {'detail': 'Error al procesar la localidad.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            data, delivery_ok = self._resolve_delivery_localidad(request, data)
+            if not delivery_ok:
+                return Response(
+                    {'detail': 'Error al procesar la localidad de entrega.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -145,6 +135,13 @@ class ClientViewSet(ViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            data, delivery_ok = self._resolve_delivery_localidad(request, data)
+            if not delivery_ok:
+                return Response(
+                    {'detail': 'Error al procesar la localidad de entrega.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             serializer = ClientUpdateSerializer(client, data=data)
 
             if not serializer.is_valid():
@@ -164,6 +161,7 @@ class ClientViewSet(ViewSet):
             return Response({'detail': 'El cuit o razón social ya se encuentra registrado.'}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al actualizar cliente pk=%s", pk)
             return Response(
                 {'detail': 'Ocurrió un error al actualizar el cliente.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -179,6 +177,13 @@ class ClientViewSet(ViewSet):
                 raise ClientNotFoundException('Cliente no encontrado.')
 
             data, district = self._resolve_localidad(request.data.copy())
+
+            data, delivery_ok = self._resolve_delivery_localidad(request, data)
+            if not delivery_ok:
+                return Response(
+                    {'detail': 'Error al procesar la localidad de entrega.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             serializer = ClientUpdateSerializer(client, data=data, partial=True)
             if not serializer.is_valid():
@@ -197,6 +202,7 @@ class ClientViewSet(ViewSet):
             return Response({'detail': 'El cuit o razón social ya se encuentra registrado.'}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
+            logger.exception("Error al actualizar cliente pk=%s", pk)
             return Response(
                 {'detail': 'Ocurrió un error al actualizar el cliente.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -222,6 +228,7 @@ class ClientViewSet(ViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         except Exception:
+            logger.exception("Error al eliminar cliente pk=%s", pk)
             return Response(
                 {'detail': 'Ocurrió un error al eliminar el cliente.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -247,3 +254,35 @@ class ClientViewSet(ViewSet):
             lista_precios_id=client.lista_precios_id
         ).select_related('producto', 'tipo_venta')
         return Response(PriceListProductSerializer(items, many=True).data, status=status.HTTP_200_OK)
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _resolve_localidad(self, data: dict, field: str = 'localidad') -> tuple[dict, object | None]:
+        '''
+        Si el campo de localidad ('localidad' o 'localidad_entrega') llega como
+        objeto (dict), llama al servicio para obtener/crear la instancia y
+        reemplaza el valor por su ID.
+        Devuelve (data_modificado, district_instance | None).
+        '''
+        district = None
+        localidad_raw = data.get(field)
+
+        if isinstance(localidad_raw, dict):
+            result = self.district_service.create_or_get_district(localidad_raw)
+            district = result.get('district') if result else None
+            if not district:
+                return data, None
+            data = {**data, field: district.id}
+
+        return data, district
+
+    def _resolve_delivery_localidad(self, request, data: dict) -> tuple[dict, bool]:
+        '''
+        Resuelve 'localidad_entrega' igual que la de facturación.
+        Devuelve (data_modificado, ok); ok es False si llegó como objeto y no se pudo procesar.
+        '''
+        data, delivery_district = self._resolve_localidad(data, 'localidad_entrega')
+        ok = not (isinstance(request.data.get('localidad_entrega'), dict) and not delivery_district)
+        return data, ok

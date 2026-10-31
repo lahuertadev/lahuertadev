@@ -20,8 +20,12 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import BackButton from '../../../components/BackButton';
+import SpotlightButton from '../../../components/SpotlightButton';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
+
+// Subtítulo de un grupo de campos dentro de una sección (ej. Facturación y Entrega en Dirección).
+const groupTitleCls = 'md:col-span-3 text-xs font-bold text-accent uppercase tracking-wider';
 
 const SectionCard = ({ icon, title, children, cols = 3 }) => (
   <section className="space-y-3">
@@ -126,12 +130,27 @@ const ClientDetail = () => {
         <Field label="Nombre Fantasía" value={client.nombre_fantasia} />
       </SectionCard>
 
-      {/* 2. Datos de Dirección */}
-      <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Datos de Dirección">
+      {/* 2. Dirección: la de facturación y la de entrega */}
+      <SectionCard icon={<LocationOnIcon sx={{ fontSize: 20 }} />} title="Dirección">
+        <h3 className={groupTitleCls}>Facturación</h3>
         <Field label="Provincia" value={client.localidad?.municipio?.provincia?.nombre} />
         <Field label="Municipio" value={client.localidad?.municipio?.nombre} />
         <Field label="Localidad" value={client.localidad?.nombre} />
         <Field label="Dirección" value={client.domicilio} />
+
+        <div className="md:col-span-3 border-t border-border-subtle" />
+
+        <h3 className={groupTitleCls}>Entrega</h3>
+        {client.localidad_entrega ? (
+          <>
+            <Field label="Provincia" value={client.localidad_entrega.municipio?.provincia?.nombre} />
+            <Field label="Municipio" value={client.localidad_entrega.municipio?.nombre} />
+            <Field label="Localidad" value={client.localidad_entrega.nombre} />
+            <Field label="Dirección" value={client.domicilio_entrega} />
+          </>
+        ) : (
+          <Field label="Dirección" value="Igual a la de facturación" />
+        )}
       </SectionCard>
 
       {/* 3. Facturación */}
@@ -171,38 +190,21 @@ const ClientDetail = () => {
         </div>
       </SectionCard>
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/client/edit/${id}`)}
-                className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate(`/client/edit/${id}`)}
-              className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
-            >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
-            </button>
-          </div>
+      {/* Acciones: mismo layout que FormActions (abajo a la derecha; en mobile apiladas a lo ancho, la principal arriba).
+          En desktop se elimina desde el listado; en mobile no hay acciones en la grilla, por eso Eliminar va acá. */}
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-4 border-t border-border-subtle">
+        {isMobile && (
+          <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full sm:w-auto px-6 py-2.5 text-sm">
+            <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
+          </SpotlightButton>
         )}
+        <SpotlightButton
+          variant="primary"
+          onClick={() => navigate(`/client/edit/${id}`)}
+          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
+        >
+          <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
+        </SpotlightButton>
       </div>
 
       <AlertDialog

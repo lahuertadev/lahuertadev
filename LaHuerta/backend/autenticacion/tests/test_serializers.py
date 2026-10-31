@@ -31,3 +31,9 @@ def test_profile_update_serializer_capitalizes_names_and_address():
         'last_name': 'De La Fuente',
         'address': 'Agustín De Elía 644',
     }
+
+
+def test_profile_update_serializer_normalizes_address_abbreviations():
+    serializer = ProfileUpdateSerializer(data={'address': 'AV de mayo 301 pb'}, partial=True)
+    assert serializer.is_valid(), serializer.errors
+    assert serializer.validated_data['address'] == 'Av. De Mayo 301 PB'

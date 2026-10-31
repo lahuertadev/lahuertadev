@@ -8,11 +8,41 @@ from localidad.serializers import DistrictResponseSerializer
 from tipo_condicion_iva.serializers import ConditionIvaTypeSerializer
 from lista_precios.serializers import PricesListSerializer
 
-class ClientCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
+
+class DeliveryAddressValidationMixin:
+    '''
+    Para serializers de alta/edición: la dirección de entrega es opcional, pero si
+    llega la localidad o el domicilio de entrega, se exigen los dos. En una edición
+    parcial, el campo que no llega se toma del cliente.
+    '''
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        def current_value(field):
+            if field in attrs:
+                return attrs[field]
+            return getattr(self.instance, field, None) if self.partial else None
+
+        delivery_district = current_value('localidad_entrega')
+        delivery_address = (current_value('domicilio_entrega') or '').strip()
+
+        if delivery_district and not delivery_address:
+            raise serializers.ValidationError({'domicilio_entrega': 'La dirección de entrega es obligatoria.'})
+        if delivery_address and not delivery_district:
+            raise serializers.ValidationError({'localidad_entrega': 'La localidad de entrega es obligatoria.'})
+
+        if 'domicilio_entrega' in attrs and not delivery_address:
+            attrs['domicilio_entrega'] = None
+        return attrs
+
+
+class ClientCreateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMixin, serializers.ModelSerializer):
     '''
     DTO para la creación o modificación de clientes.
     '''
-    capitalized_fields = ('razon_social', 'nombre_fantasia', 'domicilio')
+    capitalized_fields = ('razon_social', 'nombre_fantasia')
+    address_fields = ('domicilio', 'domicilio_entrega')
 
     cuit = serializers.RegexField(
         regex=r'^\d{11}$',
@@ -36,6 +66,8 @@ class ClientCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer
     localidad = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all())
     condicion_IVA = serializers.PrimaryKeyRelatedField(queryset=TipoCondicionIva.objects.all())
     lista_precios = serializers.PrimaryKeyRelatedField(queryset=ListaPrecios.objects.all(), required=False, allow_null=True)
+    localidad_entrega = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all(), required=False, allow_null=True)
+    domicilio_entrega = serializers.CharField(max_length=200, required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = Cliente
@@ -52,6 +84,8 @@ class ClientCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer
             'nombre_fantasia',
             'estado',
             'lista_precios',
+            'domicilio_entrega',
+            'localidad_entrega',
         ]
 
     def validate_cuit(self, value):
@@ -64,11 +98,12 @@ class ClientCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer
             raise serializers.ValidationError('La razón social ya se encuentra registrada.')
         return value
 
-class ClientUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
+class ClientUpdateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMixin, serializers.ModelSerializer):
     '''
     DTO para la creación o modificación de clientes.
     '''
-    capitalized_fields = ('razon_social', 'nombre_fantasia', 'domicilio')
+    capitalized_fields = ('razon_social', 'nombre_fantasia')
+    address_fields = ('domicilio', 'domicilio_entrega')
 
     cuit = serializers.RegexField(
         regex=r'^\d{11}$',
@@ -91,6 +126,8 @@ class ClientUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer
     localidad = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all())
     condicion_IVA = serializers.PrimaryKeyRelatedField(queryset=TipoCondicionIva.objects.all())
     lista_precios = serializers.PrimaryKeyRelatedField(queryset=ListaPrecios.objects.all(), required=False, allow_null=True)
+    localidad_entrega = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all(), required=False, allow_null=True)
+    domicilio_entrega = serializers.CharField(max_length=200, required=False, allow_null=True, allow_blank=True)
     class Meta:
         model = Cliente
         fields = [
@@ -106,6 +143,8 @@ class ClientUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer
             'nombre_fantasia',
             'estado',
             'lista_precios',
+            'domicilio_entrega',
+            'localidad_entrega',
         ]
 
     def validate_cuit(self, cuit):
@@ -133,6 +172,7 @@ class ClientResponseSerializer(serializers.ModelSerializer):
     localidad = DistrictResponseSerializer()
     condicion_IVA = ConditionIvaTypeSerializer()
     lista_precios = PricesListSerializer(read_only=True)
+    localidad_entrega = DistrictResponseSerializer(allow_null=True)
 
     class Meta:
         model = Cliente
@@ -149,4 +189,6 @@ class ClientResponseSerializer(serializers.ModelSerializer):
             'nombre_fantasia',
             'estado',
             'lista_precios',
+            'domicilio_entrega',
+            'localidad_entrega',
         ]
