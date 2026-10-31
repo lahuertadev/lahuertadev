@@ -17,6 +17,8 @@ export const TUTORIAL_EVENTS = {
   billCreated: 'bill-created',
   clientPaymentCreated: 'client-payment-created',
   purchaseCreated: 'purchase-created',
+  emptyMovementCreated: 'empty-movement-created',
+  ownCheckCreated: 'own-check-created',
 };
 
 // Estados que guarda el backend (tutorial/constants.py).
@@ -26,7 +28,11 @@ export const TUTORIAL_STATUS = {
   skipped: 'omitido',
 };
 
+// Estado que se muestra cuando el usuario nunca empezó el tutorial (no se guarda en el backend).
+export const TUTORIAL_PENDING = 'pendiente';
+
 export const TUTORIAL_STATUS_LABELS = {
+  [TUTORIAL_PENDING]: 'Pendiente',
   [TUTORIAL_STATUS.started]: 'Sin terminar',
   [TUTORIAL_STATUS.completed]: 'Completado',
   [TUTORIAL_STATUS.skipped]: 'Omitido',

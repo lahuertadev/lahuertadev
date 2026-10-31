@@ -1,16 +1,19 @@
 import React from 'react';
 import SpotlightButton from '../SpotlightButton';
-import { TUTORIAL_STATUS, TUTORIAL_STATUS_LABELS } from '../../constants/tutorials';
+import { TUTORIAL_PENDING, TUTORIAL_STATUS, TUTORIAL_STATUS_LABELS } from '../../constants/tutorials';
 
 const STATUS_CLASS = {
-  [TUTORIAL_STATUS.completed]: 'bg-accent/10 text-accent',
+  [TUTORIAL_PENDING]: 'bg-warning/15 text-warning',
+  [TUTORIAL_STATUS.completed]: 'bg-success/15 text-success',
   [TUTORIAL_STATUS.started]: 'bg-alert-accent/10 text-alert-accent',
-  [TUTORIAL_STATUS.skipped]: 'bg-surface-low text-on-surface-muted',
+  [TUTORIAL_STATUS.skipped]: 'bg-on-surface-muted/15 text-on-surface-muted',
 };
 
 /**
  * Tarjeta de un tutorial guiado con su estado y el botón para empezarlo (o repetirlo si ya lo
- * completó). La usan el botón del birrete y la sección Tutoriales.
+ * completó). La usan el botón del birrete y la sección Tutoriales. Todas las tarjetas miden lo mismo:
+ * la descripción ocupa siempre 3 líneas (si es más larga se corta y se ve entera al pasar el mouse)
+ * y el botón, de ancho fijo, queda abajo.
  *
  * Props:
  *   tutorial — definición (constants/tutorials)
@@ -19,22 +22,21 @@ const STATUS_CLASS = {
  */
 export default function TutorialCard({ tutorial, status, onStart }) {
   const completed = status === TUTORIAL_STATUS.completed;
+  const displayStatus = status || TUTORIAL_PENDING;
 
   return (
-    <li className="flex flex-col gap-2 rounded-xl border border-border-subtle bg-surface p-3">
+    <li className="flex h-full flex-col gap-2 rounded-xl border border-border-subtle bg-surface p-3">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-semibold text-on-surface">{tutorial.title}</p>
-        {status && (
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ${STATUS_CLASS[status]}`}>
-            {TUTORIAL_STATUS_LABELS[status]}
-          </span>
-        )}
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ${STATUS_CLASS[displayStatus]}`}>
+          {TUTORIAL_STATUS_LABELS[displayStatus]}
+        </span>
       </div>
-      <p className="text-xs text-on-surface-muted">{tutorial.description}</p>
+      <p className="h-12 line-clamp-3 text-xs leading-4 text-on-surface-muted" title={tutorial.description}>{tutorial.description}</p>
       <SpotlightButton
         variant={completed ? 'outline' : 'primary'}
         onClick={() => onStart(tutorial.key)}
-        className="w-full px-3 py-1.5 text-sm sm:w-auto sm:self-end"
+        className="mt-auto w-full px-3 py-1.5 text-sm sm:w-28 sm:self-end"
       >
         {completed ? 'Repetir' : 'Empezar'}
       </SpotlightButton>

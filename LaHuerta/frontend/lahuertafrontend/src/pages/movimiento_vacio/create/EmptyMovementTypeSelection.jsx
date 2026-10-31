@@ -21,14 +21,16 @@ const EmptyMovementTypeSelection = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {Object.values(EMPTY_MOVEMENT_TYPE_CONFIG).map(({ title, description, path, icon }) => (
-          <AccessCard
-            key={path}
-            title={title}
-            description={description}
-            url={`/empty-movement/create/${path}`}
-            icon={icon}
-            size="large"
-          />
+          // data-tour: empty-type-load / empty-type-return (pasos del tutorial de Vacíos).
+          <div key={path} data-tour={`empty-type-${path}`} className="flex">
+            <AccessCard
+              title={title}
+              description={description}
+              url={`/empty-movement/create/${path}`}
+              icon={icon}
+              size="large"
+            />
+          </div>
         ))}
       </div>
     </div>

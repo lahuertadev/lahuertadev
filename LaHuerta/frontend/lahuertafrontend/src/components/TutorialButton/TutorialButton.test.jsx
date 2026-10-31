@@ -82,3 +82,11 @@ test('no se muestra mientras hay un tutorial en curso', () => {
 
   expect(screen.queryByLabelText('Tutoriales')).not.toBeInTheDocument();
 });
+
+test('un tutorial que nunca empezó figura como "Pendiente"', () => {
+  renderButton();
+
+  fireEvent.click(screen.getByLabelText('Tutoriales'));
+
+  expect(screen.getByText('Pendiente')).toBeInTheDocument();
+});

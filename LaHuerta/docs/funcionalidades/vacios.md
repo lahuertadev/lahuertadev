@@ -54,6 +54,7 @@ No incluye: control de stock de vacíos por proveedor (cuántos quedan pendiente
 - Edición: `/empty-movement/edit/:id`
 - Detalle: `/empty-movement/detail/:id`
 - Formularios de compra: muestran un aviso fijo de que los vacíos se cargan aparte.
+- Tutorial guiado de Vacíos (`empty-movements`, ver `tutoriales.md`): explica la diferencia entre carga y devolución, recorre el alta de una carga y las acciones del listado. Lo ofrece también la novedad de vacíos del Inicio.
 
 ## Endpoints
 - `GET /empty-movement/` — listado. Filtros: `proveedor` (búsqueda parcial por nombre o nombre de fantasía, sin distinguir mayúsculas), `tipo` (`CARGA` | `DEVOLUCION`), `importe` (coincidencia exacta), `fecha_desde`, `fecha_hasta`.

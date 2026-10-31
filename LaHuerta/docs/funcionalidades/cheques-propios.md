@@ -90,6 +90,7 @@ Los cheques emitidos por La Huerta suelen entregarse al proveedor antes de que p
 - `/own-check/create` — Formulario de nuevo cheque
 - `/own-check/edit/:id` — Formulario de edición de cheque
 - `/purchase-payment/create` — Formulario de pago de compra (sección Cheque Propio)
+- Tutorial guiado de Cheques emitidos (`own-checks`, ver `tutoriales.md`): recorre el alta de un cheque y las acciones del listado. Lo ofrece la novedad "Tutorial de Cheques emitidos" del Inicio.
 
 ## Endpoints involucrados
 - `GET /api/own-checks/` — Listado con filtros opcionales (`state`, `bank`, `available`, `supplier_id`)

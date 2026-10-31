@@ -4,7 +4,7 @@
 Enseñar a usar cada pantalla mientras el usuario hace la tarea real, sin depender de que otra persona le explique. Lo que se carga durante un tutorial queda guardado de verdad (ej. el cliente queda creado con los datos que cargó). Ver DEV-138.
 
 ## Alcance
-- Un tutorial por pantalla. Por ahora: Clientes, Facturación, Pagos de Clientes y Compras.
+- Un tutorial por pantalla. Por ahora: Clientes, Facturación, Pagos de Clientes, Compras, Vacíos y Cheques emitidos.
 - Botón flotante del **birrete**, abajo a la derecha, solo en las pantallas que tienen tutorial. Muestra únicamente el tutorial de esa pantalla.
 - Sección **Tutoriales** al final del menú lateral, con todos los tutoriales agrupados como el menú.
 - Registro por usuario del estado de cada tutorial: sin terminar, completado u omitido.
@@ -20,6 +20,8 @@ No incluye: datos de prueba ni modo "demo". Todo lo que se carga durante un tuto
 | Facturación | `bills` | Facturación → Nueva factura | Qué hay en Facturas y en Remitos, y cómo hacer una factura (precio de la lista o a mano según el cliente). |
 | Pagos de Clientes | `client-payments` | Pagos de Clientes → Nuevo pago | Registrar un pago (con los datos del cheque si es con cheque) y las acciones del listado. |
 | Compras | `purchases` | Compras → Nueva compra → Carga simple | Diferencia entre carga simple y masiva, cargar una compra simple y las acciones del listado. |
+| Vacíos | `empty-movements` | Vacíos → Nuevo movimiento → Carga de vacíos | Diferencia entre carga y devolución, cargar un movimiento (proveedor, fecha, comprobante y renglones) y las acciones del listado. |
+| Cheques emitidos | `own-checks` | Cheques emitidos → Nuevo cheque | Registrar un cheque propio (número, banco, importe y fechas, con la de depósito si es diferido) y, en el listado, cómo verlo, editarlo, cobrarlo o anularlo. |
 
 ## Flujo de uso
 1. El usuario abre un tutorial de una de estas dos formas:
@@ -64,7 +66,7 @@ En el código de cada pantalla queda solo lo que conecta los pasos con ella: los
 ## Pantallas involucradas
 - Botón del birrete en las pantallas con tutorial (`components/TutorialButton`).
 - Sección Tutoriales (`pages/tutorial/TutorialList.jsx`, ruta `/tutorials`), al pie del menú lateral, separada de las demás secciones (`bottom: true` en `headerOptions`).
-- Clientes, Facturación, Pagos de Clientes y Compras: listados y formularios de alta.
+- Clientes, Facturación, Pagos de Clientes, Compras, Vacíos y Cheques emitidos: listados y formularios de alta.
 - Inicio: aviso de novedades con "Ver tutorial".
 
 ## Consideraciones

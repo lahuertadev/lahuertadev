@@ -27,6 +27,8 @@ module.exports = {
         'field-locked-border':   'rgb(var(--color-field-locked-border-rgb) / <alpha-value>)',
         'accent':                'rgb(var(--color-accent-rgb) / <alpha-value>)',
         'alert-accent':          'rgb(var(--color-alert-accent-rgb) / <alpha-value>)',
+        'success':               'rgb(var(--color-success-rgb) / <alpha-value>)',
+        'warning':               'rgb(var(--color-warning-rgb) / <alpha-value>)',
         'alert-surface':         'rgb(var(--color-alert-surface-rgb) / <alpha-value>)',
         'alert-border':          'rgb(var(--color-alert-border-rgb) / <alpha-value>)',
         'news-accent':           'rgb(var(--color-news-accent-rgb) / <alpha-value>)',
