@@ -4,6 +4,7 @@ from .models import Proveedor
 from mercado.models import Mercado
 from mercado.serializers import MarketSerializer
 from .exceptions import SupplierNameAlreadyExistsException
+from contacto.serializers import ContactSerializer, validate_contacts
 
 
 class SupplierCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializer):
@@ -24,9 +25,14 @@ class SupplierCreateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializ
         }
     )
 
+    contactos = ContactSerializer(many=True)
+
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre', 'puesto', 'nave', 'telefono', 'cuenta_corriente', 'nombre_fantasia', 'mercado']
+        fields = ['id', 'nombre', 'puesto', 'nave', 'contactos', 'cuenta_corriente', 'nombre_fantasia', 'mercado']
+
+    def validate_contactos(self, value):
+        return validate_contacts(value)
 
     def validate_nombre(self, value):
         if Proveedor.objects.filter(nombre__iexact=value).exists():
@@ -52,9 +58,14 @@ class SupplierUpdateSerializer(CapitalizedFieldsMixin, serializers.ModelSerializ
         }
     )
 
+    contactos = ContactSerializer(many=True)
+
     class Meta:
         model = Proveedor
-        fields = ['id', 'nombre', 'puesto', 'nave', 'telefono', 'cuenta_corriente', 'nombre_fantasia', 'mercado']
+        fields = ['id', 'nombre', 'puesto', 'nave', 'contactos', 'cuenta_corriente', 'nombre_fantasia', 'mercado']
+
+    def validate_contactos(self, value):
+        return validate_contacts(value)
 
     def validate_nombre(self, value):
         instance = self.instance
@@ -73,6 +84,7 @@ class SupplierSerializer(serializers.ModelSerializer):
     DTO de respuesta del proveedor.
     '''
     mercado = MarketSerializer()
+    contactos = ContactSerializer(many=True, read_only=True)
 
     class Meta:
         model = Proveedor
@@ -81,7 +93,7 @@ class SupplierSerializer(serializers.ModelSerializer):
             'nombre',
             'puesto',
             'nave',
-            'telefono',
+            'contactos',
             'cuenta_corriente',
             'nombre_fantasia',
             'mercado',

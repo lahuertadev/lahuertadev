@@ -1,8 +1,11 @@
 from rest_framework.viewsets import ViewSet
 from rest_framework.response import Response
 from rest_framework import status
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
+from contacto.constants import SUPPLIER_OWNER
+from contacto.exceptions import ContactNotFoundException, ContactRequiredException
+from contacto.factory import build_contact_service
 from .repositories import SupplierRepository
 from .interfaces import ISupplierRepository
 from .serializers import (
@@ -12,6 +15,9 @@ from .serializers import (
     SupplierQueryParamsSerializer,
 )
 from .exceptions import SupplierNotFoundException, SupplierNameAlreadyExistsException
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SupplierViewSet(ViewSet):
@@ -19,9 +25,10 @@ class SupplierViewSet(ViewSet):
     Gestión de proveedores.
     '''
 
-    def __init__(self, repository: ISupplierRepository = None, **kwargs):
+    def __init__(self, repository: ISupplierRepository = None, contact_service=None, **kwargs):
         super().__init__(**kwargs)
         self.supplier_repository = repository or SupplierRepository()
+        self.contact_service = contact_service or build_contact_service()
 
     def list(self, request):
         '''
@@ -39,6 +46,7 @@ class SupplierViewSet(ViewSet):
             return Response(SupplierSerializer(suppliers, many=True).data, status=status.HTTP_200_OK)
 
         except Exception:
+            logger.exception("Error al listar proveedores")
             return Response(
                 {'detail': 'Error al obtener los proveedores.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -59,6 +67,7 @@ class SupplierViewSet(ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al obtener proveedor pk=%s", pk)
             return Response(
                 {'detail': 'Error al obtener el proveedor.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -74,10 +83,14 @@ class SupplierViewSet(ViewSet):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            supplier = self.supplier_repository.create_supplier(serializer.validated_data)
+            data = dict(serializer.validated_data)
+            contacts = data.pop('contactos')
+            with transaction.atomic():
+                supplier = self.supplier_repository.create_supplier(data)
+                self.contact_service.sync_contacts(SUPPLIER_OWNER, supplier, contacts)
             return Response(SupplierSerializer(supplier).data, status=status.HTTP_201_CREATED)
 
-        except SupplierNameAlreadyExistsException as e:
+        except (SupplierNameAlreadyExistsException, ContactNotFoundException, ContactRequiredException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except IntegrityError:
@@ -102,13 +115,13 @@ class SupplierViewSet(ViewSet):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            updated = self.supplier_repository.modify_supplier(supplier, serializer.validated_data)
+            updated = self._save_supplier(supplier, serializer.validated_data)
             return Response(SupplierSerializer(updated).data, status=status.HTTP_200_OK)
 
         except SupplierNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except SupplierNameAlreadyExistsException as e:
+        except (SupplierNameAlreadyExistsException, ContactNotFoundException, ContactRequiredException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except IntegrityError:
@@ -118,6 +131,7 @@ class SupplierViewSet(ViewSet):
             )
 
         except Exception:
+            logger.exception("Error al actualizar proveedor pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar el proveedor.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -136,13 +150,13 @@ class SupplierViewSet(ViewSet):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            updated = self.supplier_repository.modify_supplier(supplier, serializer.validated_data)
+            updated = self._save_supplier(supplier, serializer.validated_data)
             return Response(SupplierSerializer(updated).data, status=status.HTTP_200_OK)
 
         except SupplierNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except SupplierNameAlreadyExistsException as e:
+        except (SupplierNameAlreadyExistsException, ContactNotFoundException, ContactRequiredException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except IntegrityError:
@@ -152,6 +166,7 @@ class SupplierViewSet(ViewSet):
             )
 
         except Exception:
+            logger.exception("Error al actualizar proveedor pk=%s", pk)
             return Response(
                 {'detail': 'Error al actualizar el proveedor.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -173,7 +188,21 @@ class SupplierViewSet(ViewSet):
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
         except Exception:
+            logger.exception("Error al eliminar proveedor pk=%s", pk)
             return Response(
                 {'detail': 'Error al eliminar el proveedor.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _save_supplier(self, supplier, validated_data):
+        data = dict(validated_data)
+        contacts = data.pop('contactos', None)
+        with transaction.atomic():
+            updated = self.supplier_repository.modify_supplier(supplier, data)
+            if contacts is not None:
+                self.contact_service.sync_contacts(SUPPLIER_OWNER, updated, contacts)
+        return updated
