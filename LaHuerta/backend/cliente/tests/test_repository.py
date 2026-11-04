@@ -7,6 +7,7 @@ from localidad.models import Localidad
 from tipo_condicion_iva.models import TipoCondicionIva
 from cliente.models import Cliente
 from cliente.repositories import ClientRepository
+from contacto.models import Contacto
 
 
 @pytest.mark.django_db
@@ -23,7 +24,6 @@ class TestClientRepository:
             cuit=cuit,
             razon_social=razon_social,
             cuenta_corriente=cuenta_corriente,
-            telefono='1122334455',
             localidad=self.localidad,
             condicion_IVA=self.condicion_iva,
         )
@@ -92,7 +92,6 @@ class TestClientRepository:
             'cuit': '20123456789',
             'razon_social': 'Nuevo Cliente SA',
             'cuenta_corriente': Decimal('5000.00'),
-            'telefono': '1122334455',
             'localidad': self.localidad,
             'condicion_IVA': self.condicion_iva,
         })
@@ -105,7 +104,6 @@ class TestClientRepository:
             'cuit': '20123456789',
             'razon_social': 'Cliente Con Saldo',
             'cuenta_corriente': Decimal('75000.50'),
-            'telefono': '1122334455',
             'localidad': self.localidad,
             'condicion_IVA': self.condicion_iva,
         })
@@ -117,7 +115,6 @@ class TestClientRepository:
             'cuit': '20123456789',
             'razon_social': 'Cliente Con Entrega',
             'cuenta_corriente': Decimal('0.00'),
-            'telefono': '1122334455',
             'localidad': self.localidad,
             'condicion_IVA': self.condicion_iva,
             'localidad_entrega': delivery_district,
@@ -178,6 +175,20 @@ class TestClientRepository:
         client_id = client.id
         self.repository.delete_client(client)
         assert Cliente.objects.filter(id=client_id).count() == 0
+
+    def test_delete_client_elimina_sus_contactos(self):
+        client = self._make_client()
+        Contacto.objects.create(cliente=client, numero='1155551234')
+        self.repository.delete_client(client)
+        assert Contacto.objects.count() == 0
+
+    # ── CONTACTOS ────────────────────────────────────────────────────────────────
+
+    def test_get_all_incluye_contactos(self):
+        client = self._make_client()
+        Contacto.objects.create(cliente=client, numero='1155551234', descripcion='Pagos')
+        result = list(self.repository.get_all_clients())
+        assert [contact.numero for contact in result[0].contactos.all()] == ['1155551234']
 
     # ── UPDATE BALANCE ───────────────────────────────────────────────────────────
 
