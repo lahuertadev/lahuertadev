@@ -306,7 +306,7 @@ def test_destroy_success(factory, viewset):
 def _create_pago_compra():
     mercado = Mercado.objects.create(descripcion='Mercado Test')
     proveedor = Proveedor.objects.create(
-        nombre='Prov Test', puesto=1, telefono='11111111',
+        nombre='Prov Test', puesto=1,
         cuenta_corriente=0, nombre_fantasia='Prov', mercado=mercado,
     )
     compra = Compra.objects.create(

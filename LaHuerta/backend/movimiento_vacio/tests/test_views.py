@@ -27,7 +27,7 @@ def db_setup(db):
 
     def make_supplier(name, stall):
         return Proveedor.objects.create(
-            nombre=name, puesto=stall, telefono='1122334455',
+            nombre=name, puesto=stall,
             nombre_fantasia=name, mercado=market, cuenta_corriente=Decimal('0'),
         )
 

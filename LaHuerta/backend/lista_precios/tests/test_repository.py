@@ -160,7 +160,6 @@ class TestPricesListRepository:
             cuit=cuit,
             razon_social=business_name,
             cuenta_corriente=Decimal('0.00'),
-            telefono='1122334455',
             localidad=locality,
             condicion_IVA=iva_condition,
             lista_precios=price_list,

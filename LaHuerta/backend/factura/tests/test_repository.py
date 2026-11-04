@@ -36,7 +36,6 @@ class TestBillRepository:
             cuenta_corriente=Decimal("0.00"),
             localidad=localidad,
             condicion_IVA=condicion_iva,
-            telefono="1234567890",
             lista_precios=lista_precios,
         )
 

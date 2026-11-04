@@ -15,7 +15,7 @@ def _make_supplier(name='Proveedor Test'):
     market, _ = Mercado.objects.get_or_create(descripcion='Mercado Test')
     supplier, _ = Proveedor.objects.get_or_create(
         nombre=name,
-        defaults={'puesto': 1, 'telefono': '1234567890', 'nombre_fantasia': '', 'mercado': market},
+        defaults={'puesto': 1, 'nombre_fantasia': '', 'mercado': market},
     )
     return supplier
 

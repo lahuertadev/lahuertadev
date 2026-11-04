@@ -42,7 +42,6 @@ class TestBuyProductRepository:
         proveedor = Proveedor.objects.create(
             nombre="Proveedor Test",
             puesto=1,
-            telefono="1234",
             nombre_fantasia="Proveedor Test",
             mercado=mercado,
         )

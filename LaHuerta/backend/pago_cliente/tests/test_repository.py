@@ -23,7 +23,6 @@ class TestClientPaymentRepository:
             cuit='20123456789',
             razon_social='Cliente Test SA',
             cuenta_corriente=Decimal('10000.00'),
-            telefono='1122334455',
             localidad=localidad,
             condicion_IVA=condicion_iva,
         )
@@ -54,7 +53,6 @@ class TestClientPaymentRepository:
             cuit='27987654321',
             razon_social='Otro Cliente SRL',
             cuenta_corriente=Decimal('0.00'),
-            telefono='9988776655',
             localidad=localidad,
             condicion_IVA=condicion_iva,
         )

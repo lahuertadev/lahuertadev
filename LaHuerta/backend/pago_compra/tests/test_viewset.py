@@ -30,7 +30,6 @@ def db_setup(db):
     proveedor = Proveedor.objects.create(
         nombre='Proveedor Test',
         puesto=1,
-        telefono='1234567890',
         cuenta_corriente=Decimal('0.00'),
         nombre_fantasia='PT',
         mercado=mercado,

@@ -36,7 +36,6 @@ def db_setup(db):
         cuit='20123456789',
         razon_social='Cliente Test SA',
         cuenta_corriente=Decimal('10000.00'),
-        telefono='1122334455',
         localidad=localidad,
         condicion_IVA=condicion_iva,
     )
@@ -170,7 +169,6 @@ def test_list_filter_by_client_id(factory, db_setup):
         cuit='27987654321',
         razon_social='Otro SRL',
         cuenta_corriente=Decimal('0.00'),
-        telefono='9988776655',
         localidad=db_setup['cliente'].localidad,
         condicion_IVA=db_setup['cliente'].condicion_IVA,
     )
