@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'arca',
     'novedad',
     'tutorial',
+    'contacto',
 ]
 
 MIDDLEWARE = [

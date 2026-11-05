@@ -9,7 +9,7 @@ class ClientPaymentRepository(IClientPaymentRepository):
         qs = (
             PagoCliente.objects
             .select_related('cliente', 'tipo_pago')
-            .prefetch_related('cheque_set__banco', 'cheque_set__estado')
+            .prefetch_related('cheque_set__banco', 'cheque_set__estado', 'cliente__contactos')
             .all()
         )
         if client_id:

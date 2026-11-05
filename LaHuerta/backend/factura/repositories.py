@@ -8,7 +8,7 @@ class BillRepository(IBillRepository):
     def get_all(self, client_id=None, cuit=None, business_name=None,
                 amount_min=None, amount_max=None, date_from=None, date_to=None,
                 bill_type_id=None):
-        qs = Factura.objects.select_related('cliente', 'tipo_factura').all()
+        qs = Factura.objects.select_related('cliente', 'tipo_factura').prefetch_related('cliente__contactos')
         if client_id:
             qs = qs.filter(cliente_id=client_id)
         if cuit:
