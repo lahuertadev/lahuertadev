@@ -1,31 +1,24 @@
 import pytest
 from decimal import Decimal
 
-from mercado.models import Mercado
-from proveedor.models import Proveedor
-from tipo_contenedor.models import TipoContenedor
 from movimiento_vacio.models import MovimientoVacio, MovimientoVacioContenedor
 from movimiento_vacio.repositories import EmptyMovementRepository
 from movimiento_vacio.constants import EmptyMovementType
+from core.tests.factories import make_container_type, make_empty_movement, make_supplier
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _make_supplier(name='Proveedor Test'):
-    market, _ = Mercado.objects.get_or_create(descripcion='Mercado Test')
-    supplier, _ = Proveedor.objects.get_or_create(
-        nombre=name,
-        defaults={'puesto': 1, 'nombre_fantasia': '', 'mercado': market},
-    )
-    return supplier
+    return make_supplier(nombre=name)
 
 
 def _make_container_type(description='Cajón Test'):
-    return TipoContenedor.objects.create(descripcion=description, abreviacion='c')
+    return make_container_type(descripcion=description, abreviacion='c')
 
 
 def _make_movement(supplier, movement_type=EmptyMovementType.LOAD, date='2026-07-14', amount=Decimal('1000.00')):
-    return MovimientoVacio.objects.create(
+    return make_empty_movement(
         proveedor=supplier, fecha=date, tipo=movement_type, importe=amount,
     )
 

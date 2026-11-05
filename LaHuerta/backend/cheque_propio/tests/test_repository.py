@@ -1,24 +1,19 @@
 import pytest
 from decimal import Decimal
 
-from banco.models import Banco
-from mercado.models import Mercado
-from proveedor.models import Proveedor
-from compra.models import Compra
-from tipo_pago.models import TipoPago
-from pago_compra.models import PagoCompra
 from cheque_propio.models import OwnCheck
 from cheque_propio.repositories import OwnCheckRepository
+from core.tests.factories import make_bank, make_own_check, make_purchase, make_purchase_payment, make_supplier
 
 
 @pytest.mark.django_db
 class TestOwnCheckRepository:
     def setup_method(self):
         self.repository = OwnCheckRepository()
-        self.banco = Banco.objects.create(descripcion='Nación')
+        self.banco = make_bank(descripcion='Nación')
 
     def _make_own_check(self, numero=1001, importe=Decimal('1000.00'), banco=None, estado=OwnCheck.State.EMITIDO):
-        return OwnCheck.objects.create(
+        return make_own_check(
             numero=numero,
             importe=importe,
             fecha_emision='2024-01-01',
@@ -28,20 +23,13 @@ class TestOwnCheckRepository:
         )
 
     def _make_proveedor(self, nombre='ProvTest'):
-        mercado, _ = Mercado.objects.get_or_create(descripcion='Mercado Test')
-        return Proveedor.objects.create(
-            nombre=nombre, puesto=1,
-            cuenta_corriente=Decimal('0.00'), nombre_fantasia=nombre, mercado=mercado,
-        )
+        return make_supplier(nombre=nombre)
 
     def _make_pago_compra(self, own_check, proveedor, importe_abonado=Decimal('500.00')):
-        tipo_pago = TipoPago.objects.get_or_create(descripcion='Cheque Propio')[0]
-        compra = Compra.objects.create(
-            fecha='2024-01-01', importe=Decimal('1000.00'), senia=Decimal('0.00'), proveedor=proveedor,
-        )
-        return PagoCompra.objects.create(
-            compra=compra, importe_abonado=importe_abonado, tipo_pago=tipo_pago,
-            fecha_pago='2024-01-02', cheque_propio=own_check,
+        return make_purchase_payment(
+            compra=make_purchase(proveedor=proveedor),
+            importe_abonado=importe_abonado,
+            cheque_propio=own_check,
         )
 
     # ------------------------- GET ALL -------------------------
@@ -67,7 +55,7 @@ class TestOwnCheckRepository:
         assert result.first().numero == 1002
 
     def test_get_all_filtra_por_banco(self):
-        otro_banco = Banco.objects.create(descripcion='Galicia')
+        otro_banco = make_bank(descripcion='Galicia')
         self._make_own_check(1001, banco=self.banco)
         self._make_own_check(1002, banco=otro_banco)
 
@@ -138,7 +126,7 @@ class TestOwnCheckRepository:
 
     def test_exists_duplicate_distinto_banco_no_es_duplicado(self):
         self._make_own_check(numero=3001, banco=self.banco)
-        otro_banco = Banco.objects.create(descripcion='Galicia')
+        otro_banco = make_bank(descripcion='Galicia')
 
         assert self.repository.exists_duplicate(3001, otro_banco) is False
 

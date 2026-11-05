@@ -2,19 +2,19 @@ import pytest
 from decimal import Decimal
 
 from contacto.models import Contacto
-from mercado.models import Mercado
 from proveedor.models import Proveedor
 from proveedor.repositories import SupplierRepository
+from core.tests.factories import make_contact, make_market, make_supplier
 
 
 @pytest.mark.django_db
 class TestSupplierRepository:
     def setup_method(self):
         self.repository = SupplierRepository()
-        self.mercado = Mercado.objects.create(descripcion='Belgrano')
+        self.mercado = make_market(descripcion='Belgrano')
 
     def _make_supplier(self, nombre='Prov1', puesto=1, nave=None, nombre_fantasia='Fantasia', cuenta_corriente=Decimal('0.00')):
-        return Proveedor.objects.create(
+        return make_supplier(
             nombre=nombre,
             puesto=puesto,
             nave=nave,
@@ -55,9 +55,9 @@ class TestSupplierRepository:
         assert result.first().nombre_fantasia == 'Mercadito'
 
     def test_get_all_filter_by_mercado(self):
-        otro_mercado = Mercado.objects.create(descripcion='Central')
+        otro_mercado = make_market(descripcion='Central')
         self._make_supplier('ProvBelg')
-        Proveedor.objects.create(
+        make_supplier(
             nombre='ProvCent',
             puesto=2,
             nombre_fantasia='CF',
@@ -174,7 +174,7 @@ class TestSupplierRepository:
 
     def test_delete_supplier_deletes_its_contacts(self):
         supplier = self._make_supplier()
-        Contacto.objects.create(proveedor=supplier, numero='1155551234')
+        make_contact(proveedor=supplier, numero='1155551234')
 
         self.repository.delete_supplier(supplier)
 
@@ -183,7 +183,7 @@ class TestSupplierRepository:
     # ------------------------- CONTACTOS -----------------------
     def test_get_all_includes_contacts(self):
         supplier = self._make_supplier()
-        Contacto.objects.create(proveedor=supplier, numero='1155551234', descripcion='Puesto')
+        make_contact(proveedor=supplier, numero='1155551234', descripcion='Puesto')
 
         result = list(self.repository.get_all_suppliers())
 

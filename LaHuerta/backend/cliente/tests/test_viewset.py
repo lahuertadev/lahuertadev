@@ -5,20 +5,12 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from lista_precios.models import ListaPrecios
 from cliente.models import Cliente
 from cliente.views import ClientViewSet
 from cliente.interfaces import IClientRepository
 from cliente.exceptions import ClientNotFoundException
-from factura.models import Factura
-from tipo_factura.models import TipoFactura
-from pago_cliente.models import PagoCliente
-from tipo_pago.models import TipoPago
 from contacto.models import Contacto
+from core.tests.factories import make_bill, make_client, make_client_payment, make_contact, make_locality, make_municipality, make_price_list, make_province, make_vat_condition
 
 
 # ── Fixtures DB ────────────────────────────────────────────────────────────────
@@ -30,18 +22,18 @@ def factory():
 
 @pytest.fixture
 def db_setup(db):
-    provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-    municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-    localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-    cliente = Cliente.objects.create(
+    provincia = make_province(id='06', nombre='Buenos Aires')
+    municipio = make_municipality(id='064270', nombre='CABA', provincia=provincia)
+    localidad = make_locality(id='0642701009', nombre='CABA', municipio=municipio)
+    condicion_iva = make_vat_condition(descripcion='RI')
+    cliente = make_client(
         cuit='20123456789',
         razon_social='Cliente Test S.A.',
         cuenta_corriente=Decimal('10000.00'),
         localidad=localidad,
         condicion_IVA=condicion_iva,
     )
-    contacto = Contacto.objects.create(cliente=cliente, numero='1122334455')
+    contacto = make_contact(cliente=cliente, numero='1122334455')
     return {
         'cliente': cliente,
         'contacto': contacto,
@@ -228,7 +220,7 @@ def test_create_campos_obligatorios_faltantes(factory):
 @pytest.mark.django_db
 def test_create_con_lista_de_precios(factory, db_setup):
     vs, _ = _make_viewset()
-    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    price_list = make_price_list(descripcion='Lista General')
     payload = _base_payload(db_setup, lista_precios=price_list.id)
     response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 201
@@ -322,7 +314,7 @@ def test_update_not_found(factory, db_setup):
 def test_update_quita_lista_de_precios(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    client.lista_precios = ListaPrecios.objects.create(descripcion='Lista General')
+    client.lista_precios = make_price_list(descripcion='Lista General')
     client.save()
     payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=None)
     response = vs.update(
@@ -339,7 +331,7 @@ def test_update_quita_lista_de_precios(factory, db_setup):
 def test_update_asigna_lista_de_precios(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    price_list = make_price_list(descripcion='Lista General')
     payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=price_list.id)
     response = vs.update(
         Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
@@ -377,7 +369,7 @@ class FakeDistrictService:
 @pytest.fixture
 def delivery_district(db_setup):
     municipio = db_setup['localidad'].municipio
-    return Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=municipio)
+    return make_locality(id='0642701010', nombre='Palermo', municipio=municipio)
 
 
 def _set_delivery_address(client, district, address='Av. Corrientes 1234'):
@@ -714,7 +706,7 @@ def test_update_modifica_agrega_y_elimina_contactos(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
     kept = db_setup['contacto']
-    removed = Contacto.objects.create(cliente=client, numero='1100000000')
+    removed = make_contact(cliente=client, numero='1100000000')
     payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, contactos=[
         {'id': kept.id, 'numero': '1122334455', 'descripcion': 'Compras'},
         {'numero': '1177778888', 'email': 'nuevo@cliente.com'},
@@ -737,11 +729,8 @@ def test_update_modifica_agrega_y_elimina_contactos(factory, db_setup):
 def test_update_con_contacto_de_otro_cliente(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    other_client = Cliente.objects.create(
-        cuit='20555555555', razon_social='Otro Cliente', cuenta_corriente=Decimal('0.00'),
-        localidad=db_setup['localidad'], condicion_IVA=db_setup['condicion_iva'],
-    )
-    other_contact = Contacto.objects.create(cliente=other_client, numero='1144445555')
+    other_client = make_client()
+    other_contact = make_contact(cliente=other_client, numero='1144445555')
     payload = _base_payload(db_setup, cuit=client.cuit, razon_social='Nombre Que No Se Guarda', contactos=[
         {'id': other_contact.id, 'numero': '1199999999'},
     ])
@@ -786,13 +775,7 @@ def test_destroy_not_found(factory):
 def test_destroy_bloqueado_con_factura(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    tipo_factura = TipoFactura.objects.create(descripcion='Factura A', abreviatura='FA')
-    Factura.objects.create(
-        fecha='2026-01-01',
-        subtotal=Decimal('1000.00'),
-        tipo_factura=tipo_factura,
-        cliente=client,
-    )
+    make_bill(cliente=client)
     response = vs.destroy(
         Request(factory.delete(f'/client/{client.id}/'), parsers=[JSONParser()]),
         pk=client.id,
@@ -806,13 +789,7 @@ def test_destroy_bloqueado_con_factura(factory, db_setup):
 def test_destroy_bloqueado_con_pago(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
-    PagoCliente.objects.create(
-        fecha_pago='2026-01-01',
-        importe=Decimal('500.00'),
-        cliente=client,
-        tipo_pago=tipo_pago,
-    )
+    make_client_payment(cliente=client)
     response = vs.destroy(
         Request(factory.delete(f'/client/{client.id}/'), parsers=[JSONParser()]),
         pk=client.id,

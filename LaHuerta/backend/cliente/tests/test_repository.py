@@ -1,26 +1,21 @@
 import pytest
 from decimal import Decimal
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
 from cliente.models import Cliente
 from cliente.repositories import ClientRepository
 from contacto.models import Contacto
+from core.tests.factories import make_client, make_contact, make_locality, make_vat_condition
 
 
 @pytest.mark.django_db
 class TestClientRepository:
     def setup_method(self):
         self.repository = ClientRepository()
-        provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-        municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-        self.localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-        self.condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
+        self.localidad = make_locality(nombre='CABA')
+        self.condicion_iva = make_vat_condition(descripcion='RI')
 
     def _make_client(self, cuit='20123456789', razon_social='Cliente Test SA', cuenta_corriente=Decimal('0.00')):
-        return Cliente.objects.create(
+        return make_client(
             cuit=cuit,
             razon_social=razon_social,
             cuenta_corriente=cuenta_corriente,
@@ -110,7 +105,7 @@ class TestClientRepository:
         assert client.cuenta_corriente == Decimal('75000.50')
 
     def test_create_client_con_direccion_de_entrega(self):
-        delivery_district = Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=self.localidad.municipio)
+        delivery_district = make_locality(nombre='Palermo', municipio=self.localidad.municipio)
         client = self.repository.create_client({
             'cuit': '20123456789',
             'razon_social': 'Cliente Con Entrega',
@@ -152,7 +147,7 @@ class TestClientRepository:
 
     def test_modify_client_agrega_direccion_de_entrega(self):
         client = self._make_client()
-        delivery_district = Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=self.localidad.municipio)
+        delivery_district = make_locality(nombre='Palermo', municipio=self.localidad.municipio)
         self.repository.modify_client(client, {'localidad_entrega': delivery_district, 'domicilio_entrega': 'Thames 500'})
         client.refresh_from_db()
         assert client.localidad_entrega == delivery_district
@@ -160,7 +155,7 @@ class TestClientRepository:
 
     def test_modify_client_quita_direccion_de_entrega(self):
         client = self._make_client()
-        client.localidad_entrega = Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=self.localidad.municipio)
+        client.localidad_entrega = make_locality(nombre='Palermo', municipio=self.localidad.municipio)
         client.domicilio_entrega = 'Thames 500'
         client.save()
         self.repository.modify_client(client, {'localidad_entrega': None, 'domicilio_entrega': None})
@@ -178,7 +173,7 @@ class TestClientRepository:
 
     def test_delete_client_elimina_sus_contactos(self):
         client = self._make_client()
-        Contacto.objects.create(cliente=client, numero='1155551234')
+        make_contact(cliente=client, numero='1155551234')
         self.repository.delete_client(client)
         assert Contacto.objects.count() == 0
 
@@ -186,7 +181,7 @@ class TestClientRepository:
 
     def test_get_all_incluye_contactos(self):
         client = self._make_client()
-        Contacto.objects.create(cliente=client, numero='1155551234', descripcion='Pagos')
+        make_contact(cliente=client, numero='1155551234', descripcion='Pagos')
         result = list(self.repository.get_all_clients())
         assert [contact.numero for contact in result[0].contactos.all()] == ['1155551234']
 

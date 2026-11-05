@@ -1,46 +1,30 @@
 import pytest
-from decimal import Decimal
 from django.db import IntegrityError
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from cliente.models import Cliente
-from mercado.models import Mercado
-from proveedor.models import Proveedor
 from contacto.models import Contacto
 from contacto.repositories import ContactRepository
+from core.tests.factories import make_client, make_contact, make_supplier
 
 
 @pytest.mark.django_db
 class TestContactRepository:
     def setup_method(self):
         self.repository = ContactRepository()
-        provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-        municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-        localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-        condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-        self.client = Cliente.objects.create(
-            cuit='20123456789', razon_social='Cliente Test', cuenta_corriente=Decimal('0.00'),
-            localidad=localidad, condicion_IVA=condicion_iva,
-        )
-        self.supplier = Proveedor.objects.create(
-            nombre='Prov', puesto=1, nombre_fantasia='', mercado=Mercado.objects.create(descripcion='Belgrano'),
-        )
+        self.client = make_client()
+        self.supplier = make_supplier()
 
     # ------------------------- GET BY OWNER --------------------
     def test_get_contacts_by_owner_only_returns_that_owner(self):
-        own = Contacto.objects.create(cliente=self.client, numero='1111111111')
-        Contacto.objects.create(proveedor=self.supplier, numero='2222222222')
+        own = make_contact(cliente=self.client, numero='1111111111')
+        make_contact(proveedor=self.supplier, numero='2222222222')
 
         result = list(self.repository.get_contacts_by_owner('cliente', self.client))
 
         assert result == [own]
 
     def test_get_contacts_by_owner_ordered_by_id(self):
-        first = Contacto.objects.create(proveedor=self.supplier, numero='1111111111')
-        second = Contacto.objects.create(proveedor=self.supplier, numero='2222222222')
+        first = make_contact(proveedor=self.supplier, numero='1111111111')
+        second = make_contact(proveedor=self.supplier, numero='2222222222')
 
         assert list(self.repository.get_contacts_by_owner('proveedor', self.supplier)) == [first, second]
 
@@ -64,7 +48,7 @@ class TestContactRepository:
 
     # ------------------------- MODIFY --------------------------
     def test_modify_contact(self):
-        contact = Contacto.objects.create(cliente=self.client, numero='1111111111')
+        contact = make_contact(cliente=self.client, numero='1111111111')
 
         self.repository.modify_contact(contact, {'numero': '1199998888', 'descripcion': 'Compras'})
 
@@ -73,8 +57,8 @@ class TestContactRepository:
 
     # ------------------------- DELETE --------------------------
     def test_delete_contacts_only_deletes_received_ids(self):
-        removed = Contacto.objects.create(cliente=self.client, numero='1111111111')
-        kept = Contacto.objects.create(cliente=self.client, numero='2222222222')
+        removed = make_contact(cliente=self.client, numero='1111111111')
+        kept = make_contact(cliente=self.client, numero='2222222222')
 
         self.repository.delete_contacts([removed.id])
 
