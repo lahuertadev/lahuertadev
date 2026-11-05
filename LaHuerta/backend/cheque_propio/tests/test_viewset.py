@@ -12,6 +12,7 @@ from banco.models import Banco
 from cheque_propio.models import OwnCheck
 from cheque_propio.views import OwnCheckViewSet
 from cheque_propio.interfaces import IOwnCheckRepository
+from core.tests.factories import make_bank
 
 
 def _mock_banco(id=1, descripcion='Nación'):
@@ -156,7 +157,7 @@ def test_retrieve_success(factory, viewset):
 # ------------------------- CREATE --------------------------
 @pytest.mark.django_db
 def test_create_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
 
     payload = {
         'numero': 3001,
@@ -190,7 +191,7 @@ def test_create_missing_required_fields(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicado(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
     viewset.repository._duplicate = True
 
     payload = {
@@ -211,7 +212,7 @@ def test_create_duplicado(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_fecha_deposito_posterior_a_vencimiento(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
 
     payload = {
         'numero': 3001,
@@ -233,7 +234,7 @@ def test_create_fecha_deposito_posterior_a_vencimiento(factory, viewset):
 # ------------------------- UPDATE --------------------------
 @pytest.mark.django_db
 def test_update_not_found(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
 
     payload = {
         'numero': 9999, 'importe': '1000.00', 'fecha_emision': '2024-01-01',
@@ -249,7 +250,7 @@ def test_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
     viewset.repository._add(1001, banco=_mock_banco(banco.id))
 
     payload = {
@@ -266,7 +267,7 @@ def test_update_success(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_bloqueado_si_usado_en_pago(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
     payment = Mock()
     payment.compra.proveedor.nombre = 'Proveedor Test'
     viewset.repository._add(1001, importe=Decimal('1000.00'), banco=_mock_banco(banco.id),
@@ -297,7 +298,7 @@ def test_partial_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_partial_update_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
     viewset.repository._add(1001, banco=_mock_banco(banco.id))
 
     request = factory.patch('/own-checks/1001/', {'observaciones': 'nota'}, format='json')

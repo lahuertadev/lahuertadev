@@ -2,9 +2,6 @@ import pytest
 from decimal import Decimal
 from unittest.mock import Mock
 
-from banco.models import Banco
-from estado_cheque.models import EstadoCheque
-from tipo_pago.models import TipoPago
 from cheque.interfaces import ICheckRepository
 from pago_cliente.interfaces import IClientPaymentRepository
 from pago_cliente.service import ClientPaymentService
@@ -14,6 +11,7 @@ from pago_cliente.exceptions import (
     PaymentDeletionBlockedException,
     CheckEditBlockedException,
 )
+from core.tests.factories import make_bank, make_check_state, make_payment_type
 
 
 # ── Fake repos ────────────────────────────────────────────────────────────────
@@ -136,10 +134,10 @@ def _make_service():
 @pytest.mark.django_db
 class TestCreatePayment:
     def setup_method(self):
-        self.banco = Banco.objects.create(descripcion='Nación')
-        EstadoCheque.objects.create(descripcion='EN_CARTERA')
-        self.tipo_efectivo = TipoPago.objects.create(descripcion='Efectivo')
-        self.tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
+        self.banco = make_bank(descripcion='Nación')
+        make_check_state(descripcion='EN_CARTERA')
+        self.tipo_efectivo = make_payment_type(descripcion='Efectivo')
+        self.tipo_cheque = make_payment_type(descripcion='Cheque')
 
     def test_tipo_efectivo_no_crea_cheque(self):
         service = _make_service()
@@ -243,10 +241,10 @@ class TestCreatePayment:
 @pytest.mark.django_db
 class TestUpdatePayment:
     def setup_method(self):
-        self.banco_nacion = Banco.objects.create(descripcion='Nación')
-        self.banco_galicia = Banco.objects.create(descripcion='Galicia')
-        self.tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
-        self.tipo_efectivo = TipoPago.objects.create(descripcion='Efectivo')
+        self.banco_nacion = make_bank(descripcion='Nación')
+        self.banco_galicia = make_bank(descripcion='Galicia')
+        self.tipo_cheque = make_payment_type(descripcion='Cheque')
+        self.tipo_efectivo = make_payment_type(descripcion='Efectivo')
 
     def _make_payment_with_check(self, service, importe=Decimal('1000.00')):
         client = _make_client()
@@ -545,8 +543,8 @@ class TestUpdatePayment:
 @pytest.mark.django_db
 class TestDeletePayment:
     def setup_method(self):
-        self.tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
-        self.tipo_efectivo = TipoPago.objects.create(descripcion='Efectivo')
+        self.tipo_cheque = make_payment_type(descripcion='Cheque')
+        self.tipo_efectivo = make_payment_type(descripcion='Efectivo')
 
     def _make_payment(self, service, tipo_pago, with_check=False, endosado=False):
         client = _make_client()

@@ -5,18 +5,10 @@ from unittest.mock import Mock
 
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from tipo_factura.models import TipoFactura
-from tipo_pago.models import TipoPago
-from cliente.models import Cliente
-from factura.models import Factura
-from pago_cliente.models import PagoCliente
 from autenticacion.models import Usuario
 from reporte.views import ClientReportViewSet
 from reporte.exceptions import ClientNotFoundException
+from core.tests.factories import make_bill, make_bill_type, make_client, make_client_payment, make_payment_type, make_user
 
 
 @pytest.fixture
@@ -26,30 +18,15 @@ def factory():
 
 @pytest.fixture
 def authenticated_user(db):
-    return Usuario.objects.create_user(
-        email='reporte-tester@test.com',
-        username='reportetester',
-        password='Testpass123!',
-        role=Usuario.ADMINISTRATOR
-    )
+    return make_user(role=Usuario.ADMINISTRATOR)
 
 
 @pytest.fixture
 def db_setup(db):
-    provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-    municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-    localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-    tipo_factura = TipoFactura.objects.create(descripcion='A')
-    tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
+    tipo_factura = make_bill_type(descripcion='A')
+    tipo_pago = make_payment_type(descripcion='Efectivo')
 
-    cliente = Cliente.objects.create(
-        cuit='20123456789',
-        razon_social='Cliente Test SA',
-        cuenta_corriente=Decimal('0'),
-        localidad=localidad,
-        condicion_IVA=condicion_iva,
-    )
+    cliente = make_client(razon_social='Cliente Test SA')
     return {
         'cliente': cliente,
         'tipo_factura': tipo_factura,
@@ -67,8 +44,8 @@ class TestClientReportViewSet:
         tipo_factura = db_setup['tipo_factura']
         tipo_pago = db_setup['tipo_pago']
 
-        Factura.objects.create(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 10), importe=Decimal('1000'))
-        PagoCliente.objects.create(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 15), importe=Decimal('600'))
+        make_bill(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 10), total=Decimal('1000'))
+        make_client_payment(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 15), importe=Decimal('600'))
 
         request = factory.get(f'/api/reportes/clientes/{cliente.id}/', {'period': 'mes', 'date': '2025-03-01'})
         force_authenticate(request, user=authenticated_user)

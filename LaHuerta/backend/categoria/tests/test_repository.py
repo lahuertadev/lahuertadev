@@ -3,6 +3,7 @@ from django.db import IntegrityError
 
 from categoria.models import Categoria
 from categoria.repositories import CategoryRepository
+from core.tests.factories import make_category
 
 
 @pytest.mark.django_db
@@ -12,8 +13,8 @@ class TestCategoryRepository:
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_categories_returns_list(self):
-        Categoria.objects.create(descripcion="Frutas")
-        Categoria.objects.create(descripcion="Verduras")
+        make_category(descripcion="Frutas")
+        make_category(descripcion="Verduras")
 
         result = self.repository.get_all_categories()
 
@@ -24,9 +25,9 @@ class TestCategoryRepository:
         assert result.count() == 0
 
     def test_get_all_categories_with_filter(self):
-        Categoria.objects.create(descripcion="Frutas")
-        Categoria.objects.create(descripcion="Verduras")
-        Categoria.objects.create(descripcion="Lacteos")
+        make_category(descripcion="Frutas")
+        make_category(descripcion="Verduras")
+        make_category(descripcion="Lacteos")
 
         result = self.repository.get_all_categories(descripcion="Frutas")
 
@@ -34,9 +35,9 @@ class TestCategoryRepository:
         assert result.first().descripcion == "Frutas"
 
     def test_get_all_categories_with_partial_filter(self):
-        Categoria.objects.create(descripcion="Frutas Tropicales")
-        Categoria.objects.create(descripcion="Frutas Secas")
-        Categoria.objects.create(descripcion="Verduras")
+        make_category(descripcion="Frutas Tropicales")
+        make_category(descripcion="Frutas Secas")
+        make_category(descripcion="Verduras")
 
         result = self.repository.get_all_categories(descripcion="Frutas")
 
@@ -44,8 +45,8 @@ class TestCategoryRepository:
         assert all("Frutas" in item.descripcion for item in result)
 
     def test_get_all_categories_filter_case_insensitive(self):
-        Categoria.objects.create(descripcion="Frutas")
-        Categoria.objects.create(descripcion="Verduras")
+        make_category(descripcion="Frutas")
+        make_category(descripcion="Verduras")
 
         result = self.repository.get_all_categories(descripcion="frutas")
 
@@ -53,8 +54,8 @@ class TestCategoryRepository:
         assert result.first().descripcion == "Frutas"
 
     def test_get_all_categories_filter_no_results(self):
-        Categoria.objects.create(descripcion="Frutas")
-        Categoria.objects.create(descripcion="Verduras")
+        make_category(descripcion="Frutas")
+        make_category(descripcion="Verduras")
 
         result = self.repository.get_all_categories(descripcion="Lacteos")
 
@@ -62,7 +63,7 @@ class TestCategoryRepository:
 
     # ------------------------- GET BY ID -----------------------
     def test_get_category_by_id_ok(self):
-        item = Categoria.objects.create(descripcion="Lacteos")
+        item = make_category(descripcion="Lacteos")
 
         result = self.repository.get_category_by_id(item.id)
 
@@ -83,13 +84,13 @@ class TestCategoryRepository:
         assert Categoria.objects.count() == 1
 
     def test_create_category_duplicate_description_raises(self):
-        Categoria.objects.create(descripcion="Frutas")
+        make_category(descripcion="Frutas")
         with pytest.raises(IntegrityError):
             self.repository.create_category({"descripcion": "Frutas"})
 
     # ------------------------- UPDATE --------------------------
     def test_modify_category_ok(self):
-        item = Categoria.objects.create(descripcion="Old")
+        item = make_category(descripcion="Old")
 
         updated = self.repository.modify_category(item.id, {"descripcion": "New"})
 
@@ -99,7 +100,7 @@ class TestCategoryRepository:
 
     # ------------------------- DELETE --------------------------
     def test_destroy_category_ok(self):
-        item = Categoria.objects.create(descripcion="Eliminar")
+        item = make_category(descripcion="Eliminar")
 
         self.repository.destroy_category(item.id)
 

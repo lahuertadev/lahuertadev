@@ -11,6 +11,7 @@ from proveedor.models import Proveedor
 from proveedor.views import SupplierViewSet
 from proveedor.interfaces import ISupplierRepository
 from contacto.exceptions import ContactNotFoundException
+from core.tests.factories import make_market, make_supplier
 
 
 def _mock_mercado(id=1, descripcion='Belgrano'):
@@ -194,7 +195,7 @@ def test_retrieve_success(factory, viewset):
 # ------------------------- CREATE --------------------------
 @pytest.mark.django_db
 def test_create_success(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
+    mercado = make_market(descripcion='Belgrano')
     payload = {
         'nombre': 'nuevo PROV',
         'puesto': 5,
@@ -225,8 +226,8 @@ def test_create_missing_required_fields(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicate_nombre(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
-    Proveedor.objects.create(
+    mercado = make_market(descripcion='Belgrano')
+    make_supplier(
         nombre='Duplicado',
         puesto=1,
         nombre_fantasia='',
@@ -261,7 +262,7 @@ def test_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_success(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
+    mercado = make_market(descripcion='Belgrano')
     supplier = viewset.supplier_repository._add(
         nombre='OriginalNombre',
         mercado=_mock_mercado(mercado.id, 'Belgrano'),
@@ -284,8 +285,8 @@ def test_update_success(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_duplicate_nombre(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
-    Proveedor.objects.create(
+    mercado = make_market(descripcion='Belgrano')
+    make_supplier(
         nombre='NombreExistente',
         puesto=1,
         nombre_fantasia='',
@@ -324,7 +325,7 @@ def test_partial_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_partial_update_success(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
+    mercado = make_market(descripcion='Belgrano')
     supplier = viewset.supplier_repository._add(
         nombre='OriginalNombre',
         mercado=_mock_mercado(mercado.id, 'Belgrano'),
@@ -363,8 +364,8 @@ def test_destroy_success(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicate_nombre_escrito_distinto(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
-    Proveedor.objects.create(
+    mercado = make_market(descripcion='Belgrano')
+    make_supplier(
         nombre='Los Hermanos',
         puesto=1,
         nombre_fantasia='',
@@ -403,7 +404,7 @@ def test_retrieve_includes_contacts(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_syncs_contacts(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
+    mercado = make_market(descripcion='Belgrano')
     payload = {
         'nombre': 'Prov Contactos',
         'puesto': 5,
@@ -427,7 +428,7 @@ def test_create_syncs_contacts(factory, viewset):
 @pytest.mark.django_db
 @pytest.mark.parametrize('contacts', [[], None])
 def test_create_without_contacts(factory, viewset, contacts):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
+    mercado = make_market(descripcion='Belgrano')
     payload = {'nombre': 'Prov', 'puesto': 5, 'nombre_fantasia': 'NF', 'mercado': mercado.id}
     if contacts is not None:
         payload['contactos'] = contacts
@@ -441,7 +442,7 @@ def test_create_without_contacts(factory, viewset, contacts):
 
 @pytest.mark.django_db
 def test_update_syncs_contacts(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
+    mercado = make_market(descripcion='Belgrano')
     supplier = viewset.supplier_repository._add(nombre='Prov', mercado=_mock_mercado(mercado.id, 'Belgrano'))
     payload = {
         'nombre': 'Prov',
@@ -461,7 +462,7 @@ def test_update_syncs_contacts(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_with_contact_of_other_owner(factory, viewset):
-    mercado = Mercado.objects.create(descripcion='Belgrano')
+    mercado = make_market(descripcion='Belgrano')
     supplier = viewset.supplier_repository._add(nombre='Prov', mercado=_mock_mercado(mercado.id, 'Belgrano'))
     viewset.contact_service.sync_contacts.side_effect = ContactNotFoundException('Contacto no encontrado.')
     payload = {'nombre': 'Prov', 'puesto': 3, 'contactos': [{'id': 99, 'numero': '1199998888'}], 'nombre_fantasia': 'NF', 'mercado': mercado.id}

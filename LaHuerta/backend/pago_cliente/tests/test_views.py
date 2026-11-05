@@ -6,16 +6,11 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from tipo_pago.models import TipoPago
-from cliente.models import Cliente
 from pago_cliente.models import PagoCliente
 from pago_cliente.views import ClientPaymentViewSet
 from pago_cliente.interfaces import IClientPaymentRepository
 from pago_cliente.exceptions import ClientPaymentNotFoundException, PaymentTypeChangeBlockedException
+from core.tests.factories import make_client, make_client_payment, make_payment_type
 
 
 # ── Fixtures DB ────────────────────────────────────────────────────────────────
@@ -27,18 +22,8 @@ def factory():
 
 @pytest.fixture
 def db_setup(db):
-    provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-    municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-    localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-    tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
-    cliente = Cliente.objects.create(
-        cuit='20123456789',
-        razon_social='Cliente Test SA',
-        cuenta_corriente=Decimal('10000.00'),
-        localidad=localidad,
-        condicion_IVA=condicion_iva,
-    )
+    tipo_pago = make_payment_type(descripcion='Efectivo')
+    cliente = make_client(razon_social='Cliente Test SA', cuenta_corriente=Decimal('10000.00'))
     return {'cliente': cliente, 'tipo_pago': tipo_pago}
 
 
@@ -51,7 +36,7 @@ class FakeClientPaymentRepo(IClientPaymentRepository):
 
     def _add_real(self, cliente, tipo_pago, importe=Decimal('1000.00')):
         '''Usa objetos reales de Django para que el serializer los serialice correctamente.'''
-        payment = PagoCliente.objects.create(
+        payment = make_client_payment(
             cliente=cliente,
             tipo_pago=tipo_pago,
             fecha_pago='2024-01-01',
@@ -165,7 +150,7 @@ def test_list_with_items(factory, db_setup):
 
 @pytest.mark.django_db
 def test_list_filter_by_client_id(factory, db_setup):
-    otro_cliente = Cliente.objects.create(
+    otro_cliente = make_client(
         cuit='27987654321',
         razon_social='Otro SRL',
         cuenta_corriente=Decimal('0.00'),
@@ -186,7 +171,7 @@ def test_list_filter_by_client_id(factory, db_setup):
 
 @pytest.mark.django_db
 def test_list_filter_by_payment_type_id(factory, db_setup):
-    otro_tipo = TipoPago.objects.create(descripcion='Transferencia')
+    otro_tipo = make_payment_type(descripcion='Transferencia')
     vs, repo = _make_viewset()
     repo._add_real(db_setup['cliente'], db_setup['tipo_pago'])
     payment_transferencia = repo._add_real(db_setup['cliente'], otro_tipo)
@@ -280,7 +265,7 @@ def test_update_bloquea_si_cheque_endosado(factory, db_setup):
     payment = repo._add_real(db_setup['cliente'], db_setup['tipo_pago'])
     vs = ClientPaymentViewSet(repository=repo, service=ServiceQueBloquea())
 
-    tipo_efectivo = TipoPago.objects.create(descripcion='Transferencia')
+    tipo_efectivo = make_payment_type(descripcion='Transferencia')
     payload = {
         'cliente': db_setup['cliente'].id,
         'tipo_pago': tipo_efectivo.id,

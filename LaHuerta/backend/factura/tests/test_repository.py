@@ -4,13 +4,7 @@ from decimal import Decimal
 
 from factura.models import Factura
 from factura.repositories import BillRepository
-from tipo_factura.models import TipoFactura
-from cliente.models import Cliente
-from tipo_condicion_iva.models import TipoCondicionIva
-from lista_precios.models import ListaPrecios
-from localidad.models import Localidad
-from municipio.models import Municipio
-from provincia.models import Provincia
+from core.tests.factories import make_bill, make_bill_type, make_client
 
 
 @pytest.mark.django_db
@@ -18,29 +12,17 @@ class TestBillRepository:
     def setup_method(self):
         self.repository = BillRepository()
 
-        prov = Provincia.objects.create(nombre="Buenos Aires")
-        muni = Municipio.objects.create(nombre="La Matanza", provincia=prov)
-        localidad = Localidad.objects.create(id="12345678", nombre="Ciudadela", municipio=muni)
-        condicion_iva = TipoCondicionIva.objects.create(descripcion="Resp. Inscripto")
-        lista_precios = ListaPrecios.objects.create(descripcion="Lista General")
 
-        self.bill_type = TipoFactura.objects.create(
+        self.bill_type = make_bill_type(
             descripcion="Remito X", abreviatura="X", codigo_afip=None
         )
-        self.bill_type_b = TipoFactura.objects.create(
+        self.bill_type_b = make_bill_type(
             descripcion="Factura B", abreviatura="B2", codigo_afip=6
         )
-        self.client = Cliente.objects.create(
-            cuit="20123456789",
-            razon_social="Cliente Test",
-            cuenta_corriente=Decimal("0.00"),
-            localidad=localidad,
-            condicion_IVA=condicion_iva,
-            lista_precios=lista_precios,
-        )
+        self.client = make_client(cuit="20123456789", razon_social="Cliente Test")
 
     def _create_bill(self, subtotal=Decimal("1000.00"), total=None, bill_type=None, numero=None):
-        return Factura.objects.create(
+        return make_bill(
             cliente=self.client,
             tipo_factura=bill_type or self.bill_type,
             fecha=date.today(),

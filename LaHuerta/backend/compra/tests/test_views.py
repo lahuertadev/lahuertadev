@@ -6,14 +6,9 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from mercado.models import Mercado
-from categoria.models import Categoria
-from tipo_contenedor.models import TipoContenedor
-from tipo_unidad.models import TipoUnidad
-from producto.models import Producto
-from proveedor.models import Proveedor
 from compra.models import Compra
 from compra.views import BuyViewSet
+from core.tests.factories import make_product, make_supplier
 
 BULK_URL = '/buy/bulk/'
 
@@ -27,28 +22,11 @@ def factory():
 
 @pytest.fixture
 def db_setup(db):
-    market, _ = Mercado.objects.get_or_create(descripcion='Central Test')
-    category, _ = Categoria.objects.get_or_create(descripcion='Verdura Test')
-    container_type, _ = TipoContenedor.objects.get_or_create(descripcion='Cajon Test')
-    unit_type, _ = TipoUnidad.objects.get_or_create(descripcion='Kilo Test', defaults={'tipo_medicion': 'PESO'})
-
-    def make_supplier(name, stall):
-        return Proveedor.objects.create(
-            nombre=name, puesto=stall,
-            nombre_fantasia=name, mercado=market, cuenta_corriente=Decimal('0'),
-        )
-
-    def make_product(description):
-        return Producto.objects.create(
-            descripcion=description, categoria=category,
-            tipo_contenedor=container_type, tipo_unidad=unit_type,
-        )
-
     return {
-        'supplier_a': make_supplier('Proveedor A', 1),
-        'supplier_b': make_supplier('Proveedor B', 2),
-        'product_1': make_product('Tomate Test'),
-        'product_2': make_product('Lechuga Test'),
+        'supplier_a': make_supplier(nombre='Proveedor A'),
+        'supplier_b': make_supplier(nombre='Proveedor B'),
+        'product_1': make_product(descripcion='Tomate Test'),
+        'product_2': make_product(descripcion='Lechuga Test'),
     }
 
 

@@ -8,6 +8,7 @@ from rest_framework.parsers import JSONParser
 from banco.models import Banco
 from banco.views import BankViewSet
 from banco.interfaces import IBankRepository
+from core.tests.factories import make_bank
 
 
 def _mock_model_instance(model_cls, **attrs):
@@ -121,7 +122,7 @@ def test_create_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicate_descripcion(factory, viewset):
-    Banco.objects.create(descripcion="Banco Nación")
+    make_bank(descripcion="Banco Nación")
 
     request = factory.post("/bank/", {"descripcion": "Banco Nación"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
@@ -168,7 +169,7 @@ def test_update_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_duplicate_descripcion(factory, viewset):
-    Banco.objects.create(descripcion="Banco Galicia")
+    make_bank(descripcion="Banco Galicia")
     created = viewset.bank_repository.create_bank({"descripcion": "Banco Nación"})
 
     request = factory.put(f"/bank/{created.id}/", {"descripcion": "Banco Galicia"}, format="json")

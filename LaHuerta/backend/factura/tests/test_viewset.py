@@ -7,18 +7,6 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from tipo_factura.models import TipoFactura
-from cliente.models import Cliente
-from tipo_condicion_iva.models import TipoCondicionIva
-from lista_precios.models import ListaPrecios
-from localidad.models import Localidad
-from municipio.models import Municipio
-from provincia.models import Provincia
-from producto.models import Producto
-from categoria.models import Categoria
-from tipo_contenedor.models import TipoContenedor
-from tipo_unidad.models import TipoUnidad
-from tipo_venta.models import TipoVenta
 
 from factura.views import BillViewSet
 from factura.interfaces import IBillRepository
@@ -27,6 +15,7 @@ from factura.exceptions import (
     BillAlreadyEmittedException, PriceNotFoundError, DebitNoteValidationError,
 )
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
+from core.tests.factories import make_bill_type, make_client, make_price_list, make_product, make_sale_type, make_vat_condition
 
 
 # ── Fake repository ────────────────────────────────────────────────────────────
@@ -97,32 +86,14 @@ def viewset(fake_repo, mock_service):
 
 @pytest.fixture
 def fk_data(db):
-    prov = Provincia.objects.create(nombre="Buenos Aires")
-    muni = Municipio.objects.create(nombre="La Matanza", provincia=prov)
-    localidad = Localidad.objects.create(id="12345678", nombre="Ciudadela", municipio=muni)
-    condicion_iva = TipoCondicionIva.objects.create(descripcion="Resp. Inscripto", codigo_afip=1)
-    lista_precios = ListaPrecios.objects.create(descripcion="Lista General")
-    cliente = Cliente.objects.create(
-        cuit="20123456789",
+    cliente = make_client(
         razon_social="Test SA",
-        cuenta_corriente=Decimal("0.00"),
-        localidad=localidad,
-        condicion_IVA=condicion_iva,
-        lista_precios=lista_precios,
+        condicion_IVA=make_vat_condition(descripcion="Resp. Inscripto", codigo_afip=1),
+        lista_precios=make_price_list(),
     )
-    bill_type = TipoFactura.objects.create(descripcion="Remito X", abreviatura="X", codigo_afip=None)
-    categoria = Categoria.objects.create(descripcion="Frutas")
-    contenedor = TipoContenedor.objects.create(descripcion="Cajon")
-    unidad = TipoUnidad.objects.create(descripcion="Kilo")
-    producto = Producto.objects.create(
-        descripcion="Pera",
-        categoria=categoria,
-        tipo_contenedor=contenedor,
-        tipo_unidad=unidad,
-        cantidad_por_bulto=10,
-        peso_aproximado=1.0,
-    )
-    tipo_venta = TipoVenta.objects.create(descripcion="Unidad")
+    bill_type = make_bill_type(descripcion="Remito X", abreviatura="X", codigo_afip=None)
+    producto = make_product(descripcion="Pera", cantidad_por_bulto=10, peso_aproximado=1.0)
+    tipo_venta = make_sale_type(descripcion="Unidad")
     return cliente, bill_type, producto, tipo_venta
 
 

@@ -1,31 +1,16 @@
 import pytest
 from decimal import Decimal
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from tipo_pago.models import TipoPago
-from cliente.models import Cliente
 from pago_cliente.repositories import ClientPaymentRepository
+from core.tests.factories import make_client, make_payment_type
 
 
 @pytest.mark.django_db
 class TestClientPaymentRepository:
     def setup_method(self):
         self.repository = ClientPaymentRepository()
-        provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-        municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-        localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-        condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-        self.tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
-        self.cliente = Cliente.objects.create(
-            cuit='20123456789',
-            razon_social='Cliente Test SA',
-            cuenta_corriente=Decimal('10000.00'),
-            localidad=localidad,
-            condicion_IVA=condicion_iva,
-        )
+        self.tipo_pago = make_payment_type(descripcion='Efectivo')
+        self.cliente = make_client(razon_social='Cliente Test SA', cuenta_corriente=Decimal('10000.00'))
 
     def _make_payment(self, cliente=None, importe=Decimal('1000.00'), obs=None):
         return self.repository.create(
@@ -47,15 +32,7 @@ class TestClientPaymentRepository:
         assert self.repository.get_all().count() == 2
 
     def test_get_all_filter_by_client_id(self):
-        localidad = Localidad.objects.get(id='0642701009')
-        condicion_iva = TipoCondicionIva.objects.first()
-        otro_cliente = Cliente.objects.create(
-            cuit='27987654321',
-            razon_social='Otro Cliente SRL',
-            cuenta_corriente=Decimal('0.00'),
-            localidad=localidad,
-            condicion_IVA=condicion_iva,
-        )
+        otro_cliente = make_client(razon_social='Otro Cliente SRL')
         self._make_payment(cliente=self.cliente)
         self._make_payment(cliente=otro_cliente)
 
@@ -90,7 +67,7 @@ class TestClientPaymentRepository:
         assert self.repository.get_all(date_to='2023-12-31').count() == 0
 
     def test_get_all_filter_by_payment_type_id(self):
-        otro_tipo = TipoPago.objects.create(descripcion='Transferencia')
+        otro_tipo = make_payment_type(descripcion='Transferencia')
         self._make_payment()
         payment_transferencia = self.repository.create(
             client=self.cliente, payment_type=otro_tipo, payment_date='2024-01-01', amount=Decimal('100.00'),
@@ -124,7 +101,7 @@ class TestClientPaymentRepository:
     # ------------------------- UPDATE --------------------------
     def test_update_modifica_campos(self):
         payment = self._make_payment(importe=Decimal('1000.00'))
-        tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
+        tipo_cheque = make_payment_type(descripcion='Cheque')
 
         self.repository.update(payment, {
             'importe': Decimal('2500.00'),

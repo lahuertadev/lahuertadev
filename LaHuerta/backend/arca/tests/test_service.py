@@ -149,6 +149,19 @@ def test_authenticate_generic_error_raises(tmp_path):
 
 # ── emit_receipt ───────────────────────────────────────────────────────────────
 
+def _receipt_data():
+    """Factura A de $10.000 de neto con IVA 10,5%, como la arma factura.service."""
+    return {
+        "tipo_cbte": 1,
+        "importe_total": 11050.0,
+        "importe_neto": 10000.0,
+        "iva_breakdown": [{"iva_id": 4, "base_imp": 10000.0, "importe": 1050.0}],
+        "fecha": date(2026, 5, 7),
+        "cuit_receptor": "20123456789",
+        "condicion_iva_receptor_id": 1,
+    }
+
+
 def _make_wsfe_mock(resultado="A", cae="12345678901234", vencimiento="20260601"):
     wsfe = Mock()
     wsfe.CompUltimoAutorizado.return_value = "4"
@@ -170,13 +183,7 @@ def test_emit_receipt_ok(tmp_path):
     wsfe_mock = _make_wsfe_mock()
 
     with patch("arca.service.WSFEv1", return_value=wsfe_mock):
-        result = service.emit_receipt(
-            tipo_cbte=1,
-            importe=11050.0,
-            fecha=date(2026, 5, 7),
-            cuit_receptor="20123456789",
-            condicion_iva_receptor_id=1,
-        )
+        result = service.emit_receipt(**_receipt_data())
 
     assert result["numero_comprobante"] == 5
     assert result["cae"] == "12345678901234"
@@ -195,13 +202,7 @@ def test_emit_receipt_rechazado_raises(tmp_path):
 
     with patch("arca.service.WSFEv1", return_value=wsfe_mock):
         with pytest.raises(WSFEEmissionError):
-            service.emit_receipt(
-                tipo_cbte=1,
-                importe=11050.0,
-                fecha=date(2026, 5, 7),
-                cuit_receptor="20123456789",
-                condicion_iva_receptor_id=1,
-            )
+            service.emit_receipt(**_receipt_data())
 
 
 def test_emit_receipt_wsfe_exception_raises(tmp_path):
@@ -216,13 +217,7 @@ def test_emit_receipt_wsfe_exception_raises(tmp_path):
 
     with patch("arca.service.WSFEv1", return_value=wsfe_mock):
         with pytest.raises(WSFEEmissionError):
-            service.emit_receipt(
-                tipo_cbte=1,
-                importe=11050.0,
-                fecha=date(2026, 5, 7),
-                cuit_receptor="20123456789",
-                condicion_iva_receptor_id=1,
-            )
+            service.emit_receipt(**_receipt_data())
 
 
 def test_emit_receipt_calcula_importes_correctamente(tmp_path):
@@ -235,15 +230,10 @@ def test_emit_receipt_calcula_importes_correctamente(tmp_path):
     wsfe_mock = _make_wsfe_mock()
 
     with patch("arca.service.WSFEv1", return_value=wsfe_mock):
-        service.emit_receipt(
-            tipo_cbte=1,
-            importe=11050.0,
-            fecha=date(2026, 5, 7),
-            cuit_receptor="20123456789",
-            condicion_iva_receptor_id=1,
-        )
+        service.emit_receipt(**_receipt_data())
 
     call_kwargs = wsfe_mock.CrearFactura.call_args[1]
     assert call_kwargs["imp_total"] == 11050.0
-    assert abs(call_kwargs["imp_neto"] - round(11050.0 / 1.105, 2)) < 0.01
-    assert abs(call_kwargs["imp_iva"] - round(11050.0 - round(11050.0 / 1.105, 2), 2)) < 0.01
+    assert call_kwargs["imp_neto"] == 10000.0
+    assert call_kwargs["imp_iva"] == 1050.0
+    wsfe_mock.AgregarIva.assert_called_once_with(iva_id=4, base_imp=10000.0, importe=1050.0)

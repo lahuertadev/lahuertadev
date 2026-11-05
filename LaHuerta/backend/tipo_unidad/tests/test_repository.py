@@ -3,6 +3,7 @@ from django.db import IntegrityError
 
 from tipo_unidad.models import TipoUnidad
 from tipo_unidad.repositories import UnitTypeRepository
+from core.tests.factories import make_unit_type
 
 
 @pytest.mark.django_db
@@ -12,8 +13,8 @@ class TestUnitTypeRepository:
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_unit_types_returns_list(self):
-        TipoUnidad.objects.create(descripcion="Kilo")
-        TipoUnidad.objects.create(descripcion="Gramo")
+        make_unit_type(descripcion="Kilo")
+        make_unit_type(descripcion="Gramo")
 
         result = self.repository.get_all_unit_types()
 
@@ -25,7 +26,7 @@ class TestUnitTypeRepository:
 
     # ------------------------- GET BY ID -----------------------
     def test_get_unit_type_by_id_ok(self):
-        item = TipoUnidad.objects.create(descripcion="Unidad")
+        item = make_unit_type(descripcion="Unidad")
 
         result = self.repository.get_unit_type_by_id(item.id)
 
@@ -46,13 +47,13 @@ class TestUnitTypeRepository:
         assert TipoUnidad.objects.count() == 1
 
     def test_create_unit_type_duplicate_description_raises(self):
-        TipoUnidad.objects.create(descripcion="Kilo")
+        make_unit_type(descripcion="Kilo")
         with pytest.raises(IntegrityError):
             self.repository.create_unit_type({"descripcion": "Kilo"})
 
     # ------------------------- UPDATE --------------------------
     def test_modify_unit_type_ok(self):
-        item = TipoUnidad.objects.create(descripcion="Old")
+        item = make_unit_type(descripcion="Old")
 
         updated = self.repository.modify_unit_type(item, {"descripcion": "New"})
 
@@ -62,7 +63,7 @@ class TestUnitTypeRepository:
 
     # ------------------------- DELETE --------------------------
     def test_destroy_unit_type_ok(self):
-        item = TipoUnidad.objects.create(descripcion="Eliminar")
+        item = make_unit_type(descripcion="Eliminar")
 
         self.repository.destroy_unit_type(item)
 

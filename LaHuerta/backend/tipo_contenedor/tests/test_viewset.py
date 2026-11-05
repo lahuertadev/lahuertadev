@@ -8,6 +8,7 @@ from rest_framework.parsers import JSONParser
 from tipo_contenedor.models import TipoContenedor
 from tipo_contenedor.views import ContainerTypeViewSet
 from tipo_contenedor.interfaces import IContainerTypeRepository
+from core.tests.factories import make_container_type
 
 
 def _mock_model_instance(model_cls, **attrs):
@@ -124,7 +125,7 @@ def test_create_validation_error(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicate_description_returns_bad_request(factory, viewset):
-    TipoContenedor.objects.create(descripcion="Cajon")
+    make_container_type(descripcion="Cajon")
 
     request = factory.post("/container_type/", {"descripcion": "Cajon"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])

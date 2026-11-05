@@ -6,15 +6,12 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from mercado.models import Mercado
-from proveedor.models import Proveedor
-from compra.models import Compra
-from tipo_pago.models import TipoPago
 from pago_compra.models import PagoCompra
 from pago_compra.views import PurchasePaymentViewSet
 from pago_compra.interfaces import IPurchasePaymentRepository
 from pago_compra.exceptions import PurchasePaymentNotFoundException
 from cheque.exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException
+from core.tests.factories import make_payment_type, make_purchase, make_purchase_payment
 
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
@@ -26,21 +23,8 @@ def factory():
 
 @pytest.fixture
 def db_setup(db):
-    mercado = Mercado.objects.create(descripcion='Mercado Central')
-    proveedor = Proveedor.objects.create(
-        nombre='Proveedor Test',
-        puesto=1,
-        cuenta_corriente=Decimal('0.00'),
-        nombre_fantasia='PT',
-        mercado=mercado,
-    )
-    compra = Compra.objects.create(
-        fecha='2024-01-01',
-        importe=Decimal('10000.00'),
-        senia=Decimal('0.00'),
-        proveedor=proveedor,
-    )
-    tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
+    compra = make_purchase(importe=Decimal('10000.00'))
+    tipo_pago = make_payment_type(descripcion='Efectivo')
     return {'compra': compra, 'tipo_pago': tipo_pago}
 
 
@@ -51,7 +35,7 @@ class FakePurchasePaymentRepo(IPurchasePaymentRepository):
         self._items = {}
 
     def _add_real(self, compra, tipo_pago, importe=Decimal('1000.00')):
-        payment = PagoCompra.objects.create(
+        payment = make_purchase_payment(
             compra=compra,
             importe_abonado=importe,
             tipo_pago=tipo_pago,
@@ -194,7 +178,7 @@ def test_create_missing_required_fields(factory):
 
 @pytest.mark.django_db
 def test_create_tipo_cheque_sin_numero_retorna_400(factory, db_setup):
-    tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
+    tipo_cheque = make_payment_type(descripcion='Cheque')
     vs, _ = _make_viewset()
     payload = {
         'compra': db_setup['compra'].id,
@@ -209,7 +193,7 @@ def test_create_tipo_cheque_sin_numero_retorna_400(factory, db_setup):
 
 @pytest.mark.django_db
 def test_create_cheque_no_encontrado_retorna_404(factory, db_setup):
-    tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
+    tipo_cheque = make_payment_type(descripcion='Cheque')
 
     class ServiceCheckNotFound:
         def create_payment(self, data):
@@ -231,7 +215,7 @@ def test_create_cheque_no_encontrado_retorna_404(factory, db_setup):
 
 @pytest.mark.django_db
 def test_create_cheque_ya_endosado_retorna_400(factory, db_setup):
-    tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
+    tipo_cheque = make_payment_type(descripcion='Cheque')
 
     class ServiceAlreadyEndorsed:
         def create_payment(self, data):
@@ -253,7 +237,7 @@ def test_create_cheque_ya_endosado_retorna_400(factory, db_setup):
 
 @pytest.mark.django_db
 def test_create_cheque_estado_invalido_retorna_400(factory, db_setup):
-    tipo_cheque = TipoPago.objects.create(descripcion='Cheque')
+    tipo_cheque = make_payment_type(descripcion='Cheque')
 
     class ServiceInvalidState:
         def create_payment(self, data):

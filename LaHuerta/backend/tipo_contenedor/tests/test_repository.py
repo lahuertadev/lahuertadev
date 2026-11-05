@@ -3,6 +3,7 @@ from django.db import IntegrityError
 
 from tipo_contenedor.models import TipoContenedor
 from tipo_contenedor.repositories import ContainerTypeRepository
+from core.tests.factories import make_container_type
 
 
 @pytest.mark.django_db
@@ -12,8 +13,8 @@ class TestContainerTypeRepository:
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_container_types_returns_list(self):
-        TipoContenedor.objects.create(descripcion="Cajon")
-        TipoContenedor.objects.create(descripcion="Jaula")
+        make_container_type(descripcion="Cajon")
+        make_container_type(descripcion="Jaula")
 
         result = self.repository.get_all_container_types()
 
@@ -25,7 +26,7 @@ class TestContainerTypeRepository:
 
     # ------------------------- GET BY ID -----------------------
     def test_get_container_by_id_ok(self):
-        item = TipoContenedor.objects.create(descripcion="Bolsa")
+        item = make_container_type(descripcion="Bolsa")
 
         result = self.repository.get_container_by_id(item.id)
 
@@ -46,13 +47,13 @@ class TestContainerTypeRepository:
         assert TipoContenedor.objects.count() == 1
 
     def test_create_container_type_duplicate_description_raises(self):
-        TipoContenedor.objects.create(descripcion="Cajon")
+        make_container_type(descripcion="Cajon")
         with pytest.raises(IntegrityError):
             self.repository.create_container_type({"descripcion": "Cajon"})
 
     # ------------------------- UPDATE --------------------------
     def test_modify_container_type_ok(self):
-        item = TipoContenedor.objects.create(descripcion="Old")
+        item = make_container_type(descripcion="Old")
 
         updated = self.repository.modify_container_type(item, {"descripcion": "New"})
 
@@ -62,7 +63,7 @@ class TestContainerTypeRepository:
 
     # ------------------------- DELETE --------------------------
     def test_destroy_container_type_ok(self):
-        item = TipoContenedor.objects.create(descripcion="Eliminar")
+        item = make_container_type(descripcion="Eliminar")
 
         self.repository.destroy_container_type(item)
 
@@ -70,26 +71,26 @@ class TestContainerTypeRepository:
 
     # -------------------- REQUIERE VACÍO -----------------------
     def test_requiere_vacio_default_es_true(self):
-        item = TipoContenedor.objects.create(descripcion="Cajón")
+        item = make_container_type(descripcion="Cajón")
 
         assert item.requiere_vacio is True
 
     def test_requiere_vacio_false_se_persiste(self):
-        item = TipoContenedor.objects.create(descripcion="Bolsa", requiere_vacio=False)
+        item = make_container_type(descripcion="Bolsa", requiere_vacio=False)
 
         item.refresh_from_db()
 
         assert item.requiere_vacio is False
 
     def test_requiere_vacio_true_se_persiste(self):
-        item = TipoContenedor.objects.create(descripcion="Jaula", requiere_vacio=True)
+        item = make_container_type(descripcion="Jaula", requiere_vacio=True)
 
         item.refresh_from_db()
 
         assert item.requiere_vacio is True
 
     def test_modify_container_type_actualiza_requiere_vacio(self):
-        item = TipoContenedor.objects.create(descripcion="Bandeja", requiere_vacio=True)
+        item = make_container_type(descripcion="Bandeja", requiere_vacio=True)
 
         self.repository.modify_container_type(item, {"requiere_vacio": False})
 

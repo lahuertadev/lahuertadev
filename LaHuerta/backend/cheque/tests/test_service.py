@@ -3,10 +3,10 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import Mock
 
-from estado_cheque.models import EstadoCheque
 from cheque.service import CheckService
 from cheque.exceptions import CheckAlreadyEndorsedException, CheckInvalidStateException, CheckInvalidTransitionException
 from cliente.interfaces import IClientRepository
+from core.tests.factories import make_check_state
 
 
 def _make_check(endosado=False, estado_descripcion='EN_CARTERA', pago_cliente=None, pago_compra=None):
@@ -91,7 +91,7 @@ def test_endorse_invalid_state():
 
 @pytest.mark.django_db
 def test_endorse_success():
-    EstadoCheque.objects.create(descripcion='ENDOSADO')
+    make_check_state(descripcion='ENDOSADO')
     service, repo, _, __ = _make_service()
     pago_compra = Mock()
     check = _make_check()
@@ -116,7 +116,7 @@ def test_deposit_invalid_state():
 
 @pytest.mark.django_db
 def test_deposit_success():
-    EstadoCheque.objects.create(descripcion='DEPOSITADO')
+    make_check_state(descripcion='DEPOSITADO')
     service, repo, _, __ = _make_service()
     check = _make_check()  # EN_CARTERA
 
@@ -138,7 +138,7 @@ def test_credit_invalid_state():
 
 @pytest.mark.django_db
 def test_credit_success():
-    EstadoCheque.objects.create(descripcion='ACREDITADO')
+    make_check_state(descripcion='ACREDITADO')
     service, repo, _, __ = _make_service()
     check = _make_check(estado_descripcion='DEPOSITADO')
 
@@ -160,7 +160,7 @@ def test_reject_invalid_state():
 
 @pytest.mark.django_db
 def test_reject_success():
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    make_check_state(descripcion='RECHAZADO')
     service, repo, _, __ = _make_service()
     check = _make_check(estado_descripcion='DEPOSITADO')
 
@@ -172,7 +172,7 @@ def test_reject_success():
 
 @pytest.mark.django_db
 def test_reject_con_pago_cliente_revierte_cc():
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    make_check_state(descripcion='RECHAZADO')
     service, _, client_repo, __ = _make_service(with_client_repo=True)
     pago_cliente = _make_pago_cliente(importe='2000.00', cc='3000.00')
     check = _make_check(estado_descripcion='DEPOSITADO', pago_cliente=pago_cliente)
@@ -185,7 +185,7 @@ def test_reject_con_pago_cliente_revierte_cc():
 
 @pytest.mark.django_db
 def test_reject_sin_pago_cliente_no_modifica_cc():
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    make_check_state(descripcion='RECHAZADO')
     service, _, client_repo, __ = _make_service(with_client_repo=True)
     check = _make_check(estado_descripcion='DEPOSITADO', pago_cliente=None)
 
@@ -198,7 +198,7 @@ def test_reject_sin_pago_cliente_no_modifica_cc():
 
 @pytest.mark.django_db
 def test_credit_success_desde_endosado():
-    EstadoCheque.objects.create(descripcion='ACREDITADO')
+    make_check_state(descripcion='ACREDITADO')
     service, repo, _, __ = _make_service()
     check = _make_check(endosado=True, estado_descripcion='ENDOSADO')
 
@@ -210,7 +210,7 @@ def test_credit_success_desde_endosado():
 
 @pytest.mark.django_db
 def test_reject_success_desde_endosado():
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    make_check_state(descripcion='RECHAZADO')
     service, repo, _, __ = _make_service()
     check = _make_check(endosado=True, estado_descripcion='ENDOSADO')
 
@@ -222,7 +222,7 @@ def test_reject_success_desde_endosado():
 
 @pytest.mark.django_db
 def test_reject_desde_endosado_revierte_cc_cliente_y_proveedor():
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    make_check_state(descripcion='RECHAZADO')
     service, _, client_repo, supplier_repo = _make_service(with_client_repo=True, with_supplier_repo=True)
     pago_cliente = _make_pago_cliente(importe='2000.00', cc='3000.00')
     pago_compra = _make_pago_compra(importe_abonado='2000.00', cc='5000.00')
@@ -243,7 +243,7 @@ def test_reject_desde_endosado_revierte_cc_cliente_y_proveedor():
 
 @pytest.mark.django_db
 def test_reject_desde_depositado_no_revierte_cc_proveedor():
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    make_check_state(descripcion='RECHAZADO')
     service, _, __, supplier_repo = _make_service(with_supplier_repo=True)
     check = _make_check(endosado=False, estado_descripcion='DEPOSITADO', pago_compra=None)
 
@@ -254,7 +254,7 @@ def test_reject_desde_depositado_no_revierte_cc_proveedor():
 
 @pytest.mark.django_db
 def test_reject_desde_endosado_no_toca_pago_compra():
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
+    make_check_state(descripcion='RECHAZADO')
     service, repo, _, __ = _make_service(with_supplier_repo=True)
     pago_compra = _make_pago_compra()
     check = _make_check(endosado=True, estado_descripcion='ENDOSADO', pago_compra=pago_compra)

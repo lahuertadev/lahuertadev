@@ -8,6 +8,7 @@ from rest_framework.parsers import JSONParser
 from tipo_unidad.models import TipoUnidad
 from tipo_unidad.views import UnitTypeViewSet
 from tipo_unidad.interfaces import IUnitTypeRepository
+from core.tests.factories import make_unit_type
 
 
 def _mock_model_instance(model_cls, **attrs):
@@ -122,7 +123,7 @@ def test_create_validation_error(factory, viewset):
 @pytest.mark.django_db
 def test_create_duplicate_description_returns_bad_request(factory, viewset):
     # unique=True en el modelo -> serializer rechaza duplicado
-    TipoUnidad.objects.create(descripcion="Kilo")
+    make_unit_type(descripcion="Kilo")
 
     request = factory.post("/unit_type/", {"descripcion": "Kilo"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
