@@ -25,7 +25,7 @@ class FakeRepo(IProductPriceListRepository):
     def __init__(self):
         self._items = {}
 
-    def get_all(self, price_list_id=None, product_id=None, categoria_id=None, tipo_contenedor_id=None, descripcion=None):
+    def get_all(self, price_list_id=None, product_id=None, category_id=None, container_type_id=None, description=None):
         items = list(self._items.values())
         if price_list_id:
             items = [x for x in items if str(getattr(x, "lista_precios_id", None)) == str(price_list_id)]
@@ -45,19 +45,18 @@ class FakeRepo(IProductPriceListRepository):
             id=new_id,
             lista_precios_id=getattr(data.get("lista_precios"), "id", data.get("lista_precios")),
             producto_id=getattr(data.get("producto"), "id", data.get("producto")),
-            precio_unitario=data.get("precio_unitario"),
-            precio_bulto=data.get("precio_bulto"),
+            tipo_venta_id=getattr(data.get("tipo_venta"), "id", data.get("tipo_venta")),
+            precio=data.get("precio"),
             lista_precios=data.get("lista_precios"),
             producto=data.get("producto"),
+            tipo_venta=data.get("tipo_venta"),
         )
         self._items[new_id] = obj
         return obj
 
     def update(self, item, data):
-        if "precio_unitario" in data:
-            item.precio_unitario = data["precio_unitario"]
-        if "precio_bulto" in data:
-            item.precio_bulto = data["precio_bulto"]
+        if "precio" in data:
+            item.precio = data["precio"]
         return item
 
     def destroy(self, item):
@@ -65,6 +64,15 @@ class FakeRepo(IProductPriceListRepository):
 
     def verify_product_on_price_list(self, product_id):
         return []
+
+    def get_by_product_and_sale_type(self, price_list_id, product_id, sale_type_id):
+        return next(
+            (x for x in self._items.values()
+             if str(x.lista_precios_id) == str(price_list_id)
+             and str(x.producto_id) == str(product_id)
+             and str(x.tipo_venta_id) == str(sale_type_id)),
+            None,
+        )
 
 
 @pytest.fixture
