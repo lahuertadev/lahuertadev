@@ -30,7 +30,7 @@ class TestOwnCheckRepository:
     def _make_proveedor(self, nombre='ProvTest'):
         mercado, _ = Mercado.objects.get_or_create(descripcion='Mercado Test')
         return Proveedor.objects.create(
-            nombre=nombre, puesto=1, telefono='11111111',
+            nombre=nombre, puesto=1,
             cuenta_corriente=Decimal('0.00'), nombre_fantasia=nombre, mercado=mercado,
         )
 

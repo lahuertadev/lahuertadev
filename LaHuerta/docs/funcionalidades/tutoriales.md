@@ -16,7 +16,7 @@ No incluye: datos de prueba ni modo "demo". Todo lo que se carga durante un tuto
 
 | Tutorial | Clave | Pantallas | Qué enseña |
 |---|---|---|---|
-| Clientes | `clients` | Clientes → Nuevo cliente | Alta de un cliente (con o sin lista de precios, con o sin dirección de entrega) y, en el listado, cómo ver el detalle, editar y eliminar. |
+| Clientes | `clients` | Clientes → Nuevo cliente | Alta de un cliente (con o sin lista de precios, con o sin dirección de entrega, con sus contactos) y, en el listado, cómo ver el detalle, editar y eliminar. |
 | Facturación | `bills` | Facturación → Nueva factura | Qué hay en Facturas y en Remitos, y cómo hacer una factura (precio de la lista o a mano según el cliente). |
 | Pagos de Clientes | `client-payments` | Pagos de Clientes → Nuevo pago | Registrar un pago (con los datos del cheque si es con cheque) y las acciones del listado. |
 | Compras | `purchases` | Compras → Nueva compra → Carga simple | Diferencia entre carga simple y masiva, cargar una compra simple y las acciones del listado. |
@@ -76,7 +76,7 @@ En el código de cada pantalla queda solo lo que conecta los pasos con ella: los
   3. Para ofrecerlo desde el Inicio, relacionarlo con una novedad (campo `tutorial`).
 - **Cambiar un texto o un paso** se hace con una migración de datos (o desde el admin para una corrección puntual): no hace falta tocar el frontend. El avance de los usuarios no se pierde, porque está relacionado con el tutorial y no con sus pasos.
 - **No cambiar la clave** de un tutorial ya publicado: el frontend y las URLs de avance lo identifican por clave.
-- El tutorial de Clientes incluye el teléfono, aunque el formulario no lo marca como obligatorio, porque el backend lo exige al registrar el cliente.
+- El tutorial de Clientes incluye el teléfono del primer contacto (obligatorio) y muestra el botón "Agregar contacto" (DEV-119).
 - El listado de clientes no ordena los más nuevos primero: el cliente recién creado puede no estar en la primera página y entonces el recorrido usa la primera fila.
 - El tutorial de Facturación termina al generar la factura: la app pasa a la vista de impresión, que queda fuera del menú.
 - Funciona en el celular y en tema claro y oscuro. Los desplegables y calendarios se abren por encima del oscurecido.

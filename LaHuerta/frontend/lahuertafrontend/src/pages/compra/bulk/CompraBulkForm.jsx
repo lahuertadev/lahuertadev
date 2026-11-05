@@ -29,9 +29,9 @@ import {
   validateBlock,
   buildBuyPayload,
   calculateBlockTotals,
-  formatTelefono,
   getExistingBuyWarning,
 } from '../shared/buyBlockUtils';
+import { getMainPhone } from '../../../utils/phone';
 
 // Nombres legibles para los campos que puede devolver el backend en los errores de cada compra.
 const FIELD_LABELS = {
@@ -313,7 +313,7 @@ const CompraBulkForm = () => {
                         {[
                           entry.block.supplier.mercado?.descripcion,
                           entry.block.supplier.puesto && `Puesto ${entry.block.supplier.puesto}`,
-                          formatTelefono(entry.block.supplier.telefono),
+                          getMainPhone(entry.block.supplier.contactos),
                         ].filter(Boolean).join(' · ')}
                       </p>
                     </>

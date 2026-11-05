@@ -108,7 +108,6 @@ def fk_data(db):
         cuenta_corriente=Decimal("0.00"),
         localidad=localidad,
         condicion_IVA=condicion_iva,
-        telefono="1234567890",
         lista_precios=lista_precios,
     )
     bill_type = TipoFactura.objects.create(descripcion="Remito X", abreviatura="X", codigo_afip=None)

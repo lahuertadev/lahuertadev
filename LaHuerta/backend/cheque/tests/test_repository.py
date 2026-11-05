@@ -39,7 +39,6 @@ class TestCheckRepository:
             cuit='20123456789',
             razon_social='Cliente Test SA',
             cuenta_corriente=Decimal('0.00'),
-            telefono='1122334455',
             localidad=localidad,
             condicion_IVA=condicion_iva,
         )

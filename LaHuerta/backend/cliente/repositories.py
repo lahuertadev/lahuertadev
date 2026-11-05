@@ -6,7 +6,7 @@ from django.db.models import Q
 class ClientRepository(IClientRepository):
 
     def get_all_clients(self, cuit=None, searchQuery=None, address=None):
-        queryset = Cliente.objects.all()
+        queryset = Cliente.objects.prefetch_related('contactos')
 
         if cuit:
             queryset = queryset.filter(cuit__icontains=cuit)

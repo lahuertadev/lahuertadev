@@ -11,7 +11,6 @@ class Cliente(models.Model):
     domicilio = models.CharField(max_length=200, blank=True, null=True)
     localidad = models.ForeignKey(Localidad, on_delete=models.CASCADE)
     condicion_IVA = models.ForeignKey(TipoCondicionIva, on_delete=models.CASCADE)
-    telefono = models.CharField(max_length=16)
     fecha_inicio_ventas = models.DateField(blank=True, null=True)
     nombre_fantasia = models.CharField(max_length=100, blank=True, null=True)
     estado = models.BooleanField(default=True)

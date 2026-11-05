@@ -7,7 +7,7 @@ def _base_queryset():
     return (
         MovimientoVacio.objects
         .select_related('proveedor__mercado')
-        .prefetch_related('contenedores__tipo_contenedor')
+        .prefetch_related('contenedores__tipo_contenedor', 'proveedor__contactos')
     )
 
 

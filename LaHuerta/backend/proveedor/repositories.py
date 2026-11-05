@@ -6,7 +6,7 @@ from django.db.models import Q
 class SupplierRepository(ISupplierRepository):
 
     def get_all_suppliers(self, searchQuery=None, mercado=None):
-        queryset = Proveedor.objects.select_related('mercado').all()
+        queryset = Proveedor.objects.select_related('mercado').prefetch_related('contactos')
 
         if searchQuery:
             queryset = queryset.filter(

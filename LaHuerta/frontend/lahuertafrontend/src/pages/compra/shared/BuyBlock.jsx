@@ -13,7 +13,8 @@ import BasicSelect from '../../../components/Select';
 import CountUp from '../../../components/CountUp';
 import FieldWarning from '../../../components/FieldWarning';
 import EmptiesNotice from './EmptiesNotice';
-import { EMPTY_ITEM, calculateItemSubtotal, calculateBlockTotals, formatTelefono, getExistingBuyWarning } from './buyBlockUtils';
+import { EMPTY_ITEM, calculateItemSubtotal, calculateBlockTotals, getExistingBuyWarning } from './buyBlockUtils';
+import { getMainPhone } from '../../../utils/phone';
 
 // Línea con producto, cantidad y precio cargados.
 const isItemComplete = (item) =>
@@ -180,7 +181,7 @@ const BuyBlock = ({
               readOnly
               label="Contacto"
               name="supplierContacto"
-              value={formatTelefono(selectedSupplier.telefono)}
+              value={getMainPhone(selectedSupplier.contactos)}
               onChange={() => {}}
             />
           </div>

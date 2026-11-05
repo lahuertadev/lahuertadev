@@ -3,6 +3,7 @@ import { columns } from '../../../constants/grid/Client';
 import { formatCuit } from '../../../utils/cuit';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { getMainPhone } from '../../../utils/phone';
 import GenericList from '../../../components/List';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,7 +17,7 @@ const mapClientData = (data) => {
       checkingAccount: formatCurrency(client.cuenta_corriente),
       address: `${client.domicilio}, ${client.localidad.nombre}, ${client.localidad.municipio.nombre}`,
       ivaCondition: client.condicion_IVA.descripcion,
-      phone: client.telefono,
+      phone: getMainPhone(client.contactos),
       salesStartDate: formatDate(client.fecha_inicio_ventas),
       fantasyName: client.nombre_fantasia,
       state: client.estado ? 'Activo' : 'Inactivo'

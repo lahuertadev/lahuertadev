@@ -1,6 +1,7 @@
 import pytest
 from decimal import Decimal
 
+from contacto.models import Contacto
 from mercado.models import Mercado
 from proveedor.models import Proveedor
 from proveedor.repositories import SupplierRepository
@@ -12,12 +13,11 @@ class TestSupplierRepository:
         self.repository = SupplierRepository()
         self.mercado = Mercado.objects.create(descripcion='Belgrano')
 
-    def _make_supplier(self, nombre='Prov1', puesto=1, nave=None, telefono='1234567', nombre_fantasia='Fantasia', cuenta_corriente=Decimal('0.00')):
+    def _make_supplier(self, nombre='Prov1', puesto=1, nave=None, nombre_fantasia='Fantasia', cuenta_corriente=Decimal('0.00')):
         return Proveedor.objects.create(
             nombre=nombre,
             puesto=puesto,
             nave=nave,
-            telefono=telefono,
             nombre_fantasia=nombre_fantasia,
             cuenta_corriente=cuenta_corriente,
             mercado=self.mercado,
@@ -60,7 +60,6 @@ class TestSupplierRepository:
         Proveedor.objects.create(
             nombre='ProvCent',
             puesto=2,
-            telefono='9999999',
             nombre_fantasia='CF',
             cuenta_corriente=0,
             mercado=otro_mercado,
@@ -98,7 +97,6 @@ class TestSupplierRepository:
             'nombre': 'Nuevo',
             'puesto': 5,
             'nave': 2,
-            'telefono': '9999999',
             'nombre_fantasia': 'NF',
             'mercado': self.mercado,
         }
@@ -113,7 +111,6 @@ class TestSupplierRepository:
         data = {
             'nombre': 'Nuevo',
             'puesto': 5,
-            'telefono': '9999999',
             'nombre_fantasia': 'NF',
             'mercado': self.mercado,
             'cuenta_corriente': Decimal('9999.00'),
@@ -127,7 +124,6 @@ class TestSupplierRepository:
         data = {
             'nombre': 'Nuevo',
             'puesto': 5,
-            'telefono': '9999999',
             'nombre_fantasia': 'NF',
             'mercado': self.mercado,
         }
@@ -143,7 +139,6 @@ class TestSupplierRepository:
         updated = self.repository.modify_supplier(supplier, {
             'nombre': 'Modificado',
             'puesto': 3,
-            'telefono': '1111111',
             'nombre_fantasia': 'NuevoFantasia',
             'mercado': self.mercado,
         })
@@ -176,6 +171,23 @@ class TestSupplierRepository:
         self.repository.delete_supplier(supplier)
 
         assert Proveedor.objects.count() == 0
+
+    def test_delete_supplier_deletes_its_contacts(self):
+        supplier = self._make_supplier()
+        Contacto.objects.create(proveedor=supplier, numero='1155551234')
+
+        self.repository.delete_supplier(supplier)
+
+        assert Contacto.objects.count() == 0
+
+    # ------------------------- CONTACTOS -----------------------
+    def test_get_all_includes_contacts(self):
+        supplier = self._make_supplier()
+        Contacto.objects.create(proveedor=supplier, numero='1155551234', descripcion='Puesto')
+
+        result = list(self.repository.get_all_suppliers())
+
+        assert [contact.numero for contact in result[0].contactos.all()] == ['1155551234']
 
     # ------------------------- UPDATE BALANCE ------------------
     def test_update_balance_persiste_cuenta_corriente(self):
