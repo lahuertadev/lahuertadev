@@ -10,6 +10,11 @@ import { emitTutorialEvent } from '../../utils/tutorial';
 jest.mock('driver.js', () => ({ driver: jest.fn() }));
 jest.mock('../../context/TutorialContext', () => ({ useTutorial: jest.fn() }));
 
+// jsdom no implementa matchMedia (lo usa attachSpotlight en los botones del globo).
+beforeAll(() => {
+  window.matchMedia = (query) => ({ matches: false, media: query, addEventListener: jest.fn(), removeEventListener: jest.fn() });
+});
+
 const steps = [
   { path: '/client', target: 'list-add', title: 'Nuevo', description: '', advance: { route: '/client/create' } },
   { path: '/client/create', target: 'name', title: 'Nombre', description: '', advance: { check: 'filled', confirm: true } },

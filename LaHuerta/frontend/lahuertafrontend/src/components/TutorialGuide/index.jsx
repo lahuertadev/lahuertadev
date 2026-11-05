@@ -10,6 +10,7 @@ import {
   TUTORIAL_CHECK_INTERVAL_MS,
 } from '../../constants/tutorials';
 import { STEP_CHECKS, matchesPath } from '../../utils/tutorial';
+import { attachSpotlight } from '../../hooks/useSpotlight';
 
 const DRIVER_CONFIG = {
   // Solo se sale con el botón "Salir": ni Escape ni el clic afuera cierran el tutorial.
@@ -109,6 +110,11 @@ export default function TutorialGuide() {
         onPrevClick: () => actionsRef.current.exitTutorial(),
         onPopoverRender: (popover) => {
           popoverRef.current = popover;
+          // driver.js enfoca "Salir" apenas termina este callback; ese foco automático se saca para
+          // que no se marque con el contorno de foco. Con Tab el foco vuelve a los botones y se marca.
+          queueMicrotask(() => {
+            if (document.activeElement === popover.previousButton) popover.previousButton.blur();
+          });
           if (progressText) {
             popover.progress.textContent = progressText;
             popover.progress.style.display = 'block';
@@ -126,6 +132,9 @@ export default function TutorialGuide() {
             backButton.addEventListener('click', onBack);
             popover.footerButtons.insertBefore(backButton, popover.nextButton);
           }
+          // Mismo efecto de luz que SpotlightButton (los estilos están en index.css). driver.js
+          // vuelve a armar los botones en cada paso, así que los listeners se van con ellos.
+          popover.footerButtons.querySelectorAll('button').forEach(attachSpotlight);
         },
       },
     });
