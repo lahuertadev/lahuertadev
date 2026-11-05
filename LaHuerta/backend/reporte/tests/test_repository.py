@@ -2,41 +2,17 @@ import pytest
 from datetime import date
 from decimal import Decimal
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from tipo_factura.models import TipoFactura
-from tipo_pago.models import TipoPago
-from cliente.models import Cliente
-from factura.models import Factura
-from pago_cliente.models import PagoCliente
 from reporte.repositories import ReportRepository
+from core.tests.factories import make_bill, make_bill_type, make_client, make_client_payment, make_payment_type
 
 
 @pytest.fixture
 def db_setup(db):
-    provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-    municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-    localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-    tipo_factura = TipoFactura.objects.create(descripcion='A')
-    tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
+    tipo_factura = make_bill_type(descripcion='A')
+    tipo_pago = make_payment_type(descripcion='Efectivo')
 
-    cliente = Cliente.objects.create(
-        cuit='20123456789',
-        razon_social='Cliente Test SA',
-        cuenta_corriente=Decimal('0'),
-        localidad=localidad,
-        condicion_IVA=condicion_iva,
-    )
-    otro_cliente = Cliente.objects.create(
-        cuit='20987654321',
-        razon_social='Otro Cliente SA',
-        cuenta_corriente=Decimal('0'),
-        localidad=localidad,
-        condicion_IVA=condicion_iva,
-    )
+    cliente = make_client(razon_social='Cliente Test SA')
+    otro_cliente = make_client(razon_social='Otro Cliente SA')
     return {
         'cliente': cliente,
         'otro_cliente': otro_cliente,
@@ -55,9 +31,9 @@ class TestReportRepositoryGetBills:
         cliente = db_setup['cliente']
         tipo_factura = db_setup['tipo_factura']
 
-        Factura.objects.create(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 5), importe=Decimal('500'))
-        Factura.objects.create(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 20), importe=Decimal('300'))
-        Factura.objects.create(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 4, 1), importe=Decimal('200'))
+        make_bill(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 5), total=Decimal('500'))
+        make_bill(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 20), total=Decimal('300'))
+        make_bill(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 4, 1), total=Decimal('200'))
 
         result = list(repo.get_bills(cliente.id, date(2025, 3, 1), date(2025, 3, 31)))
         assert len(result) == 2
@@ -67,7 +43,7 @@ class TestReportRepositoryGetBills:
         otro = db_setup['otro_cliente']
         tipo_factura = db_setup['tipo_factura']
 
-        Factura.objects.create(cliente=otro, tipo_factura=tipo_factura, fecha=date(2025, 3, 5), importe=Decimal('500'))
+        make_bill(cliente=otro, tipo_factura=tipo_factura, fecha=date(2025, 3, 5), total=Decimal('500'))
 
         result = list(repo.get_bills(cliente.id, date(2025, 3, 1), date(2025, 3, 31)))
         assert len(result) == 0
@@ -81,8 +57,8 @@ class TestReportRepositoryGetBills:
         cliente = db_setup['cliente']
         tipo_factura = db_setup['tipo_factura']
 
-        Factura.objects.create(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 1), importe=Decimal('100'))
-        Factura.objects.create(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 31), importe=Decimal('100'))
+        make_bill(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 1), total=Decimal('100'))
+        make_bill(cliente=cliente, tipo_factura=tipo_factura, fecha=date(2025, 3, 31), total=Decimal('100'))
 
         result = list(repo.get_bills(cliente.id, date(2025, 3, 1), date(2025, 3, 31)))
         assert len(result) == 2
@@ -93,9 +69,9 @@ class TestReportRepositoryGetPayments:
         cliente = db_setup['cliente']
         tipo_pago = db_setup['tipo_pago']
 
-        PagoCliente.objects.create(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 10), importe=Decimal('400'))
-        PagoCliente.objects.create(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 25), importe=Decimal('200'))
-        PagoCliente.objects.create(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 4, 5), importe=Decimal('100'))
+        make_client_payment(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 10), importe=Decimal('400'))
+        make_client_payment(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 25), importe=Decimal('200'))
+        make_client_payment(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 4, 5), importe=Decimal('100'))
 
         result = list(repo.get_payments(cliente.id, date(2025, 3, 1), date(2025, 3, 31)))
         assert len(result) == 2
@@ -105,7 +81,7 @@ class TestReportRepositoryGetPayments:
         otro = db_setup['otro_cliente']
         tipo_pago = db_setup['tipo_pago']
 
-        PagoCliente.objects.create(cliente=otro, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 10), importe=Decimal('400'))
+        make_client_payment(cliente=otro, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 10), importe=Decimal('400'))
 
         result = list(repo.get_payments(cliente.id, date(2025, 3, 1), date(2025, 3, 31)))
         assert len(result) == 0
