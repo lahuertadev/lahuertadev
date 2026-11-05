@@ -8,6 +8,7 @@ from rest_framework.parsers import JSONParser
 from mercado.models import Mercado
 from mercado.views import MarketViewSet
 from mercado.interfaces import IMarketRepository
+from core.tests.factories import make_market
 
 
 def _mock_model_instance(model_cls, **attrs):
@@ -121,7 +122,7 @@ def test_create_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicate_descripcion(factory, viewset):
-    Mercado.objects.create(descripcion="Belgrano")
+    make_market(descripcion="Belgrano")
 
     request = factory.post("/market/", {"descripcion": "Belgrano"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
@@ -168,7 +169,7 @@ def test_update_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_duplicate_descripcion(factory, viewset):
-    Mercado.objects.create(descripcion="Central")
+    make_market(descripcion="Central")
     created = viewset.market_repository.create_market({"descripcion": "Belgrano"})
 
     request = factory.put(f"/market/{created.id}/", {"descripcion": "Central"}, format="json")

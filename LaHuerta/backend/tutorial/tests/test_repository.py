@@ -2,8 +2,9 @@ import pytest
 
 from autenticacion.models import Usuario
 from tutorial.constants import TutorialStatus
-from tutorial.models import Tutorial, TutorialPaso, TutorialUsuario
+from tutorial.models import TutorialUsuario
 from tutorial.repositories import TutorialRepository
+from core.tests.factories import make_tutorial, make_tutorial_progress, make_tutorial_step, make_user
 
 
 @pytest.mark.django_db
@@ -13,18 +14,17 @@ class TestTutorialRepository:
         self.employee = self._make_user('empleado', Usuario.EMPLOYEE)
 
     def _make_user(self, username, role):
-        return Usuario.objects.create_user(username=username, email=f'{username}@test.com', password='x', role=role)
+        return make_user(username=username, role=role)
 
     def _make_tutorial(self, clave='clients', orden=1, rol_destino=None, activo=True):
-        return Tutorial.objects.create(
-            clave=clave, titulo=clave.title(), descripcion='Descripción', seccion='Clientes',
+        return make_tutorial(
+            clave=clave, titulo=clave.title(), seccion='Clientes',
             orden=orden, rol_destino=rol_destino, activo=activo,
         )
 
     def _make_step(self, tutorial, orden, elemento='list-add'):
-        return TutorialPaso.objects.create(
-            tutorial=tutorial, orden=orden, ruta='/client', elemento=elemento,
-            titulo='Paso', descripcion='Texto', avance='next',
+        return make_tutorial_step(
+            tutorial=tutorial, orden=orden, ruta='/client', elemento=elemento, avance='next',
         )
 
     def _keys(self, queryset):
@@ -66,11 +66,11 @@ class TestTutorialRepository:
     def test_visible_annotates_status_of_user(self):
         tutorial = self._make_tutorial()
         other = self._make_user('otro', Usuario.EMPLOYEE)
-        TutorialUsuario.objects.create(tutorial=tutorial, usuario=other, estado=TutorialStatus.COMPLETED)
+        make_tutorial_progress(tutorial=tutorial, usuario=other, estado=TutorialStatus.COMPLETED)
 
         assert self.repository.get_visible_for_user(self.employee).first().estado is None
 
-        TutorialUsuario.objects.create(tutorial=tutorial, usuario=self.employee, estado=TutorialStatus.SKIPPED)
+        make_tutorial_progress(tutorial=tutorial, usuario=self.employee, estado=TutorialStatus.SKIPPED)
         assert self.repository.get_visible_for_user(self.employee).first().estado == TutorialStatus.SKIPPED
 
     # ------------------------- POR CLAVE -----------------------
@@ -89,7 +89,7 @@ class TestTutorialRepository:
     def test_get_progress(self):
         tutorial = self._make_tutorial()
         assert self.repository.get_progress(tutorial, self.employee) is None
-        record = TutorialUsuario.objects.create(tutorial=tutorial, usuario=self.employee, estado=TutorialStatus.STARTED)
+        record = make_tutorial_progress(tutorial=tutorial, usuario=self.employee, estado=TutorialStatus.STARTED)
         assert self.repository.get_progress(tutorial, self.employee) == record
 
     def test_save_status_creates_record(self):
@@ -102,7 +102,7 @@ class TestTutorialRepository:
 
     def test_save_status_updates_existing_without_duplicating(self):
         tutorial = self._make_tutorial()
-        TutorialUsuario.objects.create(tutorial=tutorial, usuario=self.employee, estado=TutorialStatus.STARTED)
+        make_tutorial_progress(tutorial=tutorial, usuario=self.employee, estado=TutorialStatus.STARTED)
 
         record = self.repository.save_status(tutorial, self.employee, TutorialStatus.SKIPPED)
 

@@ -5,6 +5,7 @@ from rest_framework.parsers import JSONParser
 from django.contrib.auth import get_user_model
 from autenticacion.permissions import IsAdministratorOrReadOnly, IsSuperuserOrReadOnly, RoleBasedPermission, IsSuperuser
 from tipo_condicion_iva.views import ConditionIvaTypeViewSet
+from core.tests.factories import make_user
 
 Usuario = get_user_model()
 
@@ -16,32 +17,17 @@ def factory():
 
 @pytest.fixture
 def superuser():
-    return Usuario.objects.create_user(
-        email='superuser@test.com',
-        username='superuser',
-        password='testpass123',
-        role=Usuario.SUPERUSER
-    )
+    return make_user(role=Usuario.SUPERUSER)
 
 
 @pytest.fixture
 def administrator():
-    return Usuario.objects.create_user(
-        email='admin@test.com',
-        username='admin',
-        password='testpass123',
-        role=Usuario.ADMINISTRATOR
-    )
+    return make_user(role=Usuario.ADMINISTRATOR)
 
 
 @pytest.fixture
 def employee():
-    return Usuario.objects.create_user(
-        email='employee@test.com',
-        username='employee',
-        password='testpass123',
-        role=Usuario.EMPLOYEE
-    )
+    return make_user(role=Usuario.EMPLOYEE)
 
 
 @pytest.fixture

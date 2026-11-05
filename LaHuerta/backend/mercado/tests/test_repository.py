@@ -3,6 +3,7 @@ from django.db import IntegrityError
 
 from mercado.models import Mercado
 from mercado.repositories import MarketRepository
+from core.tests.factories import make_market
 
 
 @pytest.mark.django_db
@@ -12,8 +13,8 @@ class TestMarketRepository:
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_markets_returns_list(self):
-        Mercado.objects.create(descripcion="Belgrano")
-        Mercado.objects.create(descripcion="Central")
+        make_market(descripcion="Belgrano")
+        make_market(descripcion="Central")
 
         result = self.repository.get_all_markets()
 
@@ -25,7 +26,7 @@ class TestMarketRepository:
 
     # ------------------------- GET BY ID -----------------------
     def test_get_market_by_id_ok(self):
-        item = Mercado.objects.create(descripcion="Belgrano")
+        item = make_market(descripcion="Belgrano")
 
         result = self.repository.get_market_by_id(item.id)
 
@@ -46,13 +47,13 @@ class TestMarketRepository:
         assert Mercado.objects.count() == 1
 
     def test_create_market_duplicate_descripcion_raises(self):
-        Mercado.objects.create(descripcion="Belgrano")
+        make_market(descripcion="Belgrano")
         with pytest.raises(IntegrityError):
             self.repository.create_market({"descripcion": "Belgrano"})
 
     # ------------------------- UPDATE --------------------------
     def test_modify_market_ok(self):
-        item = Mercado.objects.create(descripcion="Old")
+        item = make_market(descripcion="Old")
 
         updated = self.repository.modify_market(item, {"descripcion": "New"})
 
@@ -62,7 +63,7 @@ class TestMarketRepository:
 
     # ------------------------- DELETE --------------------------
     def test_delete_market_ok(self):
-        item = Mercado.objects.create(descripcion="Eliminar")
+        item = make_market(descripcion="Eliminar")
 
         self.repository.delete_market(item)
 

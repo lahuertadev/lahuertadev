@@ -3,6 +3,7 @@ import pytest
 from django.core.exceptions import ObjectDoesNotExist
 from tipo_condicion_iva.models import TipoCondicionIva
 from tipo_condicion_iva.repositories import ConditionIvaTypeRepository
+from core.tests.factories import make_vat_condition
 
 @pytest.mark.django_db
 class TestConditionIvaTypeRepository:
@@ -12,8 +13,8 @@ class TestConditionIvaTypeRepository:
 
     #? ------------------------- GET ALL -------------------------
     def test_get_all_returns_list(self):
-        TipoCondicionIva.objects.create(descripcion="RI")
-        TipoCondicionIva.objects.create(descripcion="MT")
+        make_vat_condition(descripcion="RI")
+        make_vat_condition(descripcion="MT")
 
         result = self.repository.get_all()
 
@@ -26,7 +27,7 @@ class TestConditionIvaTypeRepository:
 
     #? ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
-        item = TipoCondicionIva.objects.create(descripcion="CF")
+        item = make_vat_condition(descripcion="CF")
 
         result = self.repository.get_by_id(item.id)
 
@@ -50,7 +51,7 @@ class TestConditionIvaTypeRepository:
     #? ------------------------- UPDATE --------------------------
 
     def test_update_ok(self):
-        item = TipoCondicionIva.objects.create(descripcion="Old")
+        item = make_vat_condition(descripcion="Old")
 
         updated = self.repository.update(
             item.id,
@@ -72,7 +73,7 @@ class TestConditionIvaTypeRepository:
     #? ------------------------- DELETE --------------------------
 
     def test_delete_ok(self):
-        item = TipoCondicionIva.objects.create(descripcion="Eliminar")
+        item = make_vat_condition(descripcion="Eliminar")
 
         result = self.repository.delete(item.id)
 
