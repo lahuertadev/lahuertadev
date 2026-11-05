@@ -49,6 +49,9 @@
   /* Estado pendiente / a revisar (ej. tutorial sin hacer) */
   --color-warning:            #c2410c;
   --color-warning-rgb:        194 65 12;
+  /* Asterisco de campo obligatorio (RequiredMark): rojo con contraste AA sobre la tarjeta */
+  --color-required:           #dc2626;
+  --color-required-rgb:       220 38 38;
   --color-alert-surface:      #faf5ff;
   --color-alert-surface-rgb:  250 245 255;
   --color-alert-border:       #e9d5ff;
@@ -97,6 +100,8 @@
   --color-success-rgb:        74 222 128;
   --color-warning:            #fb923c;
   --color-warning-rgb:        251 146 60;
+  --color-required:           #f87171;
+  --color-required-rgb:       248 113 113;
   --color-alert-surface:      #271f33;
   --color-alert-surface-rgb:  39 31 51;
   --color-alert-border:       #4a2f6b;

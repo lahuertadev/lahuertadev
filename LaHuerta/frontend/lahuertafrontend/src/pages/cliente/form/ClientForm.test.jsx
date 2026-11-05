@@ -8,8 +8,8 @@ import { clientUrl } from '../../../constants/urls';
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), put: jest.fn() }));
 jest.mock('../../../context/ToastContext', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
 // El selector de fecha de MUI no aporta a estos tests: un input simple con el mismo contrato.
-jest.mock('../../../components/DatePicker', () => ({ value, onChange }) => (
-  <input aria-label="Fecha de inicio" value={value || ''} onChange={(e) => onChange(e.target.value)} />
+jest.mock('../../../components/DatePicker', () => ({ value, onChange, required }) => (
+  <input aria-label="Fecha de inicio" aria-required={required || undefined} value={value || ''} onChange={(e) => onChange(e.target.value)} />
 ));
 
 // jsdom no implementa matchMedia (lo usa useSpotlight de SpotlightButton).
@@ -32,7 +32,7 @@ const client = (overrides = {}) => ({
   domicilio: 'Mitre 100',
   condicion_IVA: { id: 1, descripcion: 'RI' },
   lista_precios: null,
-  telefono: '1122334455',
+  contactos: [{ id: 1, numero: '1122334455', descripcion: null, email: null }],
   fecha_inicio_ventas: '2024-01-01',
   estado: true,
   cuenta_corriente: '0.00',
@@ -153,4 +153,82 @@ test('con Sí, guarda la localidad de entrega completa (con municipio y provinci
   const payload = axios.put.mock.calls[0][1];
   expect(payload.localidad_entrega).toEqual(district('0642701010', 'Palermo', '064271', 'Palermo Municipio'));
   expect(payload.domicilio_entrega).toBe('Thames 500');
+});
+
+// ── Contactos ────────────────────────────────────────────────────────────────
+
+const phoneInputs = () => screen.getAllByLabelText(/^Teléfono del contacto/);
+const removeButtons = () => screen.getAllByRole('button', { name: /^Eliminar contacto/ });
+
+test('con un solo contacto no se puede eliminar; con dos, sí', async () => {
+  mockGet(client());
+  renderForm('/client/edit/7');
+  await waitFor(() => expect(phoneInputs()[0]).toHaveValue('11-2233-4455'));
+
+  removeButtons().forEach((button) => expect(button).toBeDisabled());
+
+  fireEvent.click(screen.getByRole('button', { name: /Agregar contacto/ }));
+  expect(phoneInputs()).toHaveLength(2);
+  removeButtons().forEach((button) => expect(button).not.toBeDisabled());
+});
+
+test('sin teléfono en un contacto no deja guardar', async () => {
+  mockGet(client());
+  renderForm('/client/edit/7');
+  await waitFor(() => expect(phoneInputs()[0]).toHaveValue('11-2233-4455'));
+
+  fireEvent.click(screen.getByRole('button', { name: /Agregar contacto/ }));
+
+  await waitFor(() => expect(saveButton()).toBeDisabled());
+  fireEvent.change(phoneInputs()[1], { target: { value: '11-6666-7777' } });
+  await waitFor(() => expect(saveButton()).not.toBeDisabled());
+});
+
+test('al guardar manda los contactos: el existente con id, el nuevo sin id y los vacíos en null', async () => {
+  mockGet(client({
+    contactos: [
+      { id: 1, numero: '1122334455', descripcion: null, email: null },
+      { id: 2, numero: '1100000000', descripcion: 'Viejo', email: null },
+    ],
+  }));
+  axios.put.mockResolvedValue({ data: { id: 7 } });
+  renderForm('/client/edit/7');
+  await waitFor(() => expect(phoneInputs()).toHaveLength(2));
+
+  fireEvent.change(screen.getByLabelText('Descripción del contacto 1'), { target: { value: 'Compras' } });
+  fireEvent.click(removeButtons()[2]); // los dos primeros son los de mobile y desktop del contacto 1
+  fireEvent.click(screen.getByRole('button', { name: /Agregar contacto/ }));
+  fireEvent.change(phoneInputs()[1], { target: { value: '1177778888' } });
+  fireEvent.change(screen.getByLabelText('Email del contacto 2'), { target: { value: 'pagos@cliente.com' } });
+
+  await waitFor(() => expect(saveButton()).not.toBeDisabled());
+  fireEvent.click(saveButton());
+
+  await waitFor(() => expect(axios.put).toHaveBeenCalled());
+  expect(axios.put.mock.calls[0][1].contactos).toEqual([
+    { id: 1, numero: '1122334455', descripcion: 'Compras', email: null },
+    { numero: '1177778888', descripcion: null, email: 'pagos@cliente.com' },
+  ]);
+});
+
+test('los campos obligatorios llevan aria-required y los opcionales no', async () => {
+  mockGet(client());
+  renderForm();
+  await screen.findByRole('heading', { level: 3, name: 'Facturación' });
+
+  ['client-cuit', 'client-business-name', 'client-province', 'client-iva-condition', 'client-price-list-select', 'client-sales-start'].forEach((name) => {
+    expect(tour(name).querySelector('input, select')).toHaveAttribute('aria-required', 'true');
+  });
+  expect(phoneInputs()[0]).toHaveAttribute('aria-required', 'true');
+  expect(tour('client-address').querySelector('input')).not.toHaveAttribute('aria-required');
+  expect(screen.getByPlaceholderText('Nombre comercial')).not.toHaveAttribute('aria-required');
+});
+
+test('el primer teléfono mantiene el data-tour del tutorial', async () => {
+  mockGet(client());
+  renderForm();
+  await screen.findByRole('heading', { level: 3, name: 'Facturación' });
+
+  expect(tour('client-phone').querySelector('input')).toBe(phoneInputs()[0]);
+  expect(tour('client-contact-add')).not.toBeNull();
 });

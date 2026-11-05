@@ -21,6 +21,7 @@ import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import BackButton from '../../../components/BackButton';
 import SpotlightButton from '../../../components/SpotlightButton';
+import ContactList from '../../../components/ContactList';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -45,13 +46,6 @@ const Field = ({ label, value }) => (
     <span className="text-sm text-on-surface">{value || '—'}</span>
   </div>
 );
-
-const formatTelefono = (raw = '') => {
-  const digits = String(raw).replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-};
 
 const ClientDetail = () => {
   const { id } = useParams();
@@ -177,7 +171,7 @@ const ClientDetail = () => {
 
       {/* 6. Contacto */}
       <SectionCard icon={<PhoneIcon sx={{ fontSize: 20 }} />} title="Contacto">
-        <Field label="Teléfono" value={formatTelefono(client.telefono)} />
+        <ContactList contacts={client.contactos} />
       </SectionCard>
 
       {/* 7. Estado */}

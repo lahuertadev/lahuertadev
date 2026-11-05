@@ -8,6 +8,7 @@ import { extractErrorMessage } from '../../../utils/errors';
 import { supplierUrl, marketUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
 import AmountInput from '../../../components/AmountInput';
+import ContactFields, { EMPTY_CONTACT, contactsSchema, toContactRows, toContactsPayload } from '../../../components/ContactFields';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
 import PhoneIcon from '@mui/icons-material/PhoneOutlined';
@@ -15,20 +16,12 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOu
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
-const formatTelefono = (raw = '') => {
-  const digits = (raw || '').replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-};
-
 const BACKEND_TO_FORM_FIELD = {
   nombre: 'nombre',
   nombre_fantasia: 'fantasyName',
   mercado: 'market',
   puesto: 'puesto',
   nave: 'nave',
-  telefono: 'telefono',
   cuenta_corriente: 'checkingAccount',
 };
 
@@ -82,7 +75,7 @@ const ProveedorForm = () => {
     market: null,
     puesto: '',
     nave: '',
-    telefono: '',
+    contacts: [{ ...EMPTY_CONTACT }],
     checkingAccount: '',
   });
 
@@ -108,7 +101,7 @@ const ProveedorForm = () => {
         market: { name: data.mercado.descripcion, value: data.mercado.id },
         puesto: data.puesto,
         nave: data.nave,
-        telefono: data.telefono,
+        contacts: toContactRows(data.contactos),
         checkingAccount: data.cuenta_corriente,
       });
     } catch (error) {
@@ -121,7 +114,7 @@ const ProveedorForm = () => {
     market: Yup.object().nullable().required('El mercado es obligatorio'),
     puesto: Yup.number().required('El puesto es obligatorio').positive().integer(),
     nave: Yup.number().nullable().positive().integer(),
-    telefono: Yup.string().required('El teléfono es obligatorio'),
+    contacts: contactsSchema,
   });
 
   const mapFormDataToBackend = (values) => ({
@@ -130,7 +123,7 @@ const ProveedorForm = () => {
     mercado: values.market?.value,
     puesto: values.puesto,
     nave: values.nave === '' ? null : values.nave,
-    telefono: values.telefono,
+    contactos: toContactsPayload(values.contacts),
     cuenta_corriente: values.checkingAccount !== '' ? values.checkingAccount : '0',
   });
 
@@ -258,21 +251,7 @@ const ProveedorForm = () => {
 
           {/* 3. Contacto */}
           <SectionCard icon={<PhoneIcon sx={{ fontSize: 20 }} />} title="Contacto">
-            <div className="flex flex-col gap-1">
-              <label className={labelCls}>Teléfono</label>
-              <input
-                name="telefono"
-                type="tel"
-                value={formatTelefono(values.telefono)}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
-                  setFieldValue('telefono', raw);
-                }}
-                placeholder="11-XXXX-XXXX"
-                className={inputCls(touched.telefono && errors.telefono)}
-              />
-              <FieldError error={errors.telefono} touched={touched.telefono} />
-            </div>
+            <ContactFields tourPrefix="supplier" descriptionPlaceholder="Ej. Puesto, Encargado, Administración" />
           </SectionCard>
 
           {/* 4. Cuenta Corriente */}

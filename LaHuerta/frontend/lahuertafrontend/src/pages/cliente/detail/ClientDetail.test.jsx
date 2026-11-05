@@ -24,7 +24,7 @@ const client = (overrides = {}) => ({
   domicilio: 'Mitre 100',
   condicion_IVA: { id: 1, descripcion: 'RI' },
   lista_precios: null,
-  telefono: '1122334455',
+  contactos: [{ id: 1, numero: '1122334455', descripcion: null, email: null }],
   fecha_inicio_ventas: '2024-01-01',
   estado: true,
   cuenta_corriente: '0.00',
@@ -78,4 +78,21 @@ test('en desktop no muestra Eliminar ni Cancelar: se elimina desde el listado y 
   await screen.findByRole('button', { name: /Editar cliente/ });
   expect(screen.queryByRole('button', { name: /Eliminar/ })).toBeNull();
   expect(screen.queryByRole('button', { name: /Cancelar/ })).toBeNull();
+});
+
+test('muestra todos los contactos y los datos vacíos con "—"', async () => {
+  renderDetail(client({
+    contactos: [
+      { id: 1, numero: '1122334455', descripcion: null, email: null },
+      { id: 2, numero: '1166667777', descripcion: 'Pagos', email: 'pagos@cliente.com' },
+    ],
+  }));
+
+  expect(await screen.findByText('11-2233-4455')).toBeInTheDocument();
+  expect(screen.getByText('11-6666-7777')).toBeInTheDocument();
+  expect(screen.getByText('Pagos')).toBeInTheDocument();
+  expect(screen.getByText('pagos@cliente.com')).toBeInTheDocument();
+  // Descripción y email vacíos del primer contacto (el otro "—" es el nombre de fantasía).
+  const emptyContactValues = screen.getAllByText('—').filter((element) => element.classList.contains('text-on-surface-muted'));
+  expect(emptyContactValues).toHaveLength(2);
 });
