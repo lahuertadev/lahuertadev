@@ -157,7 +157,7 @@ def test_retrieve_success_con_pago_compra_asociado(factory, viewset):
     pago_compra = Mock()
     pago_compra.fecha_pago = '2024-05-01'
     pago_compra.importe_abonado = Decimal('750.00')
-    pago_compra.compra.proveedor.nombre = 'Proveedor Test'
+    pago_compra.proveedor.nombre = 'Proveedor Test'
     check = _mock_cheque(1001, endosado=True, pago_compra=pago_compra)
     viewset.repository._items[1001] = check
 

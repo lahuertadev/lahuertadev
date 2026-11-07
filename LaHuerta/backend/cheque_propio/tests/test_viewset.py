@@ -12,7 +12,10 @@ from banco.models import Banco
 from cheque_propio.models import OwnCheck
 from cheque_propio.views import OwnCheckViewSet
 from cheque_propio.interfaces import IOwnCheckRepository
-from core.tests.factories import make_bank
+from cheque_propio.repositories import OwnCheckRepository
+from core.tests.factories import (
+    make_bank, make_own_check, make_payment_type, make_purchase, make_purchase_payment, make_supplier,
+)
 
 
 def _mock_banco(id=1, descripcion='Nación'):
@@ -269,7 +272,7 @@ def test_update_success(factory, viewset):
 def test_update_bloqueado_si_usado_en_pago(factory, viewset):
     banco = make_bank(descripcion='Nación')
     payment = Mock()
-    payment.compra.proveedor.nombre = 'Proveedor Test'
+    payment.proveedor.nombre = 'Proveedor Test'
     viewset.repository._add(1001, importe=Decimal('1000.00'), banco=_mock_banco(banco.id),
                               pagocompra_list=[payment])
 
@@ -396,7 +399,7 @@ def test_cancel_invalid_transition(factory, viewset):
 def test_cancel_success_revierte_pagos(factory, viewset):
     payment = Mock()
     payment.importe_abonado = Decimal('500.00')
-    payment.compra.proveedor.cuenta_corriente = Decimal('1000.00')
+    payment.proveedor.cuenta_corriente = Decimal('1000.00')
     viewset.repository._add(1001, estado=OwnCheck.State.EMITIDO, pagocompra_list=[payment])
 
     request = factory.post('/own-checks/1001/cancel/')
@@ -404,4 +407,59 @@ def test_cancel_success_revierte_pagos(factory, viewset):
 
     assert response.status_code == 200
     assert response.data['estado'] == OwnCheck.State.ANULADO
-    assert payment.compra.proveedor.cuenta_corriente == Decimal('1500.00')
+    assert payment.proveedor.cuenta_corriente == Decimal('1500.00')
+
+
+
+# ── DETALLE: PROVEEDOR Y PAGOS (DEV-141) ─────────────────────────────────────
+
+@pytest.mark.django_db
+def test_retrieve_expone_proveedor_y_pagos_de_compras_y_a_cuenta(factory):
+    supplier = make_supplier(nombre='Ricardo', puesto=27)
+    buy = make_purchase(fecha='2026-10-22', importe=Decimal('670000.00'), proveedor=supplier)
+    payment_type = make_payment_type(descripcion='Cheque Propio')
+    own_check = make_own_check(
+        numero=884, importe=Decimal('1000000.00'), fecha_emision='2026-10-27',
+        fecha_vencimiento='2027-01-23',
+    )
+    on_account = make_purchase_payment(
+        proveedor=supplier, compra=None, importe_abonado=Decimal('150000.00'), tipo_pago=payment_type,
+        fecha_pago='2026-10-29', cheque_propio=own_check,
+    )
+    purchase_payment = make_purchase_payment(
+        proveedor=supplier, compra=buy, importe_abonado=Decimal('300000.00'), tipo_pago=payment_type,
+        fecha_pago='2026-10-28', cheque_propio=own_check,
+    )
+    viewset = OwnCheckViewSet(repository=OwnCheckRepository())
+
+    response = viewset.retrieve(Request(factory.get(f'/own-checks/{own_check.id}/'), parsers=[JSONParser()]), pk=own_check.id)
+
+    assert response.status_code == 200
+    data = response.data
+    assert data['supplier'] == {'id': supplier.id, 'nombre': 'Ricardo', 'puesto': 27}
+    assert data['supplier_name'] == 'Ricardo'
+    assert data['used_amount'] == Decimal('450000.00')
+    assert data['remaining_balance'] == Decimal('550000.00')
+    assert data['purchases'] == [buy.id]
+    # Ordenados por fecha de pago: primero el de compras (28-10), después el a cuenta (29-10).
+    assert [p['id'] for p in data['payments']] == [purchase_payment.id, on_account.id]
+    assert data['payments'][0]['tipo'] == 'COMPRA'
+    assert data['payments'][0]['compra']['id'] == buy.id
+    assert data['payments'][1]['tipo'] == 'A_CUENTA'
+    assert data['payments'][1]['compra'] is None
+    assert data['payments'][1]['importe_abonado'] == Decimal('150000.00')
+
+
+@pytest.mark.django_db
+def test_retrieve_cheque_sin_usar_no_tiene_proveedor_ni_pagos(factory):
+    own_check = make_own_check(
+        numero=883, importe=Decimal('1000000.00'), fecha_emision='2026-10-27',
+        fecha_vencimiento='2027-01-22',
+    )
+    viewset = OwnCheckViewSet(repository=OwnCheckRepository())
+
+    response = viewset.retrieve(Request(factory.get(f'/own-checks/{own_check.id}/'), parsers=[JSONParser()]), pk=own_check.id)
+
+    assert response.data['supplier'] is None
+    assert response.data['payments'] == []
+    assert response.data['used_amount'] == Decimal('0')

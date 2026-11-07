@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 from compra.service import BuyService
 from compra.interfaces import IBuyRepository
-from compra.exceptions import BuyNotFoundException
+from compra.exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
 from compra_producto.interfaces import IBuyProductRepository
 from proveedor.interfaces import ISupplierRepository
 
@@ -100,6 +100,7 @@ class FakeBuyRepo(IBuyRepository):
         buy.fecha = fecha
         buy.importe = importe
         buy.senia = senia
+        buy.pagocompra_set.exists.return_value = False
         self._items[buy.id] = buy
         return buy
 
@@ -271,6 +272,36 @@ class TestUpdateBuy:
 
         assert old_supplier.cuenta_corriente == Decimal('0')
         assert new_supplier.cuenta_corriente == Decimal('1000.00')
+
+    def test_update_cambio_de_proveedor_con_pagos_lanza_excepcion(self):
+        service = _make_service()
+        old_supplier = _make_supplier(cc=Decimal('1000.00'))
+        new_supplier = _make_supplier(cc=Decimal('0'))
+        compra = service.buy_repository.create(
+            proveedor=old_supplier, fecha='2024-01-01',
+            importe=Decimal('1000.00'), senia=Decimal('0'),
+        )
+        compra.pagocompra_set.exists.return_value = True
+
+        with pytest.raises(BuySupplierChangeBlockedException):
+            service.update_buy(compra.id, {'proveedor': new_supplier})
+
+        assert old_supplier.cuenta_corriente == Decimal('1000.00')
+        assert new_supplier.cuenta_corriente == Decimal('0')
+        assert compra.proveedor is old_supplier
+
+    def test_update_con_pagos_sin_cambiar_proveedor_no_bloquea(self):
+        service = _make_service()
+        supplier = _make_supplier(cc=Decimal('1000.00'))
+        compra = service.buy_repository.create(
+            proveedor=supplier, fecha='2024-01-01',
+            importe=Decimal('1000.00'), senia=Decimal('0'),
+        )
+        compra.pagocompra_set.exists.return_value = True
+
+        service.update_buy(compra.id, {'proveedor': supplier, 'fecha': '2024-03-01'})
+
+        assert compra.fecha == '2024-03-01'
 
 
     def test_update_sin_cambios_no_modifica_cc(self):

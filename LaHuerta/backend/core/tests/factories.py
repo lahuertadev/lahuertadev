@@ -277,7 +277,9 @@ def make_purchase_payment(**overrides):
     data = {'fecha_pago': DEFAULT_DATE, 'importe_abonado': Decimal('1000.00')}
     data.update(overrides)
     if 'compra' not in data:
-        data['compra'] = make_purchase()
+        data['compra'] = make_purchase(proveedor=data['proveedor']) if 'proveedor' in data else make_purchase()
+    if 'proveedor' not in data:
+        data['proveedor'] = data['compra'].proveedor
     if 'tipo_pago' not in data:
         data['tipo_pago'] = make_payment_type()
     return PagoCompra.objects.create(**data)

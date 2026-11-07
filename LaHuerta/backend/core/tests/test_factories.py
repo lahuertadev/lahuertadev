@@ -62,3 +62,31 @@ def test_factory_uses_overrides_and_given_dependencies():
 
     assert supplier.nombre == 'Pepe'
     assert supplier.mercado == market
+
+
+@pytest.mark.django_db
+def test_purchase_payment_takes_supplier_from_purchase():
+    buy = factories.make_purchase()
+
+    payment = factories.make_purchase_payment(compra=buy)
+
+    assert payment.proveedor == buy.proveedor
+
+
+@pytest.mark.django_db
+def test_purchase_payment_creates_purchase_of_given_supplier():
+    supplier = factories.make_supplier()
+
+    payment = factories.make_purchase_payment(proveedor=supplier)
+
+    assert payment.compra.proveedor == supplier
+
+
+@pytest.mark.django_db
+def test_purchase_payment_on_account_without_purchase():
+    supplier = factories.make_supplier()
+
+    payment = factories.make_purchase_payment(proveedor=supplier, compra=None)
+
+    assert payment.compra is None
+    assert payment.proveedor == supplier

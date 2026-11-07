@@ -32,11 +32,9 @@ def _make_pago_cliente(importe='2000.00', cc='5000.00'):
 def _make_pago_compra(importe_abonado='2000.00', cc='5000.00'):
     proveedor = Mock()
     proveedor.cuenta_corriente = Decimal(cc)
-    compra = Mock()
-    compra.proveedor = proveedor
     pago = Mock()
     pago.importe_abonado = Decimal(importe_abonado)
-    pago.compra = compra
+    pago.proveedor = proveedor
     return pago
 
 
@@ -236,7 +234,7 @@ def test_reject_desde_endosado_revierte_cc_cliente_y_proveedor():
     service.reject_check(check)
 
     assert pago_cliente.cliente.cuenta_corriente == Decimal('5000.00')
-    assert pago_compra.compra.proveedor.cuenta_corriente == Decimal('7000.00')
+    assert pago_compra.proveedor.cuenta_corriente == Decimal('7000.00')
     assert len(client_repo.updated) == 1
     assert len(supplier_repo.updated) == 1
 

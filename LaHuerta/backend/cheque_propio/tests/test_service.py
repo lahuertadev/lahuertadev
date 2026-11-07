@@ -28,7 +28,7 @@ def _make_own_check(numero=1001, banco=None, importe=Decimal('1000.00'), used_in
         payments = []
         for name in (supplier_names or ['Proveedor Test']):
             payment = Mock()
-            payment.compra.proveedor.nombre = name
+            payment.proveedor.nombre = name
             payments.append(payment)
         pagocompra_qs.select_related.return_value = payments
     own_check.pagocompra_set = pagocompra_qs
@@ -249,14 +249,13 @@ def test_cash_sin_fecha_deposito_success():
 
 # ── CANCEL ───────────────────────────────────────────────────────────────────
 
-def _make_payment(importe_abonado='1000.00', supplier_cc='5000.00'):
+def _make_payment(importe_abonado='1000.00', supplier_cc='5000.00', with_buy=True):
     proveedor = Mock()
     proveedor.cuenta_corriente = Decimal(supplier_cc)
-    compra = Mock()
-    compra.proveedor = proveedor
     payment = Mock()
     payment.importe_abonado = Decimal(importe_abonado)
-    payment.compra = compra
+    payment.proveedor = proveedor
+    payment.compra = Mock() if with_buy else None
     return payment
 
 
@@ -307,7 +306,7 @@ def test_cancel_success_revierte_pagos_y_anula():
 
     service.cancel_check(own_check)
 
-    assert payment.compra.proveedor.cuenta_corriente == Decimal('6000.00')
+    assert payment.proveedor.cuenta_corriente == Decimal('6000.00')
     assert payment in payment_repo.deleted
     assert len(supplier_repo.updated) == 1
     repo.update.assert_called_once_with(own_check, {'estado': OwnCheck.State.ANULADO})
@@ -323,8 +322,8 @@ def test_cancel_success_con_varios_pagos_revierte_todos():
 
     service.cancel_check(own_check)
 
-    assert payment_a.compra.proveedor.cuenta_corriente == Decimal('1300.00')
-    assert payment_b.compra.proveedor.cuenta_corriente == Decimal('2200.00')
+    assert payment_a.proveedor.cuenta_corriente == Decimal('1300.00')
+    assert payment_b.proveedor.cuenta_corriente == Decimal('2200.00')
     assert payment_repo.deleted == [payment_a, payment_b]
     assert len(supplier_repo.updated) == 2
 
@@ -339,4 +338,18 @@ def test_cancel_success_sin_pagos_solo_anula():
 
     assert payment_repo.deleted == []
     assert supplier_repo.updated == []
+    repo.update.assert_called_once_with(own_check, {'estado': OwnCheck.State.ANULADO})
+
+
+@pytest.mark.django_db
+def test_cancel_revierte_tambien_pagos_a_cuenta():
+    on_account = _make_payment(importe_abonado='1000000.00', supplier_cc='7577000.00', with_buy=False)
+    service, repo, payment_repo, supplier_repo = _make_service_with_cancel_deps(payments=[on_account])
+    own_check = Mock()
+    own_check.estado = OwnCheck.State.EMITIDO
+
+    service.cancel_check(own_check)
+
+    assert on_account.proveedor.cuenta_corriente == Decimal('8577000.00')
+    assert payment_repo.deleted == [on_account]
     repo.update.assert_called_once_with(own_check, {'estado': OwnCheck.State.ANULADO})

@@ -25,9 +25,10 @@ class TestOwnCheckRepository:
     def _make_proveedor(self, nombre='ProvTest'):
         return make_supplier(nombre=nombre)
 
-    def _make_pago_compra(self, own_check, proveedor, importe_abonado=Decimal('500.00')):
+    def _make_pago_compra(self, own_check, proveedor, importe_abonado=Decimal('500.00'), with_buy=True):
         return make_purchase_payment(
-            compra=make_purchase(proveedor=proveedor),
+            proveedor=proveedor,
+            compra=make_purchase(proveedor=proveedor) if with_buy else None,
             importe_abonado=importe_abonado,
             cheque_propio=own_check,
         )
@@ -104,6 +105,26 @@ class TestOwnCheckRepository:
 
         assert {c.numero for c in result_a} == {1001, 1002}
         assert {c.numero for c in result_b} == {1002}
+
+    def test_get_all_available_con_supplier_id_excluye_usados_a_cuenta_por_otro_proveedor(self):
+        own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
+        proveedor_a = self._make_proveedor('Proveedor A')
+        proveedor_b = self._make_proveedor('Proveedor B')
+        self._make_pago_compra(own_check, proveedor_a, importe_abonado=Decimal('300.00'), with_buy=False)
+
+        result_a = self.repository.get_all(available=True, supplier_id=proveedor_a.id)
+        result_b = self.repository.get_all(available=True, supplier_id=proveedor_b.id)
+
+        assert [c.numero for c in result_a] == [1001]
+        assert list(result_b) == []
+
+    def test_get_all_available_descuenta_pagos_a_cuenta_del_saldo(self):
+        own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
+        proveedor = self._make_proveedor()
+        self._make_pago_compra(own_check, proveedor, importe_abonado=Decimal('600.00'))
+        self._make_pago_compra(own_check, proveedor, importe_abonado=Decimal('400.00'), with_buy=False)
+
+        assert self.repository.get_all(available=True).count() == 0
 
     # ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
@@ -186,6 +207,13 @@ class TestOwnCheckRepository:
         result = list(self.repository.get_payments(own_check))
 
         assert result == [pago]
+
+    def test_get_payments_incluye_pagos_a_cuenta(self):
+        own_check = self._make_own_check(1001)
+        proveedor = self._make_proveedor()
+        on_account = self._make_pago_compra(own_check, proveedor, with_buy=False)
+
+        assert list(self.repository.get_payments(own_check)) == [on_account]
 
     def test_get_payments_sin_pagos_returns_empty(self):
         own_check = self._make_own_check(1001)
