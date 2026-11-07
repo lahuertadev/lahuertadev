@@ -66,7 +66,7 @@ class CheckService:
             self.client_repository.update_balance(client)
 
         if check.endosado and self.supplier_repository and check.pago_compra:
-            supplier = check.pago_compra.compra.proveedor
+            supplier = check.pago_compra.proveedor
             supplier.cuenta_corriente = Decimal(str(supplier.cuenta_corriente)) + Decimal(str(check.pago_compra.importe_abonado))
             self.supplier_repository.update_balance(supplier)
 
