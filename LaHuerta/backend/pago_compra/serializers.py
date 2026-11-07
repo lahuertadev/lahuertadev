@@ -2,6 +2,7 @@ from decimal import Decimal
 from rest_framework import serializers
 from .models import PagoCompra
 from compra.models import Compra
+from proveedor.models import Proveedor
 from tipo_pago.models import TipoPago
 from tipo_pago.serializers import PaymentTypeSerializer
 
@@ -14,8 +15,20 @@ class CompraResumenSerializer(serializers.ModelSerializer):
         fields = ['id', 'fecha', 'proveedor']
 
 
+class SupplierSummarySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Proveedor
+        fields = ['id', 'nombre', 'puesto']
+
+
 class PurchasePaymentWriteSerializer(serializers.Serializer):
-    compra = serializers.PrimaryKeyRelatedField(queryset=Compra.objects.all())
+    '''
+    DTO de alta. Sin compra, el pago es a cuenta. La correspondencia entre la compra
+    y el proveedor se valida en PurchasePaymentService.
+    '''
+    proveedor = serializers.PrimaryKeyRelatedField(queryset=Proveedor.objects.all())
+    compra = serializers.PrimaryKeyRelatedField(queryset=Compra.objects.all(), required=False, allow_null=True)
     importe_abonado = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
     tipo_pago = serializers.PrimaryKeyRelatedField(queryset=TipoPago.objects.all())
     fecha_pago = serializers.DateField()
@@ -36,8 +49,18 @@ class PurchasePaymentWriteSerializer(serializers.Serializer):
         return data
 
 
+class PurchasePaymentUpdateSerializer(serializers.Serializer):
+    '''
+    DTO de edición: solo la fecha y el importe. El proveedor, la compra y el medio de
+    pago no se cambian (para eso se elimina el pago y se carga de nuevo).
+    '''
+    importe_abonado = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
+    fecha_pago = serializers.DateField()
+
+
 class PurchasePaymentResponseSerializer(serializers.ModelSerializer):
-    compra = CompraResumenSerializer()
+    proveedor = SupplierSummarySerializer()
+    compra = CompraResumenSerializer(allow_null=True)
     tipo_pago = PaymentTypeSerializer()
     cheque = serializers.SerializerMethodField()
     cheque_propio = serializers.SerializerMethodField()
@@ -66,8 +89,9 @@ class PurchasePaymentResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PagoCompra
-        fields = ['id', 'compra', 'importe_abonado', 'tipo_pago', 'fecha_pago', 'estado_pago', 'cheque', 'cheque_propio']
+        fields = ['id', 'proveedor', 'compra', 'importe_abonado', 'tipo_pago', 'fecha_pago', 'estado_pago', 'cheque', 'cheque_propio']
 
 
 class PurchasePaymentQueryParamsSerializer(serializers.Serializer):
     compra_id = serializers.IntegerField(required=False)
+    supplier_id = serializers.IntegerField(required=False)
