@@ -32,8 +32,8 @@ class OwnCheckService:
 
         if (number_changed or bank_changed or amount_changed) and own_check.pagocompra_set.exists():
             suppliers = sorted({
-                payment.compra.proveedor.nombre
-                for payment in own_check.pagocompra_set.select_related('compra__proveedor')
+                payment.proveedor.nombre
+                for payment in own_check.pagocompra_set.select_related('proveedor')
             })
             raise OwnCheckEditBlockedException(
                 f'No se puede modificar el número, banco ni importe: este cheque ya está usado en '
@@ -76,7 +76,7 @@ class OwnCheckService:
             raise OwnCheckInvalidTransitionException('Solo se pueden anular cheques en estado EMITIDO.')
 
         for payment in self.own_check_repository.get_payments(own_check):
-            supplier = payment.compra.proveedor
+            supplier = payment.proveedor
             supplier.cuenta_corriente += payment.importe_abonado
             self.supplier_repository.update_balance(supplier)
             self.payment_repository.delete(payment)

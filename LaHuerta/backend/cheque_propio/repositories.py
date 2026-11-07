@@ -9,7 +9,8 @@ class OwnCheckRepository(IOwnCheckRepository):
 
     def get_all(self, state=None, bank=None, available=None, supplier_id=None):
         queryset = OwnCheck.objects.select_related('banco').prefetch_related(
-            'pagocompra_set__compra__proveedor',
+            'pagocompra_set__proveedor',
+            'pagocompra_set__compra',
         ).all()
         if state:
             queryset = queryset.filter(estado=state)
@@ -22,8 +23,8 @@ class OwnCheckRepository(IOwnCheckRepository):
             if supplier_id:
                 checks_other_supplier = (
                     OwnCheck.objects
-                    .filter(pagocompra__compra__proveedor_id__isnull=False)
-                    .exclude(pagocompra__compra__proveedor_id=supplier_id)
+                    .filter(pagocompra__proveedor_id__isnull=False)
+                    .exclude(pagocompra__proveedor_id=supplier_id)
                     .values_list('id', flat=True)
                     .distinct()
                 )
@@ -34,7 +35,7 @@ class OwnCheckRepository(IOwnCheckRepository):
         return (
             OwnCheck.objects
             .select_related('banco')
-            .prefetch_related('pagocompra_set__compra__proveedor')
+            .prefetch_related('pagocompra_set__proveedor', 'pagocompra_set__compra')
             .filter(id=id)
             .first()
         )
@@ -58,4 +59,4 @@ class OwnCheckRepository(IOwnCheckRepository):
         own_check.delete()
 
     def get_payments(self, own_check):
-        return own_check.pagocompra_set.select_related('compra__proveedor').all()
+        return own_check.pagocompra_set.select_related('proveedor').all()
