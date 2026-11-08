@@ -259,6 +259,14 @@ def _make_payment(importe_abonado='1000.00', supplier_cc='5000.00', with_buy=Tru
     return payment
 
 
+def _use(payment, importe=None):
+    '''Uso del cheque en un pago; por defecto, el pago entero se hizo con este cheque.'''
+    use = Mock()
+    use.pago_compra = payment
+    use.importe = Decimal(importe) if importe else payment.importe_abonado
+    return use
+
+
 class FakeSupplierRepo:
     def __init__(self):
         self.updated = []
@@ -270,15 +278,22 @@ class FakeSupplierRepo:
 class FakePaymentRepo:
     def __init__(self):
         self.deleted = []
+        self.updated = []
 
     def delete(self, payment):
         self.deleted.append(payment)
 
+    def update(self, payment, data):
+        for field, value in data.items():
+            setattr(payment, field, value)
+        self.updated.append(payment)
+        return payment
 
-def _make_service_with_cancel_deps(payments=None):
+
+def _make_service_with_cancel_deps(payments=None, uses=None):
     repo = Mock()
     repo.update.side_effect = _update_side_effect
-    repo.get_payments.return_value = payments if payments is not None else []
+    repo.get_payment_uses.return_value = uses if uses is not None else [_use(payment) for payment in payments or []]
     payment_repo = FakePaymentRepo()
     supplier_repo = FakeSupplierRepo()
     service = OwnCheckService(repo, payment_repository=payment_repo, supplier_repository=supplier_repo)
@@ -352,4 +367,22 @@ def test_cancel_revierte_tambien_pagos_a_cuenta():
 
     assert on_account.proveedor.cuenta_corriente == Decimal('8577000.00')
     assert payment_repo.deleted == [on_account]
+    repo.update.assert_called_once_with(own_check, {'estado': OwnCheck.State.ANULADO})
+
+
+@pytest.mark.django_db
+def test_cancel_pago_con_otros_cheques_solo_descuenta_la_parte_de_este():
+    # Pago de $1.000 hecho con este cheque ($400) y otro ($600): queda el pago por $600.
+    payment = _make_payment(importe_abonado='1000.00', supplier_cc='5000.00')
+    use = _use(payment, importe='400.00')
+    service, repo, payment_repo, supplier_repo = _make_service_with_cancel_deps(uses=[use])
+    own_check = Mock()
+    own_check.estado = OwnCheck.State.EMITIDO
+
+    service.cancel_check(own_check)
+
+    assert payment.proveedor.cuenta_corriente == Decimal('5400.00')
+    assert payment.importe_abonado == Decimal('600.00')
+    assert payment_repo.deleted == []
+    repo.delete_payment_use.assert_called_once_with(use)
     repo.update.assert_called_once_with(own_check, {'estado': OwnCheck.State.ANULADO})

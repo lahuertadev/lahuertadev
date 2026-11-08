@@ -53,6 +53,14 @@ def _mock_own_check(numero, importe=Decimal('1000.00'), banco=None, estado=OwnCh
     pagocompra_qs.aggregate.return_value = {'total': None}
     pagocompra_qs.select_related.return_value = payments
     obj.pagocompra_set = pagocompra_qs
+
+    # Uso del cheque en cada pago (pago_compra_cheque_propio): por defecto, el pago entero.
+    uses = [Mock(pago_compra=payment, importe=getattr(payment, 'importe_abonado', Decimal('0'))) for payment in payments]
+    uses_qs = Mock()
+    uses_qs.all.return_value = uses
+    uses_qs.exists.return_value = bool(uses)
+    uses_qs.aggregate.return_value = {'total': None}
+    obj.payment_uses = uses_qs
     return obj
 
 
@@ -100,8 +108,11 @@ class FakeOwnCheckRepo(IOwnCheckRepository):
     def delete(self, own_check):
         self._items.pop(own_check.numero, None)
 
-    def get_payments(self, own_check):
-        return own_check.pagocompra_set.all()
+    def get_payment_uses(self, own_check):
+        return own_check.payment_uses.all()
+
+    def delete_payment_use(self, use):
+        pass
 
 
 @pytest.fixture

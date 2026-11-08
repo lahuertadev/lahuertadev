@@ -10,7 +10,7 @@ class OwnCheckRepository(IOwnCheckRepository):
     def get_all(self, state=None, bank=None, available=None, supplier_id=None):
         queryset = OwnCheck.objects.select_related('banco').prefetch_related(
             'pagocompra_set__proveedor',
-            'pagocompra_set__compra',
+            'payment_uses__pago_compra__compra',
         ).all()
         if state:
             queryset = queryset.filter(estado=state)
@@ -18,7 +18,7 @@ class OwnCheckRepository(IOwnCheckRepository):
             queryset = queryset.filter(banco__descripcion__icontains=bank)
         if available:
             queryset = queryset.annotate(
-                total_used=Coalesce(Sum('pagocompra__importe_abonado'), Value(Decimal('0')))
+                total_used=Coalesce(Sum('payment_uses__importe'), Value(Decimal('0')))
             ).filter(estado=OwnCheck.State.EMITIDO, total_used__lt=F('importe'))
             if supplier_id:
                 checks_other_supplier = (
@@ -35,7 +35,7 @@ class OwnCheckRepository(IOwnCheckRepository):
         return (
             OwnCheck.objects
             .select_related('banco')
-            .prefetch_related('pagocompra_set__proveedor', 'pagocompra_set__compra')
+            .prefetch_related('pagocompra_set__proveedor', 'payment_uses__pago_compra__compra')
             .filter(id=id)
             .first()
         )
@@ -58,5 +58,8 @@ class OwnCheckRepository(IOwnCheckRepository):
     def delete(self, own_check):
         own_check.delete()
 
-    def get_payments(self, own_check):
-        return own_check.pagocompra_set.select_related('proveedor').all()
+    def get_payment_uses(self, own_check):
+        return own_check.payment_uses.select_related('pago_compra__proveedor').all()
+
+    def delete_payment_use(self, use):
+        use.delete()

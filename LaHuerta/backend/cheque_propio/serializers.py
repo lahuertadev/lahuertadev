@@ -69,7 +69,7 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
         return getattr(first_payment, 'proveedor', None) if first_payment else None
 
     def _used_amount(self, obj):
-        return obj.pagocompra_set.aggregate(total=Sum('importe_abonado'))['total'] or Decimal('0')
+        return obj.payment_uses.aggregate(total=Sum('importe'))['total'] or Decimal('0')
 
     def get_supplier_name(self, obj):
         supplier = self._first_supplier(obj)
@@ -82,22 +82,23 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
         return {'id': supplier.id, 'nombre': supplier.nombre, 'puesto': supplier.puesto}
 
     def get_purchases(self, obj):
-        return [payment.compra_id for payment in obj.pagocompra_set.all() if payment.compra_id]
+        return [use.pago_compra.compra_id for use in obj.payment_uses.all() if use.pago_compra.compra_id]
 
     def get_payments(self, obj):
-        payments = sorted(obj.pagocompra_set.all(), key=lambda payment: (payment.fecha_pago, payment.id))
+        '''Pagos hechos con el cheque; importe_abonado es la parte que se pagó con este cheque.'''
+        uses = sorted(obj.payment_uses.all(), key=lambda use: (use.pago_compra.fecha_pago, use.pago_compra.id))
         return [
             {
-                'id': payment.id,
-                'fecha_pago': payment.fecha_pago,
-                'tipo': PAYMENT_KIND_PURCHASE if payment.compra_id else PAYMENT_KIND_ON_ACCOUNT,
+                'id': use.pago_compra.id,
+                'fecha_pago': use.pago_compra.fecha_pago,
+                'tipo': PAYMENT_KIND_PURCHASE if use.pago_compra.compra_id else PAYMENT_KIND_ON_ACCOUNT,
                 'compra': (
-                    {'id': payment.compra.id, 'fecha': payment.compra.fecha}
-                    if payment.compra_id else None
+                    {'id': use.pago_compra.compra.id, 'fecha': use.pago_compra.compra.fecha}
+                    if use.pago_compra.compra_id else None
                 ),
-                'importe_abonado': payment.importe_abonado,
+                'importe_abonado': use.importe,
             }
-            for payment in payments
+            for use in uses
         ]
 
     def get_used_amount(self, obj):
