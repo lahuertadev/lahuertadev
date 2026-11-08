@@ -411,8 +411,7 @@ const CompraBulkForm = () => {
             <p className="text-xs">¿Querés guardar las compras de todas formas?</p>
           </div>
         }
-        icon={<WarningAmberIcon sx={{ fontSize: 20, color: '#d97706' }} />}
-        confirmClassName="bg-amber-500 hover:bg-amber-600"
+        tone="warning"
         confirmLabel="Guardar igual"
         cancelLabel="Volver a revisar"
         onConfirm={executeSave}

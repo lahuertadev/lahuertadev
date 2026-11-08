@@ -12,10 +12,20 @@ const VARIANTS = {
     className: 'border border-border-subtle bg-surface-card text-on-surface-muted hover:border-red-400 hover:text-red-500 hover:shadow-md',
     glow: 'rgb(239 68 68 / 0.18)',
   },
+  // Salir de un diálogo de confirmación: neutro, sin teñirse (la acción segura no se marca en rojo).
+  neutral: {
+    className: 'border border-border-subtle bg-surface-card text-on-surface-muted hover:border-on-surface-muted/40 hover:text-on-surface hover:shadow-md',
+    glow: 'rgb(var(--color-on-surface-muted-rgb) / 0.16)',
+  },
   // Acción destructiva (ej. Eliminar seleccionados): rojo translúcido para que se lea en ambos temas.
   danger: {
     className: 'border border-red-500/30 bg-red-500/10 text-red-500 hover:border-red-500/60 hover:shadow-md',
     glow: 'rgb(239 68 68 / 0.22)',
+  },
+  // Confirmar a pesar de una advertencia (ej. guardar una compra con avisos): ámbar translúcido.
+  warning: {
+    className: 'border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:border-amber-500/70 hover:shadow-md',
+    glow: 'rgb(245 158 11 / 0.22)',
   },
   // Acción principal (ej. Confirmar). Azul fijo para que el texto blanco se lea en ambos temas.
   primary: {
@@ -40,7 +50,7 @@ const DISABLED_CLASS = 'border border-border-subtle bg-surface-low text-on-surfa
  * SpotlightButton — botón con el efecto de luz que sigue al cursor (mismo que AccessCard).
  *
  * Props:
- *   variant   — 'outline' (default) | 'cancel' | 'danger' | 'primary' | 'news' | 'newsOutline'
+ *   variant   — 'outline' (default) | 'cancel' | 'neutral' | 'danger' | 'warning' | 'primary' | 'news' | 'newsOutline'
  *   onClick, disabled, type, aria-*
  *   className — clases extra (tamaño / ancho)
  *   children  — contenido del botón
