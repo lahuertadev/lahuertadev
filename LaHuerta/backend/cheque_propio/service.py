@@ -32,8 +32,8 @@ class OwnCheckService:
 
         if (number_changed or bank_changed or amount_changed) and own_check.pagocompra_set.exists():
             suppliers = sorted({
-                payment.compra.proveedor.nombre
-                for payment in own_check.pagocompra_set.select_related('compra__proveedor')
+                payment.proveedor.nombre
+                for payment in own_check.pagocompra_set.select_related('proveedor')
             })
             raise OwnCheckEditBlockedException(
                 f'No se puede modificar el número, banco ni importe: este cheque ya está usado en '
@@ -75,11 +75,18 @@ class OwnCheckService:
         if own_check.estado != OwnCheck.State.EMITIDO:
             raise OwnCheckInvalidTransitionException('Solo se pueden anular cheques en estado EMITIDO.')
 
-        for payment in self.own_check_repository.get_payments(own_check):
-            supplier = payment.compra.proveedor
-            supplier.cuenta_corriente += payment.importe_abonado
+        # Cada pago pierde la parte que se pagó con este cheque: si era su único cheque se
+        # elimina, y si tenía otros queda con el importe de los demás.
+        for use in self.own_check_repository.get_payment_uses(own_check):
+            payment = use.pago_compra
+            supplier = payment.proveedor
+            supplier.cuenta_corriente += use.importe
             self.supplier_repository.update_balance(supplier)
-            self.payment_repository.delete(payment)
+            if payment.importe_abonado <= use.importe:
+                self.payment_repository.delete(payment)
+            else:
+                self.own_check_repository.delete_payment_use(use)
+                self.payment_repository.update(payment, {'importe_abonado': payment.importe_abonado - use.importe})
 
         self.own_check_repository.update(own_check, {'estado': OwnCheck.State.ANULADO})
         return own_check

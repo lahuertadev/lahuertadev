@@ -21,6 +21,8 @@ import CloseIcon from '@mui/icons-material/Close';
  * Props del objeto `data`:
  *   title         — título de la sección (string)
  *   subtitle      — texto descriptivo debajo del título (opcional)
+ *   deleteMessage — (row) => node. Opcional: texto del diálogo al eliminar un registro (por defecto,
+ *                   "¿Estás seguro que querés eliminar este elemento?").
  *   deleteSuccessMessage — (count) => string. Opcional: si está, muestra un toast de éxito
  *                   al eliminar (count = cantidad de registros eliminados).
  *   fetchUrl      — { baseUrl, createUrl, editUrl, detailUrl? }
@@ -36,7 +38,7 @@ import CloseIcon from '@mui/icons-material/Close';
  *                   si no se pasa, navega a fetchUrl.createUrl
  */
 const GenericList = ({ data, onAdd }) => {
-  const { title, subtitle, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true } = data;
+  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -242,6 +244,7 @@ const GenericList = ({ data, onAdd }) => {
               getRowClassName={getRowClassName}
               showEdit={showEdit}
               showDelete={showDelete}
+              groupActions={groupActions}
             />
           </div>
         )}
@@ -338,7 +341,9 @@ const GenericList = ({ data, onAdd }) => {
         message={
           isMultipleDelete
             ? '¿Estás seguro que querés eliminar estos elementos?'
-            : '¿Estás seguro que querés eliminar este elemento?'
+            : (deleteMessage && rows.find((row) => row.id === itemToDelete)
+              ? deleteMessage(rows.find((row) => row.id === itemToDelete))
+              : '¿Estás seguro que querés eliminar este elemento?')
         }
         onConfirm={handleDeleteConfirm}
         onCancel={handleCloseConfirmDialog}

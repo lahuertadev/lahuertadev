@@ -9,6 +9,47 @@
   to   { opacity: 1; filter: blur(0); transform: none; }
 }
 
+/* Borde de los diálogos de confirmación (AlertDialog): un brillo que gira alrededor del
+   recuadro, en el color del tono (--dialog-tone-rgb). Sin soporte de @property queda fijo. */
+@property --dialog-border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes dialogBorderSpin {
+  to { --dialog-border-angle: 360deg; }
+}
+
+.dialog-border-glow {
+  background: conic-gradient(
+    from var(--dialog-border-angle),
+    rgb(var(--dialog-tone-rgb) / 0.95),
+    rgb(var(--dialog-tone-rgb) / 0.15) 25%,
+    rgb(var(--dialog-tone-rgb) / 0.75) 50%,
+    rgb(var(--dialog-tone-rgb) / 0.15) 75%,
+    rgb(var(--dialog-tone-rgb) / 0.95)
+  ) !important; /* le gana al fondo del Paper de MUI */
+  animation: dialogBorderSpin 4s linear infinite;
+  box-shadow: 0 0 28px rgb(var(--dialog-tone-rgb) / 0.25), 0 8px 32px rgba(0, 0, 0, 0.18) !important;
+  padding: 2px !important;
+}
+
+/* Tema claro: el acento se pierde sobre fondos claros, así que el borde es más grueso y el halo
+   más intenso. El interior usa el gris de la app (no blanco puro) para no quedar "pegado". */
+html:not(.dark) .dialog-border-glow {
+  padding: 3px !important;
+  box-shadow: 0 0 36px rgb(var(--dialog-tone-rgb) / 0.45), 0 12px 40px rgba(44, 52, 55, 0.22) !important;
+}
+
+html:not(.dark) .dialog-border-glow > .dialog-body {
+  background-color: var(--color-surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog-border-glow { animation: none; }
+}
+
 /* Barra de progreso del punto activo del carrusel de novedades (NewsPanel). */
 @keyframes newsProgress {
   from { width: 0; }

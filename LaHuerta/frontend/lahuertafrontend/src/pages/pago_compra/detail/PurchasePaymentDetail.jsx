@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { purchasePaymentUrl } from '../../../constants/urls';
 import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
+import Tooltip from '@mui/material/Tooltip';
+import BackButton from '../../../components/BackButton';
+import SpotlightButton from '../../../components/SpotlightButton';
+import { CHECK_STATE_CONFIG } from '../../../constants/grid/Check';
+import { OWN_CHECK_STATE_CONFIG } from '../../../constants/grid/OwnCheck';
+import OnAccountBadge from '../shared/OnAccountBadge';
+import DeletePaymentMessage from '../shared/DeletePaymentMessage';
+import { formatBuyNumber } from '../../../constants/purchasePaymentTypes';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import EditIcon from '@mui/icons-material/EditOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -34,6 +42,22 @@ const Field = ({ label, value }) => (
   </div>
 );
 
+// Estado del cheque con el mismo formato y colores que en los listados de Cheques y Cheques emitidos.
+const CheckStateBadge = ({ state, config }) => {
+  const cfg = config[state] || { label: state, bg: '#f0f4f7', color: '#596064' };
+  return (
+    <div className="flex flex-col gap-1">
+      <span className={labelCls}>Estado</span>
+      <span
+        className="inline-flex w-fit items-center rounded-md px-2.5 py-0.5 text-xs leading-[18px] font-semibold"
+        style={{ backgroundColor: cfg.bg, color: cfg.color }}
+      >
+        {cfg.label || '—'}
+      </span>
+    </div>
+  );
+};
+
 const PAYMENT_TYPE_CONFIG = {
   'Efectivo':      { bg: '#dcfce7', color: '#166534' },
   'Cheque':        { bg: '#e8f0fb', color: '#4a7bc4' },
@@ -43,7 +67,6 @@ const PAYMENT_TYPE_CONFIG = {
 const PurchasePaymentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery('(max-width:600px)');
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -92,28 +115,41 @@ const PurchasePaymentDetail = () => {
     );
   }
 
-  const canDelete = !payment.cheque;
-  const proveedorNombre = payment.compra?.proveedor || '—';
+  const supplierName = payment.proveedor?.nombre || '—';
   const typeCfg = PAYMENT_TYPE_CONFIG[payment.tipo_pago?.descripcion] || { bg: '#f0f4f7', color: '#596064' };
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/purchase-payment')}>Pagos de Compras</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{proveedorNombre}</span>
-      </nav>
+      {/* Breadcrumbs + Volver */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+          <span className="text-xs">›</span>
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
+          <span className="text-xs">›</span>
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/purchase-payment')}>Pagos de Compras</span>
+          <span className="text-xs">›</span>
+          <span className="text-on-surface font-semibold">{supplierName}</span>
+        </nav>
+        <BackButton onClick={() => navigate('/purchase-payment')} className="shrink-0 px-5 py-2.5 text-sm" />
+      </div>
 
       {/* 1. Proveedor */}
-      <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Proveedor" cols={2}>
-        <Field label="Nombre" value={proveedorNombre} />
-        <Field label="Fecha de compra" value={formatDate(payment.compra?.fecha)} />
+      <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Proveedor">
+        <Field label="Nombre" value={supplierName} />
+        <Field label="Puesto" value={payment.proveedor?.puesto} />
+        {payment.compra ? (
+          <Field
+            label="Compra"
+            value={`N° ${formatBuyNumber(payment.compra.id)} · ${formatDate(payment.compra.fecha)}`}
+          />
+        ) : (
+          <div className="flex flex-col gap-1">
+            <span className={labelCls}>Compra</span>
+            <OnAccountBadge />
+          </div>
+        )}
       </SectionCard>
 
       {/* 2. Datos del Pago */}
@@ -141,73 +177,78 @@ const PurchasePaymentDetail = () => {
         </div>
       </SectionCard>
 
-      {/* 3. Datos del Cheque */}
-      {payment.cheque && (
-        <SectionCard icon={<CreditCardIcon sx={{ fontSize: 20 }} />} title="Cheque">
-          <Field label="N° de cheque" value={payment.cheque.numero} />
-          <Field label="Banco" value={payment.cheque.banco} />
-          <Field label="Importe" value={formatCurrency(payment.cheque.importe)} />
-          <Field label="Estado" value={payment.cheque.estado} />
+      {/* 3. Cheques de clientes endosados en el pago */}
+      {payment.cheques?.length > 0 && (
+        <SectionCard icon={<CreditCardIcon sx={{ fontSize: 20 }} />} title={payment.cheques.length > 1 ? `Cheques (${payment.cheques.length})` : 'Cheque'} cols={1}>
+          {payment.cheques.map((check) => (
+            <div key={check.id} className="grid grid-cols-2 md:grid-cols-4 gap-6 pb-6 border-b border-border-subtle last:border-b-0 last:pb-0">
+              <Field label="N° de cheque" value={check.numero} />
+              <Field label="Banco" value={check.banco} />
+              <Field label="Importe" value={formatCurrency(check.importe)} />
+              <CheckStateBadge state={check.estado} config={CHECK_STATE_CONFIG} />
+            </div>
+          ))}
         </SectionCard>
       )}
 
-      {/* 4. Datos del Cheque Propio */}
-      {payment.cheque_propio && (
-        <SectionCard icon={<CreditCardIcon sx={{ fontSize: 20 }} />} title="Cheque Propio">
-          <Field label="N° de cheque" value={payment.cheque_propio.numero} />
-          <Field label="Banco" value={payment.cheque_propio.banco} />
-          <Field label="Importe" value={formatCurrency(payment.cheque_propio.importe)} />
-          <Field label="Estado" value={payment.cheque_propio.estado} />
+      {/* 4. Cheques emitidos usados en el pago, con cuánto se usó de cada uno */}
+      {payment.cheques_propios?.length > 0 && (
+        <SectionCard
+          icon={<CreditCardIcon sx={{ fontSize: 20 }} />}
+          title={payment.cheques_propios.length > 1 ? `Cheques propios (${payment.cheques_propios.length})` : 'Cheque propio'}
+          cols={1}
+        >
+          {payment.cheques_propios.map((ownCheck) => (
+            <div key={ownCheck.id} className="grid grid-cols-2 md:grid-cols-5 gap-6 pb-6 border-b border-border-subtle last:border-b-0 last:pb-0">
+              <Field label="N° de cheque" value={ownCheck.numero} />
+              <Field label="Banco" value={ownCheck.banco} />
+              <Field label="Importe del cheque" value={formatCurrency(ownCheck.importe)} />
+              <div className="flex flex-col gap-1">
+                <span className={labelCls}>Usado en este pago</span>
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-on-surface">{formatCurrency(ownCheck.importe_usado)}</span>
+                  {parseFloat(ownCheck.importe_usado) < parseFloat(ownCheck.importe) && (
+                    <Tooltip
+                      title="En este pago se usó una parte del cheque. El resto puede estar en otros pagos a este proveedor, por eso el cheque puede aparecer en más de un pago."
+                      placement="top"
+                      arrow
+                      enterTouchDelay={0}
+                    >
+                      <span
+                        tabIndex={0}
+                        className="inline-flex w-fit items-center rounded-md px-2.5 py-0.5 text-xs leading-[18px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400 cursor-help"
+                      >
+                        Uso parcial
+                      </span>
+                    </Tooltip>
+                  )}
+                </span>
+              </div>
+              <CheckStateBadge state={ownCheck.estado} config={OWN_CHECK_STATE_CONFIG} />
+            </div>
+          ))}
         </SectionCard>
       )}
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            {canDelete && (
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="w-full py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => navigate('/purchase-payment')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/purchase-payment')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-            {canDelete && (
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="px-5 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center gap-2"
-              >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-            )}
-          </div>
-        )}
+      {/* Acciones: mismo layout que FormActions (abajo a la derecha; en mobile apiladas a lo ancho, la principal arriba). */}
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-4 border-t border-border-subtle">
+        <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full sm:w-auto px-6 py-2.5 text-sm">
+          <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
+        </SpotlightButton>
+        <SpotlightButton
+          variant="primary"
+          onClick={() => navigate(`/purchase-payment/edit/${id}`)}
+          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
+        >
+          <EditIcon sx={{ fontSize: 16 }} /> Editar pago
+        </SpotlightButton>
       </div>
 
       <AlertDialog
         open={confirmOpen}
         title="Eliminar pago"
-        message={`¿Estás seguro que querés eliminar este pago de ${proveedorNombre}? Esta acción no se puede deshacer.`}
+        message={<DeletePaymentMessage payment={payment} supplierName={supplierName} />}
+        confirmLabel={<><DeleteIcon sx={{ fontSize: 16 }} /> Eliminar</>}
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />

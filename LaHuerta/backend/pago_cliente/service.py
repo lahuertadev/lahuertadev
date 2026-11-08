@@ -119,7 +119,7 @@ class ClientPaymentService:
             )
 
             if changes_check_data and check.endosado:
-                proveedor = check.pago_compra.compra.proveedor.nombre
+                proveedor = check.pago_compra.proveedor.nombre
                 payment_date = check.pago_compra.fecha_pago
                 raise CheckEditBlockedException(
                     f'No se pueden modificar los datos del cheque N° {check.numero}: '
@@ -171,7 +171,7 @@ class ClientPaymentService:
 
         check = payment.cheque_set.first()
         if check and check.endosado:
-            supplier = check.pago_compra.compra.proveedor.nombre
+            supplier = check.pago_compra.proveedor.nombre
             payment_date = check.pago_compra.fecha_pago
             raise PaymentDeletionBlockedException(
                 f'No se puede eliminar el pago porque el cheque N° {check.numero} ya fue endosado '

@@ -8,7 +8,6 @@ import { useToast } from '../../../context/ToastContext';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import AlertDialog from '../../../components/DialogAlert';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import BuyBlock from '../shared/BuyBlock';
 import BuyPageHeader from '../shared/BuyPageHeader';
 import FormActions from '../../../components/FormActions';
@@ -171,8 +170,7 @@ const CompraForm = () => {
             <li className="mt-2 list-none text-xs">¿Querés guardar la compra de todas formas?</li>
           </ul>
         }
-        icon={<WarningAmberIcon sx={{ fontSize: 20, color: '#d97706' }} />}
-        confirmClassName="bg-amber-500 hover:bg-amber-600"
+        tone="warning"
         confirmLabel="Guardar igual"
         cancelLabel="Volver a revisar"
         onConfirm={executeSave}

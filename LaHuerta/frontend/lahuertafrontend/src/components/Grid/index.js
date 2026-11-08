@@ -24,6 +24,7 @@ import RoundedCheckbox from '../RoundedCheckbox';
  *   multiSelect       — bool (default true) — activa checkboxes y selección múltiple
  *   pageSize          — number (default 10)
  *   pageSizeOptions   — number[] (default [10, 25, 50]) — opciones del selector "Rows per page"
+ *   groupActions      — boolean (default false): Detalle, Editar y Eliminar en una sola columna "Acción"
  *   getRowClassName   — (params) => string — para resaltar filas (ej. devolver 'row-highlighted'
  *                         cuando la fila tiene cambios sin guardar)
  */
@@ -121,6 +122,21 @@ function TruncatedCell({ value, align = 'left' }) {
 const withTruncatedCells = (columns) =>
   columns.map((column) => (column.renderCell ? column : { ...column, renderCell: (params) => <TruncatedCell value={params.formattedValue ?? params.value} align={column.align} /> }));
 
+// Botón redondo de 32px de la columna "Acción" agrupada (mismo diseño que DEV-142).
+const roundActionButtonSx = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '32px',
+  height: '32px',
+  borderRadius: '50%',
+  border: 'none',
+  background: 'none',
+  cursor: 'pointer',
+  color: 'var(--color-on-surface-muted)',
+  transition: 'all 0.15s',
+};
+
 const actionButtonSx = {
   display: 'inline-flex',
   alignItems: 'center',
@@ -146,6 +162,7 @@ export default function DataGridDemo({
   isRowSelectable,
   showEdit = true,
   showDelete = true,
+  groupActions = false,
   multiSelect = true,
   pageSize = 10,
   pageSizeOptions = [10, 25, 50],
@@ -155,82 +172,86 @@ export default function DataGridDemo({
   const columnVisibilityModel = {};
   const actionColWidth = isMobile ? 48 : 120;
 
+  const renderDetailButton = (params, buttonSx = actionButtonSx) => (
+    <Tooltip title="Ver detalle">
+      <button
+        style={buttonSx}
+        onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
+        onClick={() => onDetail(params.row.id)}
+        data-tour="grid-detail"
+        data-tour-row={params.row.id}
+      >
+        <SearchIcon sx={{ fontSize: 18 }} />
+      </button>
+    </Tooltip>
+  );
+
+  const renderEditButton = (params, buttonSx = actionButtonSx) => {
+    if (canEdit && !canEdit(params.row)) return null;
+    return (
+      <Tooltip title="Editar">
+        <button
+          style={buttonSx}
+          onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
+          onClick={() => onEdit(params.row.id)}
+          data-tour="grid-edit"
+          data-tour-row={params.row.id}
+        >
+          <EditIcon sx={{ fontSize: 18 }} />
+        </button>
+      </Tooltip>
+    );
+  };
+
+  const renderDeleteButton = (params, buttonSx = actionButtonSx) => {
+    if (canDelete && !canDelete(params.row)) return null;
+    return (
+      <Tooltip title="Eliminar">
+        <button
+          style={buttonSx}
+          onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
+          onClick={() => onDelete(params.row.id)}
+          data-tour="grid-delete"
+          data-tour-row={params.row.id}
+        >
+          <DeleteIcon sx={{ fontSize: 18 }} />
+        </button>
+      </Tooltip>
+    );
+  };
+
+  const actionColumnBase = { width: actionColWidth, sortable: false, headerAlign: 'center', align: 'center' };
+
   const detailColumn = onDetail
+    ? { ...actionColumnBase, field: 'detail', headerName: 'Detalle', renderCell: (params) => renderDetailButton(params) }
+    : null;
+
+  const editColumn = { ...actionColumnBase, field: 'edit', headerName: 'Editar', renderCell: (params) => renderEditButton(params) };
+
+  const deleteColumn = { ...actionColumnBase, field: 'delete', headerName: 'Eliminar', renderCell: (params) => renderDeleteButton(params) };
+
+  // groupActions: Detalle, Editar y Eliminar juntos en una sola columna "Acción" (mismos botones y data-tour).
+  const actionRenderers = [
+    onDetail ? renderDetailButton : null,
+    showEdit ? renderEditButton : null,
+    showDelete ? renderDeleteButton : null,
+  ].filter(Boolean);
+  const groupedActionsColumn = actionRenderers.length
     ? {
-        field: 'detail',
-        headerName: 'Detalle',
-        width: actionColWidth,
-        sortable: false,
-        headerAlign: 'center',
-        align: 'center',
+        ...actionColumnBase,
+        field: 'actions',
+        headerName: 'Acción',
+        width: 48 + actionRenderers.length * 36,
         renderCell: (params) => (
-          <Tooltip title="Ver detalle">
-            <button
-              style={actionButtonSx}
-              onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
-              onClick={() => onDetail(params.row.id)}
-              data-tour="grid-detail"
-              data-tour-row={params.row.id}
-            >
-              <SearchIcon sx={{ fontSize: 18 }} />
-            </button>
-          </Tooltip>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: '100%' }}>
+            {actionRenderers.map((render, index) => <React.Fragment key={index}>{render(params, roundActionButtonSx)}</React.Fragment>)}
+          </div>
         ),
       }
     : null;
-
-  const editColumn = {
-    field: 'edit',
-    headerName: 'Editar',
-    width: actionColWidth,
-    sortable: false,
-    headerAlign: 'center',
-    align: 'center',
-    renderCell: (params) => {
-      if (canEdit && !canEdit(params.row)) return null;
-      return (
-        <Tooltip title="Editar">
-          <button
-            style={actionButtonSx}
-            onMouseEnter={e => { e.currentTarget.style.color = '#4a7bc4'; e.currentTarget.style.background = 'rgba(93,137,200,0.08)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
-            onClick={() => onEdit(params.row.id)}
-            data-tour="grid-edit"
-            data-tour-row={params.row.id}
-          >
-            <EditIcon sx={{ fontSize: 18 }} />
-          </button>
-        </Tooltip>
-      );
-    },
-  };
-
-  const deleteColumn = {
-    field: 'delete',
-    headerName: 'Eliminar',
-    width: actionColWidth,
-    sortable: false,
-    headerAlign: 'center',
-    align: 'center',
-    renderCell: (params) => {
-      if (canDelete && !canDelete(params.row)) return null;
-      return (
-        <Tooltip title="Eliminar">
-          <button
-            style={actionButtonSx}
-            onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
-            onClick={() => onDelete(params.row.id)}
-            data-tour="grid-delete"
-            data-tour-row={params.row.id}
-          >
-            <DeleteIcon sx={{ fontSize: 18 }} />
-          </button>
-        </Tooltip>
-      );
-    },
-  };
 
   const processedColumns = isMobile
     ? columns
@@ -243,11 +264,11 @@ export default function DataGridDemo({
         })
     : columns;
 
-  const actionColumns = isMobile ? [] : [
+  const actionColumns = isMobile ? [] : (groupActions ? [groupedActionsColumn] : [
     detailColumn,
     showEdit ? editColumn : null,
     showDelete ? deleteColumn : null,
-  ].filter(Boolean);
+  ]).filter(Boolean);
   const adjustedColumns = withTruncatedCells(calculateColumnWidths(rows, processedColumns, isMobile)).concat(actionColumns);
 
   return (

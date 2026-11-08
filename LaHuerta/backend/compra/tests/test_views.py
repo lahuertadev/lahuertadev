@@ -213,3 +213,27 @@ class TestBuyCreate:
 
         assert response.status_code == 500
         assert response.data['detail'] == 'Error al crear la compra.'
+
+
+# ── Tests: update con pagos (DEV-141) ──────────────────────────────────────────
+
+@pytest.mark.django_db
+class TestBuyUpdateSupplierChange:
+
+    MESSAGE = (
+        'No se puede cambiar el proveedor: la compra ya tiene pagos registrados. '
+        'Eliminá esos pagos primero.'
+    )
+
+    @pytest.mark.parametrize('method, action', [('put', 'update'), ('patch', 'partial_update')])
+    def test_cambio_de_proveedor_con_pagos_responde_400(self, factory, db_setup, method, action):
+        from compra.exceptions import BuySupplierChangeBlockedException
+        service = Mock()
+        service.update_buy.side_effect = BuySupplierChangeBlockedException(self.MESSAGE)
+        viewset = BuyViewSet(service=service)
+        request = getattr(factory, method)('/buy/1/', {'proveedor': db_setup['supplier_b'].id}, format='json')
+
+        response = getattr(viewset, action)(Request(request, parsers=[JSONParser()]), pk=1)
+
+        assert response.status_code == 400
+        assert response.data['detail'] == self.MESSAGE

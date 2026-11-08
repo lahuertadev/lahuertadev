@@ -36,7 +36,7 @@ from movimiento_vacio.models import MovimientoVacio
 from municipio.models import Municipio
 from novedad.models import Novedad, NovedadUsuario
 from pago_cliente.models import PagoCliente
-from pago_compra.models import PagoCompra
+from pago_compra.models import PagoCompra, PagoCompraChequePropio
 from producto.models import Producto
 from proveedor.models import Proveedor
 from provincia.models import Provincia
@@ -274,13 +274,34 @@ def make_purchase(**overrides):
 
 
 def make_purchase_payment(**overrides):
+    '''
+    Pago a proveedor. Con cheque_propio=<OwnCheck>, el pago se hace con ese cheque emitido
+    por todo su importe (una fila en pago_compra_cheque_propio).
+    '''
     data = {'fecha_pago': DEFAULT_DATE, 'importe_abonado': Decimal('1000.00')}
     data.update(overrides)
+    own_check = data.pop('cheque_propio', None)
     if 'compra' not in data:
-        data['compra'] = make_purchase()
+        data['compra'] = make_purchase(proveedor=data['proveedor']) if 'proveedor' in data else make_purchase()
+    if 'proveedor' not in data:
+        data['proveedor'] = data['compra'].proveedor
     if 'tipo_pago' not in data:
         data['tipo_pago'] = make_payment_type()
-    return PagoCompra.objects.create(**data)
+    payment = PagoCompra.objects.create(**data)
+    if own_check:
+        make_own_check_use(pago_compra=payment, cheque_propio=own_check, importe=payment.importe_abonado)
+    return payment
+
+
+def make_own_check_use(**overrides):
+    '''Uso de un cheque emitido en un pago (cuánto del cheque se aplica a ese pago).'''
+    data = {'importe': Decimal('1000.00')}
+    data.update(overrides)
+    if 'cheque_propio' not in data:
+        data['cheque_propio'] = make_own_check()
+    if 'pago_compra' not in data:
+        data['pago_compra'] = make_purchase_payment(importe_abonado=data['importe'])
+    return PagoCompraChequePropio.objects.create(**data)
 
 
 def make_empty_movement(**overrides):

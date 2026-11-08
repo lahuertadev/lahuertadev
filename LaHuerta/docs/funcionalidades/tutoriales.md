@@ -4,7 +4,7 @@
 Enseñar a usar cada pantalla mientras el usuario hace la tarea real, sin depender de que otra persona le explique. Lo que se carga durante un tutorial queda guardado de verdad (ej. el cliente queda creado con los datos que cargó). Ver DEV-138.
 
 ## Alcance
-- Un tutorial por pantalla. Por ahora: Clientes, Facturación, Pagos de Clientes, Compras, Vacíos y Cheques emitidos.
+- Un tutorial por pantalla. Por ahora: Clientes, Facturación, Pagos de Clientes, Compras, Vacíos, Cheques emitidos y Pagos de Compras.
 - Botón flotante del **birrete**, abajo a la derecha, solo en las pantallas que tienen tutorial. Muestra únicamente el tutorial de esa pantalla.
 - Sección **Tutoriales** al final del menú lateral, con todos los tutoriales agrupados como el menú.
 - Registro por usuario del estado de cada tutorial: sin terminar, completado u omitido.
@@ -22,6 +22,7 @@ No incluye: datos de prueba ni modo "demo". Todo lo que se carga durante un tuto
 | Compras | `purchases` | Compras → Nueva compra → Carga simple | Diferencia entre carga simple y masiva, cargar una compra simple y las acciones del listado. |
 | Vacíos | `empty-movements` | Vacíos → Nuevo movimiento → Carga de vacíos | Diferencia entre carga y devolución, cargar un movimiento (proveedor, fecha, comprobante y renglones) y las acciones del listado. |
 | Cheques emitidos | `own-checks` | Cheques emitidos → Nuevo cheque | Registrar un cheque propio (número, banco, importe y fechas, con la de depósito si es diferido) y, en el listado, cómo verlo, editarlo, cobrarlo o anularlo. |
+| Pagos de Compras | `purchase-payments` | Pagos de Compras → Nuevo pago → Pago de compras o Pago a cuenta | Diferencia entre pago de compras y pago a cuenta; sigue por el que elija el usuario (compra o proveedor, fecha, tipo de pago, cheques o importe) y las acciones del listado (ver, editar y eliminar). |
 
 ## Flujo de uso
 1. El usuario abre un tutorial de una de estas dos formas:
@@ -66,7 +67,7 @@ En el código de cada pantalla queda solo lo que conecta los pasos con ella: los
 ## Pantallas involucradas
 - Botón del birrete en las pantallas con tutorial (`components/TutorialButton`).
 - Sección Tutoriales (`pages/tutorial/TutorialList.jsx`, ruta `/tutorials`), al pie del menú lateral, separada de las demás secciones (`bottom: true` en `headerOptions`).
-- Clientes, Facturación, Pagos de Clientes, Compras, Vacíos y Cheques emitidos: listados y formularios de alta.
+- Clientes, Facturación, Pagos de Clientes, Compras, Vacíos, Cheques emitidos y Pagos de Compras: listados y formularios de alta.
 - Inicio: aviso de novedades con "Ver tutorial".
 
 ## Consideraciones
@@ -74,6 +75,11 @@ En el código de cada pantalla queda solo lo que conecta los pasos con ella: los
   1. Marcar los elementos de la pantalla con el atributo `data-tour`. Si un paso termina al guardar, la pantalla avisa con `emitTutorialEvent(evento, { id })` después de la respuesta exitosa (el evento va en `TUTORIAL_EVENTS`). Para el recorrido de las acciones del listado ya están los de la grilla (`grid-detail`, `grid-edit`, `grid-delete`, `grid-row`).
   2. Cargar el tutorial y sus pasos con una migración de datos de la app `tutorial` (referencia: `0002_tutoriales_iniciales`).
   3. Para ofrecerlo desde el Inicio, relacionarlo con una novedad (campo `tutorial`).
+- **Caminos alternativos** (ej. elegir entre "Pago de compras" y "Pago a cuenta"): los pasos de cada camino van uno después del otro en la migración, cada uno con su ruta.
+  - El paso de la elección es de navegación (`avance` ruta) y su `ruta_destino` es la del primer camino; si el usuario va a la ruta de un paso posterior (el otro camino), el guía sigue desde ese paso.
+  - El guardado de cada camino lleva `ruta_destino` (ej. el listado): después del evento, el guía sigue en el primer paso posterior de esa ruta y saltea lo que queda del otro camino.
+  - Solo un paso de navegación salta hacia adelante; en cualquier otro paso, ir a otra pantalla deja el tutorial en pausa, como siempre.
+  - El contador "Paso N de M" cuenta los pasos de todos los caminos.
 - **Cambiar un texto o un paso** se hace con una migración de datos (o desde el admin para una corrección puntual): no hace falta tocar el frontend. El avance de los usuarios no se pierde, porque está relacionado con el tutorial y no con sus pasos.
 - **No cambiar la clave** de un tutorial ya publicado: el frontend y las URLs de avance lo identifican por clave.
 - El tutorial de Clientes incluye el teléfono del primer contacto (obligatorio) y muestra el botón "Agregar contacto" (DEV-119).

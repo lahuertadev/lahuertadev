@@ -28,5 +28,9 @@ class IOwnCheckRepository(ABC):
         pass
 
     @abstractmethod
-    def get_payments(self, own_check):
+    def get_payment_uses(self, own_check):
+        pass
+
+    @abstractmethod
+    def delete_payment_use(self, use):
         pass

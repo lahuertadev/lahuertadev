@@ -1,6 +1,7 @@
 import React from 'react';
 import Tooltip from '@mui/material/Tooltip';
 import ErrorIcon from '@mui/icons-material/ErrorOutline';
+import OnAccountBadge, { PurchaseBadge } from '../../../pages/pago_compra/shared/OnAccountBadge';
 
 const PAYMENT_TYPE_CONFIG = {
   'Efectivo':      { bg: '#dcfce7', color: '#166534' },
@@ -9,9 +10,27 @@ const PAYMENT_TYPE_CONFIG = {
 };
 
 export const columns = [
-  { field: 'paymentDate', headerName: 'Fecha pago',        minWidth: 130, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  { field: 'paymentDate', headerName: 'Fecha pago',        minWidth: 180, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'supplier',    headerName: 'Proveedor',         minWidth: 150, align: 'center', headerAlign: 'center', mobileClickable: true },
-  { field: 'buyDate',     headerName: 'Fecha compra',      minWidth: 130, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
+  {
+    field: 'concept',
+    headerName: 'Concepto',
+    minWidth: 130,
+    align: 'center',
+    headerAlign: 'center',
+    hiddenOnMobile: true,
+    // Qué se pagó: etiqueta "Compra" con el número de la compra, o "A cuenta" (pago sin compra).
+    renderCell: (params) => (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: '100%' }}>
+        {params.row.isOnAccount ? <OnAccountBadge /> : (
+          <>
+            <PurchaseBadge />
+            <span className="text-on-surface-muted">{params.row.buyNumber}</span>
+          </>
+        )}
+      </div>
+    ),
+  },
   { field: 'amount',      headerName: 'Importe',           minWidth: 120, align: 'center', headerAlign: 'center' },
   {
     field: 'paymentType',
@@ -46,5 +65,4 @@ export const columns = [
       );
     },
   },
-  { field: 'cheque', headerName: 'Cheque Nro.', minWidth: 120, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
 ];

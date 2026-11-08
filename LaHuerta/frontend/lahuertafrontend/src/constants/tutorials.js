@@ -19,6 +19,7 @@ export const TUTORIAL_EVENTS = {
   purchaseCreated: 'purchase-created',
   emptyMovementCreated: 'empty-movement-created',
   ownCheckCreated: 'own-check-created',
+  purchasePaymentCreated: 'purchase-payment-created',
 };
 
 // Estados que guarda el backend (tutorial/constants.py).
