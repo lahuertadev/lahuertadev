@@ -47,7 +47,7 @@ Los cheques emitidos por La Huerta suelen entregarse al proveedor antes de que p
 2. Seleccionar la compra a abonar (pago de compras) o el proveedor (pago a cuenta).
 3. En "Tipo de pago" seleccionar **Cheque Propio**.
 4. El sistema carga los cheques disponibles para ese proveedor: deben estar en estado EMITIDO y tener saldo restante.
-5. Seleccionar el cheque e ingresar el importe a abonar (no puede superar el saldo restante del cheque ni, en un pago de compras, el saldo pendiente de la compra).
+5. Seleccionar uno o más cheques ("Agregar cheque" suma otro) e indicar cuánto se usa de cada uno; arranca en su saldo disponible. Lo usado de cada cheque no puede superar su saldo, y en un pago de compras la suma no puede superar el saldo pendiente de la compra. El importe del pago es la suma.
 6. Confirmar. El pago queda registrado y la cuenta corriente del proveedor se actualiza. Si es un pago de compras, el estado de la compra cambia a PARCIAL o ABONADO según corresponda.
 
 ### Ver el detalle de un cheque
@@ -67,17 +67,18 @@ Si el cheque todavía no se usó, la sección avisa que no está asociado a ning
 1. Desde el listado de cheques, hacer clic en **Anular** en un cheque EMITIDO.
 2. El sistema muestra un diálogo de confirmación.
    - Si el cheque **no tiene pagos asociados**: advierte que el registro quedará pero no podrá editarse ni eliminarse.
-   - Si el cheque **tiene pagos asociados** (de compras o a cuenta): advierte que los pagos serán eliminados, la cuenta corriente del proveedor será restaurada y las compras pagadas volverán a su estado anterior.
+   - Si el cheque **tiene pagos asociados** (de compras o a cuenta): advierte que se descontará de esos pagos lo pagado con este cheque, la cuenta corriente del proveedor será restaurada y las compras pagadas volverán a su estado anterior.
 3. Al confirmar, el sistema ejecuta en una transacción atómica:
-   - Elimina todos los pagos asociados al cheque.
-   - Por cada pago eliminado: restaura la cuenta corriente del proveedor sumando el importe abonado.
+   - Por cada pago en que se usó el cheque, devuelve a la cuenta corriente del proveedor lo que se pagó con este cheque.
+   - Si el cheque era el único del pago, elimina el pago; si el pago tenía otros cheques, queda con el importe de los demás.
    - Recalcula el estado de cada compra afectada (PENDIENTE o PARCIAL según lo que reste abonar). Los pagos a cuenta no tienen compra: solo se restaura la cuenta corriente.
    - Marca el cheque como ANULADO.
 
 ## Reglas de negocio
 
 - **Un cheque, un proveedor**: una vez que un cheque se usa en un pago a un proveedor (de compras o a cuenta), solo puede usarse en otros pagos a ese mismo proveedor (`OwnCheckOtherSupplierException`).
-- **Saldo parcial**: el importe abonado con el cheque puede ser menor a su importe total. El saldo restante puede aplicarse a otros pagos al mismo proveedor, de compras o a cuenta.
+- **Saldo parcial**: lo que se usa del cheque en un pago puede ser menor a su importe total. El saldo restante puede aplicarse a otros pagos al mismo proveedor, de compras o a cuenta.
+- **Varios cheques en un pago**: un pago puede usar varios cheques emitidos y un cheque repartirse entre varios pagos (relación N a N en `pago_compra_cheque_propio`, con lo usado de cada cheque en cada pago). Lo usado y el saldo del cheque se calculan sobre esa tabla.
 - **No se puede cobrar un cheque sin pagos**: un cheque debe tener al menos un pago asociado para poder marcarse como COBRADO.
 - **No se puede cobrar antes de la fecha de depósito**: si el cheque tiene fecha de depósito cargada y todavía no llegó, no puede marcarse como COBRADO. Si no tiene fecha de depósito cargada, se considera a la vista y no aplica esta restricción.
 - **Eliminación protegida**: no se puede eliminar un cheque que tenga pagos asociados. Primero deben eliminarse los pagos o anular el cheque.
