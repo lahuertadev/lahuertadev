@@ -9,10 +9,11 @@ from cliente.interfaces import IClientRepository
 from core.tests.factories import make_check_state
 
 
-def _make_check(endosado=False, estado_descripcion='EN_CARTERA', pago_cliente=None, pago_compra=None):
+def _make_check(endosado=False, estado_descripcion='EN_CARTERA', pago_cliente=None, pago_compra=None, importe='2000.00'):
     estado = Mock()
     estado.descripcion = estado_descripcion
     check = Mock()
+    check.importe = Decimal(importe)
     check.endosado = endosado
     check.estado = estado
     check.pago_cliente = pago_cliente
@@ -248,6 +249,20 @@ def test_reject_desde_depositado_no_revierte_cc_proveedor():
     service.reject_check(check)
 
     assert len(supplier_repo.updated) == 0
+
+
+@pytest.mark.django_db
+def test_reject_cheque_de_un_pago_con_varios_cheques_devuelve_solo_su_importe():
+    # Pago de $5.000 hecho con dos cheques ($2.000 y $3.000): se rechaza el de $2.000.
+    make_check_state(descripcion='RECHAZADO')
+    service, _, __, supplier_repo = _make_service(with_supplier_repo=True)
+    pago_compra = _make_pago_compra(importe_abonado='5000.00', cc='1000.00')
+    check = _make_check(endosado=True, estado_descripcion='ENDOSADO', pago_compra=pago_compra, importe='2000.00')
+
+    service.reject_check(check)
+
+    assert pago_compra.proveedor.cuenta_corriente == Decimal('3000.00')
+    assert len(supplier_repo.updated) == 1
 
 
 @pytest.mark.django_db

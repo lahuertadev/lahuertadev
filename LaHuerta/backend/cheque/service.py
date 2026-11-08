@@ -65,9 +65,10 @@ class CheckService:
             client.cuenta_corriente = Decimal(str(client.cuenta_corriente)) + Decimal(str(check.pago_cliente.importe))
             self.client_repository.update_balance(client)
 
+        # Un pago a proveedor puede tener varios cheques: se devuelve solo el importe de este.
         if check.endosado and self.supplier_repository and check.pago_compra:
             supplier = check.pago_compra.proveedor
-            supplier.cuenta_corriente = Decimal(str(supplier.cuenta_corriente)) + Decimal(str(check.pago_compra.importe_abonado))
+            supplier.cuenta_corriente = Decimal(str(supplier.cuenta_corriente)) + Decimal(str(check.importe))
             self.supplier_repository.update_balance(supplier)
 
         return check
