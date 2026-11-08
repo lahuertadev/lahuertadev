@@ -28,13 +28,13 @@ class FakePurchasePaymentRepo(IPurchasePaymentRepository):
         self._items = {}
         self._next_id = 1
 
-    def get_all(self, compra_id=None, supplier_id=None):
+    def get_all(self, compra_id=None, supplier_id=None, **filters):
         return list(self._items.values())
 
     def get_by_id(self, id):
         return self._items.get(int(id))
 
-    def create(self, proveedor, importe_abonado, tipo_pago, fecha_pago, compra=None, cheque_propio=None):
+    def create(self, proveedor, importe_abonado, tipo_pago, fecha_pago, compra=None):
         payment = Mock()
         payment.id = self._next_id
         self._next_id += 1
@@ -43,11 +43,14 @@ class FakePurchasePaymentRepo(IPurchasePaymentRepository):
         payment.importe_abonado = importe_abonado
         payment.tipo_pago = tipo_pago
         payment.fecha_pago = fecha_pago
-        payment.cheque_propio = cheque_propio
-        payment.cheque_set = Mock()
-        payment.cheque_set.first = Mock(return_value=None)
+        payment.own_checks_used = []
+        payment.own_check_uses.exists = lambda: bool(payment.own_checks_used)
+        _attach_checks(payment, [])
         self._items[payment.id] = payment
         return payment
+
+    def add_own_check_use(self, payment, own_check, amount):
+        payment.own_checks_used.append((own_check, amount))
 
     def update(self, payment, data):
         for field, value in data.items():
@@ -118,6 +121,22 @@ class FakeSupplierRepo(ISupplierRepository):
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+def _attach_checks(payment, checks):
+    '''Cheques de clientes endosados al pago (payment.cheque_set).'''
+    payment.cheque_set.all = Mock(return_value=checks)
+    payment.cheque_set.exists = Mock(return_value=bool(checks))
+
+
+def _make_check(id, importe, estado):
+    check = Mock()
+    check.id = id
+    check.numero = id
+    check.importe = importe
+    check.endosado = False
+    check.estado = estado
+    return check
+
+
 def _make_service():
     from cheque.service import CheckService
     payment_repo = FakePurchasePaymentRepo()
@@ -158,7 +177,7 @@ def _make_own_check(numero=900, importe=Decimal('1000000.00'), used=Decimal('0')
     own_check.id = numero
     own_check.numero = numero
     own_check.importe = importe
-    own_check.pagocompra_set.aggregate.return_value = {'total': used}
+    own_check.payment_uses.aggregate.return_value = {'total': used}
     own_check.pagocompra_set.exclude.return_value.exists.return_value = used_by_other_supplier
     return own_check
 
@@ -193,24 +212,57 @@ class TestCreatePurchasePayment:
     def test_tipo_cheque_endosa_el_cheque(self):
         service = _make_service()
         en_cartera = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
-        check = Mock()
-        check.id = 100
-        check.numero = 12345
-        check.endosado = False
-        check.estado = en_cartera
+        check = _make_check(100, Decimal('5000.00'), en_cartera)
         service.check_repository._items[100] = check
 
         payment = service.create_payment({
             **_purchase_payment_data(_make_compra()),
-            'importe_abonado': Decimal('5000.00'),
             'tipo_pago': self.tipo_cheque,
             'fecha_pago': '2024-01-01',
-            'cheque_id': 100,
+            'cheque_ids': [100],
         })
 
         assert check.endosado is True
         assert check.estado.descripcion == 'ENDOSADO'
         assert check.pago_compra == payment
+
+    def test_varios_cheques_se_endosan_y_el_importe_es_la_suma(self):
+        service = _make_service()
+        en_cartera = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
+        first = _make_check(100, Decimal('500000.00'), en_cartera)
+        second = _make_check(101, Decimal('500000.00'), en_cartera)
+        service.check_repository._items.update({100: first, 101: second})
+        compra = _make_compra(importe=Decimal('1000000.00'), cc=Decimal('1000000.00'))
+
+        payment = service.create_payment({
+            **_purchase_payment_data(compra),
+            # Si llegara un importe, se ignora: el pago vale lo que suman los cheques.
+            'importe_abonado': Decimal('1.00'),
+            'tipo_pago': self.tipo_cheque,
+            'fecha_pago': '2024-01-01',
+            'cheque_ids': [100, 101],
+        })
+
+        assert payment.importe_abonado == Decimal('1000000.00')
+        assert first.pago_compra == payment and second.pago_compra == payment
+        assert compra.proveedor.cuenta_corriente == Decimal('0.00')
+
+    def test_cheques_que_superan_el_saldo_de_la_compra_lanzan_excepcion(self):
+        service = _make_service()
+        en_cartera = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
+        service.check_repository._items.update({
+            100: _make_check(100, Decimal('600.00'), en_cartera),
+            101: _make_check(101, Decimal('600.00'), en_cartera),
+        })
+
+        with pytest.raises(PaymentExceedsBalanceException):
+            service.create_payment({
+                **_purchase_payment_data(_make_compra(importe=Decimal('1000.00'))),
+                'tipo_pago': self.tipo_cheque,
+                'fecha_pago': '2024-01-01',
+                'cheque_ids': [100, 101],
+            })
+        assert service.check_repository._updated == []
 
     def test_tipo_cheque_no_encontrado_lanza_excepcion(self):
         service = _make_service()
@@ -218,10 +270,9 @@ class TestCreatePurchasePayment:
         with pytest.raises(CheckNotFoundException):
             service.create_payment({
                 **_purchase_payment_data(_make_compra()),
-                'importe_abonado': Decimal('1000.00'),
                 'tipo_pago': self.tipo_cheque,
                 'fecha_pago': '2024-01-01',
-                'cheque_id': 99999,
+                'cheque_ids': [99999],
             })
 
     def test_importe_supera_saldo_lanza_excepcion(self):
@@ -312,11 +363,29 @@ class TestCreateOnAccountPayment:
         service.own_check_repository._items[own_check.id] = own_check
 
         payment = service.create_payment(self._on_account_data(
-            supplier, Decimal('700000.00'), tipo_pago=self.tipo_cheque_propio, own_check_id=own_check.id,
+            supplier, None, tipo_pago=self.tipo_cheque_propio,
+            own_checks=[{'id': own_check.id, 'importe': Decimal('700000.00')}],
         ))
 
-        assert payment.cheque_propio is own_check
+        assert payment.own_checks_used == [(own_check, Decimal('700000.00'))]
+        assert payment.importe_abonado == Decimal('700000.00')
         own_check.pagocompra_set.exclude.assert_called_once_with(proveedor_id=supplier.id)
+
+    def test_varios_cheques_emitidos_suman_el_importe_del_pago(self):
+        service = _make_service()
+        supplier = _make_supplier(cc=Decimal('2000000.00'))
+        first = _make_own_check(numero=884, importe=Decimal('1000000.00'), used=Decimal('300000.00'))
+        second = _make_own_check(numero=885, importe=Decimal('500000.00'))
+        service.own_check_repository._items.update({first.id: first, second.id: second})
+
+        payment = service.create_payment(self._on_account_data(
+            supplier, None, tipo_pago=self.tipo_cheque_propio,
+            own_checks=[{'id': 884, 'importe': Decimal('700000.00')}, {'id': 885, 'importe': Decimal('500000.00')}],
+        ))
+
+        assert payment.importe_abonado == Decimal('1200000.00')
+        assert payment.own_checks_used == [(first, Decimal('700000.00')), (second, Decimal('500000.00'))]
+        assert supplier.cuenta_corriente == Decimal('800000.00')
 
     def test_cheque_emitido_usado_con_otro_proveedor_lanza_excepcion(self):
         service = _make_service()
@@ -326,7 +395,7 @@ class TestCreateOnAccountPayment:
 
         with pytest.raises(OwnCheckOtherSupplierException):
             service.create_payment(self._on_account_data(
-                supplier, Decimal('100.00'), tipo_pago=self.tipo_cheque_propio, own_check_id=own_check.id,
+                supplier, None, tipo_pago=self.tipo_cheque_propio, own_checks=[{'id': own_check.id, 'importe': Decimal('100.00')}],
             ))
 
         assert supplier.cuenta_corriente == Decimal('1000.00')
@@ -338,7 +407,7 @@ class TestCreateOnAccountPayment:
 
         with pytest.raises(OwnCheckInsufficientBalanceException):
             service.create_payment(self._on_account_data(
-                _make_supplier(), Decimal('200.00'), tipo_pago=self.tipo_cheque_propio, own_check_id=own_check.id,
+                _make_supplier(), None, tipo_pago=self.tipo_cheque_propio, own_checks=[{'id': own_check.id, 'importe': Decimal('200.00')}],
             ))
 
     def test_cheque_emitido_no_encontrado_lanza_excepcion(self):
@@ -346,7 +415,7 @@ class TestCreateOnAccountPayment:
 
         with pytest.raises(OwnCheckNotFoundException):
             service.create_payment(self._on_account_data(
-                _make_supplier(), Decimal('200.00'), tipo_pago=self.tipo_cheque_propio, own_check_id=404,
+                _make_supplier(), None, tipo_pago=self.tipo_cheque_propio, own_checks=[{'id': 404, 'importe': Decimal('200.00')}],
             ))
 
 
@@ -387,17 +456,36 @@ class TestDeletePurchasePayment:
             fecha_pago='2024-01-01',
         )
         en_cartera = EstadoCheque.objects.get(descripcion=check_status.EN_CARTERA)
-        check = Mock()
-        check.numero = 55555
+        check = _make_check(55555, Decimal('2000.00'), Mock())
         check.endosado = True
-        check.estado = Mock()
-        payment.cheque_set.first = Mock(return_value=check)
+        _attach_checks(payment, [check])
 
         service.delete_payment(payment.id)
 
         assert check.endosado is False
         assert check.estado == en_cartera
         assert check.pago_compra is None
+
+    def test_delete_no_devuelve_dos_veces_lo_de_un_cheque_rechazado(self):
+        # El rechazo ya devolvió su importe a la cuenta corriente: al eliminar el pago solo
+        # vuelve lo de los demás cheques, y el rechazado no vuelve a cartera.
+        service = _make_service()
+        compra = _make_compra(cc=Decimal('3000.00'))
+        payment = service.payment_repository.create(
+            proveedor=compra.proveedor, compra=compra, importe_abonado=Decimal('5000.00'),
+            tipo_pago=self.tipo_cheque, fecha_pago='2024-01-01',
+        )
+        rejected_state = Mock()
+        rejected_state.descripcion = check_status.RECHAZADO
+        rejected = _make_check(1, Decimal('2000.00'), rejected_state)
+        endorsed = _make_check(2, Decimal('3000.00'), Mock())
+        _attach_checks(payment, [rejected, endorsed])
+
+        service.delete_payment(payment.id)
+
+        assert compra.proveedor.cuenta_corriente == Decimal('6000.00')
+        assert rejected.estado is rejected_state
+        assert endorsed.pago_compra is None
 
     def test_delete_not_found_lanza_excepcion(self):
         service = _make_service()
@@ -446,14 +534,13 @@ class TestUpdatePurchasePayment:
         self.tipo_efectivo = make_payment_type(descripcion='Efectivo')
         self.tipo_cheque_propio = make_payment_type(descripcion='Cheque Propio')
 
-    def _create(self, service, amount, compra=None, supplier=None, own_check=None, tipo=None):
+    def _create(self, service, amount, compra=None, supplier=None, tipo=None):
         return service.payment_repository.create(
             proveedor=supplier or compra.proveedor,
             compra=compra,
             importe_abonado=amount,
             tipo_pago=tipo or self.tipo_efectivo,
             fecha_pago='2026-10-01',
-            cheque_propio=own_check,
         )
 
     def test_cambia_fecha_sin_tocar_cuenta_corriente(self):
@@ -514,28 +601,27 @@ class TestUpdatePurchasePayment:
 
         assert supplier.cuenta_corriente == Decimal('-3000.00')
 
-    def test_cheque_emitido_tope_es_su_saldo_mas_este_pago(self):
+    def test_pago_con_cheques_emitidos_solo_cambia_la_fecha(self):
         service = _make_service()
         supplier = _make_supplier(cc=Decimal('0.00'))
-        # cheque de $1000 con $600 usados, de los cuales $400 son este pago: puede llegar a $800
-        own_check = _make_own_check(importe=Decimal('1000.00'), used=Decimal('600.00'))
-        payment = self._create(service, Decimal('400.00'), supplier=supplier, own_check=own_check, tipo=self.tipo_cheque_propio)
+        payment = self._create(service, Decimal('400.00'), supplier=supplier, tipo=self.tipo_cheque_propio)
+        service.payment_repository.add_own_check_use(payment, _make_own_check(), Decimal('400.00'))
 
-        service.update_payment(payment.id, {'importe_abonado': Decimal('800.00'), 'fecha_pago': '2026-10-01'})
-        with pytest.raises(OwnCheckInsufficientBalanceException):
-            service.update_payment(payment.id, {'importe_abonado': Decimal('1200.01'), 'fecha_pago': '2026-10-01'})
+        with pytest.raises(PaymentEditBlockedException):
+            service.update_payment(payment.id, {'importe_abonado': Decimal('800.00'), 'fecha_pago': '2026-10-01'})
+        service.update_payment(payment.id, {'importe_abonado': Decimal('400.00'), 'fecha_pago': '2026-10-09'})
 
-    def test_cheque_rechazado_no_deja_cambiar_el_importe(self):
+        assert payment.fecha_pago == '2026-10-09'
+        assert supplier.cuenta_corriente == Decimal('0.00')
+
+    def test_pago_con_cheques_de_clientes_solo_cambia_la_fecha(self):
         service = _make_service()
         supplier = _make_supplier()
         payment = self._create(service, Decimal('2000.00'), supplier=supplier)
-        rejected = Mock()
-        rejected.estado.descripcion = check_status.RECHAZADO
-        payment.cheque_set.first = Mock(return_value=rejected)
+        _attach_checks(payment, [_make_check(1, Decimal('2000.00'), Mock())])
 
         with pytest.raises(PaymentEditBlockedException):
             service.update_payment(payment.id, {'importe_abonado': Decimal('1500.00'), 'fecha_pago': '2026-10-01'})
-        # La fecha sí se puede corregir.
         service.update_payment(payment.id, {'importe_abonado': Decimal('2000.00'), 'fecha_pago': '2026-10-09'})
         assert payment.fecha_pago == '2026-10-09'
 

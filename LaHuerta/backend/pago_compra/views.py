@@ -43,6 +43,13 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
             payments = self.repository.get_all(
                 compra_id=params.get('compra_id'),
                 supplier_id=params.get('supplier_id'),
+                supplier=params.get('supplier'),
+                kind=params.get('kind'),
+                payment_type_id=params.get('payment_type_id'),
+                amount_min=params.get('amount_min'),
+                amount_max=params.get('amount_max'),
+                date_from=params.get('date_from'),
+                date_to=params.get('date_to'),
             )
             serializer = PurchasePaymentResponseSerializer(payments, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)

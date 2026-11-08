@@ -2,7 +2,7 @@ import pytest
 from decimal import Decimal
 from unittest.mock import Mock
 
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
@@ -175,7 +175,7 @@ def test_create_tipo_cheque_sin_numero_retorna_400(factory, db_setup):
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
-    assert 'cheque_id' in str(response.data)
+    assert 'cheque_ids' in response.data
 
 
 @pytest.mark.django_db
@@ -194,7 +194,7 @@ def test_create_cheque_no_encontrado_retorna_404(factory, db_setup):
         'importe_abonado': '1500.00',
         'tipo_pago': tipo_cheque.id,
         'fecha_pago': '2024-01-15',
-        'cheque_id': 99999,
+        'cheque_ids': [99999],
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 404
@@ -217,7 +217,7 @@ def test_create_cheque_ya_endosado_retorna_400(factory, db_setup):
         'importe_abonado': '1500.00',
         'tipo_pago': tipo_cheque.id,
         'fecha_pago': '2024-01-15',
-        'cheque_id': 12345,
+        'cheque_ids': [12345],
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
@@ -240,7 +240,7 @@ def test_create_cheque_estado_invalido_retorna_400(factory, db_setup):
         'importe_abonado': '1500.00',
         'tipo_pago': tipo_cheque.id,
         'fecha_pago': '2024-01-15',
-        'cheque_id': 12345,
+        'cheque_ids': [12345],
     }
     response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 400
@@ -488,3 +488,168 @@ def test_update_error_inesperado_retorna_500_generico(factory):
 
     assert response.status_code == 500
     assert response.data['detail'] == 'Error al editar el pago.'
+
+
+
+# ── LIST: filtros ──────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_list_pasa_los_filtros_al_repositorio(factory):
+    repo = Mock()
+    repo.get_all.return_value = []
+    vs = PurchasePaymentViewSet(repository=repo, service=Mock())
+    query = {
+        'supplier': '21', 'kind': 'A_CUENTA', 'payment_type_id': '3',
+        'amount_min': '100.00', 'amount_max': '900.00', 'date_from': '2026-10-01', 'date_to': '2026-10-31',
+    }
+
+    response = vs.list(Request(factory.get('/purchase-payment/', query), parsers=[JSONParser()]))
+
+    assert response.status_code == 200
+    filters = repo.get_all.call_args.kwargs
+    assert filters['supplier'] == '21'
+    assert filters['kind'] == 'A_CUENTA'
+    assert filters['payment_type_id'] == 3
+    assert filters['amount_min'] == Decimal('100.00')
+    assert filters['amount_max'] == Decimal('900.00')
+    assert filters['date_from'].isoformat() == '2026-10-01'
+    assert filters['date_to'].isoformat() == '2026-10-31'
+
+
+@pytest.mark.django_db
+def test_list_filtra_pagos_a_cuenta(factory, db_setup):
+    vs, repo = _make_viewset()
+    repo._add_real(db_setup['compra'], db_setup['tipo_pago'])
+    make_purchase_payment(
+        proveedor=db_setup['other_supplier'], compra=None, importe_abonado=Decimal('500.00'),
+        tipo_pago=db_setup['tipo_pago'], fecha_pago='2024-01-02',
+    )
+
+    response = vs.list(Request(factory.get('/purchase-payment/', {'kind': 'A_CUENTA'}), parsers=[JSONParser()]))
+
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]['compra'] is None
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('query, field', [
+    ({'kind': 'OTRO'}, 'kind'),
+    ({'date_from': 'ayer'}, 'date_from'),
+    ({'amount_min': 'mucho'}, 'amount_min'),
+])
+def test_list_filtro_invalido_retorna_400(factory, query, field):
+    request = factory.get('/purchase-payment/', query)
+    force_authenticate(request, user=Mock(is_authenticated=True))
+
+    response = PurchasePaymentViewSet.as_view({'get': 'list'})(request)
+
+    assert response.status_code == 400
+    assert field in response.data
+
+
+# ── CREATE: varios cheques ─────────────────────────────────────────────────────
+
+def _check_payload(db_setup, payment_type, **extra):
+    return {
+        'proveedor': db_setup['proveedor'].id,
+        'compra': db_setup['compra'].id,
+        'tipo_pago': payment_type.id,
+        'fecha_pago': '2024-01-15',
+        **extra,
+    }
+
+
+@pytest.mark.django_db
+def test_create_cheque_repetido_retorna_400(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _check_payload(db_setup, make_payment_type(descripcion='Cheque'), cheque_ids=[5, 5])
+
+    response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
+
+    assert response.status_code == 400
+    assert 'cheque_ids' in response.data
+
+
+@pytest.mark.django_db
+def test_create_cheque_propio_sin_cheques_retorna_400(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _check_payload(db_setup, make_payment_type(descripcion='Cheque Propio'), own_checks=[])
+
+    response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
+
+    assert response.status_code == 400
+    assert 'own_checks' in response.data
+
+
+@pytest.mark.django_db
+def test_create_cheque_propio_repetido_o_sin_importe_retorna_400(factory, db_setup):
+    vs, _ = _make_viewset()
+    own_check_type = make_payment_type(descripcion='Cheque Propio')
+
+    repeated = vs.create(Request(factory.post('/purchase-payment/', _check_payload(
+        db_setup, own_check_type, own_checks=[{'id': 1, 'importe': '10.00'}, {'id': 1, 'importe': '20.00'}],
+    ), format='json'), parsers=[JSONParser()]))
+    zero = vs.create(Request(factory.post('/purchase-payment/', _check_payload(
+        db_setup, own_check_type, own_checks=[{'id': 1, 'importe': '0'}],
+    ), format='json'), parsers=[JSONParser()]))
+
+    assert repeated.status_code == 400 and 'own_checks' in repeated.data
+    assert zero.status_code == 400 and 'own_checks' in zero.data
+
+
+@pytest.mark.django_db
+def test_create_efectivo_sin_importe_retorna_400(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _check_payload(db_setup, db_setup['tipo_pago'])
+
+    response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
+
+    assert response.status_code == 400
+    assert 'importe_abonado' in response.data
+
+
+@pytest.mark.django_db
+def test_create_con_cheques_emitidos_crea_un_uso_por_cheque(factory, db_setup):
+    from pago_compra.service import PurchasePaymentService
+    from pago_compra.models import PagoCompraChequePropio
+    from cheque_propio.repositories import OwnCheckRepository
+    from core.tests.factories import make_own_check
+
+    first = make_own_check(importe=Decimal('3000.00'))
+    second = make_own_check(importe=Decimal('2000.00'))
+    service = PurchasePaymentService(
+        payment_repository=PurchasePaymentRepository(), check_repository=Mock(), check_service=Mock(),
+        supplier_repository=Mock(), own_check_repository=OwnCheckRepository(),
+    )
+    vs = PurchasePaymentViewSet(repository=PurchasePaymentRepository(), service=service)
+    payload = _check_payload(db_setup, make_payment_type(descripcion='Cheque Propio'), own_checks=[
+        {'id': first.id, 'importe': '3000.00'}, {'id': second.id, 'importe': '1500.00'},
+    ])
+
+    response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
+
+    assert response.status_code == 201
+    assert response.data['importe_abonado'] == '4500.00'
+    assert [(item['numero'], item['importe_usado']) for item in response.data['cheques_propios']] == [
+        (first.numero, Decimal('3000.00')), (second.numero, Decimal('1500.00')),
+    ]
+    assert PagoCompraChequePropio.objects.filter(pago_compra_id=response.data['id']).count() == 2
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('payment_type, extra, field', [
+    ('Cheque', {'cheque_ids': [1], 'own_checks': [{'id': 2, 'importe': '10.00'}]}, 'own_checks'),
+    ('Cheque Propio', {'own_checks': [{'id': 2, 'importe': '10.00'}], 'cheque_ids': [1]}, 'cheque_ids'),
+    ('Efectivo', {'importe_abonado': '10.00', 'own_checks': [{'id': 2, 'importe': '10.00'}]}, 'own_checks'),
+    ('Efectivo', {'importe_abonado': '10.00', 'cheque_ids': [1]}, 'cheque_ids'),
+])
+def test_create_no_mezcla_tipos_de_pago(factory, db_setup, payment_type, extra, field):
+    vs, _ = _make_viewset()
+    payment_type_obj = db_setup['tipo_pago'] if payment_type == 'Efectivo' else make_payment_type(descripcion=payment_type)
+    payload = _check_payload(db_setup, payment_type_obj, **extra)
+
+    response = vs.create(Request(factory.post('/purchase-payment/', payload, format='json'), parsers=[JSONParser()]))
+
+    assert response.status_code == 400
+    assert 'un pago por cada tipo de pago' in str(response.data[field]).lower()
