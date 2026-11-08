@@ -30,6 +30,7 @@ ALL_FACTORIES = [
     factories.make_empty_movement,
     factories.make_check,
     factories.make_own_check,
+    factories.make_own_check_use,
     factories.make_user,
     factories.make_news,
     factories.make_news_view,
