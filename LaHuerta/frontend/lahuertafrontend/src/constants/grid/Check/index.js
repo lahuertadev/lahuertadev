@@ -2,7 +2,7 @@ import React from 'react';
 import Tooltip from '@mui/material/Tooltip';
 import ErrorIcon from '@mui/icons-material/ErrorOutline';
 
-const STATE_CONFIG = {
+export const CHECK_STATE_CONFIG = {
   'EN_CARTERA': { label: 'En cartera', bg: '#e8f0fb', color: '#4a7bc4' },
   'DEPOSITADO': { label: 'Depositado', bg: '#fef9c3', color: '#a16207' },
   'ACREDITADO': { label: 'Acreditado', bg: '#dcfce7', color: '#166534' },
@@ -44,7 +44,7 @@ export const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => {
-      const cfg = STATE_CONFIG[params.value] || { label: params.value || '-', bg: '#f0f4f7', color: '#596064' };
+      const cfg = CHECK_STATE_CONFIG[params.value] || { label: params.value || '-', bg: '#f0f4f7', color: '#596064' };
       return (
         <span style={{
           display: 'inline-block',

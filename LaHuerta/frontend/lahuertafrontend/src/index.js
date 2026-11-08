@@ -57,9 +57,12 @@ import CompraDetail from "./pages/compra/detail/CompraDetail";
 import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
 import PurchasePaymentDetail from "./pages/pago_compra/detail/PurchasePaymentDetail";
+import PurchasePaymentEdit from './pages/pago_compra/form/PurchasePaymentEdit';
+import PurchasePaymentTypeSelection from "./pages/pago_compra/create/PurchasePaymentTypeSelection";
 import EmptyMovementList from "./pages/movimiento_vacio/list";
 import EmptyMovementTypeSelection from "./pages/movimiento_vacio/create/EmptyMovementTypeSelection";
 import { EMPTY_MOVEMENT_TYPE_CONFIG } from "./constants/emptyMovementTypes";
+import { PURCHASE_PAYMENT_KIND_CONFIG } from "./constants/purchasePaymentTypes";
 import EmptyMovementForm from "./pages/movimiento_vacio/form/EmptyMovementForm";
 import EmptyMovementDetail from "./pages/movimiento_vacio/detail/EmptyMovementDetail";
 import ClientReport from "./pages/reporte";
@@ -298,11 +301,20 @@ const router = createBrowserRouter([
       },
       {
         path: 'purchase-payment/create',
-        element: <PurchasePaymentForm />,
+        element: <PurchasePaymentTypeSelection />,
       },
+      // Un formulario por tipo de pago (de compras, a cuenta), con el tipo precargado.
+      ...Object.entries(PURCHASE_PAYMENT_KIND_CONFIG).map(([kind, { path }]) => ({
+        path: `purchase-payment/create/${path}`,
+        element: <PurchasePaymentForm kind={kind} />,
+      })),
       {
         path: 'purchase-payment/detail/:id',
         element: <PurchasePaymentDetail />,
+      },
+      {
+        path: 'purchase-payment/edit/:id',
+        element: <PurchasePaymentEdit />,
       },
       {
         path: 'empty-movement',
