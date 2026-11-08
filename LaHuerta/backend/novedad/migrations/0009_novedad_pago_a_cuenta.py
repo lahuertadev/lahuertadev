@@ -12,8 +12,8 @@ def create_news(apps, schema_editor):
     Novedad.objects.create(
         titulo=TITLE,
         descripcion=(
-            'Ahora podés pagarle a un proveedor sin elegir una compra: por ejemplo, su saldo inicial o un adelanto. '
-            'El pago se descuenta de su cuenta corriente. Además, ahora podés corregir la fecha o el importe de un pago, '
+            'Ahora podés pagarle a un proveedor sin elegir una compra (por ejemplo, su saldo inicial o un adelanto) '
+            'y registrar en un mismo pago varios cheques, de clientes o emitidos. También podés corregir la fecha de un pago, '
             'y en el detalle de cada cheque emitido ves todos los pagos que hiciste con él.'
         ),
         fecha_publicacion=PUBLISHED_AT,
