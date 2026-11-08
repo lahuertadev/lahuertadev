@@ -8,7 +8,7 @@ Cada pantalla con una tarea que el usuario tiene que aprender tiene su tutorial 
 Lo que conecta cada paso con su pantalla está en el código del frontend y tiene que coincidir con la base:
 - el atributo `data-tour="<nombre>"` de cada elemento (campo `elemento` del paso, y `listo_cuando`);
 - el evento que emite la pantalla al guardar con `emitTutorialEvent(evento, { id })`, declarado en `TUTORIAL_EVENTS` (`constants/tutorials.js`) (campo `evento` del paso);
-- la ruta de la pantalla (campos `ruta` y `ruta_destino`).
+- la ruta de la pantalla (campos `ruta` y `ruta_destino`). En un paso de guardado, `ruta_destino` indica en qué pantalla sigue el tutorial (caminos alternativos: ver `docs/funcionalidades/tutoriales.md`).
 
 ## Funcionalidad nueva
 Al proponer y al cerrar una funcionalidad nueva, evaluar si lleva tutorial e indicarlo, igual que con la documentación y la novedad.

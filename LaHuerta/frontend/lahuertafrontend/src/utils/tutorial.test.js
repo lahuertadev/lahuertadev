@@ -114,6 +114,15 @@ describe('mapTutorial', () => {
     ]);
   });
 
+  test('un paso de guardado con ruta_destino indica en qué pantalla sigue (camino alternativo)', () => {
+    const branched = mapTutorial({
+      clave: 'purchase-payments', titulo: 'Pagos', descripcion: '', seccion: 'Proveedores',
+      pasos: [step({ avance: 'event', evento: 'purchase-payment-created', ruta_destino: '/purchase-payment' })],
+    });
+
+    expect(branched.steps[0].advance).toEqual({ event: 'purchase-payment-created', then: '/purchase-payment' });
+  });
+
   test('pasa las opciones del paso y deja sin valor las vacías', () => {
     expect(tutorial.steps[3]).toMatchObject({
       path: '/client', target: 'grid-edit', optional: true, readOnly: true, readyWhen: 'grid-row', media: 'desktop',

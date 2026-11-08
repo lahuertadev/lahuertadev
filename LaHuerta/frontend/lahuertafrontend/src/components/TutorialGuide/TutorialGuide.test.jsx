@@ -258,3 +258,46 @@ test('un paso opcional que espera las filas del listado no se saltea mientras ca
   act(() => { jest.advanceTimersByTime(400); });
   expect(actions.goToStep).toHaveBeenCalledWith(1);
 });
+
+// Tutorial con dos caminos: en la selección se elige compra o a cuenta, y los dos terminan en el listado.
+const branchSteps = [
+  { path: '/payment/create', target: 'kinds', title: 'Elegí', description: '', advance: { route: '/payment/create/purchase' } },
+  { path: '/payment/create/purchase', target: 'buy', title: 'Compra', description: '', advance: { check: 'filled' } },
+  { path: '/payment/create/purchase', target: 'save', title: 'Guardar', description: '', advance: { event: 'payment-created', then: '/payment' } },
+  { path: '/payment/create/on-account', target: 'supplier', title: 'Proveedor', description: '', advance: { check: 'filled' } },
+  { path: '/payment/create/on-account', target: 'save', title: 'Guardar', description: '', advance: { event: 'payment-created', then: '/payment' } },
+  { path: '/payment', target: 'grid-detail', title: 'Detalle', description: '', advance: { next: true } },
+];
+
+test('camino alternativo: si en un paso de navegación elige otra pantalla del tutorial, sigue por ahí', () => {
+  renderGuide('/payment/create', 0, '<div data-tour="kinds"></div>', { tutorialSteps: branchSteps });
+
+  act(() => navigateTo('/payment/create/on-account'));
+
+  expect(actions.goToStep).toHaveBeenCalledWith(3);
+});
+
+test('camino alternativo: el destino esperado sigue avanzando al paso siguiente', () => {
+  renderGuide('/payment/create', 0, '<div data-tour="kinds"></div>', { tutorialSteps: branchSteps });
+
+  act(() => navigateTo('/payment/create/purchase'));
+
+  expect(actions.goToStep).toHaveBeenCalledWith(1);
+});
+
+test('después de guardar, un paso con "then" saltea el resto del otro camino', () => {
+  renderGuide('/payment/create/purchase', 2, '<button data-tour="save">Guardar</button>', { tutorialSteps: branchSteps });
+
+  act(() => emitTutorialEvent('payment-created'));
+
+  expect(actions.goToStep).toHaveBeenCalledWith(5);
+});
+
+test('un paso que no es de navegación no salta hacia adelante: queda en pausa', () => {
+  renderGuide('/payment/create/purchase', 1, '<div data-tour="buy"><select><option value="">-</option></select></div>', { tutorialSteps: branchSteps });
+
+  act(() => navigateTo('/payment/create/on-account'));
+
+  expect(actions.goToStep).not.toHaveBeenCalled();
+  expect(lastPopover().title).toBe('Tutorial en pausa');
+});
