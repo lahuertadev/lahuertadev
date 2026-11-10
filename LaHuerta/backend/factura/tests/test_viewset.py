@@ -16,6 +16,15 @@ from factura.exceptions import (
 )
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
 from core.tests.factories import make_bill_type, make_client, make_price_list, make_product, make_sale_type, make_vat_condition
+from core.tests.mocks import mock_bill
+
+
+def _mock_bill_without_products(**fields):
+    bill = mock_bill(**fields)
+    bill.facturaproducto_set = MagicMock()
+    bill.facturaproducto_set.__iter__ = Mock(return_value=iter([]))
+    bill.facturaproducto_set.all.return_value = []
+    return bill
 
 
 # ── Fake repository ────────────────────────────────────────────────────────────
@@ -34,20 +43,10 @@ class FakeBillRepo(IBillRepository):
         return self._items.get(int(id))
 
     def create(self, client, bill_type, date, subtotal, total, associated_bill=None):
-        bill = Mock()
-        bill.id = self._counter
-        bill.cliente = client
-        bill.tipo_factura = bill_type
-        bill.fecha = date
-        bill.subtotal = subtotal
-        bill.total = total
-        bill.factura_asociada = associated_bill
-        bill.numero_comprobante = None
-        bill.cae = None
-        bill.cae_vto = None
-        bill.facturaproducto_set = MagicMock()
-        bill.facturaproducto_set.__iter__ = Mock(return_value=iter([]))
-        bill.facturaproducto_set.all.return_value = []
+        bill = _mock_bill_without_products(
+            id=self._counter, cliente=client, tipo_factura=bill_type, fecha=date,
+            subtotal=subtotal, total=total, factura_asociada=associated_bill,
+        )
         self._items[self._counter] = bill
         self._counter += 1
         return bill
@@ -98,21 +97,10 @@ def fk_data(db):
 
 
 def _make_bill_mock(cliente, bill_type, subtotal=Decimal("1000"), total=Decimal("1105")):
-    bill = Mock()
-    bill.id = 1
-    bill.cliente = cliente
-    bill.tipo_factura = bill_type
-    bill.fecha = date.today()
-    bill.subtotal = subtotal
-    bill.total = total
-    bill.factura_asociada = None
-    bill.numero_comprobante = 1
-    bill.cae = None
-    bill.cae_vto = None
-    bill.facturaproducto_set = MagicMock()
-    bill.facturaproducto_set.__iter__ = Mock(return_value=iter([]))
-    bill.facturaproducto_set.all.return_value = []
-    return bill
+    return _mock_bill_without_products(
+        id=1, cliente=cliente, tipo_factura=bill_type, fecha=date.today(),
+        subtotal=subtotal, total=total, numero_comprobante=1,
+    )
 
 
 # ── list ───────────────────────────────────────────────────────────────────────

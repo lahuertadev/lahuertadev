@@ -12,6 +12,7 @@ from factura.exceptions import (
     CreditNoteValidationError,
 )
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
+from core.tests.mocks import mock_bill, mock_bill_type, mock_client, mock_product, mock_product_price, mock_sale_type
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -42,61 +43,19 @@ def _make_service(arca_result=None, arca_raises=None):
     return service, bill_repo, bill_product_repo, client_repo, price_repo, arca_service
 
 
-def _make_bill_type(codigo_afip=None, id=1, descripcion="Remito"):
-    bt = Mock()
-    bt.id = id
-    bt.codigo_afip = codigo_afip
-    bt.descripcion = descripcion
-    return bt
-
-
-def _make_client(lista_precios_id=10, cuenta_corriente=Decimal("0.00")):
-    client = Mock()
-    client.lista_precios_id = lista_precios_id
-    client.cuenta_corriente = cuenta_corriente
-    client.cuit = "20123456789"
-    client.razon_social = "Test SA"
-    client.condicion_IVA = Mock()
-    client.condicion_IVA.codigo_afip = 1
-    return client
-
-
-def _make_product(id=1):
-    p = Mock()
-    p.id = id
-    p.__str__ = lambda self: f"Prod {id}"
-    return p
-
-
-def _make_sale_type(id=1):
-    st = Mock()
-    st.id = id
-    st.__str__ = lambda self: f"TV {id}"
-    return st
-
-
 def _make_items(qty=Decimal("10"), price=Decimal("1000"), iva_rate='10.5'):
-    entry = Mock()
-    entry.precio = price
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': qty, 'iva_rate': iva_rate}]
+    entry = mock_product_price(precio=price)
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': qty, 'iva_rate': iva_rate}]
     return items, entry
 
 
 def _make_associated_bill(cae='12345678901234', invoice_type_code=1):
-    bill = Mock()
-    bill.cae = cae
-    bill.numero_comprobante = 1
-    bill.tipo_factura = Mock()
-    bill.tipo_factura.codigo_afip = invoice_type_code
-    bill.tipo_factura.descripcion = "Factura A"
-    return bill
+    bill_type = mock_bill_type(codigo_afip=invoice_type_code, descripcion="Factura A")
+    return mock_bill(cae=cae, numero_comprobante=1, tipo_factura=bill_type)
 
 
 def _make_bill_mock():
-    bill = Mock()
-    bill.total = Decimal("0")
-    bill.cae = None
-    bill.pagofactura_set = Mock()
+    bill = mock_bill(total=Decimal("0"))
     bill.pagofactura_set.exists.return_value = False
     return bill
 
@@ -148,21 +107,21 @@ def test_calculate_total_amount_single_item():
 
 def test_compute_total_remito_sin_iva():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=None)
+    bill_type = mock_bill_type(codigo_afip=None)
     products = [{'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
     assert service._compute_total(products, bill_type) == Decimal('10000')
 
 
 def test_compute_total_factura_aplica_iva():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=1)
+    bill_type = mock_bill_type(codigo_afip=1)
     products = [{'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
     assert service._compute_total(products, bill_type) == Decimal('11050.00')
 
 
 def test_compute_total_multiples_tasas():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=1)
+    bill_type = mock_bill_type(codigo_afip=1)
     products = [
         {'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'},
         {'cantidad': Decimal('5'),  'precio_aplicado': Decimal('1000'), 'iva_rate': '21'},
@@ -173,7 +132,7 @@ def test_compute_total_multiples_tasas():
 
 def test_compute_total_usa_default_iva_si_no_viene():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=1)
+    bill_type = mock_bill_type(codigo_afip=1)
     products = [{'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000')}]
     assert service._compute_total(products, bill_type) == Decimal('11050.00')
 
@@ -210,35 +169,34 @@ def test_build_iva_breakdown_multiples_tasas():
 
 def test_resolve_prices_ok():
     service, _, __, ___, price_repo, ____ = _make_service()
-    client = _make_client()
-    entry = Mock()
-    entry.precio = Decimal('18000')
+    client = mock_client()
+    entry = mock_product_price(precio=Decimal('18000'))
     price_repo.get_by_product_and_sale_type.return_value = entry
 
     result = service._resolve_prices(client, [
-        {'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5')}
+        {'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('5')}
     ])
     assert result[0]['precio_aplicado'] == Decimal('18000')
 
 
 def test_resolve_prices_sin_lista_raises():
     service, *_ = _make_service()
-    client = _make_client(lista_precios_id=None)
+    client = mock_client(lista_precios=None)
 
     with pytest.raises(PriceNotFoundError):
         service._resolve_prices(client, [
-            {'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': 1}
+            {'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': 1}
         ])
 
 
 def test_resolve_prices_sin_entrada_raises():
     service, _, __, ___, price_repo, ____ = _make_service()
-    client = _make_client()
+    client = mock_client()
     price_repo.get_by_product_and_sale_type.return_value = None
 
     with pytest.raises(PriceNotFoundError):
         service._resolve_prices(client, [
-            {'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': 1}
+            {'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': 1}
         ])
 
 
@@ -246,14 +204,14 @@ def test_resolve_prices_sin_entrada_raises():
 
 def test_use_manual_prices_sin_precio_raises():
     service, *_ = _make_service()
-    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5')}]
+    products = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('5')}]
     with pytest.raises(PriceNotFoundError, match='Motivo de prueba'):
         service._use_manual_prices(products, 'Motivo de prueba.')
 
 
 def test_use_manual_prices_con_precio_ok():
     service, *_ = _make_service()
-    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100')}]
+    products = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100')}]
     result = service._use_manual_prices(products, 'Motivo de prueba.')
     assert result == products
 
@@ -262,13 +220,12 @@ def test_use_manual_prices_con_precio_ok():
 
 def test_get_products_with_price_cliente_con_lista_usa_lista():
     service, _, __, ___, price_repo, ____ = _make_service()
-    client = _make_client()
-    entry = Mock()
-    entry.precio = Decimal('500')
+    client = mock_client()
+    entry = mock_product_price(precio=Decimal('500'))
     price_repo.get_by_product_and_sale_type.return_value = entry
-    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('999')}]
+    products = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('999')}]
 
-    result = service._get_products_with_price(client, _make_bill_type(codigo_afip=None), products)
+    result = service._get_products_with_price(client, mock_bill_type(codigo_afip=None), products)
 
     assert result[0]['precio_aplicado'] == Decimal('500')
     price_repo.get_by_product_and_sale_type.assert_called_once()
@@ -276,10 +233,10 @@ def test_get_products_with_price_cliente_con_lista_usa_lista():
 
 def test_get_products_with_price_cliente_sin_lista_usa_precio_manual():
     service, _, __, ___, price_repo, ____ = _make_service()
-    client = _make_client(lista_precios_id=None)
-    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('750')}]
+    client = mock_client(lista_precios=None)
+    products = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('750')}]
 
-    result = service._get_products_with_price(client, _make_bill_type(codigo_afip=None), products)
+    result = service._get_products_with_price(client, mock_bill_type(codigo_afip=None), products)
 
     assert result[0]['precio_aplicado'] == Decimal('750')
     price_repo.get_by_product_and_sale_type.assert_not_called()
@@ -287,19 +244,19 @@ def test_get_products_with_price_cliente_sin_lista_usa_precio_manual():
 
 def test_get_products_with_price_cliente_sin_lista_sin_precio_raises():
     service, *_ = _make_service()
-    client = _make_client(lista_precios_id=None)
-    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2')}]
+    client = mock_client(lista_precios=None)
+    products = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('2')}]
 
     with pytest.raises(PriceNotFoundError, match='no tiene lista de precios'):
-        service._get_products_with_price(client, _make_bill_type(codigo_afip=None), products)
+        service._get_products_with_price(client, mock_bill_type(codigo_afip=None), products)
 
 
 def test_get_products_with_price_nota_credito_usa_precio_manual_aunque_tenga_lista():
     service, _, __, ___, price_repo, ____ = _make_service()
-    client = _make_client()
-    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('300')}]
+    client = mock_client()
+    products = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('300')}]
 
-    result = service._get_products_with_price(client, _make_bill_type(codigo_afip=3), products)
+    result = service._get_products_with_price(client, mock_bill_type(codigo_afip=3), products)
 
     assert result[0]['precio_aplicado'] == Decimal('300')
     price_repo.get_by_product_and_sale_type.assert_not_called()
@@ -307,25 +264,25 @@ def test_get_products_with_price_nota_credito_usa_precio_manual_aunque_tenga_lis
 
 def test_get_products_with_price_nota_debito_sin_precio_raises():
     service, *_ = _make_service()
-    client = _make_client()
-    products = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2')}]
+    client = mock_client()
+    products = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('2')}]
 
     with pytest.raises(PriceNotFoundError, match='Notas de Débito y Crédito'):
-        service._get_products_with_price(client, _make_bill_type(codigo_afip=2), products)
+        service._get_products_with_price(client, mock_bill_type(codigo_afip=2), products)
 
 
 # ── _validate_debit_note ───────────────────────────────────────────────────────
 
 def test_validate_debit_note_sin_factura_asociada_raises():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=2)
+    bill_type = mock_bill_type(codigo_afip=2)
     with pytest.raises(DebitNoteValidationError, match="referenciar"):
         service._validate_debit_note(bill_type, None)
 
 
 def test_validate_debit_note_factura_sin_cae_raises():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=2)
+    bill_type = mock_bill_type(codigo_afip=2)
     associated = _make_associated_bill(cae=None)
     with pytest.raises(DebitNoteValidationError, match="emitida"):
         service._validate_debit_note(bill_type, associated)
@@ -333,7 +290,7 @@ def test_validate_debit_note_factura_sin_cae_raises():
 
 def test_validate_debit_note_tipo_incompatible_raises():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=2, descripcion="Nota de Débito A")   # ND A esperaba Factura A (1)
+    bill_type = mock_bill_type(codigo_afip=2, descripcion="Nota de Débito A")   # ND A esperaba Factura A (1)
     associated = _make_associated_bill(invoice_type_code=6)                       # pero viene Factura B (6)
     with pytest.raises(DebitNoteValidationError, match="incompatible"):
         service._validate_debit_note(bill_type, associated)
@@ -341,7 +298,7 @@ def test_validate_debit_note_tipo_incompatible_raises():
 
 def test_validate_debit_note_ok():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=2)
+    bill_type = mock_bill_type(codigo_afip=2)
     associated = _make_associated_bill(invoice_type_code=1)  # ND A → Factura A ✓
     service._validate_debit_note(bill_type, associated)      # no debe lanzar
 
@@ -350,7 +307,7 @@ def test_validate_debit_note_ok():
 
 def test_adjust_balance_mismo_cliente_importe_aumenta():
     service, _, __, client_repo, ___, ____ = _make_service()
-    client = _make_client(cuenta_corriente=Decimal("1000"))
+    client = mock_client(cuenta_corriente=Decimal("1000"))
     service._adjust_client_balance(client, client, Decimal("500"), Decimal("700"))
     assert client.cuenta_corriente == Decimal("1200")
     client_repo.update_balance.assert_called_once()
@@ -358,14 +315,14 @@ def test_adjust_balance_mismo_cliente_importe_aumenta():
 
 def test_adjust_balance_mismo_cliente_importe_disminuye():
     service, _, __, client_repo, ___, ____ = _make_service()
-    client = _make_client(cuenta_corriente=Decimal("1000"))
+    client = mock_client(cuenta_corriente=Decimal("1000"))
     service._adjust_client_balance(client, client, Decimal("700"), Decimal("500"))
     assert client.cuenta_corriente == Decimal("800")
 
 
 def test_adjust_balance_mismo_cliente_mismo_importe_no_actualiza():
     service, _, __, client_repo, ___, ____ = _make_service()
-    client = _make_client(cuenta_corriente=Decimal("1000"))
+    client = mock_client(cuenta_corriente=Decimal("1000"))
     service._adjust_client_balance(client, client, Decimal("500"), Decimal("500"))
     assert client.cuenta_corriente == Decimal("1000")
     client_repo.update_balance.assert_not_called()
@@ -373,8 +330,8 @@ def test_adjust_balance_mismo_cliente_mismo_importe_no_actualiza():
 
 def test_adjust_balance_cliente_cambia():
     service, _, __, client_repo, ___, ____ = _make_service()
-    old_client = _make_client(cuenta_corriente=Decimal("2000"))
-    new_client = _make_client(cuenta_corriente=Decimal("500"))
+    old_client = mock_client(cuenta_corriente=Decimal("2000"))
+    new_client = mock_client(cuenta_corriente=Decimal("500"))
     service._adjust_client_balance(old_client, new_client, Decimal("800"), Decimal("1000"))
     assert old_client.cuenta_corriente == Decimal("1200")
     assert new_client.cuenta_corriente == Decimal("1500")
@@ -385,8 +342,8 @@ def test_adjust_balance_cliente_cambia():
 
 def test_create_bill_remito_numero_secuencial():
     service, bill_repo, _, __, price_repo, arca = _make_service()
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=None)
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=None)
     items, entry = _make_items()
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_mock = _make_bill_mock()
@@ -401,8 +358,8 @@ def test_create_bill_remito_numero_secuencial():
 
 def test_create_bill_remito_total_igual_a_subtotal():
     service, bill_repo, _, client_repo, price_repo, __ = _make_service()
-    client = _make_client(cuenta_corriente=Decimal("0"))
-    bill_type = _make_bill_type(codigo_afip=None)
+    client = mock_client(cuenta_corriente=Decimal("0"))
+    bill_type = mock_bill_type(codigo_afip=None)
     items, entry = _make_items(qty=Decimal("10"), price=Decimal("1000"))
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_mock = _make_bill_mock()
@@ -418,8 +375,8 @@ def test_create_bill_remito_total_igual_a_subtotal():
 
 def test_create_bill_electronica_total_incluye_iva():
     service, bill_repo, _, client_repo, price_repo, arca = _make_service()
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=1)
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=1)
     items, entry = _make_items(qty=Decimal("10"), price=Decimal("1000"), iva_rate='10.5')
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_mock = _make_bill_mock()
@@ -434,8 +391,8 @@ def test_create_bill_electronica_total_incluye_iva():
 
 def test_create_bill_cuenta_corriente_usa_total_con_iva():
     service, bill_repo, _, client_repo, price_repo, __ = _make_service()
-    client = _make_client(cuenta_corriente=Decimal("0"))
-    bill_type = _make_bill_type(codigo_afip=1)
+    client = mock_client(cuenta_corriente=Decimal("0"))
+    bill_type = mock_bill_type(codigo_afip=1)
     items, entry = _make_items(qty=Decimal("10"), price=Decimal("1000"), iva_rate='10.5')
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_mock = _make_bill_mock()
@@ -449,8 +406,8 @@ def test_create_bill_cuenta_corriente_usa_total_con_iva():
 def test_create_bill_electronica_guarda_cae():
     arca_result = {'numero_comprobante': 42, 'cae': '99887766554433', 'cae_vto': date(2026, 6, 30)}
     service, bill_repo, _, __, price_repo, arca = _make_service(arca_result=arca_result)
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=1)
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=1)
     items, entry = _make_items()
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_mock = _make_bill_mock()
@@ -465,8 +422,8 @@ def test_create_bill_electronica_guarda_cae():
 
 def test_create_bill_nd_sin_factura_asociada_raises():
     service, bill_repo, _, __, price_repo, ___ = _make_service()
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=2, descripcion="Nota de Débito A")
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=2, descripcion="Nota de Débito A")
     items, entry = _make_items()
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_repo.create.return_value = _make_bill_mock()
@@ -481,10 +438,10 @@ def test_create_bill_nd_sin_factura_asociada_raises():
 def test_create_bill_nd_pasa_cbte_asoc_a_arca():
     arca_result = {'numero_comprobante': 1, 'cae': '11111111111111', 'cae_vto': date(2026, 6, 30)}
     service, bill_repo, _, __, price_repo, arca = _make_service(arca_result=arca_result)
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=2, descripcion="Nota de Débito A")
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=2, descripcion="Nota de Débito A")
     associated = _make_associated_bill(cae='99999999999999', invoice_type_code=1)
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
     bill_repo.create.return_value = _make_bill_mock()
 
     service.create_bill({
@@ -500,8 +457,8 @@ def test_create_bill_nd_pasa_cbte_asoc_a_arca():
 
 def test_create_bill_arca_auth_error_propagates():
     service, bill_repo, _, __, price_repo, ___ = _make_service(arca_raises=WSAAAuthenticationError("auth"))
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=1)
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=1)
     items, entry = _make_items()
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_repo.create.return_value = _make_bill_mock()
@@ -512,8 +469,8 @@ def test_create_bill_arca_auth_error_propagates():
 
 def test_create_bill_wsfe_error_propagates():
     service, bill_repo, _, __, price_repo, ___ = _make_service(arca_raises=WSFEEmissionError("wsfe"))
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=1)
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=1)
     items, entry = _make_items()
     price_repo.get_by_product_and_sale_type.return_value = entry
     bill_repo.create.return_value = _make_bill_mock()
@@ -524,9 +481,9 @@ def test_create_bill_wsfe_error_propagates():
 
 def test_create_bill_cliente_sin_lista_usa_precio_manual():
     service, bill_repo, bill_product_repo, client_repo, price_repo, arca = _make_service()
-    client = _make_client(lista_precios_id=None, cuenta_corriente=Decimal("0"))
-    bill_type = _make_bill_type(codigo_afip=None)
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('4'), 'precio_aplicado': Decimal('250')}]
+    client = mock_client(lista_precios=None, cuenta_corriente=Decimal("0"))
+    bill_type = mock_bill_type(codigo_afip=None)
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('4'), 'precio_aplicado': Decimal('250')}]
     bill_repo.create.return_value = _make_bill_mock()
     bill_repo.get_last_receipt_number.return_value = 0
 
@@ -543,9 +500,9 @@ def test_create_bill_cliente_sin_lista_usa_precio_manual():
 
 def test_create_bill_cliente_sin_lista_electronica_aplica_iva_sobre_precio_manual():
     service, bill_repo, _, __, price_repo, arca = _make_service()
-    client = _make_client(lista_precios_id=None)
-    bill_type = _make_bill_type(codigo_afip=1)
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
+    client = mock_client(lista_precios=None)
+    bill_type = mock_bill_type(codigo_afip=1)
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
     bill_repo.create.return_value = _make_bill_mock()
 
     service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
@@ -558,9 +515,9 @@ def test_create_bill_cliente_sin_lista_electronica_aplica_iva_sobre_precio_manua
 
 def test_create_bill_cliente_sin_lista_sin_precio_raises():
     service, bill_repo, bill_product_repo, client_repo, price_repo, arca = _make_service()
-    client = _make_client(lista_precios_id=None)
-    bill_type = _make_bill_type(codigo_afip=None)
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('4')}]
+    client = mock_client(lista_precios=None)
+    bill_type = mock_bill_type(codigo_afip=None)
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('4')}]
 
     with pytest.raises(PriceNotFoundError):
         service.create_bill({'cliente': client, 'tipo_factura': bill_type, 'fecha': date.today(), 'items': items})
@@ -571,12 +528,11 @@ def test_create_bill_cliente_sin_lista_sin_precio_raises():
 
 def test_create_bill_cliente_con_lista_ignora_precio_enviado():
     service, bill_repo, bill_product_repo, _, price_repo, __ = _make_service()
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=None)
-    entry = Mock()
-    entry.precio = Decimal('1000')
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=None)
+    entry = mock_product_price(precio=Decimal('1000'))
     price_repo.get_by_product_and_sale_type.return_value = entry
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('1')}]
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('1')}]
     bill_repo.create.return_value = _make_bill_mock()
     bill_repo.get_last_receipt_number.return_value = 0
 
@@ -597,8 +553,7 @@ def test_update_bill_not_found():
 
 def test_update_bill_ya_emitida_raises():
     service, bill_repo, *_ = _make_service()
-    bill = Mock()
-    bill.cae = '12345678901234'
+    bill = mock_bill(cae='12345678901234')
     bill_repo.get_by_id.return_value = bill
     with pytest.raises(BillAlreadyEmittedException):
         service.update_bill(1, {'fecha': date.today()})
@@ -606,11 +561,8 @@ def test_update_bill_ya_emitida_raises():
 
 def test_update_bill_fecha():
     service, bill_repo, _, __, ___, ____ = _make_service()
-    client = _make_client()
-    bill = Mock()
-    bill.total = Decimal("1000")
-    bill.cae = None
-    bill.cliente = client
+    client = mock_client()
+    bill = mock_bill(total=Decimal("1000"), cae=None, cliente=client)
     bill_repo.get_by_id.return_value = bill
 
     service.update_bill(1, {'fecha': date(2026, 7, 1)})
@@ -621,19 +573,15 @@ def test_update_bill_fecha():
 
 def test_update_bill_con_items_recalcula_subtotal_y_total():
     service, bill_repo, bill_product_repo, _, price_repo, __ = _make_service()
-    client = _make_client()
-    bill = Mock()
-    bill.total = Decimal("1000")
-    bill.cae = None
-    bill.cliente = client
-    bill.tipo_factura = _make_bill_type(codigo_afip=None)  # remito: total == subtotal
+    client = mock_client()
+    # remito: total == subtotal
+    bill = mock_bill(total=Decimal("1000"), cae=None, cliente=client, tipo_factura=mock_bill_type(codigo_afip=None))
     bill_repo.get_by_id.return_value = bill
-    entry = Mock()
-    entry.precio = Decimal("2000")
+    entry = mock_product_price(precio=Decimal("2000"))
     price_repo.get_by_product_and_sale_type.return_value = entry
 
     service.update_bill(1, {
-        'items': [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5')}]
+        'items': [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('5')}]
     })
 
     assert bill.subtotal == Decimal("10000")
@@ -643,16 +591,12 @@ def test_update_bill_con_items_recalcula_subtotal_y_total():
 
 def test_update_bill_cliente_sin_lista_usa_precio_manual():
     service, bill_repo, bill_product_repo, client_repo, price_repo, __ = _make_service()
-    client = _make_client(lista_precios_id=None, cuenta_corriente=Decimal("1000"))
-    bill = Mock()
-    bill.total = Decimal("1000")
-    bill.cae = None
-    bill.cliente = client
-    bill.tipo_factura = _make_bill_type(codigo_afip=None)
+    client = mock_client(lista_precios=None, cuenta_corriente=Decimal("1000"))
+    bill = mock_bill(total=Decimal("1000"), cae=None, cliente=client, tipo_factura=mock_bill_type(codigo_afip=None))
     bill_repo.get_by_id.return_value = bill
 
     service.update_bill(1, {
-        'items': [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('3'), 'precio_aplicado': Decimal('500')}]
+        'items': [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('3'), 'precio_aplicado': Decimal('500')}]
     })
 
     price_repo.get_by_product_and_sale_type.assert_not_called()
@@ -664,17 +608,13 @@ def test_update_bill_cliente_sin_lista_usa_precio_manual():
 
 def test_update_bill_cliente_sin_lista_sin_precio_raises():
     service, bill_repo, bill_product_repo, *_ = _make_service()
-    client = _make_client(lista_precios_id=None)
-    bill = Mock()
-    bill.total = Decimal("1000")
-    bill.cae = None
-    bill.cliente = client
-    bill.tipo_factura = _make_bill_type(codigo_afip=None)
+    client = mock_client(lista_precios=None)
+    bill = mock_bill(total=Decimal("1000"), cae=None, cliente=client, tipo_factura=mock_bill_type(codigo_afip=None))
     bill_repo.get_by_id.return_value = bill
 
     with pytest.raises(PriceNotFoundError):
         service.update_bill(1, {
-            'items': [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('3')}]
+            'items': [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('3')}]
         })
 
     bill_product_repo.replace_products.assert_not_called()
@@ -682,18 +622,14 @@ def test_update_bill_cliente_sin_lista_sin_precio_raises():
 
 def test_update_bill_cambio_a_cliente_sin_lista_usa_precio_manual():
     service, bill_repo, _, __, price_repo, ___ = _make_service()
-    old_client = _make_client(cuenta_corriente=Decimal("1000"))
-    new_client = _make_client(lista_precios_id=None, cuenta_corriente=Decimal("0"))
-    bill = Mock()
-    bill.total = Decimal("1000")
-    bill.cae = None
-    bill.cliente = old_client
-    bill.tipo_factura = _make_bill_type(codigo_afip=None)
+    old_client = mock_client(cuenta_corriente=Decimal("1000"))
+    new_client = mock_client(lista_precios=None, cuenta_corriente=Decimal("0"))
+    bill = mock_bill(total=Decimal("1000"), cae=None, cliente=old_client, tipo_factura=mock_bill_type(codigo_afip=None))
     bill_repo.get_by_id.return_value = bill
 
     service.update_bill(1, {
         'cliente': new_client,
-        'items': [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('400')}]
+        'items': [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('2'), 'precio_aplicado': Decimal('400')}]
     })
 
     price_repo.get_by_product_and_sale_type.assert_not_called()
@@ -713,8 +649,7 @@ def test_delete_bill_not_found():
 
 def test_delete_bill_ya_emitida_raises():
     service, bill_repo, *_ = _make_service()
-    bill = Mock()
-    bill.cae = '12345678901234'
+    bill = mock_bill(cae='12345678901234')
     bill_repo.get_by_id.return_value = bill
     with pytest.raises(BillAlreadyEmittedException):
         service.delete_bill(1)
@@ -722,8 +657,7 @@ def test_delete_bill_ya_emitida_raises():
 
 def test_delete_bill_con_pagos_raises():
     service, bill_repo, *_ = _make_service()
-    bill = Mock()
-    bill.cae = None
+    bill = mock_bill(cae=None)
     bill.pagofactura_set.exists.return_value = True
     bill_repo.get_by_id.return_value = bill
     with pytest.raises(BillHasPaymentsException):
@@ -732,11 +666,8 @@ def test_delete_bill_con_pagos_raises():
 
 def test_delete_bill_reduce_cuenta_corriente():
     service, bill_repo, _, client_repo, __, ___ = _make_service()
-    client = _make_client(cuenta_corriente=Decimal("3000"))
-    bill = Mock()
-    bill.total = Decimal("1000")
-    bill.cae = None
-    bill.cliente = client
+    client = mock_client(cuenta_corriente=Decimal("3000"))
+    bill = mock_bill(total=Decimal("1000"), cae=None, cliente=client)
     bill.pagofactura_set.exists.return_value = False
     bill_repo.get_by_id.return_value = bill
 
@@ -751,14 +682,14 @@ def test_delete_bill_reduce_cuenta_corriente():
 
 def test_validate_credit_note_sin_factura_asociada_raises():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=3)
+    bill_type = mock_bill_type(codigo_afip=3)
     with pytest.raises(CreditNoteValidationError, match="referenciar"):
         service._validate_credit_note(bill_type, None)
 
 
 def test_validate_credit_note_factura_sin_cae_raises():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=3)
+    bill_type = mock_bill_type(codigo_afip=3)
     associated = _make_associated_bill(cae=None)
     with pytest.raises(CreditNoteValidationError, match="emitida"):
         service._validate_credit_note(bill_type, associated)
@@ -766,7 +697,7 @@ def test_validate_credit_note_factura_sin_cae_raises():
 
 def test_validate_credit_note_tipo_incompatible_raises():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")  # NC A esperaba Factura A (1)
+    bill_type = mock_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")  # NC A esperaba Factura A (1)
     associated = _make_associated_bill(invoice_type_code=6)                       # pero viene Factura B (6)
     with pytest.raises(CreditNoteValidationError, match="incompatible"):
         service._validate_credit_note(bill_type, associated)
@@ -774,7 +705,7 @@ def test_validate_credit_note_tipo_incompatible_raises():
 
 def test_validate_credit_note_ok():
     service, *_ = _make_service()
-    bill_type = _make_bill_type(codigo_afip=3)
+    bill_type = mock_bill_type(codigo_afip=3)
     associated = _make_associated_bill(invoice_type_code=1)  # NC A → Factura A ✓
     service._validate_credit_note(bill_type, associated)     # no debe lanzar
 
@@ -783,9 +714,9 @@ def test_validate_credit_note_ok():
 
 def test_create_bill_nc_sin_factura_asociada_raises():
     service, bill_repo, _, __, price_repo, ___ = _make_service()
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
     bill_repo.create.return_value = _make_bill_mock()
 
     with pytest.raises(CreditNoteValidationError):
@@ -797,10 +728,10 @@ def test_create_bill_nc_sin_factura_asociada_raises():
 
 def test_create_bill_nc_resta_cuenta_corriente():
     service, bill_repo, _, client_repo, __, ___ = _make_service()
-    client = _make_client(cuenta_corriente=Decimal("5000"))
-    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
+    client = mock_client(cuenta_corriente=Decimal("5000"))
+    bill_type = mock_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
     associated = _make_associated_bill(invoice_type_code=1)
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('10'), 'precio_aplicado': Decimal('1000'), 'iva_rate': '10.5'}]
     bill_repo.create.return_value = _make_bill_mock()
 
     service.create_bill({
@@ -817,10 +748,10 @@ def test_create_bill_nc_resta_cuenta_corriente():
 def test_create_bill_nc_pasa_cbte_asoc_a_arca():
     arca_result = {'numero_comprobante': 1, 'cae': '11111111111111', 'cae_vto': date(2026, 6, 30)}
     service, bill_repo, _, __, price_repo, arca = _make_service(arca_result=arca_result)
-    client = _make_client()
-    bill_type = _make_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
+    client = mock_client()
+    bill_type = mock_bill_type(codigo_afip=3, descripcion="Nota de Crédito A")
     associated = _make_associated_bill(cae='99999999999999', invoice_type_code=1)
-    items = [{'producto': _make_product(), 'tipo_venta': _make_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
+    items = [{'producto': mock_product(), 'tipo_venta': mock_sale_type(), 'cantidad': Decimal('5'), 'precio_aplicado': Decimal('100'), 'iva_rate': '10.5'}]
     bill_repo.create.return_value = _make_bill_mock()
 
     service.create_bill({

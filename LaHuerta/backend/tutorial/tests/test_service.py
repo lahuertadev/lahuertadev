@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import Mock
 
+from core.tests.mocks import mock_tutorial_progress
 from tutorial.constants import TutorialStatus
 from tutorial.exceptions import TutorialNotFoundException
 from tutorial.service import TutorialService
@@ -44,7 +45,7 @@ def test_change_status_from_skipped_to_completed_saves(service, repository):
     user = Mock()
     tutorial = Mock()
     repository.get_visible_by_key.return_value = tutorial
-    repository.get_progress.return_value = Mock(estado=TutorialStatus.SKIPPED)
+    repository.get_progress.return_value = mock_tutorial_progress(estado=TutorialStatus.SKIPPED)
 
     service.change_status('clients', user, TutorialStatus.COMPLETED)
 
@@ -53,7 +54,7 @@ def test_change_status_from_skipped_to_completed_saves(service, repository):
 
 @pytest.mark.parametrize('new_status', [TutorialStatus.STARTED, TutorialStatus.SKIPPED, TutorialStatus.COMPLETED])
 def test_change_status_completed_is_final(service, repository, new_status):
-    completed = Mock(estado=TutorialStatus.COMPLETED)
+    completed = mock_tutorial_progress(estado=TutorialStatus.COMPLETED)
     repository.get_visible_by_key.return_value = Mock()
     repository.get_progress.return_value = completed
 

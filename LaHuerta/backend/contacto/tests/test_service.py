@@ -1,9 +1,9 @@
 import pytest
-from types import SimpleNamespace
 from unittest.mock import Mock
 
 from contacto.service import ContactService
 from contacto.exceptions import ContactNotFoundException, ContactRequiredException
+from core.tests.mocks import mock_contact
 
 
 @pytest.fixture
@@ -14,10 +14,6 @@ def repository():
 @pytest.fixture
 def service(repository):
     return ContactService(contact_repository=repository)
-
-
-def _contact(id, numero='1111111111'):
-    return SimpleNamespace(id=id, numero=numero)
 
 
 def test_sync_creates_contacts_without_id(service, repository):
@@ -34,7 +30,7 @@ def test_sync_creates_contacts_without_id(service, repository):
 
 def test_sync_modifies_contacts_with_id(service, repository):
     owner = Mock()
-    existing = _contact(1)
+    existing = mock_contact(id=1)
     repository.get_contacts_by_owner.return_value = [existing]
 
     service.sync_contacts('proveedor', owner, [{'id': 1, 'numero': '1199998888', 'descripcion': 'Puesto'}])
@@ -46,7 +42,7 @@ def test_sync_modifies_contacts_with_id(service, repository):
 
 def test_sync_deletes_contacts_not_received(service, repository):
     owner = Mock()
-    kept, removed = _contact(1), _contact(2)
+    kept, removed = mock_contact(id=1), mock_contact(id=2)
     repository.get_contacts_by_owner.return_value = [kept, removed]
 
     service.sync_contacts('cliente', owner, [{'id': 1, 'numero': '1111111111'}, {'numero': '1177778888'}])
@@ -57,7 +53,7 @@ def test_sync_deletes_contacts_not_received(service, repository):
 
 
 def test_sync_does_not_mutate_received_data(service, repository):
-    repository.get_contacts_by_owner.return_value = [_contact(1)]
+    repository.get_contacts_by_owner.return_value = [mock_contact(id=1)]
     contacts_data = [{'id': 1, 'numero': '1111111111'}]
 
     service.sync_contacts('cliente', Mock(), contacts_data)
@@ -74,7 +70,7 @@ def test_sync_without_contacts_raises(service, repository):
 
 
 def test_sync_with_id_of_other_owner_raises(service, repository):
-    repository.get_contacts_by_owner.return_value = [_contact(1)]
+    repository.get_contacts_by_owner.return_value = [mock_contact(id=1)]
 
     with pytest.raises(ContactNotFoundException):
         service.sync_contacts('cliente', Mock(), [{'id': 99, 'numero': '1111111111'}])
