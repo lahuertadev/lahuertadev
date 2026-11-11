@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from django.db import migrations
 
-PUBLISHED_AT = date(2026, 11, 8)
+PUBLISHED_AT = date(2026, 11, 11)
 TITLE = 'Pagos a cuenta a proveedores'
 TUTORIAL_KEY = 'purchase-payments'
 
