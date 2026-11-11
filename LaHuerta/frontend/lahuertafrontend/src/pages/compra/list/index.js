@@ -36,6 +36,8 @@ const data = {
     { label: 'Fecha hasta',  name: 'fecha_hasta',  type: 'date'   },
   ],
   newLabelText: 'Nueva compra',
+  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Pagos de Compras), para dejarle más lugar a los datos.
+  groupActions: true,
 };
 
 const BuyList = () => {
