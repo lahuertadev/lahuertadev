@@ -4,17 +4,7 @@ from django.db import IntegrityError
 from lista_precios.models import ListaPrecios
 from lista_precios.repositories import PricesListRepository
 from lista_precios_producto.models import ListaPreciosProducto
-from producto.models import Producto
-from categoria.models import Categoria
-from tipo_contenedor.models import TipoContenedor
-from tipo_unidad.models import TipoUnidad
-from tipo_venta.models import TipoVenta
-from decimal import Decimal
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from cliente.models import Cliente
+from core.tests.factories import make_client, make_price_list, make_product, make_product_price, make_sale_type
 
 
 @pytest.mark.django_db
@@ -24,8 +14,8 @@ class TestPricesListRepository:
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_prices_list_returns_queryset(self):
-        ListaPrecios.objects.create(nombre="Lista 1", descripcion="Desc 1")
-        ListaPrecios.objects.create(nombre="Lista 2", descripcion="Desc 2")
+        make_price_list(nombre="Lista 1", descripcion="Desc 1")
+        make_price_list(nombre="Lista 2", descripcion="Desc 2")
 
         result = self.repository.get_all_prices_list()
 
@@ -36,9 +26,9 @@ class TestPricesListRepository:
         assert result.count() == 0
 
     def test_get_all_prices_list_with_filter(self):
-        ListaPrecios.objects.create(nombre="Lista Verano", descripcion="Desc 1")
-        ListaPrecios.objects.create(nombre="Lista Invierno", descripcion="Desc 2")
-        ListaPrecios.objects.create(nombre="Precios Especiales", descripcion="Desc 3")
+        make_price_list(nombre="Lista Verano", descripcion="Desc 1")
+        make_price_list(nombre="Lista Invierno", descripcion="Desc 2")
+        make_price_list(nombre="Precios Especiales", descripcion="Desc 3")
 
         result = self.repository.get_all_prices_list(nombre="Lista")
 
@@ -46,9 +36,9 @@ class TestPricesListRepository:
         assert all("Lista" in item.nombre for item in result)
 
     def test_get_all_prices_list_with_partial_filter(self):
-        ListaPrecios.objects.create(nombre="Verano 2024", descripcion="Desc 1")
-        ListaPrecios.objects.create(nombre="Verano 2025", descripcion="Desc 2")
-        ListaPrecios.objects.create(nombre="Invierno 2024", descripcion="Desc 3")
+        make_price_list(nombre="Verano 2024", descripcion="Desc 1")
+        make_price_list(nombre="Verano 2025", descripcion="Desc 2")
+        make_price_list(nombre="Invierno 2024", descripcion="Desc 3")
 
         result = self.repository.get_all_prices_list(nombre="Verano")
 
@@ -56,16 +46,16 @@ class TestPricesListRepository:
         assert all("Verano" in item.nombre for item in result)
 
     def test_get_all_prices_list_filter_case_insensitive(self):
-        ListaPrecios.objects.create(nombre="Lista Especial", descripcion="Desc 1")
-        ListaPrecios.objects.create(nombre="Otra Lista", descripcion="Desc 2")
+        make_price_list(nombre="Lista Especial", descripcion="Desc 1")
+        make_price_list(nombre="Otra Lista", descripcion="Desc 2")
 
         result = self.repository.get_all_prices_list(nombre="lista")
 
         assert result.count() == 2
 
     def test_get_all_prices_list_filter_no_results(self):
-        ListaPrecios.objects.create(nombre="Lista A", descripcion="Desc 1")
-        ListaPrecios.objects.create(nombre="Lista B", descripcion="Desc 2")
+        make_price_list(nombre="Lista A", descripcion="Desc 1")
+        make_price_list(nombre="Lista B", descripcion="Desc 2")
 
         result = self.repository.get_all_prices_list(nombre="NoExiste")
 
@@ -73,7 +63,7 @@ class TestPricesListRepository:
 
     # ------------------------- GET BY ID -----------------------
     def test_get_prices_list_by_id_ok(self):
-        item = ListaPrecios.objects.create(nombre="Lista", descripcion="Desc")
+        item = make_price_list(nombre="Lista", descripcion="Desc")
 
         result = self.repository.get_prices_list_by_id(item.id)
 
@@ -94,13 +84,13 @@ class TestPricesListRepository:
         assert ListaPrecios.objects.count() == 1
 
     def test_create_prices_list_duplicate_name_raises(self):
-        ListaPrecios.objects.create(nombre="Duplicada", descripcion="Desc")
+        make_price_list(nombre="Duplicada", descripcion="Desc")
         with pytest.raises(IntegrityError):
             self.repository.create_prices_list({"nombre": "Duplicada", "descripcion": "Otra"})
 
     # ------------------------- UPDATE --------------------------
     def test_modify_prices_list_ok(self):
-        item = ListaPrecios.objects.create(nombre="Old", descripcion="Old desc")
+        item = make_price_list(nombre="Old", descripcion="Old desc")
 
         updated = self.repository.modify_prices_list(item, {"nombre": "New", "descripcion": "New desc"})
 
@@ -112,7 +102,7 @@ class TestPricesListRepository:
         """
         Test que verifica que se puede actualizar sin cambiar el nombre
         """
-        item = ListaPrecios.objects.create(nombre="Lista", descripcion="Desc Original")
+        item = make_price_list(nombre="Lista", descripcion="Desc Original")
 
         updated = self.repository.modify_prices_list(item, {"nombre": "Lista", "descripcion": "Desc Nueva"})
 
@@ -125,8 +115,8 @@ class TestPricesListRepository:
         """
         Test que verifica que lanza ValueError cuando se intenta cambiar a un nombre existente
         """
-        ListaPrecios.objects.create(nombre="Existente", descripcion="Desc 1")
-        item = ListaPrecios.objects.create(nombre="Original", descripcion="Desc 2")
+        make_price_list(nombre="Existente", descripcion="Desc 1")
+        item = make_price_list(nombre="Original", descripcion="Desc 2")
 
         with pytest.raises(ValueError, match="Ya existe una lista de precios con el nombre 'Existente'"):
             self.repository.modify_prices_list(item, {"nombre": "Existente"})
@@ -135,7 +125,7 @@ class TestPricesListRepository:
         """
         Test que verifica que se puede actualizar solo la descripción
         """
-        item = ListaPrecios.objects.create(nombre="Lista", descripcion="Desc Original")
+        item = make_price_list(nombre="Lista", descripcion="Desc Original")
 
         updated = self.repository.modify_prices_list(item, {"descripcion": "Desc Nueva"})
 
@@ -144,7 +134,7 @@ class TestPricesListRepository:
 
     # ------------------------- DELETE --------------------------
     def test_destroy_prices_list_ok(self):
-        item = ListaPrecios.objects.create(nombre="Eliminar", descripcion="Desc")
+        item = make_price_list(nombre="Eliminar", descripcion="Desc")
 
         self.repository.destroy_prices_list(item)
 
@@ -152,23 +142,11 @@ class TestPricesListRepository:
 
     # ------------------------- CLIENTES ASIGNADOS --------------
     def _create_client(self, cuit, business_name, price_list):
-        province, _ = Provincia.objects.get_or_create(id='06', defaults={'nombre': 'Buenos Aires'})
-        municipality, _ = Municipio.objects.get_or_create(id='064270', defaults={'nombre': 'CABA', 'provincia': province})
-        locality, _ = Localidad.objects.get_or_create(id='0642701009', defaults={'nombre': 'CABA', 'municipio': municipality})
-        iva_condition, _ = TipoCondicionIva.objects.get_or_create(descripcion='RI')
-        return Cliente.objects.create(
-            cuit=cuit,
-            razon_social=business_name,
-            cuenta_corriente=Decimal('0.00'),
-            telefono='1122334455',
-            localidad=locality,
-            condicion_IVA=iva_condition,
-            lista_precios=price_list,
-        )
+        return make_client(cuit=cuit, razon_social=business_name, lista_precios=price_list)
 
     def test_count_assigned_clients(self):
-        assigned_list = ListaPrecios.objects.create(nombre="Lista Asignada", descripcion="D")
-        other_list = ListaPrecios.objects.create(nombre="Lista Libre", descripcion="D")
+        assigned_list = make_price_list(nombre="Lista Asignada", descripcion="D")
+        other_list = make_price_list(nombre="Lista Libre", descripcion="D")
         self._create_client('20111111111', 'Cliente Uno', assigned_list)
         self._create_client('20222222222', 'Cliente Dos', assigned_list)
         self._create_client('20333333333', 'Cliente Tres', None)
@@ -183,8 +161,8 @@ class TestPricesListRepository:
         assert self.repository.get_missing_client_ids([client.id, 9998, 9999]) == [9998, 9999]
 
     def test_assign_to_clients_moves_clients_from_other_list(self):
-        new_list = ListaPrecios.objects.create(nombre="Lista Nueva", descripcion="D")
-        old_list = ListaPrecios.objects.create(nombre="Lista Vieja", descripcion="D")
+        new_list = make_price_list(nombre="Lista Nueva", descripcion="D")
+        old_list = make_price_list(nombre="Lista Vieja", descripcion="D")
         client_with_old_list = self._create_client('20555555555', 'Cliente Con Lista', old_list)
         client_without_list = self._create_client('20666666666', 'Cliente Sin Lista', None)
         untouched_client = self._create_client('20777777777', 'Cliente No Elegido', old_list)
@@ -212,7 +190,7 @@ class TestPricesListRepository:
         """
         Test que verifica que generate_unique_name agrega contador cuando hay colisión
         """
-        ListaPrecios.objects.create(nombre="Copia de Lista A", descripcion="Test")
+        make_price_list(nombre="Copia de Lista A", descripcion="Test")
         
         base_name = "Copia de Lista A"
         unique_name = self.repository.generate_unique_name(base_name)
@@ -222,9 +200,9 @@ class TestPricesListRepository:
         """
         Test que verifica que generate_unique_name maneja múltiples colisiones
         """
-        ListaPrecios.objects.create(nombre="Copia de Lista B", descripcion="Test")
-        ListaPrecios.objects.create(nombre="Copia de Lista B (1)", descripcion="Test")
-        ListaPrecios.objects.create(nombre="Copia de Lista B (2)", descripcion="Test")
+        make_price_list(nombre="Copia de Lista B", descripcion="Test")
+        make_price_list(nombre="Copia de Lista B (1)", descripcion="Test")
+        make_price_list(nombre="Copia de Lista B (2)", descripcion="Test")
         
         base_name = "Copia de Lista B"
         unique_name = self.repository.generate_unique_name(base_name)
@@ -235,39 +213,23 @@ class TestPricesListRepository:
         Test que verifica que duplicate_prices_list copia correctamente
         """
 
-        category, _ = Categoria.objects.get_or_create(descripcion='Frutas')
-        container_type, _ = TipoContenedor.objects.get_or_create(descripcion='Cajón')
-        unit_type, _ = TipoUnidad.objects.get_or_create(descripcion='Kilogramo', defaults={'tipo_medicion': 'PESO'})
-        bulk_sale_type, _ = TipoVenta.objects.get_or_create(descripcion='Bulto')
-        unit_sale_type, _ = TipoVenta.objects.get_or_create(descripcion='Unidad')
+        bulk_sale_type = make_sale_type(descripcion='Bulto')
+        unit_sale_type = make_sale_type(descripcion='Unidad')
 
-        product_1 = Producto.objects.create(
-            descripcion='Manzana Dup',
-            categoria=category,
-            tipo_contenedor=container_type,
-            tipo_unidad=unit_type,
-            peso_aproximado=18,
-        )
+        product_1 = make_product(descripcion='Manzana Dup')
+        product_2 = make_product(descripcion='Banana Dup')
 
-        product_2 = Producto.objects.create(
-            descripcion='Banana Dup',
-            categoria=category,
-            tipo_contenedor=container_type,
-            tipo_unidad=unit_type,
-            peso_aproximado=20,
-        )
-
-        original_list = ListaPrecios.objects.create(
+        original_list = make_price_list(
             nombre='Lista Original',
             descripcion='Descripción de prueba'
         )
 
         # Un registro por producto y tipo de venta (Bulto y Unidad), como se cargan desde la app.
         for product, bulk_price, unit_price in [(product_1, 80000, 4700), (product_2, 29000, 1600)]:
-            ListaPreciosProducto.objects.create(
+            make_product_price(
                 lista_precios=original_list, producto=product, tipo_venta=bulk_sale_type, precio=bulk_price
             )
-            ListaPreciosProducto.objects.create(
+            make_product_price(
                 lista_precios=original_list, producto=product, tipo_venta=unit_sale_type, precio=unit_price
             )
 
@@ -299,7 +261,7 @@ class TestPricesListRepository:
         """
         from lista_precios_producto.models import ListaPreciosProducto
 
-        original_list = ListaPrecios.objects.create(
+        original_list = make_price_list(
             nombre='Lista Vacía',
             descripcion='Sin productos'
         )
@@ -316,7 +278,7 @@ class TestPricesListRepository:
         """
         Test que verifica que las duplicaciones múltiples generan nombres únicos
         """
-        original_list = ListaPrecios.objects.create(
+        original_list = make_price_list(
             nombre='Lista Test',
             descripcion='Test'
         )

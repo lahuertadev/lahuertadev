@@ -8,9 +8,10 @@ from rest_framework.parsers import JSONParser
 
 from autenticacion.models import Usuario
 from tutorial.constants import TutorialStatus
-from tutorial.models import Tutorial, TutorialPaso, TutorialUsuario
+from tutorial.models import Tutorial, TutorialUsuario
 from tutorial.views import TutorialViewSet
 from tutorial.interfaces import ITutorialRepository
+from core.tests.factories import make_tutorial, make_tutorial_step, make_user
 
 
 def _make_tutorial(clave='clients', estado=None):
@@ -68,8 +69,8 @@ def test_list_empty(factory, viewset, user):
 
 @pytest.mark.django_db
 def test_list_response_structure(factory, viewset, user):
-    tutorial = Tutorial.objects.create(clave='clients', titulo='Clientes', descripcion='Alta', seccion='Clientes', orden=1)
-    TutorialPaso.objects.create(
+    tutorial = make_tutorial(clave='clients', titulo='Clientes', descripcion='Alta', seccion='Clientes', orden=1)
+    make_tutorial_step(
         tutorial=tutorial, orden=1, ruta='/client', elemento='list-add', titulo='Nuevo cliente',
         descripcion='Tocá Nuevo cliente', avance='route', ruta_destino='/client/create',
     )
@@ -157,8 +158,8 @@ def test_routes_require_authentication():
 
 @pytest.mark.django_db
 def test_routes_full_flow():
-    Tutorial.objects.create(clave='clients', titulo='Clientes', descripcion='Alta', seccion='Clientes', orden=1)
-    user = Usuario.objects.create_user(username='flujo', email='flujo@test.com', password='x', role=Usuario.EMPLOYEE)
+    make_tutorial(clave='clients')
+    user = make_user(role=Usuario.EMPLOYEE)
     client = APIClient()
     client.force_authenticate(user=user)
 

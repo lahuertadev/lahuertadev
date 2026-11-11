@@ -29,7 +29,8 @@ export const mapTutorial = (tutorial) => ({
     advance: {
       next: { next: true },
       route: { route: step.ruta_destino },
-      event: { event: step.evento },
+      // ruta_destino en un paso de guardado: en qué pantalla sigue (salta el resto de otro camino).
+      event: { event: step.evento, then: step.ruta_destino || undefined },
       check: { check: step.condicion, confirm: step.confirmar },
     }[step.avance],
   })),

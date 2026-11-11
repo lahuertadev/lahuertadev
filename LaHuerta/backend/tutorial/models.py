@@ -44,7 +44,7 @@ class TutorialPaso(models.Model):
     titulo = models.CharField(max_length=120)
     descripcion = models.CharField(max_length=500)
     avance = models.CharField(max_length=10, choices=StepAdvance.choices)
-    ruta_destino = models.CharField(max_length=120, blank=True, null=True, help_text='Avance "ruta": a qué ruta tiene que llegar.')
+    ruta_destino = models.CharField(max_length=120, blank=True, null=True, help_text='Avance "ruta": a qué ruta tiene que llegar. Avance "evento": en qué ruta sigue el tutorial después de guardar (salta el resto de otro camino).')
     evento = models.CharField(max_length=60, blank=True, null=True, help_text='Avance "evento": nombre del evento que emite la pantalla al guardar.')
     condicion = models.CharField(max_length=10, choices=StepCheck.choices, blank=True, null=True, help_text='Avance "condición".')
     confirmar = models.BooleanField(default=False, help_text='Avance "condición": se sigue con Continuar (para campos de texto).')

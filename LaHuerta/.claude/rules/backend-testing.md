@@ -8,6 +8,15 @@ Los tests se organizan dentro de cada app así:
 - `app_name/tests/service_tests.py`
 - `app_name/tests/view_tests.py`
 
+## Datos de prueba
+Convención definida en DEV-144 y DEV-148. Si cambia la forma de un modelo, se corrige en un solo lugar.
+- **Tests con base de datos:** factories de `core/tests/factories.py` (`make_supplier(...)`).
+- **Tests de service y de views sin base de datos:** constructores de `core/tests/mocks.py` (`mock_supplier(...)`), con los campos del modelo como parámetros. Fallan si se usa un atributo que el modelo no tiene.
+- **Al verificar un resultado:** guardar la entidad y preguntar sobre ella (`assert supplier.cuenta_corriente == ...`), sin recorrer relaciones (`payment.proveedor.cuenta_corriente`).
+- **Las anotaciones de una consulta** no son campos: se declaran en `annotations` del constructor y solo existen si se pasan.
+- **`Mock()` común** solo para repositorios y servicios inyectados, y para objetos que el test pasa de un lado a otro sin leerles atributos.
+- **Entidad nueva:** agregar su constructor y sumarlo a `ALL_MOCKS` en `core/tests/test_mocks.py`.
+
 ## Qué se testea
 En este proyecto se suele testear:
 - repositories

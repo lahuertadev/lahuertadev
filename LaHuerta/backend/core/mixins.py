@@ -13,7 +13,8 @@ class CapitalizedFieldsMixin:
     Para serializers: normaliza con capitalize_words los campos de texto listados en
     capitalized_fields antes de validarlos (así las validaciones de duplicados comparan
     contra el valor ya normalizado). Se usa en nombres, razones sociales y domicilios;
-    no en descripciones ni observaciones, que quedan como se escriben.
+    no en descripciones ni observaciones, que quedan como se escriben. Excepción: la
+    descripción de un contacto, que suele ser un nombre o un sector.
     Los campos de address_fields (domicilios) se normalizan con capitalize_address, que además
     escribe sus abreviaturas de una sola forma ("av" -> "Av.").
     '''

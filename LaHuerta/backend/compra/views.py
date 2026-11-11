@@ -11,7 +11,7 @@ from .serializers import (
     BuyUpdateSerializer,
     BuyQueryParamsSerializer,
 )
-from .exceptions import BuyNotFoundException
+from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
 from .factory import build_buy_service
 
 logger = logging.getLogger(__name__)
@@ -158,6 +158,9 @@ class BuyViewSet(viewsets.ViewSet):
         except BuyNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
+        except BuySupplierChangeBlockedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception:
             logger.exception("Error al actualizar compra pk=%s", pk)
             return Response({'detail': 'Error al actualizar la compra.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -181,6 +184,9 @@ class BuyViewSet(viewsets.ViewSet):
 
         except BuyNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except BuySupplierChangeBlockedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             logger.exception("Error al actualizar compra pk=%s", pk)

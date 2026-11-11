@@ -8,6 +8,7 @@ import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
 import Toast from '../../../components/Toast';
+import OwnCheckSupplierPayments from './OwnCheckSupplierPayments';
 import Tooltip from '@mui/material/Tooltip';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -105,8 +106,8 @@ const OwnCheckDetail = () => {
   const isOverdue = isEmitido && check.fecha_vencimiento && new Date(check.fecha_vencimiento) < new Date();
   const isWaitingDeposit = isEmitido && check.fecha_deposito && new Date(check.fecha_deposito) > new Date();
   const isReadyToDeposit = isEmitido && check.fecha_deposito && new Date(check.fecha_deposito) <= new Date();
-  const hasNoPurchases = !check.purchases || check.purchases.length === 0;
-  const cashDisabledReason = hasNoPurchases
+  const hasNoPayments = !check.payments || check.payments.length === 0;
+  const cashDisabledReason = hasNoPayments
     ? 'No se puede cobrar un cheque que no está asociado a ningún pago.'
     : isWaitingDeposit
     ? 'No se puede cobrar antes de la fecha de depósito.'
@@ -155,7 +156,7 @@ const OwnCheckDetail = () => {
         <div className="flex flex-col gap-1">
           <span className="flex items-center gap-1">
             <span className={labelCls}>Saldo restante</span>
-            <Tooltip title="Importe del cheque menos los pagos de compras ya aplicados." placement="top" arrow>
+            <Tooltip title="Importe del cheque menos los pagos ya hechos con él (de compras y a cuenta)." placement="top" arrow>
               <InfoOutlinedIcon sx={{ fontSize: 13, color: '#acb3b7', cursor: 'default', mb: '6px' }} />
             </Tooltip>
           </span>
@@ -211,33 +212,14 @@ const OwnCheckDetail = () => {
         </div>
       </SectionCard>
 
-      {/* 3. Proveedor / Compras */}
-      <SectionCard icon={<LocalShippingOutlinedIcon sx={{ fontSize: 20 }} />} title="Proveedor" cols={2}>
-        {check.supplier_name ? (
-          <>
-            <Field label="Nombre" value={check.supplier_name} />
-            {check.purchases?.length > 0 && (
-              <div className="flex flex-col gap-1">
-                <span className={labelCls}>Compras asociadas</span>
-                <div className="flex flex-wrap gap-2">
-                  {check.purchases.map((pid) => (
-                    <button
-                      key={pid}
-                      type="button"
-                      onClick={() => navigate(`/buy/detail/${pid}`)}
-                      className="text-sm text-blue-lahuerta hover:underline font-medium"
-                    >
-                      #{String(pid).padStart(8, '0')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <span className="md:col-span-2 text-sm text-on-surface-muted">Todavía no se encuentra asociado a ningún pago.</span>
-        )}
-      </SectionCard>
+      {/* 3. Proveedor y pagos */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-blue-lahuerta"><LocalShippingOutlinedIcon sx={{ fontSize: 20 }} /></span>
+          <h2 className="text-base font-semibold text-on-surface">Proveedor y pagos</h2>
+        </div>
+        <OwnCheckSupplierPayments check={check} />
+      </section>
 
       {/* Action Bar */}
       <div className="pt-6 border-t border-border-subtle">
@@ -328,11 +310,11 @@ const OwnCheckDetail = () => {
 
       <AlertDialog
         open={cancelConfirm}
-        title={hasNoPurchases ? 'Anular cheque sin compras asociadas' : 'Anular cheque con compras asociadas'}
+        title={hasNoPayments ? 'Anular cheque sin pagos asociados' : 'Anular cheque con pagos asociados'}
         message={
-          hasNoPurchases
-            ? <>Este cheque no tiene compras asociadas. ¿Estás seguro que querés anularlo? Una vez anulado quedará el registro y <strong>no podrá ser editado ni eliminado</strong>.</>
-            : <>Este cheque tiene compras asociadas. Al anularlo, <strong>los pagos serán eliminados, la cuenta corriente del proveedor será restaurada y las compras volverán a su estado anterior</strong>. ¿Estás seguro que querés continuar?</>
+          hasNoPayments
+            ? <>Este cheque no tiene pagos asociados. ¿Estás seguro que querés anularlo? Una vez anulado quedará el registro y <strong>no podrá ser editado ni eliminado</strong>.</>
+            : <>Este cheque tiene pagos asociados. Al anularlo, <strong>se descuenta de cada pago lo que se pagó con este cheque (si era su único cheque, el pago se elimina), la cuenta corriente del proveedor será restaurada y las compras pagadas volverán a su estado anterior</strong>. ¿Estás seguro que querés continuar?</>
         }
         onConfirm={() => { setCancelConfirm(false); handleStateChange('cancel'); }}
         onCancel={() => setCancelConfirm(false)}

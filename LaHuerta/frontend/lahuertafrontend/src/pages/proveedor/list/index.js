@@ -1,6 +1,7 @@
 import { supplierUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Proveedor';
 import { formatCurrency } from '../../../utils/currency';
+import { getMainPhone } from '../../../utils/phone';
 import GenericList from '../../../components/List';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,7 +15,7 @@ const mapSupplierData = (data) => {
     market: supplier.mercado.descripcion,
     puesto: supplier.puesto,
     nave: supplier.nave,
-    telefono: supplier.telefono,
+    telefono: getMainPhone(supplier.contactos),
     checkingAccount: formatCurrency(supplier.cuenta_corriente),
     checkingAccountRaw: parseFloat(supplier.cuenta_corriente) || 0,
   }));
@@ -22,6 +23,7 @@ const mapSupplierData = (data) => {
 
 const data = {
   title: 'Proveedores',
+  subtitle: 'Gestioná los datos, los contactos y la cuenta corriente de cada proveedor.',
   fetchUrl: {
     baseUrl: supplierUrl,
     createUrl: '/supplier/create',

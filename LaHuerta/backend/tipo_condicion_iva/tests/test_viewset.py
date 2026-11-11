@@ -1,28 +1,14 @@
 import pytest
-from unittest.mock import Mock
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
+from core.tests.mocks import mock_vat_condition
 from tipo_condicion_iva.views import ConditionIvaTypeViewSet
 from tipo_condicion_iva.interfaces import IConditionIvaTypeRepository
-from tipo_condicion_iva.models import TipoCondicionIva
 
-
-def _create_mock_model_instance(id, descripcion):
-    """Crea un mock que simula una instancia del modelo TipoCondicionIva"""
-    mock_obj = Mock(spec=TipoCondicionIva)
-    mock_obj.id = id
-    mock_obj.descripcion = descripcion
-    mock_obj.is_system = False
-    mock_obj.codigo_afip = None
-
-    # Configurar _meta para que el serializer lo reconozca como instancia del modelo
-    mock_obj._meta = Mock()
-    mock_obj._meta.model = TipoCondicionIva
-    return mock_obj
 
 class FakeRepo(IConditionIvaTypeRepository):
 
@@ -31,16 +17,16 @@ class FakeRepo(IConditionIvaTypeRepository):
 
     def get_by_id(self, id):
         if id == 1:
-            return _create_mock_model_instance(1, "Responsable Inscripto")
+            return mock_vat_condition(id=1, descripcion="Responsable Inscripto", codigo_afip=None)
         raise ObjectDoesNotExist()
 
     def create(self, data):
-        return _create_mock_model_instance(1, data["descripcion"])
+        return mock_vat_condition(id=1, descripcion=data["descripcion"], codigo_afip=None)
 
     def update(self, id, data):
         if id != 1:
             raise ObjectDoesNotExist()
-        return _create_mock_model_instance(1, data["descripcion"])
+        return mock_vat_condition(id=1, descripcion=data["descripcion"], codigo_afip=None)
 
     def delete(self, id):
         if id != 1:

@@ -3,23 +3,21 @@ import pytest
 from producto.exceptions import ProductNotFoundException
 from producto.models import Producto
 from producto.repositories import ProductRepository
+from core.tests.factories import make_category, make_container_type, make_product, make_unit_type
 
-from categoria.models import Categoria
-from tipo_contenedor.models import TipoContenedor
-from tipo_unidad.models import TipoUnidad
 
 
 @pytest.mark.django_db
 class TestProductRepository:
     def setup_method(self):
         self.repository = ProductRepository()
-        self.category = Categoria.objects.create(descripcion="Frutas")
-        self.container_type = TipoContenedor.objects.create(descripcion="Cajon")
-        self.unit_type = TipoUnidad.objects.create(descripcion="Kilo")
+        self.category = make_category(descripcion="Frutas")
+        self.container_type = make_container_type(descripcion="Cajon")
+        self.unit_type = make_unit_type(descripcion="Kilo")
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_returns_list(self):
-        Producto.objects.create(
+        make_product(
             descripcion="Manzana",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -27,7 +25,7 @@ class TestProductRepository:
             cantidad_por_bulto=10,
             peso_aproximado=1.2,
         )
-        Producto.objects.create(
+        make_product(
             descripcion="Banana",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -45,7 +43,7 @@ class TestProductRepository:
         assert result.count() == 0
 
     def test_get_all_filters_by_description(self):
-        Producto.objects.create(
+        make_product(
             descripcion="Manzana",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -53,7 +51,7 @@ class TestProductRepository:
             cantidad_por_bulto=10,
             peso_aproximado=1.2,
         )
-        Producto.objects.create(
+        make_product(
             descripcion="Banana",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -68,8 +66,8 @@ class TestProductRepository:
         assert result.first().descripcion == "Manzana"
 
     def test_get_all_filters_by_category_description(self):
-        other_category = Categoria.objects.create(descripcion="Verduras")
-        Producto.objects.create(
+        other_category = make_category(descripcion="Verduras")
+        make_product(
             descripcion="Manzana",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -77,7 +75,7 @@ class TestProductRepository:
             cantidad_por_bulto=10,
             peso_aproximado=1.2,
         )
-        Producto.objects.create(
+        make_product(
             descripcion="Lechuga",
             categoria=other_category,
             tipo_contenedor=self.container_type,
@@ -92,8 +90,8 @@ class TestProductRepository:
         assert result.first().descripcion == "Lechuga"
 
     def test_get_all_filters_by_container_type_description(self):
-        other_container = TipoContenedor.objects.create(descripcion="Bolsa")
-        Producto.objects.create(
+        other_container = make_container_type(descripcion="Bolsa")
+        make_product(
             descripcion="Manzana",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -101,7 +99,7 @@ class TestProductRepository:
             cantidad_por_bulto=10,
             peso_aproximado=1.2,
         )
-        Producto.objects.create(
+        make_product(
             descripcion="Banana",
             categoria=self.category,
             tipo_contenedor=other_container,
@@ -117,7 +115,7 @@ class TestProductRepository:
 
     # ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
-        item = Producto.objects.create(
+        item = make_product(
             descripcion="Pera",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -154,7 +152,7 @@ class TestProductRepository:
 
     # ------------------------- UPDATE --------------------------
     def test_update_ok(self):
-        item = Producto.objects.create(
+        item = make_product(
             descripcion="Old",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -174,7 +172,7 @@ class TestProductRepository:
 
     # ------------------------- DELETE --------------------------
     def test_delete_ok(self):
-        item = Producto.objects.create(
+        item = make_product(
             descripcion="Eliminar",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -190,7 +188,7 @@ class TestProductRepository:
     # ------------------------- VERIFY (specific) --------------
     def test_verify_products_with_category_id(self):
         assert self.repository.verify_products_with_category_id(self.category.id) is False
-        Producto.objects.create(
+        make_product(
             descripcion="Kiwi",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -202,7 +200,7 @@ class TestProductRepository:
 
     def test_verify_products_with_container_type_id(self):
         assert self.repository.verify_products_with_container_type_id(self.container_type.id) is False
-        Producto.objects.create(
+        make_product(
             descripcion="Uva",
             categoria=self.category,
             tipo_contenedor=self.container_type,
@@ -214,7 +212,7 @@ class TestProductRepository:
 
     def test_verify_products_with_unit_type_id(self):
         assert self.repository.verify_products_with_unit_type_id(self.unit_type.id) is False
-        Producto.objects.create(
+        make_product(
             descripcion="Naranja",
             categoria=self.category,
             tipo_contenedor=self.container_type,

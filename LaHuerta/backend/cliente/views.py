@@ -16,7 +16,10 @@ from lista_precios_producto.models import ListaPreciosProducto
 from lista_precios_producto.serializers import PriceListProductSerializer
 from factura.models import Factura
 from pago_cliente.models import PagoCliente
-from django.db import IntegrityError
+from contacto.constants import CLIENT_OWNER
+from contacto.exceptions import ContactNotFoundException, ContactRequiredException
+from contacto.factory import build_contact_service
+from django.db import IntegrityError, transaction
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,14 +30,11 @@ class ClientViewSet(ViewSet):
     Gestión de clientes.
     '''
 
-    def __init__(self, repository: IClientRepository = None, **kwargs):
+    def __init__(self, repository: IClientRepository = None, contact_service=None, **kwargs):
         super().__init__(**kwargs)
         self.client_repository = repository or ClientRepository()
         self.district_service = DistrictService()
-
-    # ------------------------------------------------------------------
-    # Endpoints
-    # ------------------------------------------------------------------
+        self.contact_service = contact_service or build_contact_service()
 
     def list(self, request):
         '''
@@ -105,12 +105,19 @@ class ClientViewSet(ViewSet):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            client = self.client_repository.create_client(serializer.validated_data)
+            data = dict(serializer.validated_data)
+            contacts = data.pop('contactos')
+            with transaction.atomic():
+                client = self.client_repository.create_client(data)
+                self.contact_service.sync_contacts(CLIENT_OWNER, client, contacts)
 
             if district:
                 client.localidad = district
 
             return Response(ClientResponseSerializer(client).data, status=status.HTTP_201_CREATED)
+
+        except (ContactNotFoundException, ContactRequiredException) as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except IntegrityError:
             return Response({'detail': 'El cuit o razón social ya se encuentra registrado.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -147,7 +154,7 @@ class ClientViewSet(ViewSet):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            updated_client = self.client_repository.modify_client(client, serializer.validated_data)
+            updated_client = self._save_client(client, serializer.validated_data)
             
             if district:
                 updated_client.localidad = district
@@ -156,6 +163,9 @@ class ClientViewSet(ViewSet):
 
         except ClientNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except (ContactNotFoundException, ContactRequiredException) as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except IntegrityError:
             return Response({'detail': 'El cuit o razón social ya se encuentra registrado.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -189,7 +199,7 @@ class ClientViewSet(ViewSet):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            updated_client = self.client_repository.modify_client(client, serializer.validated_data)
+            updated_client = self._save_client(client, serializer.validated_data)
             if district:
                 updated_client.localidad = district
 
@@ -197,6 +207,9 @@ class ClientViewSet(ViewSet):
         
         except ClientNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except (ContactNotFoundException, ContactRequiredException) as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except IntegrityError:
             return Response({'detail': 'El cuit o razón social ya se encuentra registrado.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -258,6 +271,19 @@ class ClientViewSet(ViewSet):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _save_client(self, client, validated_data):
+        '''
+        Guarda los datos del cliente y, si llegan, sus contactos, en una sola transacción.
+        En una edición parcial sin 'contactos' los contactos quedan como están.
+        '''
+        data = dict(validated_data)
+        contacts = data.pop('contactos', None)
+        with transaction.atomic():
+            updated_client = self.client_repository.modify_client(client, data)
+            if contacts is not None:
+                self.contact_service.sync_contacts(CLIENT_OWNER, updated_client, contacts)
+        return updated_client
 
     def _resolve_localidad(self, data: dict, field: str = 'localidad') -> tuple[dict, object | None]:
         '''

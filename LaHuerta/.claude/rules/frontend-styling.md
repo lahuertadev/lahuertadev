@@ -46,3 +46,11 @@ Convención de todo formulario de alta/edición (definida en DEV-135). Referenci
 - **Abajo:** `FormActions` (`components/FormActions`) con Cancelar y Confirmar. En desktop quedan abajo a la derecha; en mobile apilados a lo ancho, con Confirmar arriba. En formularios Formik usar `confirmType="submit"`.
 - Cualquier otro botón usa `SpotlightButton` con su variante (`primary` acción principal, `outline` secundaria, `cancel` salir sin guardar, `danger` destructiva), no botones inline con colores propios. Así los botones se adaptan solos a los temas y un cambio de estilo se hace en un solo lugar.
 - Interruptores Sí/No: `components/Switch`, no checkbox inline ni el `Switch` de MUI.
+
+## Campos obligatorios
+Convención definida en DEV-119. Referencia: `pages/cliente/form/ClientForm.js`.
+- Todo campo obligatorio lleva un asterisco rojo después del texto del label: `components/RequiredMark` (`<label className={labelCls}>CUIT<RequiredMark /></label>`). No escribir el `*` a mano en el texto.
+- El rojo es el token `required` (`text-required`), con contraste AA en los dos temas; no usar `text-red-*` para el asterisco.
+- El asterisco es solo visual (`aria-hidden`): el input, select o `BasicDatePicker` (prop `required`) del campo lleva `aria-required="true"` para los lectores de pantalla.
+- Se marca según el `validationSchema` del formulario. Si un campo es obligatorio solo en un caso (ej. la lista de precios con el interruptor en Sí, la dirección de entrega), lleva el asterisco cuando aparece o se pide.
+- Los interruptores Sí/No y los campos con valor por defecto no llevan asterisco.

@@ -31,8 +31,9 @@ const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted upperca
  *   clearable — bool, muestra una "X" para vaciar el campo (default false)
  *   disabled  — campo bloqueado (no editable): se ve grisado y con cursor "no permitido",
  *               acorde al tema claro/oscuro
+ *   required  — marca el input con aria-required (el asterisco va en el label, con RequiredMark)
  */
-export default function BasicDatePicker({ label, name, value, onChange, error, hasError, width, clearable = false, disabled = false }) {
+export default function BasicDatePicker({ label, name, value, onChange, error, hasError, width, clearable = false, disabled = false, required = false }) {
   const handleDateChange = (newValue) => {
     const formatted = newValue ? dayjs.utc(newValue).format('YYYY-MM-DD') : null;
     onChange(formatted);
@@ -61,6 +62,7 @@ export default function BasicDatePicker({ label, name, value, onChange, error, h
               size: 'small',
               error: isError,
               helperText: error || '',
+              inputProps: { 'aria-required': required || undefined },
               sx: {
                 width: width || '100%',
                 '& .MuiInputLabel-root': { display: 'none' },

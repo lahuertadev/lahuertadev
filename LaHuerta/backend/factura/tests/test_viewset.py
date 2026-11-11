@@ -7,18 +7,6 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from tipo_factura.models import TipoFactura
-from cliente.models import Cliente
-from tipo_condicion_iva.models import TipoCondicionIva
-from lista_precios.models import ListaPrecios
-from localidad.models import Localidad
-from municipio.models import Municipio
-from provincia.models import Provincia
-from producto.models import Producto
-from categoria.models import Categoria
-from tipo_contenedor.models import TipoContenedor
-from tipo_unidad.models import TipoUnidad
-from tipo_venta.models import TipoVenta
 
 from factura.views import BillViewSet
 from factura.interfaces import IBillRepository
@@ -27,6 +15,16 @@ from factura.exceptions import (
     BillAlreadyEmittedException, PriceNotFoundError, DebitNoteValidationError,
 )
 from arca.exceptions import WSAAAuthenticationError, WSFEEmissionError
+from core.tests.factories import make_bill_type, make_client, make_price_list, make_product, make_sale_type, make_vat_condition
+from core.tests.mocks import mock_bill
+
+
+def _mock_bill_without_products(**fields):
+    bill = mock_bill(**fields)
+    bill.facturaproducto_set = MagicMock()
+    bill.facturaproducto_set.__iter__ = Mock(return_value=iter([]))
+    bill.facturaproducto_set.all.return_value = []
+    return bill
 
 
 # ── Fake repository ────────────────────────────────────────────────────────────
@@ -45,20 +43,10 @@ class FakeBillRepo(IBillRepository):
         return self._items.get(int(id))
 
     def create(self, client, bill_type, date, subtotal, total, associated_bill=None):
-        bill = Mock()
-        bill.id = self._counter
-        bill.cliente = client
-        bill.tipo_factura = bill_type
-        bill.fecha = date
-        bill.subtotal = subtotal
-        bill.total = total
-        bill.factura_asociada = associated_bill
-        bill.numero_comprobante = None
-        bill.cae = None
-        bill.cae_vto = None
-        bill.facturaproducto_set = MagicMock()
-        bill.facturaproducto_set.__iter__ = Mock(return_value=iter([]))
-        bill.facturaproducto_set.all.return_value = []
+        bill = _mock_bill_without_products(
+            id=self._counter, cliente=client, tipo_factura=bill_type, fecha=date,
+            subtotal=subtotal, total=total, factura_asociada=associated_bill,
+        )
         self._items[self._counter] = bill
         self._counter += 1
         return bill
@@ -97,52 +85,22 @@ def viewset(fake_repo, mock_service):
 
 @pytest.fixture
 def fk_data(db):
-    prov = Provincia.objects.create(nombre="Buenos Aires")
-    muni = Municipio.objects.create(nombre="La Matanza", provincia=prov)
-    localidad = Localidad.objects.create(id="12345678", nombre="Ciudadela", municipio=muni)
-    condicion_iva = TipoCondicionIva.objects.create(descripcion="Resp. Inscripto", codigo_afip=1)
-    lista_precios = ListaPrecios.objects.create(descripcion="Lista General")
-    cliente = Cliente.objects.create(
-        cuit="20123456789",
+    cliente = make_client(
         razon_social="Test SA",
-        cuenta_corriente=Decimal("0.00"),
-        localidad=localidad,
-        condicion_IVA=condicion_iva,
-        telefono="1234567890",
-        lista_precios=lista_precios,
+        condicion_IVA=make_vat_condition(descripcion="Resp. Inscripto", codigo_afip=1),
+        lista_precios=make_price_list(),
     )
-    bill_type = TipoFactura.objects.create(descripcion="Remito X", abreviatura="X", codigo_afip=None)
-    categoria = Categoria.objects.create(descripcion="Frutas")
-    contenedor = TipoContenedor.objects.create(descripcion="Cajon")
-    unidad = TipoUnidad.objects.create(descripcion="Kilo")
-    producto = Producto.objects.create(
-        descripcion="Pera",
-        categoria=categoria,
-        tipo_contenedor=contenedor,
-        tipo_unidad=unidad,
-        cantidad_por_bulto=10,
-        peso_aproximado=1.0,
-    )
-    tipo_venta = TipoVenta.objects.create(descripcion="Unidad")
+    bill_type = make_bill_type(descripcion="Remito X", abreviatura="X", codigo_afip=None)
+    producto = make_product(descripcion="Pera", cantidad_por_bulto=10, peso_aproximado=1.0)
+    tipo_venta = make_sale_type(descripcion="Unidad")
     return cliente, bill_type, producto, tipo_venta
 
 
 def _make_bill_mock(cliente, bill_type, subtotal=Decimal("1000"), total=Decimal("1105")):
-    bill = Mock()
-    bill.id = 1
-    bill.cliente = cliente
-    bill.tipo_factura = bill_type
-    bill.fecha = date.today()
-    bill.subtotal = subtotal
-    bill.total = total
-    bill.factura_asociada = None
-    bill.numero_comprobante = 1
-    bill.cae = None
-    bill.cae_vto = None
-    bill.facturaproducto_set = MagicMock()
-    bill.facturaproducto_set.__iter__ = Mock(return_value=iter([]))
-    bill.facturaproducto_set.all.return_value = []
-    return bill
+    return _mock_bill_without_products(
+        id=1, cliente=cliente, tipo_factura=bill_type, fecha=date.today(),
+        subtotal=subtotal, total=total, numero_comprobante=1,
+    )
 
 
 # ── list ───────────────────────────────────────────────────────────────────────

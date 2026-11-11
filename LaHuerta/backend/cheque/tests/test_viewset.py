@@ -1,63 +1,34 @@
 import pytest
 from decimal import Decimal
-from unittest.mock import Mock
 
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
+from rest_framework.exceptions import ValidationError
 
-from banco.models import Banco
-from estado_cheque.models import EstadoCheque
-from mercado.models import Mercado
-from proveedor.models import Proveedor
-from compra.models import Compra
-from pago_compra.models import PagoCompra
-from cheque.models import Cheque
+from core.tests.factories import make_bank, make_check_state, make_purchase_payment
+from core.tests.mocks import mock_bank, mock_check, mock_check_state, mock_purchase_payment, mock_supplier
 from cheque.views import CheckViewSet
 from cheque.interfaces import ICheckRepository
 
 
-def _mock_banco(id=1, descripcion='Nación'):
-    obj = Mock(spec=Banco)
-    obj.id = id
-    obj.pk = id
-    obj.descripcion = descripcion
-    obj._meta = Mock()
-    obj._meta.model = Banco
-    return obj
+def _default_bank():
+    return mock_bank(id=1, descripcion='Nación')
 
 
-def _mock_estado(id=1, descripcion='EN_CARTERA'):
-    obj = Mock(spec=EstadoCheque)
-    obj.id = id
-    obj.pk = id
-    obj.descripcion = descripcion
-    obj._meta = Mock()
-    obj._meta.model = EstadoCheque
-    return obj
+def _default_state():
+    return mock_check_state(id=1, descripcion='EN_CARTERA')
 
 
-def _mock_cheque(numero, importe=Decimal('1000.00'), banco=None, estado=None,
-                 fecha_emision='2024-01-01', fecha_deposito=None, fecha_endoso=None,
-                 endosado=False, pago_cliente=None, pago_compra=None):
-    obj = Mock(spec=Cheque)
-    obj.id = numero
-    obj.numero = numero
-    obj.pk = numero
-    obj.importe = importe
-    obj.fecha_emision = fecha_emision
-    obj.fecha_deposito = fecha_deposito
-    obj.fecha_endoso = fecha_endoso
-    obj.endosado = endosado
-    obj.banco = banco or _mock_banco()
-    obj.estado = estado or _mock_estado()
-    obj.pago_cliente = pago_cliente
-    obj.pago_cliente_id = pago_cliente.id if pago_cliente else None
-    obj.pago_compra = pago_compra
-    obj.pago_compra_id = pago_compra.id if pago_compra else None
-    obj._meta = Mock()
-    obj._meta.model = Cheque
-    return obj
+def _mock_cheque(numero, banco=None, estado=None, fecha_emision='2024-01-01', **overrides):
+    return mock_check(
+        id=numero,
+        numero=numero,
+        banco=banco or _default_bank(),
+        estado=estado or _default_state(),
+        fecha_emision=fecha_emision,
+        **overrides,
+    )
 
 
 class FakeCheckRepo(ICheckRepository):
@@ -83,8 +54,8 @@ class FakeCheckRepo(ICheckRepository):
         obj = _mock_cheque(
             numero=numero,
             importe=data.get('importe', Decimal('0.00')),
-            banco=data.get('banco', _mock_banco()),
-            estado=data.get('estado', _mock_estado()),
+            banco=data.get('banco', _default_bank()),
+            estado=data.get('estado', _default_state()),
             fecha_emision=str(data.get('fecha_emision', '2024-01-01')),
             fecha_deposito=str(data['fecha_deposito']) if data.get('fecha_deposito') else None,
             fecha_endoso=str(data['fecha_endoso']) if data.get('fecha_endoso') else None,
@@ -156,10 +127,11 @@ def test_retrieve_success(factory, viewset):
 
 
 def test_retrieve_success_con_pago_compra_asociado(factory, viewset):
-    pago_compra = Mock()
-    pago_compra.fecha_pago = '2024-05-01'
-    pago_compra.importe_abonado = Decimal('750.00')
-    pago_compra.compra.proveedor.nombre = 'Proveedor Test'
+    pago_compra = mock_purchase_payment(
+        fecha_pago='2024-05-01',
+        importe_abonado=Decimal('750.00'),
+        proveedor=mock_supplier(nombre='Proveedor Test'),
+    )
     check = _mock_cheque(1001, endosado=True, pago_compra=pago_compra)
     viewset.repository._items[1001] = check
 
@@ -185,8 +157,8 @@ def test_retrieve_success_sin_pago_compra_es_none(factory, viewset):
 # ------------------------- CREATE --------------------------
 @pytest.mark.django_db
 def test_create_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
-    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
+    banco = make_bank(descripcion='Nación')
+    estado = make_check_state(descripcion='EN_CARTERA')
 
     payload = {
         'numero': 3001,
@@ -206,19 +178,23 @@ def test_create_success(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_missing_required_fields(factory, viewset):
+    # is_valid(raise_exception=True) está fuera del try/except en create(): sin pasar
+    # por el dispatch real de DRF (que sí convierte ValidationError en 400), acá se
+    # observa la excepción directamente.
     request = factory.post('/checks/', {}, format='json')
     drf_request = Request(request, parsers=[JSONParser()])
-    response = viewset.create(drf_request)
 
-    assert response.status_code == 400
-    assert 'numero' in response.data
+    with pytest.raises(ValidationError) as exc_info:
+        viewset.create(drf_request)
+
+    assert 'numero' in exc_info.value.detail
 
 
 # ------------------------- UPDATE --------------------------
 @pytest.mark.django_db
 def test_update_not_found(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
-    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
+    banco = make_bank(descripcion='Nación')
+    estado = make_check_state(descripcion='EN_CARTERA')
 
     payload = {
         'numero': 9999,
@@ -238,9 +214,9 @@ def test_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
-    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
-    viewset.repository._add(1001, banco=_mock_banco(banco.id), estado=_mock_estado(estado.id))
+    banco = make_bank(descripcion='Nación')
+    estado = make_check_state(descripcion='EN_CARTERA')
+    viewset.repository._add(1001, banco=mock_bank(id=banco.id), estado=mock_check_state(id=estado.id, descripcion='EN_CARTERA'))
 
     payload = {
         'numero': 1001,
@@ -269,9 +245,9 @@ def test_partial_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_partial_update_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
-    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
-    viewset.repository._add(1001, banco=_mock_banco(banco.id), estado=_mock_estado(estado.id))
+    banco = make_bank(descripcion='Nación')
+    estado = make_check_state(descripcion='EN_CARTERA')
+    viewset.repository._add(1001, banco=mock_bank(id=banco.id), estado=mock_check_state(id=estado.id, descripcion='EN_CARTERA'))
 
     request = factory.patch('/checks/1001/', {'importe': '750.00'}, format='json')
     drf_request = Request(request, parsers=[JSONParser()])
@@ -304,15 +280,7 @@ def test_destroy_success(factory, viewset):
 # ── ENDORSE ──────────────────────────────────────────────────────────────────
 
 def _create_pago_compra():
-    mercado = Mercado.objects.create(descripcion='Mercado Test')
-    proveedor = Proveedor.objects.create(
-        nombre='Prov Test', puesto=1, telefono='11111111',
-        cuenta_corriente=0, nombre_fantasia='Prov', mercado=mercado,
-    )
-    compra = Compra.objects.create(
-        fecha='2024-01-01', importe='1000.00', senia='0.00', proveedor=proveedor,
-    )
-    return PagoCompra.objects.create(compra=compra, importe_abonado='1000.00')
+    return make_purchase_payment()
 
 
 @pytest.mark.django_db
@@ -342,8 +310,8 @@ def test_endorse_already_endorsed(factory, viewset):
 @pytest.mark.django_db
 def test_endorse_invalid_state(factory, viewset):
     pago_compra = _create_pago_compra()
-    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
-    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+    estado = make_check_state(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=mock_check_state(id=estado.id, descripcion='DEPOSITADO'))
 
     request = factory.post('/checks/1001/endorse/', {'pago_compra': pago_compra.id}, format='json')
     response = viewset.endorse(Request(request, parsers=[JSONParser()]), pk=1001)
@@ -355,7 +323,7 @@ def test_endorse_invalid_state(factory, viewset):
 @pytest.mark.django_db
 def test_endorse_success(factory, viewset):
     pago_compra = _create_pago_compra()
-    EstadoCheque.objects.create(descripcion='ENDOSADO')
+    make_check_state(descripcion='ENDOSADO')
     viewset.repository._add(1001)
 
     request = factory.post('/checks/1001/endorse/', {'pago_compra': pago_compra.id}, format='json')
@@ -378,8 +346,8 @@ def test_deposit_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_deposit_invalid_state(factory, viewset):
-    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
-    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+    estado = make_check_state(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=mock_check_state(id=estado.id, descripcion='DEPOSITADO'))
 
     request = factory.post('/checks/1001/deposit/')
     response = viewset.deposit(Request(request, parsers=[JSONParser()]), pk=1001)
@@ -390,7 +358,7 @@ def test_deposit_invalid_state(factory, viewset):
 
 @pytest.mark.django_db
 def test_deposit_success(factory, viewset):
-    EstadoCheque.objects.create(descripcion='DEPOSITADO')
+    make_check_state(descripcion='DEPOSITADO')
     viewset.repository._add(1001)  # EN_CARTERA por defecto
 
     request = factory.post('/checks/1001/deposit/')
@@ -413,8 +381,8 @@ def test_credit_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_credit_invalid_state(factory, viewset):
-    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
-    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'EN_CARTERA'))
+    estado = make_check_state(descripcion='EN_CARTERA')
+    viewset.repository._add(1001, estado=mock_check_state(id=estado.id, descripcion='EN_CARTERA'))
 
     request = factory.post('/checks/1001/credit/')
     response = viewset.credit(Request(request, parsers=[JSONParser()]), pk=1001)
@@ -425,9 +393,9 @@ def test_credit_invalid_state(factory, viewset):
 
 @pytest.mark.django_db
 def test_credit_success(factory, viewset):
-    EstadoCheque.objects.create(descripcion='ACREDITADO')
-    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
-    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+    make_check_state(descripcion='ACREDITADO')
+    estado = make_check_state(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=mock_check_state(id=estado.id, descripcion='DEPOSITADO'))
 
     request = factory.post('/checks/1001/credit/')
     response = viewset.credit(Request(request, parsers=[JSONParser()]), pk=1001)
@@ -449,8 +417,8 @@ def test_reject_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_reject_invalid_state(factory, viewset):
-    estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
-    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'EN_CARTERA'))
+    estado = make_check_state(descripcion='EN_CARTERA')
+    viewset.repository._add(1001, estado=mock_check_state(id=estado.id, descripcion='EN_CARTERA'))
 
     request = factory.post('/checks/1001/reject/')
     response = viewset.reject(Request(request, parsers=[JSONParser()]), pk=1001)
@@ -461,9 +429,9 @@ def test_reject_invalid_state(factory, viewset):
 
 @pytest.mark.django_db
 def test_reject_success(factory, viewset):
-    EstadoCheque.objects.create(descripcion='RECHAZADO')
-    estado = EstadoCheque.objects.create(descripcion='DEPOSITADO')
-    viewset.repository._add(1001, estado=_mock_estado(estado.id, 'DEPOSITADO'))
+    make_check_state(descripcion='RECHAZADO')
+    estado = make_check_state(descripcion='DEPOSITADO')
+    viewset.repository._add(1001, estado=mock_check_state(id=estado.id, descripcion='DEPOSITADO'))
 
     request = factory.post('/checks/1001/reject/')
     response = viewset.reject(Request(request, parsers=[JSONParser()]), pk=1001)

@@ -1,7 +1,7 @@
 from django.db import transaction
 from decimal import Decimal
 from .interfaces import IBuyRepository
-from .exceptions import BuyNotFoundException
+from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
 from compra_producto.interfaces import IBuyProductRepository
 from proveedor.interfaces import ISupplierRepository
 
@@ -75,6 +75,11 @@ class BuyService:
         old_proveedor = compra.proveedor
 
         new_proveedor = data.get('proveedor', old_proveedor)
+        if new_proveedor.id != old_proveedor.id and compra.pagocompra_set.exists():
+            raise BuySupplierChangeBlockedException(
+                'No se puede cambiar el proveedor: la compra ya tiene pagos registrados. '
+                'Eliminá esos pagos primero.'
+            )
         new_senia = Decimal(str(data['senia'])) if 'senia' in data else old_senia
 
         if 'fecha' in data:

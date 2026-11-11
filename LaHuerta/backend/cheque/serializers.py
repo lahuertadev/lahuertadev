@@ -79,7 +79,7 @@ class CheckResponseSerializer(serializers.ModelSerializer):
         if not obj.pago_compra:
             return None
         return {
-            'proveedor': obj.pago_compra.compra.proveedor.nombre,
+            'proveedor': obj.pago_compra.proveedor.nombre,
             'fecha_pago': obj.pago_compra.fecha_pago,
             'importe_abonado': obj.pago_compra.importe_abonado,
         }

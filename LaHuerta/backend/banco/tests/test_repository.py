@@ -3,6 +3,7 @@ from django.db import IntegrityError
 
 from banco.models import Banco
 from banco.repositories import BankRepository
+from core.tests.factories import make_bank
 
 
 @pytest.mark.django_db
@@ -12,8 +13,8 @@ class TestBankRepository:
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_banks_returns_list(self):
-        Banco.objects.create(descripcion="Banco Nación")
-        Banco.objects.create(descripcion="Banco Galicia")
+        make_bank(descripcion="Banco Nación")
+        make_bank(descripcion="Banco Galicia")
 
         result = self.repository.get_all_banks()
 
@@ -25,7 +26,7 @@ class TestBankRepository:
 
     # ------------------------- GET BY ID -----------------------
     def test_get_bank_by_id_ok(self):
-        item = Banco.objects.create(descripcion="Banco Nación")
+        item = make_bank(descripcion="Banco Nación")
 
         result = self.repository.get_bank_by_id(item.id)
 
@@ -46,13 +47,13 @@ class TestBankRepository:
         assert Banco.objects.count() == 1
 
     def test_create_bank_duplicate_descripcion_raises(self):
-        Banco.objects.create(descripcion="Banco Nación")
+        make_bank(descripcion="Banco Nación")
         with pytest.raises(IntegrityError):
             self.repository.create_bank({"descripcion": "Banco Nación"})
 
     # ------------------------- UPDATE --------------------------
     def test_modify_bank_ok(self):
-        item = Banco.objects.create(descripcion="Old")
+        item = make_bank(descripcion="Old")
 
         updated = self.repository.modify_bank(item, {"descripcion": "New"})
 
@@ -62,7 +63,7 @@ class TestBankRepository:
 
     # ------------------------- DELETE --------------------------
     def test_delete_bank_ok(self):
-        item = Banco.objects.create(descripcion="Eliminar")
+        item = make_bank(descripcion="Eliminar")
 
         self.repository.delete_bank(item)
 

@@ -8,47 +8,46 @@ from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 from rest_framework.exceptions import ValidationError
 
-from banco.models import Banco
 from cheque_propio.models import OwnCheck
 from cheque_propio.views import OwnCheckViewSet
 from cheque_propio.interfaces import IOwnCheckRepository
+from cheque_propio.repositories import OwnCheckRepository
+from core.tests.factories import (
+    make_bank, make_own_check, make_payment_type, make_purchase, make_purchase_payment, make_supplier,
+)
+from core.tests.mocks import mock_bank, mock_own_check, mock_own_check_use, mock_purchase_payment, mock_supplier
 
 
-def _mock_banco(id=1, descripcion='Nación'):
-    obj = Mock(spec=Banco)
-    obj.id = id
-    obj.pk = id
-    obj.descripcion = descripcion
-    obj._meta = Mock()
-    obj._meta.model = Banco
-    return obj
+def _default_bank():
+    return mock_bank(id=1, descripcion='Nación')
 
 
-def _mock_own_check(numero, importe=Decimal('1000.00'), banco=None, estado=OwnCheck.State.EMITIDO,
-                     fecha_emision='2024-01-01', fecha_deposito=None, fecha_vencimiento='2024-06-01',
-                     observaciones=None, pagocompra_list=None):
-    obj = Mock(spec=OwnCheck)
-    obj.id = numero
-    obj.numero = numero
-    obj.pk = numero
-    obj.importe = importe
-    obj.fecha_emision = fecha_emision
-    obj.fecha_deposito = fecha_deposito
-    obj.fecha_vencimiento = fecha_vencimiento
-    obj.banco = banco or _mock_banco()
-    obj.estado = estado
-    obj.observaciones = observaciones
-    obj._meta = Mock()
-    obj._meta.model = OwnCheck
+def _mock_own_check(numero, banco=None, fecha_emision='2024-01-01', fecha_vencimiento='2024-06-01',
+                    pagocompra_list=None, **overrides):
+    obj = mock_own_check(
+        id=numero,
+        numero=numero,
+        banco=banco or _default_bank(),
+        fecha_emision=fecha_emision,
+        fecha_vencimiento=fecha_vencimiento,
+        **overrides,
+    )
 
     payments = pagocompra_list or []
-    pagocompra_qs = Mock()
-    pagocompra_qs.first.return_value = payments[0] if payments else None
-    pagocompra_qs.all.return_value = payments
-    pagocompra_qs.exists.return_value = bool(payments)
-    pagocompra_qs.aggregate.return_value = {'total': None}
-    pagocompra_qs.select_related.return_value = payments
-    obj.pagocompra_set = pagocompra_qs
+    obj.pagocompra_set.first.return_value = payments[0] if payments else None
+    obj.pagocompra_set.all.return_value = payments
+    obj.pagocompra_set.exists.return_value = bool(payments)
+    obj.pagocompra_set.aggregate.return_value = {'total': None}
+    obj.pagocompra_set.select_related.return_value = payments
+
+    # Uso del cheque en cada pago (pago_compra_cheque_propio): por defecto, el pago entero.
+    uses = [
+        mock_own_check_use(pago_compra=payment, cheque_propio=obj, importe=getattr(payment, 'importe_abonado', Decimal('0')))
+        for payment in payments
+    ]
+    obj.payment_uses.all.return_value = uses
+    obj.payment_uses.exists.return_value = bool(uses)
+    obj.payment_uses.aggregate.return_value = {'total': None}
     return obj
 
 
@@ -78,7 +77,7 @@ class FakeOwnCheckRepo(IOwnCheckRepository):
         obj = _mock_own_check(
             numero=numero,
             importe=data.get('importe', Decimal('0.00')),
-            banco=data.get('banco', _mock_banco()),
+            banco=data.get('banco', _default_bank()),
             estado=data.get('estado', OwnCheck.State.EMITIDO),
             fecha_emision=str(data.get('fecha_emision', '2024-01-01')),
             fecha_deposito=str(data['fecha_deposito']) if data.get('fecha_deposito') else None,
@@ -96,8 +95,11 @@ class FakeOwnCheckRepo(IOwnCheckRepository):
     def delete(self, own_check):
         self._items.pop(own_check.numero, None)
 
-    def get_payments(self, own_check):
-        return own_check.pagocompra_set.all()
+    def get_payment_uses(self, own_check):
+        return own_check.payment_uses.all()
+
+    def delete_payment_use(self, use):
+        pass
 
 
 @pytest.fixture
@@ -156,7 +158,7 @@ def test_retrieve_success(factory, viewset):
 # ------------------------- CREATE --------------------------
 @pytest.mark.django_db
 def test_create_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
 
     payload = {
         'numero': 3001,
@@ -190,7 +192,7 @@ def test_create_missing_required_fields(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicado(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
     viewset.repository._duplicate = True
 
     payload = {
@@ -211,7 +213,7 @@ def test_create_duplicado(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_fecha_deposito_posterior_a_vencimiento(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
 
     payload = {
         'numero': 3001,
@@ -233,7 +235,7 @@ def test_create_fecha_deposito_posterior_a_vencimiento(factory, viewset):
 # ------------------------- UPDATE --------------------------
 @pytest.mark.django_db
 def test_update_not_found(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
+    banco = make_bank(descripcion='Nación')
 
     payload = {
         'numero': 9999, 'importe': '1000.00', 'fecha_emision': '2024-01-01',
@@ -249,8 +251,8 @@ def test_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
-    viewset.repository._add(1001, banco=_mock_banco(banco.id))
+    banco = make_bank(descripcion='Nación')
+    viewset.repository._add(1001, banco=mock_bank(id=banco.id))
 
     payload = {
         'numero': 1001, 'importe': '2000.00', 'fecha_emision': '2024-01-01',
@@ -266,10 +268,9 @@ def test_update_success(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_bloqueado_si_usado_en_pago(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
-    payment = Mock()
-    payment.compra.proveedor.nombre = 'Proveedor Test'
-    viewset.repository._add(1001, importe=Decimal('1000.00'), banco=_mock_banco(banco.id),
+    banco = make_bank(descripcion='Nación')
+    payment = mock_purchase_payment(proveedor=mock_supplier(nombre='Proveedor Test'))
+    viewset.repository._add(1001, importe=Decimal('1000.00'), banco=mock_bank(id=banco.id),
                               pagocompra_list=[payment])
 
     payload = {
@@ -297,8 +298,8 @@ def test_partial_update_not_found(factory, viewset):
 
 @pytest.mark.django_db
 def test_partial_update_success(factory, viewset):
-    banco = Banco.objects.create(descripcion='Nación')
-    viewset.repository._add(1001, banco=_mock_banco(banco.id))
+    banco = make_bank(descripcion='Nación')
+    viewset.repository._add(1001, banco=mock_bank(id=banco.id))
 
     request = factory.patch('/own-checks/1001/', {'observaciones': 'nota'}, format='json')
     drf_request = Request(request, parsers=[JSONParser()])
@@ -393,9 +394,8 @@ def test_cancel_invalid_transition(factory, viewset):
 
 
 def test_cancel_success_revierte_pagos(factory, viewset):
-    payment = Mock()
-    payment.importe_abonado = Decimal('500.00')
-    payment.compra.proveedor.cuenta_corriente = Decimal('1000.00')
+    supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
+    payment = mock_purchase_payment(importe_abonado=Decimal('500.00'), proveedor=supplier)
     viewset.repository._add(1001, estado=OwnCheck.State.EMITIDO, pagocompra_list=[payment])
 
     request = factory.post('/own-checks/1001/cancel/')
@@ -403,4 +403,59 @@ def test_cancel_success_revierte_pagos(factory, viewset):
 
     assert response.status_code == 200
     assert response.data['estado'] == OwnCheck.State.ANULADO
-    assert payment.compra.proveedor.cuenta_corriente == Decimal('1500.00')
+    assert supplier.cuenta_corriente == Decimal('1500.00')
+
+
+
+# ── DETALLE: PROVEEDOR Y PAGOS (DEV-141) ─────────────────────────────────────
+
+@pytest.mark.django_db
+def test_retrieve_expone_proveedor_y_pagos_de_compras_y_a_cuenta(factory):
+    supplier = make_supplier(nombre='Ricardo', puesto=27)
+    buy = make_purchase(fecha='2026-10-22', importe=Decimal('670000.00'), proveedor=supplier)
+    payment_type = make_payment_type(descripcion='Cheque Propio')
+    own_check = make_own_check(
+        numero=884, importe=Decimal('1000000.00'), fecha_emision='2026-10-27',
+        fecha_vencimiento='2027-01-23',
+    )
+    on_account = make_purchase_payment(
+        proveedor=supplier, compra=None, importe_abonado=Decimal('150000.00'), tipo_pago=payment_type,
+        fecha_pago='2026-10-29', cheque_propio=own_check,
+    )
+    purchase_payment = make_purchase_payment(
+        proveedor=supplier, compra=buy, importe_abonado=Decimal('300000.00'), tipo_pago=payment_type,
+        fecha_pago='2026-10-28', cheque_propio=own_check,
+    )
+    viewset = OwnCheckViewSet(repository=OwnCheckRepository())
+
+    response = viewset.retrieve(Request(factory.get(f'/own-checks/{own_check.id}/'), parsers=[JSONParser()]), pk=own_check.id)
+
+    assert response.status_code == 200
+    data = response.data
+    assert data['supplier'] == {'id': supplier.id, 'nombre': 'Ricardo', 'puesto': 27}
+    assert data['supplier_name'] == 'Ricardo'
+    assert data['used_amount'] == Decimal('450000.00')
+    assert data['remaining_balance'] == Decimal('550000.00')
+    assert data['purchases'] == [buy.id]
+    # Ordenados por fecha de pago: primero el de compras (28-10), después el a cuenta (29-10).
+    assert [p['id'] for p in data['payments']] == [purchase_payment.id, on_account.id]
+    assert data['payments'][0]['tipo'] == 'COMPRA'
+    assert data['payments'][0]['compra']['id'] == buy.id
+    assert data['payments'][1]['tipo'] == 'A_CUENTA'
+    assert data['payments'][1]['compra'] is None
+    assert data['payments'][1]['importe_abonado'] == Decimal('150000.00')
+
+
+@pytest.mark.django_db
+def test_retrieve_cheque_sin_usar_no_tiene_proveedor_ni_pagos(factory):
+    own_check = make_own_check(
+        numero=883, importe=Decimal('1000000.00'), fecha_emision='2026-10-27',
+        fecha_vencimiento='2027-01-22',
+    )
+    viewset = OwnCheckViewSet(repository=OwnCheckRepository())
+
+    response = viewset.retrieve(Request(factory.get(f'/own-checks/{own_check.id}/'), parsers=[JSONParser()]), pk=own_check.id)
+
+    assert response.data['supplier'] is None
+    assert response.data['payments'] == []
+    assert response.data['used_amount'] == Decimal('0')

@@ -10,6 +10,7 @@ import {
   TUTORIAL_CHECK_INTERVAL_MS,
 } from '../../constants/tutorials';
 import { STEP_CHECKS, matchesPath } from '../../utils/tutorial';
+import { attachSpotlight } from '../../hooks/useSpotlight';
 
 const DRIVER_CONFIG = {
   // Solo se sale con el botón "Salir": ni Escape ni el clic afuera cierran el tutorial.
@@ -62,6 +63,10 @@ const previousStepIndex = (steps, stepIndex) => {
  * - Después de un guardado la pantalla navega sola: el paso siguiente espera esa navegación.
  * - Si el usuario vuelve a una pantalla anterior del tutorial (ej. cancela el formulario),
  *   retoma desde el primer paso de esa pantalla.
+ * - Caminos alternativos: si un paso pide ir a una pantalla y el usuario va a la de un paso
+ *   posterior (ej. elige "Pago a cuenta" en vez de "Pago de compras"), sigue desde ese paso.
+ *   Un paso de guardado con `advance.then` sigue en el primer paso posterior de esa ruta,
+ *   salteando lo que queda del otro camino.
  * - Si va a una pantalla que no es del tutorial, queda en pausa con la opción de volver o salir.
  * - Si un guardado falla, la pantalla no emite el evento y el tutorial se queda en ese paso,
  *   con el error de la pantalla a la vista.
@@ -109,6 +114,11 @@ export default function TutorialGuide() {
         onPrevClick: () => actionsRef.current.exitTutorial(),
         onPopoverRender: (popover) => {
           popoverRef.current = popover;
+          // driver.js enfoca "Salir" apenas termina este callback; ese foco automático se saca para
+          // que no se marque con el contorno de foco. Con Tab el foco vuelve a los botones y se marca.
+          queueMicrotask(() => {
+            if (document.activeElement === popover.previousButton) popover.previousButton.blur();
+          });
           if (progressText) {
             popover.progress.textContent = progressText;
             popover.progress.style.display = 'block';
@@ -126,6 +136,9 @@ export default function TutorialGuide() {
             backButton.addEventListener('click', onBack);
             popover.footerButtons.insertBefore(backButton, popover.nextButton);
           }
+          // Mismo efecto de luz que SpotlightButton (los estilos están en index.css). driver.js
+          // vuelve a armar los botones en cada paso, así que los listeners se van con ellos.
+          popover.footerButtons.querySelectorAll('button').forEach(attachSpotlight);
         },
       },
     });
@@ -165,14 +178,30 @@ export default function TutorialGuide() {
     lastRunRef.current = { key: session.key, pathname };
 
     const goNext = () => {
-      if (isLast) actionsRef.current.finishTutorial();
-      else actionsRef.current.goToStep(stepIndex + 1);
+      if (isLast) {
+        actionsRef.current.finishTutorial();
+        return;
+      }
+      const thenIndex = step.advance.then
+        ? steps.findIndex((candidate, index) => index > stepIndex && matchesPath(candidate.path, step.advance.then))
+        : -1;
+      actionsRef.current.goToStep(thenIndex !== -1 ? thenIndex : stepIndex + 1);
     };
 
     // El usuario hizo la navegación que pedía el paso.
     if (step.advance.route && matchesPath(step.advance.route, pathname)) {
       goNext();
       return undefined;
+    }
+
+    // Camino alternativo: el paso pedía ir a una pantalla y el usuario eligió otra que es de un
+    // paso posterior del tutorial (ej. "Pago a cuenta" en lugar de "Pago de compras").
+    if (step.advance.route && !matchesPath(step.path, pathname)) {
+      const alternativeIndex = steps.findIndex((candidate, index) => index > stepIndex && matchesPath(candidate.path, pathname));
+      if (alternativeIndex !== -1) {
+        actionsRef.current.goToStep(alternativeIndex);
+        return undefined;
+      }
     }
 
     const showPaused = () => show({

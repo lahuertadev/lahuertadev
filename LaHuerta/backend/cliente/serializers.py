@@ -7,6 +7,7 @@ from lista_precios.models import ListaPrecios
 from localidad.serializers import DistrictResponseSerializer
 from tipo_condicion_iva.serializers import ConditionIvaTypeSerializer
 from lista_precios.serializers import PricesListSerializer
+from contacto.serializers import ContactSerializer, validate_contacts
 
 
 class DeliveryAddressValidationMixin:
@@ -68,6 +69,7 @@ class ClientCreateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
     lista_precios = serializers.PrimaryKeyRelatedField(queryset=ListaPrecios.objects.all(), required=False, allow_null=True)
     localidad_entrega = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all(), required=False, allow_null=True)
     domicilio_entrega = serializers.CharField(max_length=200, required=False, allow_null=True, allow_blank=True)
+    contactos = ContactSerializer(many=True)
 
     class Meta:
         model = Cliente
@@ -79,7 +81,7 @@ class ClientCreateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
             'domicilio',
             'localidad',
             'condicion_IVA',
-            'telefono',
+            'contactos',
             'fecha_inicio_ventas',
             'nombre_fantasia',
             'estado',
@@ -87,6 +89,9 @@ class ClientCreateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
             'domicilio_entrega',
             'localidad_entrega',
         ]
+
+    def validate_contactos(self, value):
+        return validate_contacts(value)
 
     def validate_cuit(self, value):
         if Cliente.objects.filter(cuit=value).exists():
@@ -128,6 +133,8 @@ class ClientUpdateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
     lista_precios = serializers.PrimaryKeyRelatedField(queryset=ListaPrecios.objects.all(), required=False, allow_null=True)
     localidad_entrega = serializers.PrimaryKeyRelatedField(queryset=Localidad.objects.all(), required=False, allow_null=True)
     domicilio_entrega = serializers.CharField(max_length=200, required=False, allow_null=True, allow_blank=True)
+    contactos = ContactSerializer(many=True)
+
     class Meta:
         model = Cliente
         fields = [
@@ -138,7 +145,7 @@ class ClientUpdateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
             'domicilio',
             'localidad',
             'condicion_IVA',
-            'telefono',
+            'contactos',
             'fecha_inicio_ventas',
             'nombre_fantasia',
             'estado',
@@ -146,6 +153,9 @@ class ClientUpdateSerializer(DeliveryAddressValidationMixin, CapitalizedFieldsMi
             'domicilio_entrega',
             'localidad_entrega',
         ]
+
+    def validate_contactos(self, value):
+        return validate_contacts(value)
 
     def validate_cuit(self, cuit):
         if Cliente.objects.filter(cuit=cuit).exclude(id=self.instance.id).exists():
@@ -173,6 +183,7 @@ class ClientResponseSerializer(serializers.ModelSerializer):
     condicion_IVA = ConditionIvaTypeSerializer()
     lista_precios = PricesListSerializer(read_only=True)
     localidad_entrega = DistrictResponseSerializer(allow_null=True)
+    contactos = ContactSerializer(many=True, read_only=True)
 
     class Meta:
         model = Cliente
@@ -184,7 +195,7 @@ class ClientResponseSerializer(serializers.ModelSerializer):
             'domicilio',
             'localidad',
             'condicion_IVA',
-            'telefono',
+            'contactos',
             'fecha_inicio_ventas',
             'nombre_fantasia',
             'estado',

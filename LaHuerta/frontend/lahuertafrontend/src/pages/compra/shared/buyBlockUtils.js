@@ -17,13 +17,6 @@ export const createEmptyBlock = () => ({
   items: [{ ...EMPTY_ITEM }],
 });
 
-export const formatTelefono = (raw = '') => {
-  const digits = (raw || '').replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-};
-
 // ── Cálculos ─────────────────────────────────────────────────────────
 export const calculateItemSubtotal = (item) => {
   const quantity = parseFloat(item.cantidad_producto) || 0;

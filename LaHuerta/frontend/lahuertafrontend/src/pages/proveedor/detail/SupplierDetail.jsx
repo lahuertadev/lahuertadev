@@ -8,9 +8,11 @@ import AlertDialog from '../../../components/DialogAlert';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ContactList from '../../../components/ContactList';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -103,7 +105,6 @@ const SupplierDetail = () => {
       <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos del Proveedor">
         <Field label="Nombre" value={supplier.nombre} />
         <Field label="Nombre Fantasía" value={supplier.nombre_fantasia} />
-        <Field label="Teléfono" value={supplier.telefono} />
       </SectionCard>
 
       {/* 2. Ubicación */}
@@ -113,7 +114,12 @@ const SupplierDetail = () => {
         <Field label="Nave" value={supplier.nave} />
       </SectionCard>
 
-      {/* 3. Cuenta corriente */}
+      {/* 3. Contacto */}
+      <SectionCard icon={<PhoneIcon sx={{ fontSize: 20 }} />} title="Contacto">
+        <ContactList contacts={supplier.contactos} />
+      </SectionCard>
+
+      {/* 4. Cuenta corriente */}
       <SectionCard icon={<AccountBalanceWalletIcon sx={{ fontSize: 20 }} />} title="Cuenta Corriente" cols={1}>
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Saldo</span>

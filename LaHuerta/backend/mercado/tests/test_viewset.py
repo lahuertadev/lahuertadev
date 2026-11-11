@@ -1,24 +1,13 @@
 import pytest
-from unittest.mock import Mock
 
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from mercado.models import Mercado
 from mercado.views import MarketViewSet
 from mercado.interfaces import IMarketRepository
-
-
-def _mock_model_instance(model_cls, **attrs):
-    mock_obj = Mock(spec=model_cls)
-    for k, v in attrs.items():
-        setattr(mock_obj, k, v)
-    if "id" in attrs:
-        mock_obj.pk = attrs["id"]
-    mock_obj._meta = Mock()
-    mock_obj._meta.model = model_cls
-    return mock_obj
+from core.tests.factories import make_market
+from core.tests.mocks import mock_market
 
 
 class FakeRepo(IMarketRepository):
@@ -33,7 +22,7 @@ class FakeRepo(IMarketRepository):
 
     def create_market(self, data):
         new_id = 1 if not self._items else max(self._items.keys()) + 1
-        obj = _mock_model_instance(Mercado, id=new_id, descripcion=data["descripcion"])
+        obj = mock_market(id=new_id, **data)
         self._items[new_id] = obj
         return obj
 
@@ -121,7 +110,7 @@ def test_create_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicate_descripcion(factory, viewset):
-    Mercado.objects.create(descripcion="Belgrano")
+    make_market(descripcion="Belgrano")
 
     request = factory.post("/market/", {"descripcion": "Belgrano"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
@@ -168,7 +157,7 @@ def test_update_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_duplicate_descripcion(factory, viewset):
-    Mercado.objects.create(descripcion="Central")
+    make_market(descripcion="Central")
     created = viewset.market_repository.create_market({"descripcion": "Belgrano"})
 
     request = factory.put(f"/market/{created.id}/", {"descripcion": "Central"}, format="json")

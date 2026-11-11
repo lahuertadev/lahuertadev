@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import Mock
 
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
@@ -8,17 +7,8 @@ from rest_framework.parsers import JSONParser
 from banco.models import Banco
 from banco.views import BankViewSet
 from banco.interfaces import IBankRepository
-
-
-def _mock_model_instance(model_cls, **attrs):
-    mock_obj = Mock(spec=model_cls)
-    for k, v in attrs.items():
-        setattr(mock_obj, k, v)
-    if "id" in attrs:
-        mock_obj.pk = attrs["id"]
-    mock_obj._meta = Mock()
-    mock_obj._meta.model = model_cls
-    return mock_obj
+from core.tests.factories import make_bank
+from core.tests.mocks import mock_bank
 
 
 class FakeRepo(IBankRepository):
@@ -33,7 +23,7 @@ class FakeRepo(IBankRepository):
 
     def create_bank(self, data):
         new_id = 1 if not self._items else max(self._items.keys()) + 1
-        obj = _mock_model_instance(Banco, id=new_id, descripcion=data["descripcion"])
+        obj = mock_bank(id=new_id, **data)
         self._items[new_id] = obj
         return obj
 
@@ -121,7 +111,7 @@ def test_create_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_create_duplicate_descripcion(factory, viewset):
-    Banco.objects.create(descripcion="Banco Nación")
+    make_bank(descripcion="Banco Nación")
 
     request = factory.post("/bank/", {"descripcion": "Banco Nación"}, format="json")
     drf_request = Request(request, parsers=[JSONParser()])
@@ -168,7 +158,7 @@ def test_update_validation_error_empty_descripcion(factory, viewset):
 
 @pytest.mark.django_db
 def test_update_duplicate_descripcion(factory, viewset):
-    Banco.objects.create(descripcion="Banco Galicia")
+    make_bank(descripcion="Banco Galicia")
     created = viewset.bank_repository.create_bank({"descripcion": "Banco Nación"})
 
     request = factory.put(f"/bank/{created.id}/", {"descripcion": "Banco Galicia"}, format="json")

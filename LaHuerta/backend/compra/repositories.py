@@ -17,7 +17,7 @@ class BuyRepository(IBuyRepository):
 
     def get_all(self, proveedor_id=None, fecha_desde=None, fecha_hasta=None,
                 importe_min=None, importe_max=None):
-        qs = _annotate_payments(Compra.objects.select_related('proveedor'))
+        qs = _annotate_payments(Compra.objects.select_related('proveedor').prefetch_related('proveedor__contactos'))
 
         if proveedor_id:
             qs = qs.filter(proveedor_id=proveedor_id)

@@ -22,17 +22,12 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import FormActions from '../../../components/FormActions';
 import BackButton from '../../../components/BackButton';
 import Switch from '../../../components/Switch';
+import RequiredMark from '../../../components/RequiredMark';
+import ContactFields, { EMPTY_CONTACT, contactsSchema, toContactRows, toContactsPayload } from '../../../components/ContactFields';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
-
-const formatTelefono = (raw = '') => {
-  const digits = raw.replace(/\D/g, '').slice(0, 10);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
-};
 
 const formatCuit = (raw = '') => {
   const digits = raw.replace(/\D/g, '').slice(0, 11);
@@ -45,7 +40,6 @@ const BACKEND_TO_FORM_FIELD = {
   cuit: 'cuit',
   razon_social: 'businessName',
   cuenta_corriente: 'checkingAccount',
-  telefono: 'phone',
   domicilio: 'address',
   nombre_fantasia: 'fantasyName',
   domicilio_entrega: 'deliveryAddress',
@@ -136,12 +130,13 @@ const HelpTooltip = ({ text }) => (
 
 // Provincia, Municipio, Localidad y Dirección de una dirección del cliente (facturación o entrega).
 // `fields` son los nombres de los campos en Formik y `tourPrefix` el prefijo de sus data-tour.
-const AddressFields = ({ fields, options, tourPrefix, form, onProvinceChange, onCityChange }) => {
+// `addressRequired`: la calle es obligatoria en la de entrega; en la de facturación es opcional.
+const AddressFields = ({ fields, options, tourPrefix, form, onProvinceChange, onCityChange, addressRequired = false }) => {
   const { values, errors, touched, handleChange, setFieldValue, setValues, setTouched } = form;
   return (
     <>
       <div className="flex flex-col gap-1" data-tour={`${tourPrefix}-province`}>
-        <label className={labelCls}>Provincia</label>
+        <label className={labelCls}>Provincia<RequiredMark /></label>
         <select
           value={values[fields.province]?.value || ''}
           onChange={async (e) => {
@@ -150,6 +145,7 @@ const AddressFields = ({ fields, options, tourPrefix, form, onProvinceChange, on
             setTouched(prev => ({ ...prev, [fields.city]: false, [fields.district]: false }), false);
             await onProvinceChange(selected);
           }}
+          aria-required="true"
           className={inputCls(touched[fields.province] && errors[fields.province])}
         >
           <option value="">Seleccionar...</option>
@@ -160,7 +156,7 @@ const AddressFields = ({ fields, options, tourPrefix, form, onProvinceChange, on
         <FieldError error={errors[fields.province]} touched={touched[fields.province]} />
       </div>
       <div className="flex flex-col gap-1" data-tour={`${tourPrefix}-city`}>
-        <label className={labelCls}>Municipio</label>
+        <label className={labelCls}>Municipio<RequiredMark /></label>
         <select
           value={values[fields.city]?.value || ''}
           onChange={async (e) => {
@@ -169,6 +165,7 @@ const AddressFields = ({ fields, options, tourPrefix, form, onProvinceChange, on
             setTouched(prev => ({ ...prev, [fields.district]: false }), false);
             await onCityChange(selected);
           }}
+          aria-required="true"
           className={inputCls(touched[fields.city] && errors[fields.city], !options.cities.length)}
           disabled={!options.cities.length}
         >
@@ -180,13 +177,14 @@ const AddressFields = ({ fields, options, tourPrefix, form, onProvinceChange, on
         <FieldError error={errors[fields.city]} touched={touched[fields.city]} />
       </div>
       <div className="flex flex-col gap-1" data-tour={`${tourPrefix}-district`}>
-        <label className={labelCls}>Localidad</label>
+        <label className={labelCls}>Localidad<RequiredMark /></label>
         <select
           value={values[fields.district]?.value || ''}
           onChange={(e) => {
             const selected = options.districts.find(o => String(o.value) === e.target.value) || null;
             setFieldValue(fields.district, selected);
           }}
+          aria-required="true"
           className={inputCls(touched[fields.district] && errors[fields.district], !options.districts.length)}
           disabled={!options.districts.length}
         >
@@ -198,12 +196,13 @@ const AddressFields = ({ fields, options, tourPrefix, form, onProvinceChange, on
         <FieldError error={errors[fields.district]} touched={touched[fields.district]} />
       </div>
       <div className="flex flex-col gap-1" data-tour={`${tourPrefix}-address`}>
-        <label className={labelCls}>Dirección</label>
+        <label className={labelCls}>Dirección{addressRequired && <RequiredMark />}</label>
         <input
           name={fields.address}
           value={values[fields.address] || ''}
           onChange={handleChange}
           placeholder="Calle y número"
+          aria-required={addressRequired || undefined}
           className={inputCls(touched[fields.address] && errors[fields.address])}
         />
         <FieldError error={errors[fields.address]} touched={touched[fields.address]} />
@@ -254,7 +253,7 @@ const ClientForm = () => {
     ivaCondition: null,
     usesPriceList: true,
     priceList: null,
-    phone: '',
+    contacts: [{ ...EMPTY_CONTACT }],
     salesStartDate: null,
     state: true,
     checkingAccount: '',
@@ -338,7 +337,7 @@ const ClientForm = () => {
         ivaCondition: { name: data.condicion_IVA.descripcion, value: data.condicion_IVA.id },
         usesPriceList: data.lista_precios != null,
         priceList: data.lista_precios ? { name: data.lista_precios.nombre, value: data.lista_precios.id } : null,
-        phone: data.telefono,
+        contacts: toContactRows(data.contactos),
         salesStartDate: data.fecha_inicio_ventas,
         state: data.estado,
         checkingAccount: data.cuenta_corriente,
@@ -376,6 +375,7 @@ const ClientForm = () => {
       then: (schema) => schema.required('La lista de precios es obligatoria'),
     }),
     salesStartDate: Yup.string().nullable().required('Fecha de inicio de ventas es obligatoria'),
+    contacts: contactsSchema,
   });
 
   const mapFormDataToBackend = (values) => ({
@@ -389,7 +389,7 @@ const ClientForm = () => {
     domicilio_entrega: values.hasDeliveryAddress ? values.deliveryAddress : null,
     condicion_IVA: values.ivaCondition?.value,
     lista_precios: values.usesPriceList ? values.priceList?.value : null,
-    telefono: values.phone,
+    contactos: toContactsPayload(values.contacts),
     fecha_inicio_ventas: values.salesStartDate,
     nombre_fantasia: values.fantasyName,
     estado: values.state,
@@ -458,7 +458,7 @@ const ClientForm = () => {
             {/* 1. Datos de la Empresa */}
             <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
               <div className="flex flex-col gap-1" data-tour="client-cuit">
-                <label className={labelCls}>CUIT</label>
+                <label className={labelCls}>CUIT<RequiredMark /></label>
                 <input
                   name="cuit"
                   value={formatCuit(values.cuit)}
@@ -467,17 +467,19 @@ const ClientForm = () => {
                     setFieldValue('cuit', raw);
                   }}
                   placeholder="20-XXXXXXXX-X"
+                  aria-required="true"
                   className={inputCls(touched.cuit && errors.cuit)}
                 />
                 <FieldError error={errors.cuit} touched={touched.cuit} />
               </div>
               <div className="flex flex-col gap-1" data-tour="client-business-name">
-                <label className={labelCls}>Razón Social</label>
+                <label className={labelCls}>Razón Social<RequiredMark /></label>
                 <input
                   name="businessName"
                   value={values.businessName}
                   onChange={handleChange}
                   placeholder="Nombre legal de la empresa"
+                  aria-required="true"
                   className={inputCls(touched.businessName && errors.businessName)}
                 />
                 <FieldError error={errors.businessName} touched={touched.businessName} />
@@ -547,6 +549,7 @@ const ClientForm = () => {
                     fields={DELIVERY_ADDRESS_FIELDS}
                     options={{ provinces: selectOptions.provinces, cities: selectOptions.deliveryCities, districts: selectOptions.deliveryDistricts }}
                     tourPrefix="client-delivery"
+                    addressRequired
                     form={formik}
                     onProvinceChange={(province) => loadCitiesByProvinceId(province, 'delivery')}
                     onCityChange={(city) => loadDistrictsByCityId(city, 'delivery')}
@@ -558,13 +561,14 @@ const ClientForm = () => {
             {/* 3. Datos de Facturación */}
             <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de Facturación">
               <div className="flex flex-col gap-1" data-tour="client-iva-condition">
-                <label className={labelCls}>Condición de IVA</label>
+                <label className={labelCls}>Condición de IVA<RequiredMark /></label>
                 <select
                   value={values.ivaCondition?.value || ''}
                   onChange={(e) => {
                     const selected = selectOptions.ivaCondition.find(o => String(o.value) === e.target.value) || null;
                     setFieldValue('ivaCondition', selected);
                   }}
+                  aria-required="true"
                   className={inputCls(touched.ivaCondition && errors.ivaCondition)}
                 >
                   <option value="">Seleccionar...</option>
@@ -596,13 +600,14 @@ const ClientForm = () => {
               </div>
               {values.usesPriceList && (
                 <div className="flex flex-col gap-1" data-tour="client-price-list-select">
-                  <label className={labelCls}>Lista de Precios</label>
+                  <label className={labelCls}>Lista de Precios<RequiredMark /></label>
                   <select
                     value={values.priceList?.value || ''}
                     onChange={(e) => {
                       const selected = selectOptions.priceLists.find(o => String(o.value) === e.target.value) || null;
                       setFieldValue('priceList', selected);
                     }}
+                    aria-required="true"
                     className={inputCls(touched.priceList && errors.priceList)}
                   >
                     <option value="">Seleccionar...</option>
@@ -633,11 +638,12 @@ const ClientForm = () => {
             {/* 5. Fecha de Inicio de Ventas */}
             <SectionCard icon={<CalendarTodayIcon sx={{ fontSize: 20 }} />} title="Fecha de inicio de ventas">
               <div className="flex flex-col gap-1" data-tour="client-sales-start">
-                <label className={labelCls}>Fecha de inicio</label>
+                <label className={labelCls}>Fecha de inicio<RequiredMark /></label>
                 <BasicDatePicker
                   value={values.salesStartDate}
                   onChange={(date) => setFieldValue('salesStartDate', date)}
                   hasError={touched.salesStartDate && Boolean(errors.salesStartDate)}
+                  required
                 />
                 <FieldError error={errors.salesStartDate} touched={touched.salesStartDate} />
               </div>
@@ -645,20 +651,7 @@ const ClientForm = () => {
 
             {/* 6. Contacto */}
             <SectionCard icon={<PhoneIcon sx={{ fontSize: 20 }} />} title="Contacto">
-              <div className="flex flex-col gap-1" data-tour="client-phone">
-                <label className={labelCls}>Teléfono</label>
-                <input
-                  name="phone"
-                  type="tel"
-                  value={formatTelefono(values.phone)}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, '').slice(0, 10);
-                    setFieldValue('phone', raw);
-                  }}
-                  placeholder="11-XXXX-XXXX"
-                  className={inputCls(false)}
-                />
-              </div>
+              <ContactFields tourPrefix="client" descriptionPlaceholder="Ej. Compras, Pagos, Dueño" />
             </SectionCard>
 
             {/* 7. Estado */}

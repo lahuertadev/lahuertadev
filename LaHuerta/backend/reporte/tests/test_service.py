@@ -3,8 +3,7 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import Mock
 
-from factura.models import Factura
-from pago_cliente.models import PagoCliente
+from core.tests.mocks import mock_bill, mock_bill_type, mock_client, mock_client_payment
 from reporte.interfaces import IReportRepository
 from reporte.service import ReportService, get_date_range, build_chart
 from reporte.exceptions import ClientNotFoundException
@@ -29,12 +28,7 @@ class FakeReportRepo(IReportRepository):
 
 
 def make_bill(fecha, total, codigo_afip=1):
-    b = Mock(spec=Factura)
-    b.fecha = fecha
-    b.total = Decimal(str(total))
-    b.tipo_factura = Mock()
-    b.tipo_factura.codigo_afip = codigo_afip
-    return b
+    return mock_bill(fecha=fecha, total=Decimal(str(total)), tipo_factura=mock_bill_type(codigo_afip=codigo_afip))
 
 
 def make_debit_note(fecha, total):
@@ -42,18 +36,11 @@ def make_debit_note(fecha, total):
 
 
 def make_payment(fecha_pago, importe):
-    p = Mock(spec=PagoCliente)
-    p.fecha_pago = fecha_pago
-    p.importe = Decimal(str(importe))
-    p.tipo_pago = Mock()
-    return p
+    return mock_client_payment(fecha_pago=fecha_pago, importe=Decimal(str(importe)))
 
 
 def make_client(id=1):
-    c = Mock()
-    c.id = id
-    c.razon_social = 'Cliente Test'
-    return c
+    return mock_client(id=id, razon_social='Cliente Test')
 
 
 def make_service(client=None, bills=None, payments=None, credit_notes=None):

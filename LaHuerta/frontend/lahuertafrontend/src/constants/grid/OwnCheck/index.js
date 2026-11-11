@@ -2,7 +2,7 @@ import React from 'react';
 import Tooltip from '@mui/material/Tooltip';
 import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
 
-const STATE_CONFIG = {
+export const OWN_CHECK_STATE_CONFIG = {
   'EMITIDO': { label: 'Emitido', bg: '#e8f0fb', color: '#4a7bc4' },
   'COBRADO': { label: 'Cobrado', bg: '#dcfce7', color: '#166534' },
   'ANULADO': { label: 'Anulado', bg: '#ffebee', color: '#c62828' },
@@ -66,7 +66,7 @@ export const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => {
-      const cfg = STATE_CONFIG[params.value] || { label: params.value || '-', bg: '#f0f4f7', color: '#596064' };
+      const cfg = OWN_CHECK_STATE_CONFIG[params.value] || { label: params.value || '-', bg: '#f0f4f7', color: '#596064' };
       return (
         <span style={{
           display: 'inline-block',

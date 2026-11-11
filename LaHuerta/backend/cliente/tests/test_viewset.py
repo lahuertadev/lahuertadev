@@ -5,19 +5,12 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from tipo_condicion_iva.models import TipoCondicionIva
-from lista_precios.models import ListaPrecios
 from cliente.models import Cliente
 from cliente.views import ClientViewSet
 from cliente.interfaces import IClientRepository
 from cliente.exceptions import ClientNotFoundException
-from factura.models import Factura
-from tipo_factura.models import TipoFactura
-from pago_cliente.models import PagoCliente
-from tipo_pago.models import TipoPago
+from contacto.models import Contacto
+from core.tests.factories import make_bill, make_client, make_client_payment, make_contact, make_locality, make_municipality, make_price_list, make_province, make_vat_condition
 
 
 # ── Fixtures DB ────────────────────────────────────────────────────────────────
@@ -29,20 +22,21 @@ def factory():
 
 @pytest.fixture
 def db_setup(db):
-    provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-    municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-    localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-    condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-    cliente = Cliente.objects.create(
+    provincia = make_province(id='06', nombre='Buenos Aires')
+    municipio = make_municipality(id='064270', nombre='CABA', provincia=provincia)
+    localidad = make_locality(id='0642701009', nombre='CABA', municipio=municipio)
+    condicion_iva = make_vat_condition(descripcion='RI')
+    cliente = make_client(
         cuit='20123456789',
         razon_social='Cliente Test S.A.',
         cuenta_corriente=Decimal('10000.00'),
-        telefono='1122334455',
         localidad=localidad,
         condicion_IVA=condicion_iva,
     )
+    contacto = make_contact(cliente=cliente, numero='1122334455')
     return {
         'cliente': cliente,
+        'contacto': contacto,
         'localidad': localidad,
         'condicion_iva': condicion_iva,
     }
@@ -96,7 +90,7 @@ def _base_payload(db_setup, **overrides):
         'cuit': '20999888777',
         'razon_social': 'Nuevo Cliente SRL',
         'cuenta_corriente': '0.00',
-        'telefono': '1133445566',
+        'contactos': [{'numero': '1133445566'}],
         'localidad': db_setup['localidad'].id,
         'condicion_IVA': db_setup['condicion_iva'].id,
         'fecha_inicio_ventas': '2024-01-01',
@@ -226,7 +220,7 @@ def test_create_campos_obligatorios_faltantes(factory):
 @pytest.mark.django_db
 def test_create_con_lista_de_precios(factory, db_setup):
     vs, _ = _make_viewset()
-    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    price_list = make_price_list(descripcion='Lista General')
     payload = _base_payload(db_setup, lista_precios=price_list.id)
     response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
     assert response.status_code == 201
@@ -320,7 +314,7 @@ def test_update_not_found(factory, db_setup):
 def test_update_quita_lista_de_precios(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    client.lista_precios = ListaPrecios.objects.create(descripcion='Lista General')
+    client.lista_precios = make_price_list(descripcion='Lista General')
     client.save()
     payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=None)
     response = vs.update(
@@ -337,7 +331,7 @@ def test_update_quita_lista_de_precios(factory, db_setup):
 def test_update_asigna_lista_de_precios(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    price_list = ListaPrecios.objects.create(descripcion='Lista General')
+    price_list = make_price_list(descripcion='Lista General')
     payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, lista_precios=price_list.id)
     response = vs.update(
         Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
@@ -375,7 +369,7 @@ class FakeDistrictService:
 @pytest.fixture
 def delivery_district(db_setup):
     municipio = db_setup['localidad'].municipio
-    return Localidad.objects.create(id='0642701010', nombre='Palermo', municipio=municipio)
+    return make_locality(id='0642701010', nombre='Palermo', municipio=municipio)
 
 
 def _set_delivery_address(client, district, address='Av. Corrientes 1234'):
@@ -570,7 +564,7 @@ def test_partial_update_sin_tocar_entrega_no_la_exige(factory, db_setup, deliver
     client = db_setup['cliente']
     _set_delivery_address(client, delivery_district)
     response = vs.partial_update(
-        Request(factory.patch(f'/client/{client.id}/', {'telefono': '9988776655'}, format='json'), parsers=[JSONParser()]),
+        Request(factory.patch(f'/client/{client.id}/', {'nombre_fantasia': 'Otro Nombre'}, format='json'), parsers=[JSONParser()]),
         pk=client.id,
     )
     assert response.status_code == 200
@@ -581,15 +575,44 @@ def test_partial_update_sin_tocar_entrega_no_la_exige(factory, db_setup, deliver
 # ── PARTIAL UPDATE ─────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
-def test_partial_update_solo_telefono(factory, db_setup):
+def test_partial_update_solo_contactos(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
+    contact = db_setup['contacto']
+    payload = {'contactos': [{'id': contact.id, 'numero': '9988776655', 'descripcion': 'Pagos'}]}
     response = vs.partial_update(
-        Request(factory.patch(f'/client/{client.id}/', {'telefono': '9988776655'}, format='json'), parsers=[JSONParser()]),
+        Request(factory.patch(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
         pk=client.id,
     )
     assert response.status_code == 200
-    assert response.data['telefono'] == '9988776655'
+    assert response.data['contactos'] == [
+        {'id': contact.id, 'numero': '9988776655', 'descripcion': 'Pagos', 'email': None},
+    ]
+
+
+@pytest.mark.django_db
+def test_partial_update_sin_contactos_no_los_toca(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    response = vs.partial_update(
+        Request(factory.patch(f'/client/{client.id}/', {'nombre_fantasia': 'Otro Nombre'}, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    assert [contact['numero'] for contact in response.data['contactos']] == ['1122334455']
+
+
+@pytest.mark.django_db
+def test_partial_update_contactos_vacios(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    response = vs.partial_update(
+        Request(factory.patch(f'/client/{client.id}/', {'contactos': []}, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 400
+    assert 'contactos' in response.data
+    assert Contacto.objects.filter(cliente=client).count() == 1
 
 
 @pytest.mark.django_db
@@ -608,10 +631,119 @@ def test_partial_update_cuenta_corriente(factory, db_setup):
 def test_partial_update_not_found(factory):
     vs, _ = _make_viewset()
     response = vs.partial_update(
-        Request(factory.patch('/client/9999/', {'telefono': '111'}, format='json'), parsers=[JSONParser()]),
+        Request(factory.patch('/client/9999/', {'nombre_fantasia': 'X'}, format='json'), parsers=[JSONParser()]),
         pk=9999,
     )
     assert response.status_code == 404
+
+
+# ── CONTACTOS ──────────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_retrieve_incluye_contactos(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    response = vs.retrieve(Request(factory.get(f'/client/{client.id}/'), parsers=[JSONParser()]), pk=client.id)
+    assert response.status_code == 200
+    assert response.data['contactos'] == [
+        {'id': db_setup['contacto'].id, 'numero': '1122334455', 'descripcion': None, 'email': None},
+    ]
+
+
+@pytest.mark.django_db
+def test_create_con_varios_contactos(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, contactos=[
+        {'numero': '1155551234', 'descripcion': '', 'email': ''},
+        {'numero': '1166667777', 'descripcion': 'Pagos', 'email': 'pagos@cliente.com'},
+    ])
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    contacts = [(c['numero'], c['descripcion'], c['email']) for c in response.data['contactos']]
+    assert contacts == [('1155551234', None, None), ('1166667777', 'Pagos', 'pagos@cliente.com')]
+
+
+@pytest.mark.django_db
+def test_create_capitaliza_la_descripcion_del_contacto(factory, db_setup):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, contactos=[{'numero': '1155551234', 'descripcion': '  marta COMPRAS '}])
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 201
+    assert response.data['contactos'][0]['descripcion'] == 'Marta Compras'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('contacts', [[], None])
+def test_create_sin_contactos(factory, db_setup, contacts):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup)
+    if contacts is None:
+        payload.pop('contactos')
+    else:
+        payload['contactos'] = contacts
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 400
+    assert 'contactos' in response.data
+    assert not Cliente.objects.filter(cuit=payload['cuit']).exists()
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('contact', [
+    {'numero': ''},
+    {'numero': '1155551234', 'email': 'no-es-un-email'},
+    {'numero': '1155551234', 'descripcion': 'x' * 51},
+])
+def test_create_contacto_invalido(factory, db_setup, contact):
+    vs, _ = _make_viewset()
+    payload = _base_payload(db_setup, contactos=[contact])
+    response = vs.create(Request(factory.post('/client/', payload, format='json'), parsers=[JSONParser()]))
+    assert response.status_code == 400
+    assert 'contactos' in response.data
+
+
+@pytest.mark.django_db
+def test_update_modifica_agrega_y_elimina_contactos(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    kept = db_setup['contacto']
+    removed = make_contact(cliente=client, numero='1100000000')
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social=client.razon_social, contactos=[
+        {'id': kept.id, 'numero': '1122334455', 'descripcion': 'Compras'},
+        {'numero': '1177778888', 'email': 'nuevo@cliente.com'},
+    ])
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 200
+    contacts = list(Contacto.objects.filter(cliente=client).order_by('id'))
+    assert [c.id for c in contacts][0] == kept.id
+    assert [(c.numero, c.descripcion, c.email) for c in contacts] == [
+        ('1122334455', 'Compras', None),
+        ('1177778888', None, 'nuevo@cliente.com'),
+    ]
+    assert not Contacto.objects.filter(id=removed.id).exists()
+
+
+@pytest.mark.django_db
+def test_update_con_contacto_de_otro_cliente(factory, db_setup):
+    vs, _ = _make_viewset()
+    client = db_setup['cliente']
+    other_client = make_client()
+    other_contact = make_contact(cliente=other_client, numero='1144445555')
+    payload = _base_payload(db_setup, cuit=client.cuit, razon_social='Nombre Que No Se Guarda', contactos=[
+        {'id': other_contact.id, 'numero': '1199999999'},
+    ])
+    response = vs.update(
+        Request(factory.put(f'/client/{client.id}/', payload, format='json'), parsers=[JSONParser()]),
+        pk=client.id,
+    )
+    assert response.status_code == 400
+    other_contact.refresh_from_db()
+    assert other_contact.numero == '1144445555'
+    client.refresh_from_db()
+    assert client.razon_social == 'Cliente Test S.A.'
+    assert Contacto.objects.filter(cliente=client).count() == 1
 
 
 # ── DESTROY ────────────────────────────────────────────────────────────────────
@@ -643,13 +775,7 @@ def test_destroy_not_found(factory):
 def test_destroy_bloqueado_con_factura(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    tipo_factura = TipoFactura.objects.create(descripcion='Factura A', abreviatura='FA')
-    Factura.objects.create(
-        fecha='2026-01-01',
-        subtotal=Decimal('1000.00'),
-        tipo_factura=tipo_factura,
-        cliente=client,
-    )
+    make_bill(cliente=client)
     response = vs.destroy(
         Request(factory.delete(f'/client/{client.id}/'), parsers=[JSONParser()]),
         pk=client.id,
@@ -663,13 +789,7 @@ def test_destroy_bloqueado_con_factura(factory, db_setup):
 def test_destroy_bloqueado_con_pago(factory, db_setup):
     vs, _ = _make_viewset()
     client = db_setup['cliente']
-    tipo_pago = TipoPago.objects.create(descripcion='Efectivo')
-    PagoCliente.objects.create(
-        fecha_pago='2026-01-01',
-        importe=Decimal('500.00'),
-        cliente=client,
-        tipo_pago=tipo_pago,
-    )
+    make_client_payment(cliente=client)
     response = vs.destroy(
         Request(factory.delete(f'/client/{client.id}/'), parsers=[JSONParser()]),
         pk=client.id,

@@ -3,8 +3,9 @@ from datetime import timedelta
 from django.utils import timezone
 
 from autenticacion.models import Usuario
-from novedad.models import Novedad, NovedadUsuario
+from novedad.models import NovedadUsuario
 from novedad.repositories import NewsRepository
+from core.tests.factories import make_news, make_news_view, make_user
 
 
 @pytest.mark.django_db
@@ -15,12 +16,11 @@ class TestNewsRepository:
         self.employee = self._make_user('empleado', Usuario.EMPLOYEE)
 
     def _make_user(self, username, role):
-        return Usuario.objects.create_user(username=username, email=f'{username}@test.com', password='x', role=role)
+        return make_user(username=username, role=role)
 
     def _make_news(self, titulo='Novedad', days_ago=0, vigente_hasta=None, rol_destino=None, activa=True):
-        return Novedad.objects.create(
+        return make_news(
             titulo=titulo,
-            descripcion='Descripción',
             fecha_publicacion=self.today - timedelta(days=days_ago),
             vigente_hasta=vigente_hasta,
             rol_destino=rol_destino,
@@ -60,13 +60,13 @@ class TestNewsRepository:
 
     def test_pending_excludes_seen(self):
         news = self._make_news('Vista')
-        NovedadUsuario.objects.create(novedad=news, usuario=self.employee)
+        make_news_view(novedad=news, usuario=self.employee)
         assert self._titles(self.repository.get_visible_for_user(self.employee, pending=True)) == []
 
     def test_seen_by_other_user_still_pending(self):
         news = self._make_news('Vista por otro')
         other = self._make_user('otro', Usuario.EMPLOYEE)
-        NovedadUsuario.objects.create(novedad=news, usuario=other)
+        make_news_view(novedad=news, usuario=other)
         assert self._titles(self.repository.get_visible_for_user(self.employee, pending=True)) == ['Vista por otro']
 
     def test_excludes_inactive(self):
@@ -81,7 +81,7 @@ class TestNewsRepository:
     # ------------------------- HISTORIAL -----------------------
     def test_history_includes_seen_and_expired(self):
         seen_news = self._make_news('Vista', days_ago=1)
-        NovedadUsuario.objects.create(novedad=seen_news, usuario=self.employee)
+        make_news_view(novedad=seen_news, usuario=self.employee)
         self._make_news('Vencida', days_ago=40, vigente_hasta=self.today - timedelta(days=10))
 
         result = list(self.repository.get_visible_for_user(self.employee))

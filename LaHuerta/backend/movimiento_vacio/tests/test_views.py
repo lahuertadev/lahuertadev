@@ -4,12 +4,10 @@ from unittest.mock import Mock, patch
 
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from mercado.models import Mercado
-from proveedor.models import Proveedor
-from tipo_contenedor.models import TipoContenedor
 from movimiento_vacio.models import MovimientoVacio
 from movimiento_vacio.views import EmptyMovementViewSet
 from movimiento_vacio.constants import EmptyMovementType
+from core.tests.factories import make_container_type, make_supplier
 
 URL = '/empty-movement/'
 
@@ -23,20 +21,12 @@ def factory():
 
 @pytest.fixture
 def db_setup(db):
-    market, _ = Mercado.objects.get_or_create(descripcion='Central Test')
-
-    def make_supplier(name, stall):
-        return Proveedor.objects.create(
-            nombre=name, puesto=stall, telefono='1122334455',
-            nombre_fantasia=name, mercado=market, cuenta_corriente=Decimal('0'),
-        )
-
     return {
-        'supplier_a': make_supplier('Proveedor A', 1),
-        'supplier_b': make_supplier('Proveedor B', 2),
-        'crate': TipoContenedor.objects.create(descripcion='Cajon Test', abreviacion='c', requiere_vacio=True),
-        'cage': TipoContenedor.objects.create(descripcion='Jaula Test', abreviacion='j', requiere_vacio=True),
-        'no_empty': TipoContenedor.objects.create(descripcion='Bolsa Test', abreviacion='b', requiere_vacio=False),
+        'supplier_a': make_supplier(nombre='Proveedor A'),
+        'supplier_b': make_supplier(nombre='Proveedor B'),
+        'crate': make_container_type(descripcion='Cajon Test', abreviacion='c', requiere_vacio=True),
+        'cage': make_container_type(descripcion='Jaula Test', abreviacion='j', requiere_vacio=True),
+        'no_empty': make_container_type(descripcion='Bolsa Test', abreviacion='b', requiere_vacio=False),
     }
 
 

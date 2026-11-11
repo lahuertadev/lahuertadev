@@ -1,15 +1,7 @@
 import pytest
 from decimal import Decimal
 
-from banco.models import Banco
-from estado_cheque.models import EstadoCheque
-from pago_cliente.models import PagoCliente
-from provincia.models import Provincia
-from municipio.models import Municipio
-from localidad.models import Localidad
-from cliente.models import Cliente
-from tipo_pago.models import TipoPago
-from tipo_condicion_iva.models import TipoCondicionIva
+from core.tests.factories import make_bank, make_check, make_check_state, make_client_payment
 from cheque.models import Cheque
 from cheque.repositories import CheckRepository
 
@@ -18,39 +10,15 @@ from cheque.repositories import CheckRepository
 class TestCheckRepository:
     def setup_method(self):
         self.repository = CheckRepository()
-        self.banco = Banco.objects.create(descripcion='Nación')
-        self.estado = EstadoCheque.objects.create(descripcion='EN_CARTERA')
+        self.banco = make_bank(descripcion='Nación')
+        self.estado = make_check_state(descripcion='EN_CARTERA')
 
     def _make_cheque(self, numero=1001, importe=Decimal('1000.00')):
-        return Cheque.objects.create(
-            numero=numero,
-            importe=importe,
-            fecha_emision='2024-01-01',
-            banco=self.banco,
-            estado=self.estado,
-        )
+        return make_check(numero=numero, importe=importe, banco=self.banco, estado=self.estado)
 
     def _make_cliente_con_pago(self):
-        provincia = Provincia.objects.create(id='06', nombre='Buenos Aires')
-        municipio = Municipio.objects.create(id='064270', nombre='CABA', provincia=provincia)
-        localidad = Localidad.objects.create(id='0642701009', nombre='CABA', municipio=municipio)
-        condicion_iva = TipoCondicionIva.objects.create(descripcion='RI')
-        cliente = Cliente.objects.create(
-            cuit='20123456789',
-            razon_social='Cliente Test SA',
-            cuenta_corriente=Decimal('0.00'),
-            telefono='1122334455',
-            localidad=localidad,
-            condicion_IVA=condicion_iva,
-        )
-        tipo_pago = TipoPago.objects.create(descripcion='Cheque')
-        payment = PagoCliente.objects.create(
-            fecha_pago='2024-01-01',
-            importe=Decimal('1000.00'),
-            cliente=cliente,
-            tipo_pago=tipo_pago,
-        )
-        return cliente, payment
+        payment = make_client_payment()
+        return payment.cliente, payment
 
     # ------------------------- GET ALL -------------------------
     def test_get_all_returns_all(self):
@@ -92,7 +60,7 @@ class TestCheckRepository:
         cheque = self._make_cheque(numero=3001)
         cheque.pago_cliente = payment
         cheque.save()
-        otro_banco = Banco.objects.create(descripcion='Galicia')
+        otro_banco = make_bank(descripcion='Galicia')
 
         assert self.repository.exists_duplicate(3001, otro_banco, cliente) is False
 
@@ -137,7 +105,7 @@ class TestCheckRepository:
     # ------------------------- UPDATE --------------------------
     def test_update_ok(self):
         cheque = self._make_cheque(1001)
-        estado_nuevo = EstadoCheque.objects.create(descripcion='DEPOSITADO')
+        estado_nuevo = make_check_state(descripcion='DEPOSITADO')
 
         updated = self.repository.update(cheque, {'estado': estado_nuevo})
 
