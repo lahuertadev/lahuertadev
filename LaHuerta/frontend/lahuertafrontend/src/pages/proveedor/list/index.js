@@ -37,6 +37,8 @@ const data = {
     { label: 'Mercado', name: 'mercado', type: 'text' },
   ],
   newLabelText: 'Nuevo proveedor',
+  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Pagos de Compras), para dejarle más lugar a los datos.
+  groupActions: true,
 };
 
 const SupplierList = () => {

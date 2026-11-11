@@ -25,6 +25,10 @@ import RoundedCheckbox from '../RoundedCheckbox';
  *   pageSize          — number (default 10)
  *   pageSizeOptions   — number[] (default [10, 25, 50]) — opciones del selector "Rows per page"
  *   groupActions      — boolean (default false): Detalle, Editar y Eliminar en una sola columna "Acción"
+ *   canEdit / canDelete — (row) => bool: si devuelve false, el botón se muestra grisado y sin acción
+ *                         (no desaparece, así los íconos quedan alineados entre filas)
+ *   editDisabledReason / deleteDisabledReason — string o (row) => string: tooltip del botón grisado
+ *                         (default 'No se puede editar' / 'No se puede eliminar')
  *   getRowClassName   — (params) => string — para resaltar filas (ej. devolver 'row-highlighted'
  *                         cuando la fila tiene cambios sin guardar)
  */
@@ -159,6 +163,8 @@ export default function DataGridDemo({
   onDetail,
   canDelete,
   canEdit,
+  editDisabledReason = 'No se puede editar',
+  deleteDisabledReason = 'No se puede eliminar',
   isRowSelectable,
   showEdit = true,
   showDelete = true,
@@ -187,8 +193,25 @@ export default function DataGridDemo({
     </Tooltip>
   );
 
+  // Acción no permitida en la fila: el botón queda en su lugar, grisado y sin acción, con el motivo
+  // en el tooltip. Sin data-tour: los pasos del tutorial no apuntan a un botón que no se puede usar.
+  const renderDisabledButton = (Icon, reason, row, buttonSx) => (
+    <Tooltip title={typeof reason === 'function' ? reason(row) : reason}>
+      <span style={{ display: 'inline-flex' }}>
+        <button
+          type="button"
+          disabled
+          aria-disabled="true"
+          style={{ ...buttonSx, cursor: 'not-allowed', color: 'var(--color-border-subtle)' }}
+        >
+          <Icon sx={{ fontSize: 18 }} />
+        </button>
+      </span>
+    </Tooltip>
+  );
+
   const renderEditButton = (params, buttonSx = actionButtonSx) => {
-    if (canEdit && !canEdit(params.row)) return null;
+    if (canEdit && !canEdit(params.row)) return renderDisabledButton(EditIcon, editDisabledReason, params.row, buttonSx);
     return (
       <Tooltip title="Editar">
         <button
@@ -206,7 +229,7 @@ export default function DataGridDemo({
   };
 
   const renderDeleteButton = (params, buttonSx = actionButtonSx) => {
-    if (canDelete && !canDelete(params.row)) return null;
+    if (canDelete && !canDelete(params.row)) return renderDisabledButton(DeleteIcon, deleteDisabledReason, params.row, buttonSx);
     return (
       <Tooltip title="Eliminar">
         <button

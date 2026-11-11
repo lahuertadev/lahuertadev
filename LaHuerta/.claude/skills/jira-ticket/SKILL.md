@@ -16,13 +16,9 @@ Usar esta skill cuando el usuario pida:
 
 Cuando el usuario pida leer un ticket (con o sin número explícito), usar la API de Jira para obtenerlo y mostrarlo formateado.
 
-Las credenciales están en `/Users/pablogermanantunez/.claude/settings.json` bajo `env`.
+Las credenciales (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_PROJECT_KEY`) ya están en el entorno de la sesión: Claude Code las carga del `env` de `~/.claude/settings.json`. Usarlas directo. **No leer `settings.json` ni `settings.local.json`** para sacar el token: son archivos protegidos y cada lectura le pide confirmación al usuario, aunque haya dado permisos.
 
 ```bash
-JIRA_BASE_URL="https://lahuertadesarrollo.atlassian.net"
-JIRA_EMAIL="pablooantunez@gmail.com"
-JIRA_API_TOKEN="<token del settings.json>"
-
 curl -s -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
   -H "Accept: application/json" \
   "${JIRA_BASE_URL}/rest/api/3/issue/DEV-XX" | python3 -c "
@@ -111,16 +107,9 @@ Verificar si existen las siguientes variables de entorno:
 - `JIRA_API_TOKEN`
 - `JIRA_PROJECT_KEY`
 
-**Si están configuradas**, leer las credenciales del archivo y crear el ticket vía API:
+**Si están configuradas** (ya están en el entorno), crear el ticket vía API:
 
 ```bash
-eval $(python3 -c "
-import json
-with open('/Users/pablogermanantunez/Desktop/proyectoLaHuerta/lahuertadev/LaHuerta/.claude/settings.local.json') as f:
-    env = json.load(f)['env']
-for k, v in env.items():
-    print(f'export {k}=\"{v}\"')
-") && \
 curl -s -X POST \
   "${JIRA_BASE_URL}/rest/api/3/issue" \
   -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \

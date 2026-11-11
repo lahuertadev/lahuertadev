@@ -40,6 +40,8 @@ const data = {
     { label: 'Fecha hasta', name: 'fecha_hasta',  type: 'date' },
   ],
   newLabelText: 'Nuevo movimiento',
+  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Pagos de Compras), para dejarle más lugar a los datos.
+  groupActions: true,
   // Sin selección múltiple: los DELETE en paralelo del mismo proveedor pisarían su cuenta corriente.
   multiSelect: false,
   deleteSuccessMessage: () => 'Movimiento eliminado.',

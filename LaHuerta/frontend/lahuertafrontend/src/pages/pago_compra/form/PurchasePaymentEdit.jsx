@@ -7,6 +7,7 @@ import { purchasePaymentUrl } from '../../../constants/urls';
 import { formatBuyNumber, ON_ACCOUNT_LABEL } from '../../../constants/purchasePaymentTypes';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { formatSupplierLabel } from '../../../utils/supplier';
 import Toast from '../../../components/Toast';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
@@ -106,7 +107,7 @@ const PurchasePaymentEdit = () => {
     ? `Compra N° ${formatBuyNumber(payment.compra.id)} · ${formatDate(payment.compra.fecha)}`
     : ON_ACCOUNT_LABEL;
   const supplierName = payment.proveedor
-    ? `${payment.proveedor.nombre} — Puesto ${payment.proveedor.puesto}`
+    ? formatSupplierLabel(payment.proveedor)
     : null;
   const paidChecks = checkLines(payment);
   // Con cheques el importe sale de los cheques: solo se edita la fecha.
