@@ -48,6 +48,9 @@ const data = {
   showEdit: true,
   showDelete: false,
   canEdit: (row) => row.stateRaw === 'EMITIDO',
+  editDisabledReason: 'Solo se editan los cheques emitidos (no cobrados ni anulados)',
+  // Detalle y Editar en una sola columna "Acción" (como Pagos de Compras), para dejarle más lugar a los datos.
+  groupActions: true,
   filtersConfig: FILTERS_CONFIG,
 };
 
