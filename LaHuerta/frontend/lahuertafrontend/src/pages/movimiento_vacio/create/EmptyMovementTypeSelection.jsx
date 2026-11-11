@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import AccessCard from '../../../components/Card';
-import BackButton from '../../../components/BackButton';
+import SelectionPage from '../../../components/SelectionPage';
 import { EMPTY_MOVEMENT_TYPE_CONFIG } from '../../../constants/emptyMovementTypes';
 
 // Paso previo a "Nuevo movimiento": elegir entre la carga y la devolución de vacíos.
@@ -10,14 +10,12 @@ const EmptyMovementTypeSelection = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="container mx-auto py-6 px-4 sm:px-6 bg-surface-card rounded shadow-sm border border-border-subtle w-full max-w-7xl">
-      <BackButton onClick={() => navigate('/empty-movement')} />
-
-      <div className="mt-5 mb-6">
-        <p className="text-[0.6875rem] font-bold uppercase tracking-wider text-accent">Vacíos</p>
-        <h1 className="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">Nuevo movimiento</h1>
-        <p className="mt-1 text-sm text-on-surface-muted">¿Qué movimiento de vacíos querés registrar?</p>
-      </div>
+    <SelectionPage
+      section="Vacíos"
+      title="Nuevo movimiento"
+      subtitle="¿Qué movimiento de vacíos querés registrar?"
+      onBack={() => navigate('/empty-movement')}
+    >
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {Object.values(EMPTY_MOVEMENT_TYPE_CONFIG).map(({ title, description, path, icon }) => (
@@ -33,7 +31,7 @@ const EmptyMovementTypeSelection = () => {
           </div>
         ))}
       </div>
-    </div>
+    </SelectionPage>
   );
 };
 
