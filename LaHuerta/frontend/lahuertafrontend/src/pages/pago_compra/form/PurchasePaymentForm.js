@@ -21,6 +21,7 @@ import FormActions from '../../../components/FormActions';
 import RequiredMark from '../../../components/RequiredMark';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { formatSupplierLabel } from '../../../utils/supplier';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCartOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
@@ -94,8 +95,6 @@ const AmountField = ({ values, errors, touched, setFieldValue }) => (
 
 const today = () => dayjs().format('YYYY-MM-DD');
 
-const supplierLabel = (supplier) => `${supplier.nombre} — Puesto ${supplier.puesto}`;
-
 // ── Componente principal ──────────────────────────────────────────────────────
 // kind: PURCHASE (pago de compras: pide la compra) u ON_ACCOUNT (pago a cuenta: pide el proveedor).
 const PurchasePaymentForm = ({ kind = PURCHASE_PAYMENT_KINDS.PURCHASE }) => {
@@ -130,7 +129,7 @@ const PurchasePaymentForm = ({ kind = PURCHASE_PAYMENT_KINDS.PURCHASE }) => {
               data
                 .filter((b) => b.payment_status !== 'ABONADO')
                 .map((b) => ({
-                  name: `${formatBuyNumber(b.id)} — ${b.proveedor?.nombre || b.proveedor} — ${formatDate(b.fecha)}`,
+                  name: `${formatSupplierLabel(b.proveedor)} · ${formatDate(b.fecha, '/')} · ${formatCurrency(b.outstanding_balance)}`,
                   value: b.id,
                 }))
             ),
@@ -398,7 +397,7 @@ const PurchasePaymentForm = ({ kind = PURCHASE_PAYMENT_KINDS.PURCHASE }) => {
                   >
                     <option value="">Seleccionar...</option>
                     {selectOptions.suppliers.map((supplier) => (
-                      <option key={supplier.id} value={supplier.id}>{supplierLabel(supplier)}</option>
+                      <option key={supplier.id} value={supplier.id}>{formatSupplierLabel(supplier)}</option>
                     ))}
                   </select>
                   <FieldError error={errors.supplier} touched={touched.supplier} />

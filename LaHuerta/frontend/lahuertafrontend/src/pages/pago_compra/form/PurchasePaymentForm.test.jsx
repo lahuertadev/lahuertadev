@@ -6,6 +6,7 @@ import PurchasePaymentForm from './PurchasePaymentForm';
 import { buyUrl, checkUrl, ownCheckUrl, paymentTypeUrl, purchasePaymentUrl, supplierUrl } from '../../../constants/urls';
 import { PURCHASE_PAYMENT_KINDS } from '../../../constants/purchasePaymentTypes';
 import { TUTORIAL_EVENT_NAME, TUTORIAL_EVENTS } from '../../../constants/tutorials';
+import { formatCurrency } from '../../../utils/currency';
 
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn() }));
 // El selector de fecha de MUI no aporta a estos tests: un input simple con el mismo contrato.
@@ -16,8 +17,10 @@ jest.mock('../../../components/DatePicker', () => ({ value, onChange }) => (
 const SUPPLIER = { id: 7, nombre: 'Ricardo', puesto: 27, cuenta_corriente: '250000.00' };
 const BUY = {
   id: 12, fecha: '2026-10-22', importe: '670000.00', outstanding_balance: '670000.00',
-  payment_status: 'PENDIENTE', proveedor: { id: 7, nombre: 'Ricardo' },
+  payment_status: 'PENDIENTE', proveedor: { id: 7, nombre: 'Ricardo', puesto: 27 },
 };
+// Texto de la compra en el selector: proveedor con su puesto, fecha y saldo pendiente.
+const BUY_OPTION = `Ricardo — Puesto 27 · 22/10/2026 · ${formatCurrency(BUY.outstanding_balance)}`;
 
 const OWN_CHECKS = [
   { id: 884, numero: 884, banco: { descripcion: 'Galicia' }, remaining_balance: '1000000.00' },
@@ -137,10 +140,28 @@ describe('pago de compras', () => {
     expect(tour('payment-supplier')).toBeNull();
   });
 
+  test('muestra cada compra con el proveedor, su puesto, la fecha y el saldo pendiente', async () => {
+    renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
+
+    expect(await screen.findByRole('option', { name: BUY_OPTION })).toBeInTheDocument();
+  });
+
+  test('distingue dos compras del mismo proveedor en el mismo día por su saldo pendiente', async () => {
+    const sameDayBuy = { ...BUY, id: 13, importe: '120000.00', outstanding_balance: '120000.00' };
+    const defaultGet = axios.get.getMockImplementation();
+    axios.get.mockImplementation((url) =>
+      url === buyUrl ? Promise.resolve({ data: [BUY, sameDayBuy] }) : defaultGet(url)
+    );
+    renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
+
+    expect(await screen.findByRole('option', { name: BUY_OPTION })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: `Ricardo — Puesto 27 · 22/10/2026 · ${formatCurrency('120000.00')}` })).toBeInTheDocument();
+  });
+
   test('registra el pago con la compra y su proveedor', async () => {
     axios.post.mockResolvedValue({ data: { id: 31 } });
     renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
-    await screen.findByRole('option', { name: /^00000012/ });
+    await screen.findByRole('option', { name: BUY_OPTION });
     fireEvent.change(field('payment-buy'), { target: { value: '12' } });
     await fillCashPayment();
 
@@ -211,7 +232,7 @@ describe('pago con varios cheques', () => {
   test('si la suma de los cheques supera el saldo de la compra, lo avisa en un toast', async () => {
     axios.post.mockRejectedValue({ response: { data: { detail: 'El importe abonado (700000.00) supera el saldo pendiente (670000.00).' } } });
     renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
-    await screen.findByRole('option', { name: /^00000012/ });
+    await screen.findByRole('option', { name: BUY_OPTION });
     fireEvent.change(field('payment-buy'), { target: { value: '12' } });
     await choosePaymentType('Cheque Propio');
     await screen.findByRole('option', { name: /Nro. 884/ });

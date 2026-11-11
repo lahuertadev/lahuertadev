@@ -15,6 +15,7 @@ import FieldWarning from '../../../components/FieldWarning';
 import EmptiesNotice from './EmptiesNotice';
 import { EMPTY_ITEM, calculateItemSubtotal, calculateBlockTotals, getExistingBuyWarning } from './buyBlockUtils';
 import { getMainPhone } from '../../../utils/phone';
+import { formatSupplierLabel } from '../../../utils/supplier';
 
 // Línea con producto, cantidad y precio cargados.
 const isItemComplete = (item) =>
@@ -139,8 +140,8 @@ const BuyBlock = ({
           <BasicSelect
             label="Proveedor *"
             name="supplier"
-            value={selectedSupplier ? { name: selectedSupplier.nombre, value: selectedSupplier.id } : null}
-            options={availableSuppliers.map((s) => ({ name: s.nombre, value: s.id }))}
+            value={selectedSupplier ? { name: formatSupplierLabel(selectedSupplier), value: selectedSupplier.id } : null}
+            options={availableSuppliers.map((s) => ({ name: formatSupplierLabel(s), value: s.id }))}
             onChange={(e) => {
               const supplierId = e.target.value?.value;
               updateBlock({ supplier: suppliers.find((s) => s.id === supplierId) || null });
