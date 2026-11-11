@@ -44,6 +44,8 @@ const buildTabsData = (facturaOptions, remitoOptions) => [
       ],
       canDelete: (row) => !row.cae,
       canEdit: (row) => !row.cae,
+      editDisabledReason: 'Ya tiene CAE: no se puede editar',
+      deleteDisabledReason: 'Ya tiene CAE: no se puede eliminar',
       title: 'Facturas',
       subtitle: 'Facturas, notas de débito y notas de crédito emitidas en ARCA.',
       deleteSuccessMessage: (count) =>
@@ -73,6 +75,8 @@ const buildTabsData = (facturaOptions, remitoOptions) => [
       ],
       canDelete: (row) => !row.cae,
       canEdit: (row) => !row.cae,
+      editDisabledReason: 'Ya tiene CAE: no se puede editar',
+      deleteDisabledReason: 'Ya tiene CAE: no se puede eliminar',
       title: 'Remitos',
       subtitle: 'Remitos de entrega, sin emisión en ARCA.',
       deleteSuccessMessage: (count) =>
