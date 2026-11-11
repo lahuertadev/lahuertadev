@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
@@ -10,31 +10,7 @@ from producto.views import ProductViewSet
 from producto.interfaces import IProductRepository
 from producto.exceptions import ProductNotFoundException
 from core.tests.factories import make_category, make_container_type, make_product, make_unit_type
-
-
-def _mock_model_instance(model_cls, **attrs):
-    mock_obj = Mock(spec=model_cls)
-    for k, v in attrs.items():
-        setattr(mock_obj, k, v)
-    # DRF validators (e.g. UniqueValidator) suelen usar instance.pk
-    if "id" in attrs:
-        mock_obj.pk = attrs["id"]
-    mock_obj._meta = Mock()
-    mock_obj._meta.model = model_cls
-    return mock_obj
-
-
-def _create_mock_product(id, descripcion, categoria, tipo_contenedor, tipo_unidad, cantidad_por_bulto=10, peso_aproximado=1.2):
-    return _mock_model_instance(
-        Producto,
-        id=id,
-        descripcion=descripcion,
-        categoria=categoria,
-        tipo_contenedor=tipo_contenedor,
-        tipo_unidad=tipo_unidad,
-        cantidad_por_bulto=cantidad_por_bulto,
-        peso_aproximado=peso_aproximado,
-    )
+from core.tests.mocks import mock_product
 
 
 class FakeRepo(IProductRepository):
@@ -55,15 +31,7 @@ class FakeRepo(IProductRepository):
 
     def create(self, data):
         new_id = 1 if not self._items else max(self._items.keys()) + 1
-        prod = _create_mock_product(
-            id=new_id,
-            descripcion=data["descripcion"],
-            categoria=data["categoria"],
-            tipo_contenedor=data["tipo_contenedor"],
-            tipo_unidad=data["tipo_unidad"],
-            cantidad_por_bulto=data["cantidad_por_bulto"],
-            peso_aproximado=data["peso_aproximado"],
-        )
+        prod = mock_product(id=new_id, **data)
         self._items[new_id] = prod
         return prod
 

@@ -1,26 +1,14 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from tipo_unidad.models import TipoUnidad
 from tipo_unidad.views import UnitTypeViewSet
 from tipo_unidad.interfaces import IUnitTypeRepository
 from core.tests.factories import make_unit_type
-
-
-def _mock_model_instance(model_cls, **attrs):
-    mock_obj = Mock(spec=model_cls)
-    mock_obj.is_system = False
-    for k, v in attrs.items():
-        setattr(mock_obj, k, v)
-    if "id" in attrs:
-        mock_obj.pk = attrs["id"]
-    mock_obj._meta = Mock()
-    mock_obj._meta.model = model_cls
-    return mock_obj
+from core.tests.mocks import mock_unit_type
 
 
 class FakeRepo(IUnitTypeRepository):
@@ -35,7 +23,7 @@ class FakeRepo(IUnitTypeRepository):
 
     def create_unit_type(self, data):
         new_id = 1 if not self._items else max(self._items.keys()) + 1
-        obj = _mock_model_instance(TipoUnidad, id=new_id, descripcion=data["descripcion"])
+        obj = mock_unit_type(id=new_id, **data)
         self._items[new_id] = obj
         return obj
 

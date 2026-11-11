@@ -38,6 +38,7 @@ const FILTERS_CONFIG = [
 
 const data = {
   title: 'Cheques emitidos',
+  subtitle: 'Cheques de La Huerta entregados a proveedores: estado, cobro y anulación.',
   fetchUrl: { baseUrl: ownCheckUrl, editUrl: '/own-check/edit', detailUrl: '/own-check/detail' },
   columns,
   mapData: mapOwnCheckData,

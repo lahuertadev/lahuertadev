@@ -12,6 +12,7 @@ from pago_cliente.exceptions import (
     CheckEditBlockedException,
 )
 from core.tests.factories import make_bank, make_check_state, make_payment_type
+from core.tests.mocks import mock_check, mock_client, mock_client_payment, mock_purchase_payment, mock_supplier
 
 
 # ── Fake repos ────────────────────────────────────────────────────────────────
@@ -38,17 +39,18 @@ class FakeCheckRepo(ICheckRepository):
         return False
 
     def create(self, data):
-        check = Mock()
-        check.id = self._next_id
+        check = mock_check(
+            id=self._next_id,
+            numero=data['numero'],
+            importe=data['importe'],
+            banco=data['banco'],
+            estado=data['estado'],
+            fecha_emision=data['fecha_emision'],
+            fecha_deposito=data.get('fecha_deposito'),
+            pago_cliente=data.get('pago_cliente'),
+            endosado=data.get('endosado', False),
+        )
         self._next_id += 1
-        check.numero = data['numero']
-        check.importe = data['importe']
-        check.banco = data['banco']
-        check.estado = data['estado']
-        check.fecha_emision = data['fecha_emision']
-        check.fecha_deposito = data.get('fecha_deposito')
-        check.pago_cliente = data.get('pago_cliente')
-        check.endosado = data.get('endosado', False)
         self._items[data['numero']] = check
         self._created.append(data)
         return check
@@ -79,16 +81,11 @@ class FakePaymentRepo(IClientPaymentRepository):
         return self._items.get(int(id))
 
     def create(self, client, payment_type, payment_date, amount, observations=None):
-        payment = Mock()
-        payment.id = self._next_id
+        payment = mock_client_payment(
+            id=self._next_id, cliente=client, tipo_pago=payment_type,
+            importe=amount, fecha_pago=payment_date, observaciones=observations,
+        )
         self._next_id += 1
-        payment.cliente = client
-        payment.cliente_id = client.id
-        payment.tipo_pago = payment_type
-        payment.importe = amount
-        payment.fecha_pago = payment_date
-        payment.observaciones = observations
-        payment.cheque_set = Mock()
         payment.cheque_set.first = Mock(return_value=None)
         self._items[payment.id] = payment
         return payment
@@ -114,13 +111,6 @@ class FakeClientRepo:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _make_client(cuenta_corriente=Decimal('10000.00')):
-    client = Mock()
-    client.id = 1
-    client.cuenta_corriente = cuenta_corriente
-    return client
-
-
 def _make_service():
     return ClientPaymentService(
         payment_repository=FakePaymentRepo(),
@@ -143,7 +133,7 @@ class TestCreatePayment:
         service = _make_service()
 
         service.create_payment({
-            'cliente': _make_client(),
+            'cliente': mock_client(),
             'tipo_pago': self.tipo_efectivo,
             'fecha_pago': '2024-01-01',
             'importe': Decimal('1000.00'),
@@ -155,7 +145,7 @@ class TestCreatePayment:
         service = _make_service()
 
         payment = service.create_payment({
-            'cliente': _make_client(),
+            'cliente': mock_client(),
             'tipo_pago': self.tipo_cheque,
             'fecha_pago': '2024-01-01',
             'importe': Decimal('5000.00'),
@@ -176,7 +166,7 @@ class TestCreatePayment:
         service = _make_service()
 
         service.create_payment({
-            'cliente': _make_client(),
+            'cliente': mock_client(),
             'tipo_pago': self.tipo_cheque,
             'fecha_pago': '2024-01-01',
             'importe': Decimal('3000.00'),
@@ -193,7 +183,7 @@ class TestCreatePayment:
         service = _make_service()
 
         service.create_payment({
-            'cliente': _make_client(),
+            'cliente': mock_client(),
             'tipo_pago': self.tipo_cheque,
             'fecha_pago': '2024-01-01',
             'importe': Decimal('3000.00'),
@@ -211,7 +201,7 @@ class TestCreatePayment:
 
         with pytest.raises(CheckAlreadyExistsException):
             service.create_payment({
-                'cliente': _make_client(),
+                'cliente': mock_client(),
                 'tipo_pago': self.tipo_cheque,
                 'fecha_pago': '2024-01-01',
                 'importe': Decimal('5000.00'),
@@ -224,7 +214,7 @@ class TestCreatePayment:
 
     def test_descuenta_cuenta_corriente_del_cliente(self):
         service = _make_service()
-        client = _make_client(cuenta_corriente=Decimal('10000.00'))
+        client = mock_client(cuenta_corriente=Decimal('10000.00'))
 
         service.create_payment({
             'cliente': client,
@@ -247,21 +237,17 @@ class TestUpdatePayment:
         self.tipo_efectivo = make_payment_type(descripcion='Efectivo')
 
     def _make_payment_with_check(self, service, importe=Decimal('1000.00')):
-        client = _make_client()
+        client = mock_client()
         payment = service.payment_repository.create(
             client=client,
             payment_type=self.tipo_cheque,
             payment_date='2024-01-01',
             amount=importe,
         )
-        check = Mock()
-        check.importe = importe
-        check.banco = self.banco_nacion
-        check.numero = 5001
-        check.id = 1
-        check.endosado = False
-        check.fecha_emision = '2024-01-01'
-        check.fecha_deposito = None
+        check = mock_check(
+            id=1, numero=5001, importe=importe, banco=self.banco_nacion,
+            endosado=False, fecha_emision='2024-01-01', fecha_deposito=None,
+        )
         payment.cheque_set.first = Mock(return_value=check)
         return payment, check, client
 
@@ -310,10 +296,9 @@ class TestUpdatePayment:
         service = _make_service()
         payment, check, client = self._make_payment_with_check(service)
         check.endosado = True
-        pago_compra = Mock()
-        pago_compra.compra.proveedor.nombre = 'Proveedor Test'
-        pago_compra.fecha_pago = '2024-02-01'
-        check.pago_compra = pago_compra
+        check.pago_compra = mock_purchase_payment(
+            proveedor=mock_supplier(nombre='Proveedor Test'), fecha_pago='2024-02-01',
+        )
 
         with pytest.raises(CheckEditBlockedException):
             service.update_payment(payment.id, {
@@ -328,6 +313,7 @@ class TestUpdatePayment:
         service = _make_service()
         payment, check, client = self._make_payment_with_check(service)
         check.endosado = True
+        check.pago_compra = mock_purchase_payment()
 
         with pytest.raises(CheckEditBlockedException):
             service.update_payment(payment.id, {
@@ -342,6 +328,7 @@ class TestUpdatePayment:
         service = _make_service()
         payment, check, client = self._make_payment_with_check(service)
         check.endosado = True
+        check.pago_compra = mock_purchase_payment()
 
         with pytest.raises(CheckEditBlockedException):
             service.update_payment(payment.id, {
@@ -389,7 +376,7 @@ class TestUpdatePayment:
         payment, check, old_client = self._make_payment_with_check(service)
         check.id = 1
         check.numero = 5001
-        new_client = _make_client()
+        new_client = mock_client()
         new_client.id = 2
         service.check_repository.exists_duplicate = Mock(return_value=True)
 
@@ -436,7 +423,7 @@ class TestUpdatePayment:
 
     def test_update_cambia_a_cheque_duplicado_lanza_excepcion(self):
         service = _make_service()
-        client = _make_client()
+        client = mock_client()
         payment = service.payment_repository.create(
             client=client,
             payment_type=self.tipo_efectivo,
@@ -461,7 +448,7 @@ class TestUpdatePayment:
 
     def test_update_sin_cheque_asociado_no_falla(self):
         service = _make_service()
-        client = _make_client()
+        client = mock_client()
         payment = service.payment_repository.create(
             client=client,
             payment_type=self.tipo_efectivo,
@@ -485,7 +472,7 @@ class TestUpdatePayment:
 
         with pytest.raises(ClientPaymentNotFoundException):
             service.update_payment(9999, {
-                'cliente': _make_client(),
+                'cliente': mock_client(),
                 'tipo_pago': self.tipo_efectivo,
                 'fecha_pago': '2024-01-01',
                 'importe': Decimal('100.00'),
@@ -493,7 +480,7 @@ class TestUpdatePayment:
 
     def test_update_ajusta_cc_cuando_cambia_importe(self):
         service = _make_service()
-        client = _make_client(cuenta_corriente=Decimal('5000.00'))
+        client = mock_client(cuenta_corriente=Decimal('5000.00'))
         payment = service.payment_repository.create(
             client=client,
             payment_type=self.tipo_efectivo,
@@ -514,9 +501,9 @@ class TestUpdatePayment:
 
     def test_update_ajusta_cc_cuando_cambia_cliente(self):
         service = _make_service()
-        old_client = _make_client(cuenta_corriente=Decimal('3000.00'))
+        old_client = mock_client(cuenta_corriente=Decimal('3000.00'))
         old_client.id = 1
-        new_client = _make_client(cuenta_corriente=Decimal('8000.00'))
+        new_client = mock_client(cuenta_corriente=Decimal('8000.00'))
         new_client.id = 2
 
         payment = service.payment_repository.create(
@@ -547,7 +534,7 @@ class TestDeletePayment:
         self.tipo_efectivo = make_payment_type(descripcion='Efectivo')
 
     def _make_payment(self, service, tipo_pago, with_check=False, endosado=False):
-        client = _make_client()
+        client = mock_client()
         payment = service.payment_repository.create(
             client=client,
             payment_type=tipo_pago,
@@ -555,9 +542,7 @@ class TestDeletePayment:
             amount=Decimal('1000.00'),
         )
         if with_check:
-            check = Mock()
-            check.numero = 12345
-            check.endosado = endosado
+            check = mock_check(numero=12345, endosado=endosado)
             service.check_repository._items[check.numero] = check
             payment.cheque_set.first = Mock(return_value=check)
             return payment, client, check
@@ -578,10 +563,9 @@ class TestDeletePayment:
     def test_delete_pago_con_cheque_endosado_lanza_excepcion(self):
         service = _make_service()
         payment, client, check = self._make_payment(service, self.tipo_cheque, with_check=True, endosado=True)
-        pago_compra = Mock()
-        pago_compra.compra.proveedor.nombre = 'Proveedor Test'
-        pago_compra.fecha_pago = '2024-02-01'
-        check.pago_compra = pago_compra
+        check.pago_compra = mock_purchase_payment(
+            proveedor=mock_supplier(nombre='Proveedor Test'), fecha_pago='2024-02-01',
+        )
 
         with pytest.raises(PaymentDeletionBlockedException):
             service.delete_payment(payment.id)
@@ -601,7 +585,7 @@ class TestDeletePayment:
 
     def test_delete_revierte_cuenta_corriente(self):
         service = _make_service()
-        client = _make_client(cuenta_corriente=Decimal('5000.00'))
+        client = mock_client(cuenta_corriente=Decimal('5000.00'))
         payment = service.payment_repository.create(
             client=client,
             payment_type=self.tipo_efectivo,

@@ -7,36 +7,17 @@ from cheque.service import CheckService
 from cheque.exceptions import CheckAlreadyEndorsedException, CheckInvalidStateException, CheckInvalidTransitionException
 from cliente.interfaces import IClientRepository
 from core.tests.factories import make_check_state
+from core.tests.mocks import mock_check, mock_check_state, mock_client, mock_client_payment, mock_purchase_payment, mock_supplier
 
 
 def _make_check(endosado=False, estado_descripcion='EN_CARTERA', pago_cliente=None, pago_compra=None, importe='2000.00'):
-    estado = Mock()
-    estado.descripcion = estado_descripcion
-    check = Mock()
-    check.importe = Decimal(importe)
-    check.endosado = endosado
-    check.estado = estado
-    check.pago_cliente = pago_cliente
-    check.pago_compra = pago_compra
-    return check
-
-
-def _make_pago_cliente(importe='2000.00', cc='5000.00'):
-    cliente = Mock()
-    cliente.cuenta_corriente = Decimal(cc)
-    pago = Mock()
-    pago.importe = Decimal(importe)
-    pago.cliente = cliente
-    return pago
-
-
-def _make_pago_compra(importe_abonado='2000.00', cc='5000.00'):
-    proveedor = Mock()
-    proveedor.cuenta_corriente = Decimal(cc)
-    pago = Mock()
-    pago.importe_abonado = Decimal(importe_abonado)
-    pago.proveedor = proveedor
-    return pago
+    return mock_check(
+        importe=Decimal(importe),
+        endosado=endosado,
+        estado=mock_check_state(descripcion=estado_descripcion),
+        pago_cliente=pago_cliente,
+        pago_compra=pago_compra,
+    )
 
 
 class FakeClientRepo(IClientRepository):
@@ -173,12 +154,13 @@ def test_reject_success():
 def test_reject_con_pago_cliente_revierte_cc():
     make_check_state(descripcion='RECHAZADO')
     service, _, client_repo, __ = _make_service(with_client_repo=True)
-    pago_cliente = _make_pago_cliente(importe='2000.00', cc='3000.00')
+    client = mock_client(cuenta_corriente=Decimal('3000.00'))
+    pago_cliente = mock_client_payment(importe=Decimal('2000.00'), cliente=client)
     check = _make_check(estado_descripcion='DEPOSITADO', pago_cliente=pago_cliente)
 
     service.reject_check(check)
 
-    assert pago_cliente.cliente.cuenta_corriente == Decimal('5000.00')
+    assert client.cuenta_corriente == Decimal('5000.00')
     assert len(client_repo.updated) == 1
 
 
@@ -223,8 +205,10 @@ def test_reject_success_desde_endosado():
 def test_reject_desde_endosado_revierte_cc_cliente_y_proveedor():
     make_check_state(descripcion='RECHAZADO')
     service, _, client_repo, supplier_repo = _make_service(with_client_repo=True, with_supplier_repo=True)
-    pago_cliente = _make_pago_cliente(importe='2000.00', cc='3000.00')
-    pago_compra = _make_pago_compra(importe_abonado='2000.00', cc='5000.00')
+    client = mock_client(cuenta_corriente=Decimal('3000.00'))
+    supplier = mock_supplier(cuenta_corriente=Decimal('5000.00'))
+    pago_cliente = mock_client_payment(importe=Decimal('2000.00'), cliente=client)
+    pago_compra = mock_purchase_payment(importe_abonado=Decimal('2000.00'), proveedor=supplier)
     check = _make_check(
         endosado=True,
         estado_descripcion='ENDOSADO',
@@ -234,8 +218,8 @@ def test_reject_desde_endosado_revierte_cc_cliente_y_proveedor():
 
     service.reject_check(check)
 
-    assert pago_cliente.cliente.cuenta_corriente == Decimal('5000.00')
-    assert pago_compra.proveedor.cuenta_corriente == Decimal('7000.00')
+    assert client.cuenta_corriente == Decimal('5000.00')
+    assert supplier.cuenta_corriente == Decimal('7000.00')
     assert len(client_repo.updated) == 1
     assert len(supplier_repo.updated) == 1
 
@@ -256,12 +240,13 @@ def test_reject_cheque_de_un_pago_con_varios_cheques_devuelve_solo_su_importe():
     # Pago de $5.000 hecho con dos cheques ($2.000 y $3.000): se rechaza el de $2.000.
     make_check_state(descripcion='RECHAZADO')
     service, _, __, supplier_repo = _make_service(with_supplier_repo=True)
-    pago_compra = _make_pago_compra(importe_abonado='5000.00', cc='1000.00')
+    supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
+    pago_compra = mock_purchase_payment(importe_abonado=Decimal('5000.00'), proveedor=supplier)
     check = _make_check(endosado=True, estado_descripcion='ENDOSADO', pago_compra=pago_compra, importe='2000.00')
 
     service.reject_check(check)
 
-    assert pago_compra.proveedor.cuenta_corriente == Decimal('3000.00')
+    assert supplier.cuenta_corriente == Decimal('3000.00')
     assert len(supplier_repo.updated) == 1
 
 
@@ -269,7 +254,7 @@ def test_reject_cheque_de_un_pago_con_varios_cheques_devuelve_solo_su_importe():
 def test_reject_desde_endosado_no_toca_pago_compra():
     make_check_state(descripcion='RECHAZADO')
     service, repo, _, __ = _make_service(with_supplier_repo=True)
-    pago_compra = _make_pago_compra()
+    pago_compra = mock_purchase_payment()
     check = _make_check(endosado=True, estado_descripcion='ENDOSADO', pago_compra=pago_compra)
 
     service.reject_check(check)

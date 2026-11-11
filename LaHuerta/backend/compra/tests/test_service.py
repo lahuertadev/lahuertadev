@@ -1,54 +1,42 @@
 import pytest
 from decimal import Decimal
-from unittest.mock import Mock
 
 from compra.service import BuyService
 from compra.interfaces import IBuyRepository
 from compra.exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
 from compra_producto.interfaces import IBuyProductRepository
+from core.tests.mocks import mock_purchase, mock_supplier
 from proveedor.interfaces import ISupplierRepository
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-
-def _make_buy(importe, senia=Decimal('0'), total_payments=None):
-    buy = Mock(spec=[])
-    buy.importe = importe
-    buy.senia = senia
-    if total_payments is not None:
-        buy.total_payments = total_payments
-    else:
-        buy.pagocompra_set = Mock()
-        buy.pagocompra_set.aggregate = Mock(return_value={'total': Decimal('0')})
-    return buy
-
 
 # ── Tests: calculate_payment_status ───────────────────────────────────────────
 
 class TestCalculatePaymentStatus:
 
     def test_sin_pagos_ni_senia_retorna_pendiente(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('0'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('0'))
         assert BuyService.calculate_payment_status(buy) == 'PENDIENTE'
 
     def test_pago_parcial_retorna_parcial(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('500.00'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('500.00'))
         assert BuyService.calculate_payment_status(buy) == 'PARCIAL'
 
     def test_pago_completo_retorna_abonado(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('1000.00'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('1000.00'))
         assert BuyService.calculate_payment_status(buy) == 'ABONADO'
 
     def test_senia_cubre_todo_retorna_abonado(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('1000.00'), total_payments=Decimal('0'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('1000.00'), total_payments=Decimal('0'))
         assert BuyService.calculate_payment_status(buy) == 'ABONADO'
 
     def test_senia_parcial_retorna_parcial(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('300.00'), total_payments=Decimal('0'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('300.00'), total_payments=Decimal('0'))
         assert BuyService.calculate_payment_status(buy) == 'PARCIAL'
 
     def test_senia_mas_pagos_cubren_todo_retorna_abonado(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('400.00'), total_payments=Decimal('600.00'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('400.00'), total_payments=Decimal('600.00'))
         assert BuyService.calculate_payment_status(buy) == 'ABONADO'
 
 
@@ -57,23 +45,23 @@ class TestCalculatePaymentStatus:
 class TestCalculateOutstandingBalance:
 
     def test_sin_pagos_retorna_importe_completo(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('0'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('0'))
         assert BuyService.calculate_outstanding_balance(buy) == Decimal('1000.00')
 
     def test_pago_parcial_retorna_diferencia(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('300.00'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('300.00'))
         assert BuyService.calculate_outstanding_balance(buy) == Decimal('700.00')
 
     def test_pago_completo_retorna_cero(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('1000.00'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('1000.00'))
         assert BuyService.calculate_outstanding_balance(buy) == Decimal('0')
 
     def test_overpaid_nunca_retorna_negativo(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('1200.00'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('0'), total_payments=Decimal('1200.00'))
         assert BuyService.calculate_outstanding_balance(buy) == Decimal('0')
 
     def test_senia_reduce_saldo(self):
-        buy = _make_buy(importe=Decimal('1000.00'), senia=Decimal('250.00'), total_payments=Decimal('0'))
+        buy = mock_purchase(importe=Decimal('1000.00'), senia=Decimal('250.00'), total_payments=Decimal('0'))
         assert BuyService.calculate_outstanding_balance(buy) == Decimal('750.00')
 
 
@@ -93,13 +81,8 @@ class FakeBuyRepo(IBuyRepository):
         return self._items.get(int(id))
 
     def create(self, proveedor, fecha, importe, senia):
-        buy = Mock()
-        buy.id = self._next_id
+        buy = mock_purchase(id=self._next_id, proveedor=proveedor, fecha=fecha, importe=importe, senia=senia)
         self._next_id += 1
-        buy.proveedor = proveedor
-        buy.fecha = fecha
-        buy.importe = importe
-        buy.senia = senia
         buy.pagocompra_set.exists.return_value = False
         self._items[buy.id] = buy
         return buy
@@ -152,12 +135,6 @@ def _make_service():
     )
 
 
-def _make_supplier(cc=Decimal('0')):
-    supplier = Mock()
-    supplier.cuenta_corriente = cc
-    return supplier
-
-
 def _make_products(*prices):
     return [{'cantidad_producto': Decimal('1'), 'precio_bulto': Decimal(str(p))} for p in prices]
 
@@ -169,7 +146,7 @@ class TestCreateBuy:
 
     def test_importe_es_subtotal_bruto_sin_descontar_senia(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('0'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('0'))
 
         compra = service.create_buy({
             'proveedor': supplier,
@@ -182,7 +159,7 @@ class TestCreateBuy:
 
     def test_create_incrementa_cc_por_deuda_neta(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('0'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('0'))
 
         service.create_buy({
             'proveedor': supplier,
@@ -196,7 +173,7 @@ class TestCreateBuy:
 
     def test_create_sin_senia_cc_refleja_importe_completo(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('500.00'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('500.00'))
 
         service.create_buy({
             'proveedor': supplier,
@@ -211,7 +188,7 @@ class TestCreateBuy:
         products = _make_products(500, 300)
 
         service.create_buy({
-            'proveedor': _make_supplier(),
+            'proveedor': mock_supplier(),
             'fecha': '2024-01-01',
             'items': products,
         })
@@ -232,7 +209,7 @@ class TestUpdateBuy:
 
     def test_update_nuevo_importe_ajusta_cc(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('1000.00'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
         compra = service.buy_repository.create(
             proveedor=supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
@@ -247,7 +224,7 @@ class TestUpdateBuy:
 
     def test_update_nueva_senia_ajusta_cc(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('1000.00'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
         compra = service.buy_repository.create(
             proveedor=supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
@@ -261,8 +238,8 @@ class TestUpdateBuy:
 
     def test_update_cambio_de_proveedor_transfiere_deuda(self):
         service = _make_service()
-        old_supplier = _make_supplier(cc=Decimal('1000.00'))
-        new_supplier = _make_supplier(cc=Decimal('0'))
+        old_supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
+        new_supplier = mock_supplier(cuenta_corriente=Decimal('0'))
         compra = service.buy_repository.create(
             proveedor=old_supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
@@ -275,8 +252,8 @@ class TestUpdateBuy:
 
     def test_update_cambio_de_proveedor_con_pagos_lanza_excepcion(self):
         service = _make_service()
-        old_supplier = _make_supplier(cc=Decimal('1000.00'))
-        new_supplier = _make_supplier(cc=Decimal('0'))
+        old_supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
+        new_supplier = mock_supplier(cuenta_corriente=Decimal('0'))
         compra = service.buy_repository.create(
             proveedor=old_supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
@@ -292,7 +269,7 @@ class TestUpdateBuy:
 
     def test_update_con_pagos_sin_cambiar_proveedor_no_bloquea(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('1000.00'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
         compra = service.buy_repository.create(
             proveedor=supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
@@ -306,7 +283,7 @@ class TestUpdateBuy:
 
     def test_update_sin_cambios_no_modifica_cc(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('1000.00'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
         compra = service.buy_repository.create(
             proveedor=supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
@@ -331,7 +308,7 @@ class TestDeleteBuy:
 
     def test_delete_revierte_deuda_neta_del_proveedor(self):
         service = _make_service()
-        supplier = _make_supplier(cc=Decimal('800.00'))
+        supplier = mock_supplier(cuenta_corriente=Decimal('800.00'))
         compra = service.buy_repository.create(
             proveedor=supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('200.00'),
@@ -345,7 +322,7 @@ class TestDeleteBuy:
     def test_delete_elimina_la_compra(self):
         service = _make_service()
         compra = service.buy_repository.create(
-            proveedor=_make_supplier(), fecha='2024-01-01',
+            proveedor=mock_supplier(), fecha='2024-01-01',
             importe=Decimal('500.00'), senia=Decimal('0'),
         )
         buy_id = compra.id
@@ -365,8 +342,8 @@ class TestCreateBulkBuys:
 
     def test_crea_una_compra_por_proveedor(self):
         service = _make_service()
-        supplier_a = _make_supplier()
-        supplier_b = _make_supplier()
+        supplier_a = mock_supplier()
+        supplier_b = mock_supplier()
 
         created, failed = service.create_bulk_buys([
             (0, self._data(supplier_a, 1000)),
@@ -380,8 +357,8 @@ class TestCreateBulkBuys:
 
     def test_cada_compra_ajusta_la_cc_de_su_proveedor(self):
         service = _make_service()
-        supplier_a = _make_supplier(cc=Decimal('100.00'))
-        supplier_b = _make_supplier(cc=Decimal('0'))
+        supplier_a = mock_supplier(cuenta_corriente=Decimal('100.00'))
+        supplier_b = mock_supplier(cuenta_corriente=Decimal('0'))
 
         service.create_bulk_buys([
             (0, self._data(supplier_a, 1000)),
@@ -401,9 +378,9 @@ class TestCreateBulkBuys:
             return original_create(proveedor=proveedor, **kwargs)
 
         service.buy_repository.create = create_failing_for_b
-        supplier_a = _make_supplier()
-        supplier_b = _make_supplier()
-        supplier_c = _make_supplier()
+        supplier_a = mock_supplier()
+        supplier_b = mock_supplier()
+        supplier_c = mock_supplier()
 
         created, failed = service.create_bulk_buys([
             (0, self._data(supplier_a, 1000)),
@@ -420,8 +397,8 @@ class TestCreateBulkBuys:
         service = _make_service()
 
         created, _ = service.create_bulk_buys([
-            (3, self._data(_make_supplier(), 1000)),
-            (7, self._data(_make_supplier(), 500)),
+            (3, self._data(mock_supplier(), 1000)),
+            (7, self._data(mock_supplier(), 500)),
         ])
 
         assert [index for index, _ in created] == [3, 7]

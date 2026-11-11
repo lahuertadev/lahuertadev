@@ -1,54 +1,24 @@
 import pytest
-from types import SimpleNamespace
 from unittest.mock import Mock
 
 from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
-from mercado.models import Mercado
-from proveedor.models import Proveedor
 from proveedor.views import SupplierViewSet
 from proveedor.interfaces import ISupplierRepository
 from contacto.exceptions import ContactNotFoundException
 from core.tests.factories import make_market, make_supplier
+from core.tests.mocks import mock_contact, mock_market, mock_supplier
 
 
-def _mock_mercado(id=1, descripcion='Belgrano'):
-    obj = Mock(spec=Mercado)
-    obj.id = id
-    obj.pk = id
-    obj.descripcion = descripcion
-    obj._meta = Mock()
-    obj._meta.model = Mercado
-    return obj
-
-
-def _mock_contact(id=1, numero='1234567', descripcion=None, email=None):
-    return SimpleNamespace(id=id, numero=numero, descripcion=descripcion, email=email)
-
-
-def _mock_supplier(id, nombre, puesto=1, nave=None, contacts=None,
-                   cuenta_corriente=0, nombre_fantasia='Fantasia', mercado=None):
-    if mercado is None:
-        mercado = _mock_mercado()
-    if contacts is None:
-        contacts = [_mock_contact()]
-
-    obj = Mock(spec=Proveedor)
-    obj.id = id
-    obj.pk = id
-    obj.nombre = nombre
-    obj.puesto = puesto
-    obj.nave = nave
-    # ContactSerializer(many=True) itera la lista tal cual; con un manager real llama a .all().
-    obj.contactos = contacts
-    obj.cuenta_corriente = cuenta_corriente
-    obj.nombre_fantasia = nombre_fantasia
-    obj.mercado = mercado
-    obj._meta = Mock()
-    obj._meta.model = Proveedor
-    return obj
+def _mock_supplier(contacts=None, mercado=None, **overrides):
+    return mock_supplier(
+        # ContactSerializer(many=True) itera la lista tal cual; con un manager real llama a .all().
+        contactos=[mock_contact(id=1, numero='1234567')] if contacts is None else contacts,
+        mercado=mercado or mock_market(id=1, descripcion='Belgrano'),
+        **overrides,
+    )
 
 
 class FakeSupplierRepo(ISupplierRepository):
@@ -157,8 +127,8 @@ def test_list_filter_by_search_query(factory, viewset):
 
 
 def test_list_filter_by_mercado(factory, viewset):
-    mercado_belg = _mock_mercado(1, 'Belgrano')
-    mercado_cent = _mock_mercado(2, 'Central')
+    mercado_belg = mock_market(id=1, descripcion='Belgrano')
+    mercado_cent = mock_market(id=2, descripcion='Central')
     viewset.supplier_repository._add(nombre='ProvBelg', mercado=mercado_belg)
     viewset.supplier_repository._add(nombre='ProvCent', mercado=mercado_cent)
 
@@ -265,7 +235,7 @@ def test_update_success(factory, viewset):
     mercado = make_market(descripcion='Belgrano')
     supplier = viewset.supplier_repository._add(
         nombre='OriginalNombre',
-        mercado=_mock_mercado(mercado.id, 'Belgrano'),
+        mercado=mock_market(id=mercado.id, descripcion='Belgrano'),
     )
     payload = {
         'nombre': 'nombre actualizado',
@@ -295,7 +265,7 @@ def test_update_duplicate_nombre(factory, viewset):
     )
     supplier = viewset.supplier_repository._add(
         nombre='OtroNombre',
-        mercado=_mock_mercado(mercado.id, 'Belgrano'),
+        mercado=mock_market(id=mercado.id, descripcion='Belgrano'),
     )
     payload = {
         'nombre': 'NombreExistente',
@@ -328,7 +298,7 @@ def test_partial_update_success(factory, viewset):
     mercado = make_market(descripcion='Belgrano')
     supplier = viewset.supplier_repository._add(
         nombre='OriginalNombre',
-        mercado=_mock_mercado(mercado.id, 'Belgrano'),
+        mercado=mock_market(id=mercado.id, descripcion='Belgrano'),
     )
 
     request = factory.patch(f'/supplier/{supplier.id}/', {'nombre': 'nombre parcial'}, format='json')
@@ -389,8 +359,8 @@ def test_create_duplicate_nombre_escrito_distinto(factory, viewset):
 # ------------------------- CONTACTOS -----------------------
 def test_retrieve_includes_contacts(factory, viewset):
     supplier = viewset.supplier_repository._add(contacts=[
-        _mock_contact(1, '1144448888'),
-        _mock_contact(2, '1122334455', 'Encargado', 'ventas@prov.com'),
+        mock_contact(id=1, numero='1144448888'),
+        mock_contact(id=2, numero='1122334455', descripcion='Encargado', email='ventas@prov.com'),
     ])
 
     response = viewset.retrieve(Request(factory.get(f'/supplier/{supplier.id}/'), parsers=[JSONParser()]), pk=supplier.id)
@@ -443,7 +413,7 @@ def test_create_without_contacts(factory, viewset, contacts):
 @pytest.mark.django_db
 def test_update_syncs_contacts(factory, viewset):
     mercado = make_market(descripcion='Belgrano')
-    supplier = viewset.supplier_repository._add(nombre='Prov', mercado=_mock_mercado(mercado.id, 'Belgrano'))
+    supplier = viewset.supplier_repository._add(nombre='Prov', mercado=mock_market(id=mercado.id, descripcion='Belgrano'))
     payload = {
         'nombre': 'Prov',
         'puesto': 3,
@@ -463,7 +433,7 @@ def test_update_syncs_contacts(factory, viewset):
 @pytest.mark.django_db
 def test_update_with_contact_of_other_owner(factory, viewset):
     mercado = make_market(descripcion='Belgrano')
-    supplier = viewset.supplier_repository._add(nombre='Prov', mercado=_mock_mercado(mercado.id, 'Belgrano'))
+    supplier = viewset.supplier_repository._add(nombre='Prov', mercado=mock_market(id=mercado.id, descripcion='Belgrano'))
     viewset.contact_service.sync_contacts.side_effect = ContactNotFoundException('Contacto no encontrado.')
     payload = {'nombre': 'Prov', 'puesto': 3, 'contactos': [{'id': 99, 'numero': '1199998888'}], 'nombre_fantasia': 'NF', 'mercado': mercado.id}
 
