@@ -19,6 +19,7 @@ const mapBuyData = (data) =>
 
 const data = {
   title: 'Compras',
+  subtitle: 'Compras a proveedores, con sus productos, seña y estado de pago.',
   fetchUrl: {
     baseUrl: buyUrl,
     createUrl: '/buy/create',

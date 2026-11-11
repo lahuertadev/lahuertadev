@@ -23,6 +23,7 @@ const mapSupplierData = (data) => {
 
 const data = {
   title: 'Proveedores',
+  subtitle: 'Gestioná los datos, los contactos y la cuenta corriente de cada proveedor.',
   fetchUrl: {
     baseUrl: supplierUrl,
     createUrl: '/supplier/create',
