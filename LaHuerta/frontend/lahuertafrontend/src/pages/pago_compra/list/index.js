@@ -32,6 +32,7 @@ const mapPaymentData = (data) => {
 
 const buildData = (paymentTypeOptions) => ({
   title: 'Pagos de Compras',
+  subtitle: 'Registrá los pagos a proveedores, de una compra o a cuenta, y los cheques con que se pagan.',
   fetchUrl: {
     baseUrl: purchasePaymentUrl,
     createUrl: '/purchase-payment/create',
