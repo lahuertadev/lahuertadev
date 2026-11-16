@@ -11,6 +11,10 @@ import AmountInput from '../../../components/AmountInput';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import BackButton from '../../../components/BackButton';
+import FormActions from '../../../components/FormActions';
+import RequiredMark from '../../../components/RequiredMark';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
 
@@ -125,6 +129,7 @@ const ClientPaymentForm = () => {
       if (!values.chequeNumero) errors.chequeNumero = 'Requerido';
       if (!values.chequeBanco) errors.chequeBanco = 'Requerido';
       if (!values.chequeFechaEmision) errors.chequeFechaEmision = 'Requerido';
+      if (values.chequeDiferido && !values.chequeFechaDeposito) errors.chequeFechaDeposito = 'Requerido';
     }
     return errors;
   };
@@ -173,7 +178,9 @@ const ClientPaymentForm = () => {
       enableReinitialize
       onSubmit={handleSubmit}
     >
-      {({ values, errors, touched, handleChange, setFieldValue }) => {
+      {({ values, errors, touched, handleChange, setFieldValue, isSubmitting }) => {
+        // Registrar se habilita cuando están todos los obligatorios (los del cheque, si es con cheque).
+        const formComplete = validationSchema.isValidSync(values) && Object.keys(validate(values)).length === 0;
         const selectedPaymentType = selectOptions.paymentTypes.find(
           (opt) => String(opt.value) === String(values.paymentType)
         );
@@ -187,14 +194,17 @@ const ClientPaymentForm = () => {
               onClose={() => setToast({ open: false, message: '' })}
             />
 
-            {/* Breadcrumbs */}
-            <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-              <span className="text-xs">›</span>
-              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
-              <span className="text-xs">›</span>
-              <span className="text-on-surface font-semibold">{id ? 'Editar' : 'Nuevo'}</span>
-            </nav>
+            {/* Breadcrumbs + Volver arriba a la derecha */}
+            <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+              <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+                <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+                <span className="text-xs">›</span>
+                <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
+                <span className="text-xs">›</span>
+                <span className="text-on-surface font-semibold">{id ? 'Editar' : 'Nuevo'}</span>
+              </nav>
+              <BackButton onClick={() => navigate('/client-payment')} className="shrink-0 px-5 py-2.5 text-sm" />
+            </div>
 
             {/* 1. Datos del pago */}
             <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Pago" cols={3}>
@@ -207,8 +217,9 @@ const ClientPaymentForm = () => {
                 </div>
               )}
               <div className="flex flex-col gap-1" data-tour="payment-client">
-                <label className={labelCls}>Cliente</label>
+                <label className={labelCls}>Cliente<RequiredMark /></label>
                 <select
+                  aria-required="true"
                   value={values.client}
                   onChange={(e) => setFieldValue('client', e.target.value)}
                   disabled={checkEndosado}
@@ -222,8 +233,9 @@ const ClientPaymentForm = () => {
                 <FieldError error={errors.client} touched={touched.client} />
               </div>
               <div className="flex flex-col gap-1" data-tour="payment-amount">
-                <label className={labelCls}>Importe</label>
+                <label className={labelCls}>Importe<RequiredMark /></label>
                 <AmountInput
+                  required
                   name="amount"
                   value={values.amount}
                   onChange={(raw) => setFieldValue('amount', raw)}
@@ -233,8 +245,9 @@ const ClientPaymentForm = () => {
                 <FieldError error={errors.amount} touched={touched.amount} />
               </div>
               <div className="flex flex-col gap-1" data-tour="payment-date">
-                <label className={labelCls}>Fecha de pago</label>
+                <label className={labelCls}>Fecha de pago<RequiredMark /></label>
                 <BasicDatePicker
+                  required
                   value={values.paymentDate}
                   onChange={(date) => setFieldValue('paymentDate', date)}
                   hasError={touched.paymentDate && Boolean(errors.paymentDate)}
@@ -242,8 +255,9 @@ const ClientPaymentForm = () => {
                 <FieldError error={errors.paymentDate} touched={touched.paymentDate} />
               </div>
               <div className="flex flex-col gap-1" data-tour="payment-type">
-                <label className={labelCls}>Tipo de pago</label>
+                <label className={labelCls}>Tipo de pago<RequiredMark /></label>
                 <select
+                  aria-required="true"
                   value={values.paymentType}
                   onChange={(e) => setFieldValue('paymentType', e.target.value)}
                   disabled={checkEndosado}
@@ -273,12 +287,16 @@ const ClientPaymentForm = () => {
             {isCheckPayment && (
               <div
                 data-tour="payment-check"
-                data-tour-complete={Boolean(values.chequeNumero && values.chequeBanco && values.chequeFechaEmision)}
+                data-tour-complete={Boolean(
+                  values.chequeNumero && values.chequeBanco && values.chequeFechaEmision
+                  && (!values.chequeDiferido || values.chequeFechaDeposito),
+                )}
               >
                 <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
                   <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Número</label>
+                    <label className={labelCls}>Número<RequiredMark /></label>
                     <input
+                      aria-required="true"
                       name="chequeNumero"
                       type="number"
                       min="1"
@@ -294,8 +312,9 @@ const ClientPaymentForm = () => {
                     <FieldError error={errors.chequeNumero} touched={touched.chequeNumero} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Banco</label>
+                    <label className={labelCls}>Banco<RequiredMark /></label>
                     <select
+                      aria-required="true"
                       value={values.chequeBanco}
                       onChange={(e) => setFieldValue('chequeBanco', e.target.value)}
                       disabled={checkEndosado}
@@ -309,8 +328,9 @@ const ClientPaymentForm = () => {
                     <FieldError error={errors.chequeBanco} touched={touched.chequeBanco} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Fecha de emisión</label>
+                    <label className={labelCls}>Fecha de emisión<RequiredMark /></label>
                     <BasicDatePicker
+                      required
                       value={values.chequeFechaEmision}
                       onChange={(date) => setFieldValue('chequeFechaEmision', date)}
                       hasError={touched.chequeFechaEmision && Boolean(errors.chequeFechaEmision)}
@@ -338,11 +358,12 @@ const ClientPaymentForm = () => {
                     </label>
                     {values.chequeDiferido && (
                       <div className="flex flex-col gap-1 min-w-[180px]">
-                        <label className={labelCls}>Fecha de depósito</label>
+                        <label className={labelCls}>Fecha de depósito<RequiredMark /></label>
                         <BasicDatePicker
+                          required
                           value={values.chequeFechaDeposito}
                           onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
-                          hasError={false}
+                          hasError={touched.chequeFechaDeposito && Boolean(errors.chequeFechaDeposito)}
                           disabled={checkEndosado}
                         />
                       </div>
@@ -352,23 +373,12 @@ const ClientPaymentForm = () => {
               </div>
             )}
 
-            {/* Action Bar */}
-            <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
-              <button
-                type="button"
-                onClick={() => navigate('/client-payment')}
-                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                data-tour="form-confirm"
-                className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all"
-              >
-                {id ? 'Guardar cambios' : 'Registrar Pago'}
-              </button>
-            </div>
+            <FormActions
+              onCancel={() => navigate('/client-payment')}
+              confirmType="submit"
+              confirmLabel={<><SaveOutlinedIcon sx={{ fontSize: 18 }} /> {id ? 'Guardar cambios' : 'Registrar Pago'}</>}
+              confirmDisabled={isSubmitting || !formComplete}
+            />
 
           </Form>
         );
