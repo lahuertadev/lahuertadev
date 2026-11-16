@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 class IOwnCheckRepository(ABC):
 
     @abstractmethod
-    def get_all(self, state=None, bank=None, available=None, supplier_id=None):
+    def get_all(self, state=None, bank=None, available=None):
         pass
 
     @abstractmethod
@@ -27,10 +27,3 @@ class IOwnCheckRepository(ABC):
     def delete(self, own_check):
         pass
 
-    @abstractmethod
-    def get_payment_uses(self, own_check):
-        pass
-
-    @abstractmethod
-    def delete_payment_use(self, use):
-        pass

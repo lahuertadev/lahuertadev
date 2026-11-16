@@ -1,10 +1,8 @@
-from decimal import Decimal
-from django.db.models import Sum
 from rest_framework import serializers
 from .models import OwnCheck
 from banco.models import Banco
 from banco.serializers import BankSerializer
-from pago_compra.constants import PAYMENT_KIND_PURCHASE, PAYMENT_KIND_ON_ACCOUNT
+from pago_compra.constants import PAYMENT_KIND_PURCHASE, PAYMENT_KIND_ON_ACCOUNT, PaymentState
 
 
 class OwnCheckCreateSerializer(serializers.ModelSerializer):
@@ -41,8 +39,6 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
     supplier = serializers.SerializerMethodField()
     purchases = serializers.SerializerMethodField()
     payments = serializers.SerializerMethodField()
-    used_amount = serializers.SerializerMethodField()
-    remaining_balance = serializers.SerializerMethodField()
 
     class Meta:
         model = OwnCheck
@@ -58,18 +54,18 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
             'supplier',
             'purchases',
             'payments',
-            'used_amount',
-            'remaining_balance',
             'estado',
             'observaciones',
         ]
 
-    def _first_supplier(self, obj):
-        first_payment = obj.pagocompra_set.first()
-        return getattr(first_payment, 'proveedor', None) if first_payment else None
+    @staticmethod
+    def _current_payment(obj):
+        payment = obj.pago_compra
+        return payment if payment and payment.estado_pago == PaymentState.VIGENTE else None
 
-    def _used_amount(self, obj):
-        return obj.payment_uses.aggregate(total=Sum('importe'))['total'] or Decimal('0')
+    def _first_supplier(self, obj):
+        payment = self._current_payment(obj)
+        return payment.proveedor if payment else None
 
     def get_supplier_name(self, obj):
         supplier = self._first_supplier(obj)
@@ -82,34 +78,38 @@ class OwnCheckResponseSerializer(serializers.ModelSerializer):
         return {'id': supplier.id, 'nombre': supplier.nombre, 'puesto': supplier.puesto}
 
     def get_purchases(self, obj):
-        return [use.pago_compra.compra_id for use in obj.payment_uses.all() if use.pago_compra.compra_id]
+        '''Ids de las compras que cubre el pago vigente hecho con el cheque.'''
+        payment = self._current_payment(obj)
+        if not payment:
+            return []
+        return [application.compra_id for application in payment.purchase_applications.all()]
 
     def get_payments(self, obj):
-        '''Pagos hechos con el cheque; importe_abonado es la parte que se pagó con este cheque.'''
         uses = sorted(obj.payment_uses.all(), key=lambda use: (use.pago_compra.fecha_pago, use.pago_compra.id))
         return [
             {
                 'id': use.pago_compra.id,
                 'fecha_pago': use.pago_compra.fecha_pago,
-                'tipo': PAYMENT_KIND_PURCHASE if use.pago_compra.compra_id else PAYMENT_KIND_ON_ACCOUNT,
-                'compra': (
-                    {'id': use.pago_compra.compra.id, 'fecha': use.pago_compra.compra.fecha}
-                    if use.pago_compra.compra_id else None
-                ),
+                'tipo': PAYMENT_KIND_PURCHASE if self._purchase_applications(use.pago_compra) else PAYMENT_KIND_ON_ACCOUNT,
+                'compras': [
+                    {'id': application.compra.id, 'fecha': application.compra.fecha}
+                    for application in self._purchase_applications(use.pago_compra)
+                ],
                 'importe_abonado': use.importe,
+                'estado_pago': use.pago_compra.estado_pago,
             }
             for use in uses
         ]
 
-    def get_used_amount(self, obj):
-        return self._used_amount(obj)
-
-    def get_remaining_balance(self, obj):
-        return obj.importe - self._used_amount(obj)
+    @staticmethod
+    def _purchase_applications(payment):
+        return sorted(
+            payment.purchase_applications.all(),
+            key=lambda application: (application.compra.fecha, application.compra.id),
+        )
 
 
 class OwnCheckQueryParamsSerializer(serializers.Serializer):
     state = serializers.CharField(required=False)
     bank = serializers.CharField(required=False)
     available = serializers.BooleanField(required=False)
-    supplier_id = serializers.IntegerField(required=False)
