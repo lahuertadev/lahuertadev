@@ -1,14 +1,12 @@
 from django.db import transaction
+from django.db.models import Sum
 from decimal import Decimal
 from .interfaces import IBuyRepository
 from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
 from compra_producto.interfaces import IBuyProductRepository
 from proveedor.interfaces import ISupplierRepository
-
-# Estados de pago de una compra
-PAYMENT_STATUS_PENDING = 'PENDIENTE'
-PAYMENT_STATUS_PARTIAL = 'PARCIAL'
-PAYMENT_STATUS_PAID    = 'ABONADO'
+from pago_compra.constants import PaymentState
+from .constants import PAYMENT_STATUS_PAID, PAYMENT_STATUS_PARTIAL, PAYMENT_STATUS_PENDING
 
 
 class BuyService:
@@ -75,10 +73,11 @@ class BuyService:
         old_proveedor = compra.proveedor
 
         new_proveedor = data.get('proveedor', old_proveedor)
-        if new_proveedor.id != old_proveedor.id and compra.pagocompra_set.exists():
+        has_current_payments = compra.pagocompra_set.filter(estado_pago=PaymentState.VIGENTE).exists()
+        if new_proveedor.id != old_proveedor.id and has_current_payments:
             raise BuySupplierChangeBlockedException(
                 'No se puede cambiar el proveedor: la compra ya tiene pagos registrados. '
-                'Eliminá esos pagos primero.'
+                'Anulá esos pagos primero.'
             )
         new_senia = Decimal(str(data['senia'])) if 'senia' in data else old_senia
 
@@ -127,16 +126,14 @@ class BuyService:
     @staticmethod
     def _calculate_total_paid(buy) -> Decimal:
         '''
-        Suma la seña más todos los pagos registrados para la compra.
-        Usa la annotation total_payments del repositorio si está disponible;
-        si no, cae en una query directa.
+        Seña más lo que los pagos vigentes le imputan a la compra. Usa la annotation
+        total_payments del repositorio si está; si no, hace la consulta.
         '''
         payments = getattr(buy, 'total_payments', None)
         if payments is None:
-            from django.db.models import Sum
-            payments = buy.pagocompra_set.aggregate(
-                total=Sum('importe_abonado')
-            )['total'] or Decimal('0')
+            payments = buy.payment_applications.filter(
+                pago_compra__estado_pago=PaymentState.VIGENTE,
+            ).aggregate(total=Sum('importe'))['total'] or Decimal('0')
         return Decimal(str(payments)) + Decimal(str(buy.senia))
 
     @staticmethod

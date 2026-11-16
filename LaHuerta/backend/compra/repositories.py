@@ -1,13 +1,18 @@
-from django.db.models import Sum, DecimalField, Value
+from django.db.models import Q, Sum, DecimalField, Value
 from django.db.models.functions import Coalesce
 from .models import Compra
 from .interfaces import IBuyRepository
+from pago_compra.constants import PaymentState
 
 
 def _annotate_payments(qs):
+    '''total_payments: lo que los pagos vigentes le imputan a la compra.'''
     return qs.annotate(
         total_payments=Coalesce(
-            Sum('pagocompra__importe_abonado'),
+            Sum(
+                'payment_applications__importe',
+                filter=Q(payment_applications__pago_compra__estado_pago=PaymentState.VIGENTE),
+            ),
             Value(0, output_field=DecimalField()),
         )
     )
@@ -35,6 +40,7 @@ class BuyRepository(IBuyRepository):
     def get_by_id(self, id):
         return (
             _annotate_payments(Compra.objects.select_related('proveedor'))
+            .prefetch_related('payment_applications__pago_compra__tipo_pago')
             .filter(id=id)
             .first()
         )

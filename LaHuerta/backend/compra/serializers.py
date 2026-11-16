@@ -47,6 +47,31 @@ class BuyResponseSerializer(serializers.ModelSerializer):
         fields = ['id', 'fecha', 'importe', 'senia', 'proveedor', 'items', 'payment_status', 'outstanding_balance']
 
 
+class BuyDetailResponseSerializer(BuyResponseSerializer):
+    '''Detalle de la compra con sus pagos (también los anulados) y lo que le aplicó cada uno.'''
+    payments = serializers.SerializerMethodField()
+
+    def get_payments(self, obj):
+        applications = sorted(
+            obj.payment_applications.all(),
+            key=lambda application: (application.pago_compra.fecha_pago, application.pago_compra.id),
+        )
+        return [
+            {
+                'id': application.pago_compra.id,
+                'fecha_pago': application.pago_compra.fecha_pago,
+                'tipo_pago': application.pago_compra.tipo_pago.descripcion,
+                'importe_abonado': application.pago_compra.importe_abonado,
+                'importe_aplicado': application.importe,
+                'estado_pago': application.pago_compra.estado_pago,
+            }
+            for application in applications
+        ]
+
+    class Meta(BuyResponseSerializer.Meta):
+        fields = [*BuyResponseSerializer.Meta.fields, 'payments']
+
+
 class BuyCreateSerializer(serializers.Serializer):
     '''
     DTO para crear una compra (POST).

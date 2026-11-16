@@ -6,6 +6,7 @@ from .interfaces import IBuyRepository
 from .service import BuyService
 from .serializers import (
     BuyResponseSerializer,
+    BuyDetailResponseSerializer,
     BuyCreateSerializer,
     BuyBulkCreateSerializer,
     BuyUpdateSerializer,
@@ -54,7 +55,7 @@ class BuyViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         '''
-        Devuelve el detalle de una compra con sus ítems.
+        Devuelve el detalle de una compra con sus ítems y sus pagos.
         '''
         try:
             buy = self.repository.get_by_id(pk)
@@ -62,7 +63,7 @@ class BuyViewSet(viewsets.ViewSet):
             if not buy:
                 raise BuyNotFoundException('Compra no encontrada.')
 
-            serializer = BuyResponseSerializer(buy)
+            serializer = BuyDetailResponseSerializer(buy)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except BuyNotFoundException as e:
