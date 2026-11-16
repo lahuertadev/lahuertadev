@@ -83,6 +83,7 @@ class ClientPaymentService:
                     'No se puede cambiar el tipo de pago porque el cheque asociado ya fue endosado.'
                 )
             if check:
+                self._validate_check_not_recorded(check, 'cambiar el tipo de pago')
                 self.check_repository.delete(check)
             check = None
 
@@ -124,7 +125,7 @@ class ClientPaymentService:
                 raise CheckEditBlockedException(
                     f'No se pueden modificar los datos del cheque N° {check.numero}: '
                     f'ya fue endosado al proveedor {proveedor} (pago del {payment_date}). '
-                    'Primero eliminá o editá ese pago al proveedor para poder continuar.'
+                    'Primero anulá o editá ese pago al proveedor para poder continuar.'
                 )
 
             if client_changed or number_changed or bank_changed:
@@ -176,8 +177,11 @@ class ClientPaymentService:
             raise PaymentDeletionBlockedException(
                 f'No se puede eliminar el pago porque el cheque N° {check.numero} ya fue endosado '
                 f'al proveedor {supplier} (pago del {payment_date}). '
-                'Primero eliminá o editá ese pago al proveedor para poder continuar.'
+                'Primero anulá o editá ese pago al proveedor para poder continuar.'
             )
+
+        if check:
+            self._validate_check_not_recorded(check, 'eliminar el pago', PaymentDeletionBlockedException)
 
         client = payment.cliente
         client.cuenta_corriente = Decimal(str(client.cuenta_corriente)) + Decimal(str(payment.importe))
@@ -187,6 +191,15 @@ class ClientPaymentService:
             self.check_repository.delete(check)
 
         self.payment_repository.delete(payment)
+
+    def _validate_check_not_recorded(self, check, action, exception=PaymentTypeChangeBlockedException):
+        payment_ids = self.check_repository.get_purchase_payment_ids(check)
+        if payment_ids:
+            numbers = ', '.join(f'N° {payment_id:08d}' for payment_id in payment_ids)
+            raise exception(
+                f'No se puede {action} porque el cheque N° {check.numero} se usó en el pago a proveedor '
+                f'{numbers}, que lo conserva como registro aunque esté anulado.'
+            )
 
     def _validate_no_duplicate_check(self, number, bank, client, exclude_id=None):
         if self.check_repository.exists_duplicate(number, bank, client, exclude_id=exclude_id):
