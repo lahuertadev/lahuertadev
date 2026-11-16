@@ -97,7 +97,7 @@ test('con cheque pide número, banco y fecha de emisión, y la de depósito si e
   fireEvent.change(screen.getAllByTestId('date')[1], { target: { value: '2026-11-10' } });
   await waitFor(() => expect(registerButton()).toBeEnabled());
 
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Cheque diferido' }));
   await waitFor(() => expect(registerButton()).toBeDisabled());
 
   fireEvent.change(screen.getAllByTestId('date')[2], { target: { value: '2026-12-01' } });
