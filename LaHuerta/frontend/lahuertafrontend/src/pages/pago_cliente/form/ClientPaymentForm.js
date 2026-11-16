@@ -15,6 +15,7 @@ import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import BackButton from '../../../components/BackButton';
 import FormActions from '../../../components/FormActions';
 import RequiredMark from '../../../components/RequiredMark';
+import Switch from '../../../components/Switch';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
 
@@ -187,7 +188,7 @@ const ClientPaymentForm = () => {
         const isCheckPayment = selectedPaymentType?.name === 'Cheque';
 
         return (
-          <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+          <Form className="w-full max-w-7xl mx-auto space-y-8 pb-12">
             <Toast
               open={toast.open}
               message={toast.message}
@@ -338,37 +339,37 @@ const ClientPaymentForm = () => {
                     />
                     <FieldError error={errors.chequeFechaEmision} touched={touched.chequeFechaEmision} />
                   </div>
-                  <div className="md:col-span-3 flex items-center gap-6 bg-surface-low/50 border border-border-subtle px-5 py-4 rounded-xl">
-                    <label className={`flex items-center gap-3 flex-1 ${checkEndosado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
-                      <input
-                        type="checkbox"
+                  {/* Interruptor Sí/No con el mismo formato que "¿Se entrega en otra dirección?" de Clientes.
+                      La fecha de depósito aparece al lado, en la misma fila: la sección no cambia de alto
+                      (en mobile va debajo, como cualquier campo). */}
+                  <div className="flex flex-col gap-1">
+                    <label className={labelCls}>¿Es un cheque diferido?</label>
+                    <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
+                      <span className="text-sm font-medium text-on-surface-muted">{values.chequeDiferido ? 'Sí' : 'No'}</span>
+                      <Switch
                         checked={values.chequeDiferido}
                         disabled={checkEndosado}
-                        onChange={(e) => {
-                          setFieldValue('chequeDiferido', e.target.checked);
-                          if (!e.target.checked) setFieldValue('chequeFechaDeposito', null);
+                        ariaLabel="Cheque diferido"
+                        onChange={(checked) => {
+                          setFieldValue('chequeDiferido', checked);
+                          if (!checked) setFieldValue('chequeFechaDeposito', null);
                         }}
-                        className="sr-only peer"
                       />
-                      <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-lahuerta after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-on-surface">Cheque diferido</p>
-                        <p className="text-xs text-on-surface-muted">El cheque tiene una fecha futura a partir de la cual puede depositarse</p>
-                      </div>
-                    </label>
-                    {values.chequeDiferido && (
-                      <div className="flex flex-col gap-1 min-w-[180px]">
-                        <label className={labelCls}>Fecha de depósito<RequiredMark /></label>
-                        <BasicDatePicker
-                          required
-                          value={values.chequeFechaDeposito}
-                          onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
-                          hasError={touched.chequeFechaDeposito && Boolean(errors.chequeFechaDeposito)}
-                          disabled={checkEndosado}
-                        />
-                      </div>
-                    )}
+                    </div>
                   </div>
+                  {values.chequeDiferido && (
+                    <div className="flex flex-col gap-1">
+                      <label className={labelCls}>Fecha de depósito<RequiredMark /></label>
+                      <BasicDatePicker
+                        required
+                        value={values.chequeFechaDeposito}
+                        onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
+                        hasError={touched.chequeFechaDeposito && Boolean(errors.chequeFechaDeposito)}
+                        disabled={checkEndosado}
+                      />
+                      <FieldError error={errors.chequeFechaDeposito} touched={touched.chequeFechaDeposito} />
+                    </div>
+                  )}
                 </SectionCard>
               </div>
             )}
