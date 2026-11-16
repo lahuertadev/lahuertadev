@@ -83,7 +83,8 @@ class FakeBuyRepo(IBuyRepository):
     def create(self, proveedor, fecha, importe, senia):
         buy = mock_purchase(id=self._next_id, proveedor=proveedor, fecha=fecha, importe=importe, senia=senia)
         self._next_id += 1
-        buy.pagocompra_set.exists.return_value = False
+        # Pagos vigentes de la compra (pagocompra_set.filter(estado_pago=VIGENTE)).
+        buy.pagocompra_set.filter.return_value.exists.return_value = False
         self._items[buy.id] = buy
         return buy
 
@@ -258,7 +259,7 @@ class TestUpdateBuy:
             proveedor=old_supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
         )
-        compra.pagocompra_set.exists.return_value = True
+        compra.pagocompra_set.filter.return_value.exists.return_value = True
 
         with pytest.raises(BuySupplierChangeBlockedException):
             service.update_buy(compra.id, {'proveedor': new_supplier})
@@ -274,7 +275,7 @@ class TestUpdateBuy:
             proveedor=supplier, fecha='2024-01-01',
             importe=Decimal('1000.00'), senia=Decimal('0'),
         )
-        compra.pagocompra_set.exists.return_value = True
+        compra.pagocompra_set.filter.return_value.exists.return_value = True
 
         service.update_buy(compra.id, {'proveedor': supplier, 'fecha': '2024-03-01'})
 

@@ -8,7 +8,9 @@ from rest_framework.parsers import JSONParser
 
 from compra.models import Compra
 from compra.views import BuyViewSet
-from core.tests.factories import make_product, make_supplier
+from core.tests.factories import (
+    make_payment_type, make_product, make_purchase, make_purchase_application, make_purchase_payment, make_supplier,
+)
 
 BULK_URL = '/buy/bulk/'
 
@@ -237,3 +239,48 @@ class TestBuyUpdateSupplierChange:
 
         assert response.status_code == 400
         assert response.data['detail'] == self.MESSAGE
+
+
+# ── Tests: retrieve ────────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_retrieve_expone_los_pagos_de_la_compra_con_lo_aplicado(factory):
+    supplier = make_supplier()
+    buy = make_purchase(importe=Decimal('2000.00'), proveedor=supplier)
+    cash = make_payment_type(descripcion='Efectivo')
+    first = make_purchase_payment(compra=buy, importe_abonado=Decimal('500.00'), tipo_pago=cash, fecha_pago='2026-10-01')
+    # Un pago de varias compras: a esta solo le aplica una parte.
+    second = make_purchase_payment(
+        proveedor=supplier, compra=None, importe_abonado=Decimal('3000.00'), tipo_pago=cash, fecha_pago='2026-10-05',
+    )
+    make_purchase_application(pago_compra=second, compra=buy, importe=Decimal('700.00'))
+    make_purchase_application(pago_compra=second, compra=make_purchase(proveedor=supplier), importe=Decimal('2300.00'))
+
+    response = BuyViewSet().retrieve(Request(factory.get(f'/buy/{buy.id}/'), parsers=[JSONParser()]), pk=buy.id)
+
+    assert response.status_code == 200
+    assert [(p['id'], p['importe_abonado'], p['importe_aplicado'], p['tipo_pago']) for p in response.data['payments']] == [
+        (first.id, Decimal('500.00'), Decimal('500.00'), 'Efectivo'),
+        (second.id, Decimal('3000.00'), Decimal('700.00'), 'Efectivo'),
+    ]
+    assert response.data['outstanding_balance'] == Decimal('800.00')
+    assert response.data['payment_status'] == 'PARCIAL'
+
+
+@pytest.mark.django_db
+def test_retrieve_compra_sin_pagos_tiene_lista_vacia(factory):
+    buy = make_purchase()
+
+    response = BuyViewSet().retrieve(Request(factory.get(f'/buy/{buy.id}/'), parsers=[JSONParser()]), pk=buy.id)
+
+    assert response.data['payments'] == []
+    assert response.data['payment_status'] == 'PENDIENTE'
+
+
+@pytest.mark.django_db
+def test_list_no_expone_los_pagos(factory):
+    make_purchase()
+
+    response = BuyViewSet().list(Request(factory.get('/buy/'), parsers=[JSONParser()]))
+
+    assert 'payments' not in response.data[0]
