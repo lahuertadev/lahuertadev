@@ -150,7 +150,9 @@ const BLUE = '#4a7bc4';
 const isPathActive = (path, currentPath) => {
   if (!path) return false;
   if (path === '/') return currentPath === '/';
-  return currentPath === path || currentPath.startsWith(path);
+  // Por segmento completo: '/client' marca '/client/detail/3' pero no '/client-payment'.
+  const base = path.endsWith('/') ? path.slice(0, -1) : path;
+  return currentPath === base || currentPath.startsWith(`${base}/`);
 };
 
 export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
