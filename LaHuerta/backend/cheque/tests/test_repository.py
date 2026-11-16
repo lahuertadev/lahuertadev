@@ -1,7 +1,9 @@
 import pytest
 from decimal import Decimal
 
-from core.tests.factories import make_bank, make_check, make_check_state, make_client_payment
+from core.tests.factories import (
+    make_bank, make_check, make_check_state, make_client_check_use, make_client_payment, make_purchase_payment,
+)
 from cheque.models import Cheque
 from cheque.repositories import CheckRepository
 
@@ -127,3 +129,18 @@ class TestCheckRepository:
         self.repository.delete(cheque)
 
         assert Cheque.objects.count() == 0
+
+    # ---------------- PAGOS A PROVEEDOR QUE LO REGISTRAN ----------------
+    def test_get_purchase_payment_ids_devuelve_los_pagos_que_registran_el_cheque(self):
+        check = self._make_cheque(1001)
+        first = make_purchase_payment(estado_pago='ANULADO')
+        second = make_purchase_payment()
+        make_client_check_use(cheque=check, pago_compra=second)
+        make_client_check_use(cheque=check, pago_compra=first)
+
+        assert self.repository.get_purchase_payment_ids(check) == sorted([first.id, second.id])
+
+    def test_get_purchase_payment_ids_sin_pagos_devuelve_lista_vacia(self):
+        check = self._make_cheque(1001)
+
+        assert self.repository.get_purchase_payment_ids(check) == []

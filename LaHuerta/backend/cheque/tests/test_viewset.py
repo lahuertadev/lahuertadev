@@ -72,6 +72,9 @@ class FakeCheckRepo(ICheckRepository):
     def delete(self, check):
         self._items.pop(check.numero, None)
 
+    def get_purchase_payment_ids(self, check):
+        return getattr(self, '_recorded', {}).get(check.id, [])
+
 
 @pytest.fixture
 def factory():
@@ -277,6 +280,21 @@ def test_destroy_success(factory, viewset):
     assert viewset.repository.get_by_id(1001) is None
 
 
+def test_destroy_cheque_registrado_en_un_pago_a_proveedor_devuelve_400(factory, viewset):
+    check = viewset.repository._add(1001)
+    check.pago_cliente_id = None
+    check.pago_compra_id = None
+    viewset.repository._recorded = {check.id: [120]}
+
+    request = factory.delete('/checks/1001/')
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.destroy(drf_request, pk=1001)
+
+    assert response.status_code == 400
+    assert 'registro' in response.data['detail']
+    assert viewset.repository.get_by_id(1001) is not None
+
+
 # ── ENDORSE ──────────────────────────────────────────────────────────────────
 
 def _create_pago_compra():
@@ -438,3 +456,42 @@ def test_reject_success(factory, viewset):
 
     assert response.status_code == 200
     assert response.data['numero'] == 1001
+
+
+@pytest.mark.django_db
+def test_reject_endosado_con_la_base_baja_el_pago_desde_la_compra_mas_nueva(factory):
+    '''
+    De punta a punta: un pago de $3.000 con dos cheques cubre dos compras. Al rechazar el cheque
+    de $1.000, el pago baja a $2.000, la compra más nueva vuelve a Parcial y se le vuelve a deber
+    ese importe al proveedor.
+    '''
+    from cheque.repositories import CheckRepository
+    from compra.repositories import BuyRepository
+    from compra.service import BuyService
+    from core.tests.factories import make_check, make_payment_type, make_purchase, make_purchase_application, make_supplier
+    from pago_compra.models import PagoCompra
+
+    make_check_state(descripcion='RECHAZADO')
+    endorsed = make_check_state(descripcion='ENDOSADO')
+    supplier = make_supplier(cuenta_corriente=Decimal('0.00'))
+    older = make_purchase(fecha='2026-10-01', importe=Decimal('1500.00'), proveedor=supplier)
+    newer = make_purchase(fecha='2026-10-20', importe=Decimal('1500.00'), proveedor=supplier)
+    payment = make_purchase_payment(
+        proveedor=supplier, compra=None, importe_abonado=Decimal('3000.00'), tipo_pago=make_payment_type(descripcion='Cheque'),
+    )
+    make_purchase_application(pago_compra=payment, compra=older, importe=Decimal('1500.00'))
+    make_purchase_application(pago_compra=payment, compra=newer, importe=Decimal('1500.00'))
+    rejected = make_check(importe=Decimal('1000.00'), endosado=True, estado=endorsed, pago_compra=payment)
+    make_check(importe=Decimal('2000.00'), endosado=True, estado=endorsed, pago_compra=payment)
+    viewset = CheckViewSet(repository=CheckRepository())
+
+    response = viewset.reject(Request(factory.post(f'/checks/{rejected.id}/reject/'), parsers=[JSONParser()]), pk=rejected.id)
+
+    assert response.status_code == 200
+    assert PagoCompra.objects.get(id=payment.id).importe_abonado == Decimal('2000.00')
+    buys = BuyRepository()
+    assert BuyService.calculate_payment_status(buys.get_by_id(older.id)) == 'ABONADO'
+    assert BuyService.calculate_payment_status(buys.get_by_id(newer.id)) == 'PARCIAL'
+    assert BuyService.calculate_outstanding_balance(buys.get_by_id(newer.id)) == Decimal('1000.00')
+    supplier.refresh_from_db()
+    assert supplier.cuenta_corriente == Decimal('1000.00')
