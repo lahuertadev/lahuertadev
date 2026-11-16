@@ -177,7 +177,13 @@ class CheckViewSet(viewsets.ViewSet):
             if check.pago_compra_id:
                 raise CheckLinkedToPaymentException(
                     'No se puede eliminar el cheque porque está asociado a un pago de compra. '
-                    'Eliminá primero el pago correspondiente.'
+                    'Anulá primero el pago correspondiente.'
+                )
+
+            if self.repository.get_purchase_payment_ids(check):
+                raise CheckLinkedToPaymentException(
+                    'No se puede eliminar el cheque porque se usó en un pago a proveedor, '
+                    'que lo conserva como registro aunque esté anulado.'
                 )
 
             self.repository.delete(check)

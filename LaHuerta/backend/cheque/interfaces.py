@@ -26,3 +26,7 @@ class ICheckRepository(ABC):
     @abstractmethod
     def delete(self, check):
         pass
+
+    @abstractmethod
+    def get_purchase_payment_ids(self, check):
+        pass

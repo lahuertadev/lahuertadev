@@ -47,3 +47,6 @@ class CheckRepository(ICheckRepository):
 
     def delete(self, check):
         check.delete()
+
+    def get_purchase_payment_ids(self, check):
+        return list(check.purchase_payment_uses.order_by('pago_compra_id').values_list('pago_compra_id', flat=True))
