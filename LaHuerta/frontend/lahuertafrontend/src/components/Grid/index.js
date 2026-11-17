@@ -29,6 +29,14 @@ import RoundedCheckbox from '../RoundedCheckbox';
  *                         (no desaparece, así los íconos quedan alineados entre filas)
  *   editDisabledReason / deleteDisabledReason — string o (row) => string: tooltip del botón grisado
  *                         (default 'No se puede editar' / 'No se puede eliminar')
+ *   deleteLabel       — texto del botón de borrar (tooltip y encabezado; default 'Eliminar'). Ej. 'Anular'
+ *                         en pantallas con borrado lógico.
+ *   deleteIcon        — ícono del botón de borrar (default el tacho)
+ *   extraActions      — acciones propias de la pantalla, como íconos después de Detalle (con groupActions):
+ *                         [{ key, label, icon, onClick: (row) => void, isEnabled?: (row) => bool,
+ *                            disabledReason?: string | (row) => string, danger?: bool }]
+ *                         Igual que Editar y Eliminar: si isEnabled devuelve false, el ícono queda grisado
+ *                         con el motivo en el tooltip. danger: se tiñe de rojo al pasar el mouse.
  *   getRowClassName   — (params) => string — para resaltar filas (ej. devolver 'row-highlighted'
  *                         cuando la fila tiene cambios sin guardar)
  */
@@ -165,6 +173,9 @@ export default function DataGridDemo({
   canEdit,
   editDisabledReason = 'No se puede editar',
   deleteDisabledReason = 'No se puede eliminar',
+  deleteLabel = 'Eliminar',
+  deleteIcon: DeleteActionIcon = DeleteIcon,
+  extraActions = [],
   isRowSelectable,
   showEdit = true,
   showDelete = true,
@@ -229,9 +240,9 @@ export default function DataGridDemo({
   };
 
   const renderDeleteButton = (params, buttonSx = actionButtonSx) => {
-    if (canDelete && !canDelete(params.row)) return renderDisabledButton(DeleteIcon, deleteDisabledReason, params.row, buttonSx);
+    if (canDelete && !canDelete(params.row)) return renderDisabledButton(DeleteActionIcon, deleteDisabledReason, params.row, buttonSx);
     return (
-      <Tooltip title="Eliminar">
+      <Tooltip title={deleteLabel}>
         <button
           style={buttonSx}
           onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.06)'; }}
@@ -240,7 +251,27 @@ export default function DataGridDemo({
           data-tour="grid-delete"
           data-tour-row={params.row.id}
         >
-          <DeleteIcon sx={{ fontSize: 18 }} />
+          <DeleteActionIcon sx={{ fontSize: 18 }} />
+        </button>
+      </Tooltip>
+    );
+  };
+
+  const renderExtraAction = (action) => (params, buttonSx = actionButtonSx) => {
+    const { label, icon: ActionIcon, onClick, isEnabled, disabledReason = `No se puede ${label.toLowerCase()}`, danger } = action;
+    if (isEnabled && !isEnabled(params.row)) return renderDisabledButton(ActionIcon, disabledReason, params.row, buttonSx);
+    const hover = danger ? { color: '#ef4444', background: 'rgba(239,68,68,0.06)' } : { color: '#4a7bc4', background: 'rgba(93,137,200,0.08)' };
+    return (
+      <Tooltip title={label}>
+        <button
+          type="button"
+          aria-label={label}
+          style={buttonSx}
+          onMouseEnter={e => { e.currentTarget.style.color = hover.color; e.currentTarget.style.background = hover.background; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
+          onClick={() => onClick(params.row)}
+        >
+          <ActionIcon sx={{ fontSize: 18 }} />
         </button>
       </Tooltip>
     );
@@ -254,11 +285,12 @@ export default function DataGridDemo({
 
   const editColumn = { ...actionColumnBase, field: 'edit', headerName: 'Editar', renderCell: (params) => renderEditButton(params) };
 
-  const deleteColumn = { ...actionColumnBase, field: 'delete', headerName: 'Eliminar', renderCell: (params) => renderDeleteButton(params) };
+  const deleteColumn = { ...actionColumnBase, field: 'delete', headerName: deleteLabel, renderCell: (params) => renderDeleteButton(params) };
 
   // groupActions: Detalle, Editar y Eliminar juntos en una sola columna "Acción" (mismos botones y data-tour).
   const actionRenderers = [
     onDetail ? renderDetailButton : null,
+    ...extraActions.map(renderExtraAction),
     showEdit ? renderEditButton : null,
     showDelete ? renderDeleteButton : null,
   ].filter(Boolean);

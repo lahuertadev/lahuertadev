@@ -15,6 +15,12 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 
+// Color de la solapa activa según su tono: el acento de la app, o el rojo de la etiqueta "Anulado".
+const TAB_TONE_CLASSES = {
+  accent: 'text-accent border-accent bg-accent/10',
+  danger: 'text-red-600 border-red-600 bg-red-500/10 dark:text-red-400 dark:border-red-400',
+};
+
 /**
  * GenericList — listado reutilizable con filtros, paginación y acciones CRUD.
  *
@@ -23,6 +29,13 @@ import CloseIcon from '@mui/icons-material/Close';
  *   subtitle      — texto descriptivo debajo del título (opcional)
  *   deleteMessage — (row) => node. Opcional: texto del diálogo al eliminar un registro (por defecto,
  *                   "¿Estás seguro que querés eliminar este elemento?").
+ *   deleteLabel / deleteIcon — texto e ícono del botón de borrar de la grilla (default 'Eliminar' y el tacho).
+ *   deleteDialogTitle — título del diálogo al borrar un registro (default 'Confirmar eliminación').
+ *   deleteRequest — (id) => Promise. Opcional: el pedido que hace la acción de borrar (por defecto,
+ *                   DELETE a fetchUrl.baseUrl + id). Ej.: anular con POST a .../id/cancel/.
+ *   tabs          — { param, options: [{ label, value, tone? }] }. Opcional: solapas debajo del título
+ *                   que filtran el listado; la elegida va al backend como param=value, junto con los
+ *                   filtros. La primera opción queda activa al entrar. tone: 'accent' (default) | 'danger'.
  *   deleteSuccessMessage — (count) => string. Opcional: si está, muestra un toast de éxito
  *                   al eliminar (count = cantidad de registros eliminados).
  *   fetchUrl      — { baseUrl, createUrl, editUrl, detailUrl? }
@@ -38,7 +51,7 @@ import CloseIcon from '@mui/icons-material/Close';
  *                   si no se pasa, navega a fetchUrl.createUrl
  */
 const GenericList = ({ data, onAdd }) => {
-  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false } = data;
+  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, tabs, extraActions } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +63,7 @@ const GenericList = ({ data, onAdd }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({});
   const [toast, setToast] = useState({ open: false, message: '' });
+  const [activeTab, setActiveTab] = useState(tabs?.options[0]?.value);
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,20 +73,22 @@ const GenericList = ({ data, onAdd }) => {
     || breadcrumbsMap[Object.keys(breadcrumbsMap).find(k => location.pathname.startsWith(k))]
     || null;
 
-  const fetchItems = async (filters) => {
+  // tab: la solapa activa (si hay solapas), que se manda siempre junto con los filtros.
+  const fetchItems = async (filters, tab = activeTab) => {
     setLoading(true);
     try {
-      let urlWithParams = fetchUrl.baseUrl;
-      if (filters && Object.keys(filters).length > 0) {
-        const queryParams = new URLSearchParams();
+      const queryParams = new URLSearchParams();
+      if (filters) {
         filtersConfig.forEach((filter) => {
           const raw = filters[filter.name];
           if (!raw) return;
           const value = filter.type === 'select' ? (raw?.value ?? raw) : raw;
           if (value) queryParams.append(filter.name, value);
         });
-        urlWithParams = `${fetchUrl.baseUrl}?${queryParams.toString()}`;
       }
+      if (tabs && tab) queryParams.append(tabs.param, tab);
+      const query = queryParams.toString();
+      const urlWithParams = query ? `${fetchUrl.baseUrl}?${query}` : fetchUrl.baseUrl;
       const response = await axios.get(urlWithParams);
       setRows(mapData ? mapData(response.data) : response.data);
     } catch (err) {
@@ -99,6 +115,13 @@ const GenericList = ({ data, onAdd }) => {
     fetchItems({});
   };
 
+  const selectTab = (value) => {
+    if (value === activeTab) return;
+    setActiveTab(value);
+    setSelectedIds([]);
+    fetchItems(filterValues, value);
+  };
+
   const handleOpenConfirmDialog = (isMultiple, id) => {
     setIsMultipleDelete(isMultiple);
     setItemToDelete(id);
@@ -111,14 +134,18 @@ const GenericList = ({ data, onAdd }) => {
     setIsMultipleDelete(false);
   };
 
+  const deleteItem = (id) => (deleteRequest ? deleteRequest(id) : axios.delete(`${fetchUrl.baseUrl}${id}/`));
+
   const handleDeleteConfirm = async () => {
     const deletedCount = itemToDelete ? 1 : selectedIds.length;
     try {
       if (itemToDelete) {
-        await axios.delete(`${fetchUrl.baseUrl}${itemToDelete}/`);
+        await deleteItem(itemToDelete);
       } else if (selectedIds) {
         if (selectedIds.length === 1) {
-          await axios.delete(`${fetchUrl.baseUrl}${selectedIds[0]}/`);
+          await deleteItem(selectedIds[0]);
+        } else if (deleteRequest) {
+          await Promise.all(selectedIds.map(deleteItem));
         } else {
           try {
             await axios.delete(`${fetchUrl.baseUrl}bulk_delete/`, { data: { ids: selectedIds } });
@@ -218,8 +245,31 @@ const GenericList = ({ data, onAdd }) => {
 
       {/* Card: tabla */}
       <div className="bg-surface-card rounded-xl shadow-sm border border-border-subtle overflow-hidden">
-        <div className="px-6 py-4 border-b border-border-subtle bg-surface-low/30">
+        <div className={`px-6 border-b border-border-subtle bg-surface-low/30 ${tabs ? 'pt-4' : 'py-4'}`}>
           <h3 className="font-semibold text-on-surface">Listado de {title}</h3>
+          {tabs && (
+            <div role="tablist" aria-label={`Estado de ${title}`} className="mt-2.5 flex flex-wrap gap-1">
+              {tabs.options.map((option) => {
+                const active = option.value === activeTab;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => selectTab(option.value)}
+                    className={`-mb-px shrink-0 rounded-t-lg border-b-2 px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
+                      active
+                        ? TAB_TONE_CLASSES[option.tone] || TAB_TONE_CLASSES.accent
+                        : 'border-transparent text-on-surface-muted hover:text-on-surface'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {loading && (
@@ -242,11 +292,14 @@ const GenericList = ({ data, onAdd }) => {
               canEdit={canEdit}
               editDisabledReason={editDisabledReason}
               deleteDisabledReason={deleteDisabledReason}
+              deleteLabel={deleteLabel}
+              deleteIcon={deleteIcon}
               isRowSelectable={isRowSelectable}
               getRowClassName={getRowClassName}
               showEdit={showEdit}
               showDelete={showDelete}
               groupActions={groupActions}
+              extraActions={extraActions}
             />
           </div>
         )}
@@ -339,7 +392,7 @@ const GenericList = ({ data, onAdd }) => {
 
       <AlertDialog
         open={openConfirmDialog}
-        title={isMultipleDelete ? 'Confirmar eliminación múltiple' : 'Confirmar eliminación'}
+        title={isMultipleDelete ? 'Confirmar eliminación múltiple' : deleteDialogTitle}
         message={
           isMultipleDelete
             ? '¿Estás seguro que querés eliminar estos elementos?'
