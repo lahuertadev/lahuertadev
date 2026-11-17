@@ -72,3 +72,29 @@ describe('acciones no permitidas en la fila', () => {
     expect(await screen.findByText('No se puede editar')).toBeInTheDocument();
   });
 });
+
+describe('acciones propias de la pantalla (extraActions)', () => {
+  const twoRows = [{ id: 1, name: 'Habilitada' }, { id: 2, name: 'Bloqueada' }];
+  const DepositIcon = () => <span>$</span>;
+  const actionsCell = (id) => document.querySelector(`[data-id="${id}"] [data-field="actions"]`);
+
+  test('van como íconos después de Detalle; grisadas cuando no corresponden', () => {
+    const onDeposit = jest.fn();
+    const extraActions = [{
+      key: 'deposit', label: 'Depositar', icon: DepositIcon, onClick: onDeposit,
+      isEnabled: (row) => row.id === 1, disabledReason: 'Solo se depositan los cheques en cartera',
+    }];
+    render(<Grid {...props} rows={twoRows} groupActions showEdit={false} showDelete={false} extraActions={extraActions} />);
+
+    const enabledButtons = actionsCell(1).querySelectorAll('button');
+    expect(enabledButtons[0]).toHaveAttribute('data-tour', 'grid-detail');
+    expect(enabledButtons[1]).toHaveAccessibleName('Depositar');
+    fireEvent.click(enabledButtons[1]);
+    expect(onDeposit).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+
+    const blocked = actionsCell(2).querySelectorAll('button')[1];
+    expect(blocked).toBeDisabled();
+    fireEvent.click(blocked);
+    expect(onDeposit).toHaveBeenCalledTimes(1);
+  });
+});
