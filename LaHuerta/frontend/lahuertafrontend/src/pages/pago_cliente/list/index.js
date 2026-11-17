@@ -39,6 +39,8 @@ const buildData = (paymentTypeOptions) => ({
     { label: 'Fecha hasta', name: 'date_to', type: 'date' },
   ],
   newLabelText: 'Nuevo pago',
+  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Cheques y Pagos de Compras).
+  groupActions: true,
 });
 
 const ClientPaymentList = () => {
