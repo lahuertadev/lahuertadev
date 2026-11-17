@@ -6,13 +6,14 @@ import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
 import { BADGE_COLORS } from '../../../constants/badgeColors';
 import Badge from '../../../components/Badge';
+import BackButton from '../../../components/BackButton';
+import PageHeader from '../../../components/PageHeader';
 import { CHECK_STATE_CONFIG } from '../../../constants/grid/Check';
 
 
@@ -77,12 +78,7 @@ const CheckDetail = () => {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el cheque.</p>
-        <button
-          onClick={() => navigate('/check')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/check')} label="Volver al listado" />
       </div>
     );
   }
@@ -94,14 +90,14 @@ const CheckDetail = () => {
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/check')}>Cheques</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">N° {check.numero}</span>
-      </nav>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', path: '/' },
+          { label: 'Cheques', path: '/check' },
+          { label: `N° ${check.numero}` },
+        ]}
+        onBack={() => navigate('/check')}
+      />
 
       {/* 1. Datos del cheque */}
       <SectionCard icon={<ReceiptIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque">
@@ -162,15 +158,9 @@ const CheckDetail = () => {
         </SectionCard>
       )}
 
-      {/* Action Bar */}
-      <div className="flex items-center justify-end pt-6 border-t border-border-subtle">
-        <button
-          type="button"
-          onClick={() => navigate('/check')}
-          className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-        </button>
+      {/* En mobile Volver va abajo de todo, a lo ancho (en desktop está arriba, en PageHeader). */}
+      <div className="sm:hidden pt-6 border-t border-border-subtle">
+        <BackButton onClick={() => navigate('/check')} className="w-full px-6 py-2.5 text-sm" />
       </div>
 
     </div>
