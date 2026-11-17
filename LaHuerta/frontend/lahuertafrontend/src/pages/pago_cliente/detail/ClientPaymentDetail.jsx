@@ -17,6 +17,7 @@ import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import DeleteClientPaymentMessage from '../shared/DeleteClientPaymentMessage';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -191,7 +192,8 @@ const ClientPaymentDetail = () => {
       <AlertDialog
         open={confirmOpen}
         title="Eliminar pago"
-        message={`¿Estás seguro que querés eliminar este pago de ${payment?.cliente?.razon_social}? Esta acción no se puede deshacer.`}
+        message={<DeleteClientPaymentMessage payment={payment} />}
+        confirmLabel="Eliminar pago"
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />

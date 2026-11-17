@@ -30,6 +30,7 @@ const TAB_TONE_CLASSES = {
  *   deleteMessage — (row) => node. Opcional: texto del diálogo al eliminar un registro (por defecto,
  *                   "¿Estás seguro que querés eliminar este elemento?").
  *   deleteLabel / deleteIcon — texto e ícono del botón de borrar de la grilla (default 'Eliminar' y el tacho).
+ *   deleteConfirmLabel — texto del botón de confirmar del diálogo (ej. 'Eliminar pago'; default deleteLabel o 'Confirmar').
  *   deleteDialogTitle — título del diálogo al borrar un registro (default 'Confirmar eliminación').
  *   deleteRequest — (id) => Promise. Opcional: el pedido que hace la acción de borrar (por defecto,
  *                   DELETE a fetchUrl.baseUrl + id). Ej.: anular con POST a .../id/cancel/.
@@ -51,7 +52,7 @@ const TAB_TONE_CLASSES = {
  *                   si no se pasa, navega a fetchUrl.createUrl
  */
 const GenericList = ({ data, onAdd }) => {
-  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, tabs, extraActions } = data;
+  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, tabs, extraActions, deleteConfirmLabel } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -402,6 +403,7 @@ const GenericList = ({ data, onAdd }) => {
         }
         onConfirm={handleDeleteConfirm}
         onCancel={handleCloseConfirmDialog}
+        confirmLabel={deleteConfirmLabel || deleteLabel || 'Confirmar'}
       />
     </div>
   );

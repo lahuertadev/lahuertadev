@@ -36,6 +36,15 @@ Convención de todo el sistema (DEV-150).
 - **Tipos y otros estados:** `components/Badge` con un color de la paleta (`color="violet"` o la config `{ bg, color }`): tipos de pago, de factura, categorías, roles, y estados que no son ninguno de los tres (ej. "En cartera" y "Emitido" en azul, "Endosado" en violeta).
 - Un aviso dentro de una etiqueta de estado lleva un ícono de alerta (ej. "Cheque rechazado").
 
+## Diálogos de eliminar o anular
+Convención de todo el sitio (DEV-150). Referencia: `pages/pago_cliente/shared/DeleteClientPaymentMessage.jsx`.
+- `AlertDialog` (`components/DialogAlert`) con tono `danger`: borde animado, halo e ícono en rojo; el botón de confirmar es `SpotlightButton` `danger` (rojo translúcido con el efecto de luz). En mobile ocupa el ancho con márgenes y los botones van apilados a lo ancho, la acción arriba.
+- El texto se arma con `components/DeleteMessage`:
+  - **summary:** una frase con lo esencial (qué se elimina, de quién, el importe) y "No se puede deshacer.";
+  - **effects:** las consecuencias, cada una con su ícono, en el recuadro rojo;
+  - **note:** opcional, lo que no es una consecuencia (ej. cuándo no se puede eliminar).
+- El botón de confirmar dice la acción (ej. "Eliminar pago", "Anular"), no "Confirmar". En `GenericList`: `deleteDialogTitle`, `deleteMessage` y `deleteConfirmLabel`.
+
 ## Alertas
 Un aviso de que algo requiere atención (cheque rechazado, fecha vencida) usa `components/AlertIcon`: "!" rojo con el detalle en el tooltip, que también es su texto para lectores de pantalla. No usar otros íconos ni colores para esto.
 - **Sobre una etiqueta:** adentro, a la derecha del texto (ej. Tipo de pago en Pagos de clientes y Pagos de compras). Así todas las etiquetas de la columna quedan centradas igual.
