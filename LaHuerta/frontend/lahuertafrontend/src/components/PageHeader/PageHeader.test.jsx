@@ -45,3 +45,14 @@ test('Volver llama a onBack y en mobile queda oculto', () => {
   expect(onBack).toHaveBeenCalled();
   expect(back.closest('div')).toHaveClass('hidden', 'sm:block');
 });
+
+test('un breadcrumb del medio sin ruta (sección del menú) se muestra como texto, sin link', () => {
+  render(
+    <MemoryRouter>
+      <PageHeader breadcrumbs={[{ label: 'Inicio', path: '/' }, { label: 'Finanzas' }, { label: 'Gastos', path: '/expense' }, { label: '10/11/2026' }]} onBack={jest.fn()} />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByText('Finanzas')).not.toHaveClass('cursor-pointer');
+  expect(screen.getByText('Gastos')).toHaveClass('cursor-pointer');
+});
