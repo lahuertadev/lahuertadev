@@ -7,6 +7,10 @@ import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
 import Toast from '../../../components/Toast';
+import BackButton from '../../../components/BackButton';
+import PageHeader from '../../../components/PageHeader';
+import SpotlightButton from '../../../components/SpotlightButton';
+import StatusBadge from '../../../components/StatusBadge';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
@@ -108,14 +112,14 @@ const ClientPaymentDetail = () => {
         responsive
       />
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{payment.cliente.razon_social}</span>
-      </nav>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', path: '/' },
+          { label: 'Pagos de Clientes', path: '/client-payment' },
+          { label: payment.cliente.razon_social },
+        ]}
+        onBack={() => navigate('/client-payment')}
+      />
 
       {/* 1. Cliente */}
       <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Cliente" cols={3}>
@@ -133,9 +137,7 @@ const ClientPaymentDetail = () => {
         <Field label="Tipo de pago" value={payment.tipo_pago.descripcion} />
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Estado</span>
-          <span className={`text-sm font-semibold ${isRechazado ? 'text-red-500' : 'text-on-surface'}`}>
-            {isRechazado ? 'Rechazado' : 'Acreditado'}
-          </span>
+          <StatusBadge tone={isRechazado ? 'danger' : 'success'} label={isRechazado ? 'Rechazado' : 'Acreditado'} />
         </div>
         {payment.observaciones && (
           <div className="md:col-span-3 flex flex-col gap-1">
@@ -148,59 +150,42 @@ const ClientPaymentDetail = () => {
       {/* 3. Datos del cheque (si aplica) */}
       {payment.cheque && (
         <SectionCard icon={<CreditCardIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
-          <Field label="N° de cheque" value={payment.cheque.numero} />
+          {/* El número lleva al detalle del cheque. */}
+          <div className="flex flex-col gap-1">
+            <span className={labelCls}>N° de cheque</span>
+            <button
+              type="button"
+              onClick={() => navigate(`/check/detail/${payment.cheque.id}`)}
+              className="w-fit text-sm font-medium text-blue-lahuerta hover:underline"
+            >
+              {payment.cheque.numero}
+            </button>
+          </div>
           <Field label="Banco" value={payment.cheque.banco_descripcion} />
           <Field label="Fecha de emisión" value={formatDate(payment.cheque.fecha_emision)} />
           <Field label="Fecha de depósito" value={formatDate(payment.cheque.fecha_deposito)} />
         </SectionCard>
       )}
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/client-payment/edit/${id}`)}
-                className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar pago
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/client-payment')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/client-payment')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/client-payment/edit/${id}`)}
-              className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
-            >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar pago
-            </button>
-          </div>
+      {/* Acciones: en desktop abajo a la derecha (Volver va arriba, en PageHeader); en mobile a lo ancho,
+          con Editar arriba y Volver abajo de todo. En mobile también se elimina desde acá (el listado no
+          tiene columna de acciones). */}
+      <div className="flex flex-col-reverse gap-3 pt-6 border-t border-border-subtle sm:flex-row sm:justify-end sm:gap-4">
+        <div className="sm:hidden">
+          <BackButton onClick={() => navigate('/client-payment')} className="w-full px-6 py-2.5 text-sm" />
+        </div>
+        {isMobile && (
+          <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full px-6 py-2.5 text-sm">
+            <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
+          </SpotlightButton>
         )}
+        <SpotlightButton
+          variant="primary"
+          onClick={() => navigate(`/client-payment/edit/${id}`)}
+          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
+        >
+          <EditIcon sx={{ fontSize: 16 }} /> Editar pago
+        </SpotlightButton>
       </div>
 
       <AlertDialog
