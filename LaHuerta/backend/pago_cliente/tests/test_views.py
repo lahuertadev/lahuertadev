@@ -10,7 +10,7 @@ from pago_cliente.models import PagoCliente
 from pago_cliente.views import ClientPaymentViewSet
 from pago_cliente.interfaces import IClientPaymentRepository
 from pago_cliente.exceptions import ClientPaymentNotFoundException, PaymentTypeChangeBlockedException
-from core.tests.factories import make_client, make_client_payment, make_payment_type
+from core.tests.factories import make_check, make_client, make_client_payment, make_payment_type
 
 
 # ── Fixtures DB ────────────────────────────────────────────────────────────────
@@ -206,6 +206,22 @@ def test_retrieve_success(factory, db_setup):
 
     assert response.status_code == 200
     assert response.data['id'] == payment.id
+    assert response.data['cheque'] is None
+
+
+@pytest.mark.django_db
+def test_retrieve_expone_el_id_del_cheque(factory, db_setup):
+    vs, repo = _make_viewset()
+    payment = repo._add_real(db_setup['cliente'], db_setup['tipo_pago'])
+    check = make_check(pago_cliente=payment)
+
+    response = vs.retrieve(
+        Request(factory.get(f'/client-payment/{payment.id}/'), parsers=[JSONParser()]),
+        pk=payment.id,
+    )
+
+    assert response.data['cheque']['id'] == check.id
+    assert response.data['cheque']['numero'] == check.numero
 
 
 # ── CREATE ─────────────────────────────────────────────────────────────────────
