@@ -17,9 +17,9 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOu
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
-import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import BackButton from '../../../components/BackButton';
+import EditButton from '../../../components/EditButton';
 import SpotlightButton from '../../../components/SpotlightButton';
 import ContactList from '../../../components/ContactList';
 
@@ -192,13 +192,7 @@ const ClientDetail = () => {
             <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
           </SpotlightButton>
         )}
-        <SpotlightButton
-          variant="primary"
-          onClick={() => navigate(`/client/edit/${id}`)}
-          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
-        >
-          <EditIcon sx={{ fontSize: 16 }} /> Editar cliente
-        </SpotlightButton>
+        <EditButton onClick={() => navigate(`/client/edit/${id}`)} label="Editar cliente" />
       </div>
 
       <AlertDialog

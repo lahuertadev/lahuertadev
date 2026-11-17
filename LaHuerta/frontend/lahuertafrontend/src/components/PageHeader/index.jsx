@@ -8,7 +8,7 @@ import BackButton from '../BackButton';
  * En mobile Volver no va arriba: va abajo con los demás botones (FormActions con onBack), a lo ancho.
  *
  * Props:
- *   breadcrumbs — [{ label, path }]; el último es la pantalla actual (sin path)
+ *   breadcrumbs — [{ label, path }]; el último es la pantalla actual (sin path). Uno del medio sin path se muestra sin link
  *   onBack      — acción de Volver
  */
 export default function PageHeader({ breadcrumbs, onBack }) {
@@ -23,6 +23,9 @@ export default function PageHeader({ breadcrumbs, onBack }) {
               {index > 0 && <span className="text-xs">›</span>}
               {isLast ? (
                 <span className="text-on-surface font-semibold">{crumb.label}</span>
+              ) : !crumb.path ? (
+                // Sección del menú sin pantalla propia (ej. Finanzas): texto, sin link.
+                <span className="whitespace-nowrap">{crumb.label}</span>
               ) : (
                 <span
                   className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"

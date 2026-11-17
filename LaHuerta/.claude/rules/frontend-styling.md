@@ -70,8 +70,15 @@ Convención de todo formulario de alta/edición (definida en DEV-135; Volver en 
   ```
 - **Abajo:** `FormActions` (`components/FormActions`) con Cancelar, Confirmar y `onBack`. En desktop quedan abajo a la derecha; en mobile apilados a lo ancho de la pantalla: Confirmar arriba, Cancelar y Volver abajo de todo. En formularios Formik usar `confirmType="submit"`.
 - Las pantallas que todavía arman el encabezado a mano (`div` con breadcrumbs + `BackButton`) se pasan a `PageHeader` y `onBack` cuando se toquen.
-- Cualquier otro botón usa `SpotlightButton` con su variante (`primary` acción principal, `outline` secundaria, `cancel` salir sin guardar, `danger` destructiva), no botones inline con colores propios. Así los botones se adaptan solos a los temas y un cambio de estilo se hace en un solo lugar.
+- Cualquier otro botón usa `SpotlightButton` con su variante (`primary` acción principal, `soft` acción principal de un detalle, `outline` secundaria, `cancel` salir sin guardar, `danger` destructiva), no botones inline con colores propios. Así los botones se adaptan solos a los temas y un cambio de estilo se hace en un solo lugar.
 - Interruptores Sí/No: `components/Switch`, no checkbox inline ni el `Switch` de MUI.
+
+## Botones de los detalles
+Convención de todo el sitio (DEV-150). Referencia: `pages/movimiento_vacio/detail/EmptyMovementDetail.jsx`.
+- **Arriba:** `PageHeader` con breadcrumbs y Volver.
+- **Abajo, en desktop:** solo Editar, con `components/EditButton` (azul translúcido, no relleno; `label` para "Editar cliente", etc.). No armar el botón a mano: su estilo se cambia solo en ese componente. Eliminar, Anular y los cambios de estado están en la columna Acción del listado.
+- **Abajo, en mobile:** el listado no tiene columna de acciones, así que en el detalle van esas acciones (`isMobile`), Editar y Volver abajo de todo, apilados a lo ancho.
+- Si una acción no está en el listado, va también en desktop, al lado de Editar.
 
 ## Campos obligatorios
 Convención definida en DEV-119. Referencia: `pages/cliente/form/ClientForm.js`.

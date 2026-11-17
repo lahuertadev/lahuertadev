@@ -8,6 +8,7 @@ import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
 import Tooltip from '@mui/material/Tooltip';
 import BackButton from '../../../components/BackButton';
+import EditButton from '../../../components/EditButton';
 import SpotlightButton from '../../../components/SpotlightButton';
 import { CHECK_STATE_CONFIG } from '../../../constants/grid/Check';
 import { OWN_CHECK_STATE_CONFIG } from '../../../constants/grid/OwnCheck';
@@ -18,7 +19,6 @@ import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import EditIcon from '@mui/icons-material/EditOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -235,13 +235,7 @@ const PurchasePaymentDetail = () => {
         <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full sm:w-auto px-6 py-2.5 text-sm">
           <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
         </SpotlightButton>
-        <SpotlightButton
-          variant="primary"
-          onClick={() => navigate(`/purchase-payment/edit/${id}`)}
-          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
-        >
-          <EditIcon sx={{ fontSize: 16 }} /> Editar pago
-        </SpotlightButton>
+        <EditButton onClick={() => navigate(`/purchase-payment/edit/${id}`)} label="Editar pago" />
       </div>
 
       <AlertDialog

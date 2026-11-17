@@ -9,12 +9,12 @@ import AlertDialog from '../../../components/DialogAlert';
 import Toast from '../../../components/Toast';
 import BackButton from '../../../components/BackButton';
 import PageHeader from '../../../components/PageHeader';
+import EditButton from '../../../components/EditButton';
 import SpotlightButton from '../../../components/SpotlightButton';
 import StatusBadge from '../../../components/StatusBadge';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
-import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteClientPaymentMessage from '../shared/DeleteClientPaymentMessage';
@@ -180,13 +180,7 @@ const ClientPaymentDetail = () => {
             <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
           </SpotlightButton>
         )}
-        <SpotlightButton
-          variant="primary"
-          onClick={() => navigate(`/client-payment/edit/${id}`)}
-          className="w-full sm:w-auto sm:min-w-[10rem] px-6 py-2.5 text-sm"
-        >
-          <EditIcon sx={{ fontSize: 16 }} /> Editar pago
-        </SpotlightButton>
+        <EditButton onClick={() => navigate(`/client-payment/edit/${id}`)} label="Editar pago" />
       </div>
 
       <AlertDialog

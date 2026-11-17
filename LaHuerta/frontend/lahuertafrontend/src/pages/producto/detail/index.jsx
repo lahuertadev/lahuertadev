@@ -6,9 +6,11 @@ import { productUrl } from '../../../constants/urls';
 import AlertDialog from '../../../components/DialogAlert';
 import Inventory2Icon from '@mui/icons-material/Inventory2Outlined';
 import StraightenIcon from '@mui/icons-material/StraightenOutlined';
-import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BackButton from '../../../components/BackButton';
+import PageHeader from '../../../components/PageHeader';
+import EditButton from '../../../components/EditButton';
+import SpotlightButton from '../../../components/SpotlightButton';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -73,12 +75,7 @@ const ProductDetail = () => {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el producto.</p>
-        <button
-          onClick={() => navigate('/product')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/product')} label="Volver al listado" />
       </div>
     );
   }
@@ -95,14 +92,14 @@ const ProductDetail = () => {
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/product')}>Productos</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{product.descripcion}</span>
-      </nav>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', path: '/' },
+          { label: 'Productos', path: '/product' },
+          { label: product.descripcion },
+        ]}
+        onBack={() => navigate('/product')}
+      />
 
       {/* 1. Información General */}
       <SectionCard icon={<Inventory2Icon sx={{ fontSize: 20 }} />} title="Información General">
@@ -117,52 +114,18 @@ const ProductDetail = () => {
         {commercialField && <Field label={commercialField.label} value={commercialField.value} />}
       </SectionCard>
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/product/edit/${id}`)}
-                className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/product')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/product')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/product/edit/${id}`)}
-              className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
-            >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar producto
-            </button>
-          </div>
+      {/* Acciones. En desktop: solo Editar (Volver va arriba; Eliminar está en la columna Acción del
+          listado). En mobile el listado no tiene esa columna, así que acá van Eliminar, Editar y Volver. */}
+      <div className="flex flex-col-reverse gap-3 pt-6 border-t border-border-subtle sm:flex-row sm:justify-end sm:gap-4">
+        <div className="sm:hidden">
+          <BackButton onClick={() => navigate('/product')} className="w-full px-6 py-2.5 text-sm" />
+        </div>
+        {isMobile && (
+          <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full px-6 py-2.5 text-sm">
+            <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
+          </SpotlightButton>
         )}
+        <EditButton onClick={() => navigate(`/product/edit/${id}`)} label="Editar producto" />
       </div>
 
       <AlertDialog

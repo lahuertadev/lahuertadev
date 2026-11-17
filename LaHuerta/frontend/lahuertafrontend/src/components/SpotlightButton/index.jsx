@@ -27,6 +27,12 @@ const VARIANTS = {
     className: 'border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:border-amber-500/70 hover:shadow-md',
     glow: 'rgb(245 158 11 / 0.22)',
   },
+  // Acción principal de un detalle (ej. Editar): azul translúcido, como danger pero en azul. Se distingue
+  // sin ser un botón relleno, que queda para confirmar en formularios y diálogos.
+  soft: {
+    className: 'border border-accent/35 bg-accent/10 text-accent hover:border-accent/65 hover:shadow-md',
+    glow: 'rgb(var(--color-accent-rgb) / 0.25)',
+  },
   // Acción principal (ej. Confirmar). Azul fijo para que el texto blanco se lea en ambos temas.
   primary: {
     className: 'border border-blue-lahuerta bg-blue-lahuerta text-white hover:shadow-md hover:brightness-110',
@@ -50,7 +56,7 @@ const DISABLED_CLASS = 'border border-border-subtle bg-surface-low text-on-surfa
  * SpotlightButton — botón con el efecto de luz que sigue al cursor (mismo que AccessCard).
  *
  * Props:
- *   variant   — 'outline' (default) | 'cancel' | 'neutral' | 'danger' | 'warning' | 'primary' | 'news' | 'newsOutline'
+ *   variant   — 'outline' (default) | 'cancel' | 'neutral' | 'danger' | 'warning' | 'soft' | 'primary' | 'news' | 'newsOutline'
  *   onClick, disabled, type, aria-*
  *   className — clases extra (tamaño / ancho)
  *   children  — contenido del botón
