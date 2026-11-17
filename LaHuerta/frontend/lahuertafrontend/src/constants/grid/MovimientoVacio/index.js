@@ -1,8 +1,9 @@
 import React from 'react';
 import { EMPTY_MOVEMENT_TYPE_CONFIG } from '../../emptyMovementTypes';
+import { BADGE_COLORS } from '../../badgeColors';
 
 export const MovementTypeBadge = ({ type }) => {
-  const cfg = EMPTY_MOVEMENT_TYPE_CONFIG[type] || { label: type || '-', bg: '#f0f4f7', color: '#596064' };
+  const cfg = EMPTY_MOVEMENT_TYPE_CONFIG[type] || { label: type || '-', ...BADGE_COLORS.gray };
   return (
     <span style={{
       display: 'inline-block',

@@ -1,13 +1,14 @@
 import React from 'react';
-import Tooltip from '@mui/material/Tooltip';
-import ErrorIcon from '@mui/icons-material/ErrorOutline';
+import AlertIcon from '../../../components/AlertIcon';
+import { BADGE_COLORS } from '../../badgeColors';
+import Badge from '../../../components/Badge';
 
 export const CHECK_STATE_CONFIG = {
-  'EN_CARTERA': { label: 'En cartera', bg: '#e8f0fb', color: '#4a7bc4' },
-  'DEPOSITADO': { label: 'Depositado', bg: '#fef9c3', color: '#a16207' },
-  'ACREDITADO': { label: 'Acreditado', bg: '#dcfce7', color: '#166534' },
-  'ENDOSADO':   { label: 'Endosado',   bg: '#f3e8ff', color: '#7e22ce' },
-  'RECHAZADO':  { label: 'Rechazado',  bg: '#ffebee', color: '#c62828' },
+  'EN_CARTERA': { label: 'En cartera', ...BADGE_COLORS.blue },
+  'DEPOSITADO': { label: 'Depositado', ...BADGE_COLORS.yellow },
+  'ACREDITADO': { label: 'Acreditado', ...BADGE_COLORS.green },
+  'ENDOSADO':   { label: 'Endosado',   ...BADGE_COLORS.violet },
+  'RECHAZADO':  { label: 'Rechazado',  ...BADGE_COLORS.red },
 };
 
 export const columns = [
@@ -26,13 +27,17 @@ export const columns = [
       const { depositDateRaw, stateRaw } = params.row;
       const overdue = stateRaw === 'EN_CARTERA' && depositDateRaw && new Date(depositDateRaw) < new Date();
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <span>{params.value}</span>
-          {overdue && (
-            <Tooltip title="La fecha de depósito ya pasó y el cheque sigue en cartera" arrow>
-              <ErrorIcon sx={{ fontSize: 16, color: '#ef4444', cursor: 'default' }} />
-            </Tooltip>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {/* El aviso queda pegado a la derecha de la fecha sin correrla: las fechas quedan centradas igual. */}
+          <span className="relative">
+            {params.value}
+            {overdue && (
+              <AlertIcon
+                title="La fecha de depósito ya pasó y el cheque sigue en cartera"
+                className="absolute left-full top-1/2 -translate-y-1/2 ml-1"
+              />
+            )}
+          </span>
         </div>
       );
     },
@@ -44,21 +49,9 @@ export const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => {
-      const cfg = CHECK_STATE_CONFIG[params.value] || { label: params.value || '-', bg: '#f0f4f7', color: '#596064' };
+      const cfg = CHECK_STATE_CONFIG[params.value] || { label: params.value || '-', ...BADGE_COLORS.gray };
       return (
-        <span style={{
-          display: 'inline-block',
-          padding: '2px 10px',
-          borderRadius: '6px',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          lineHeight: '18px',
-          backgroundColor: cfg.bg,
-          color: cfg.color,
-          whiteSpace: 'nowrap',
-        }}>
-          {cfg.label}
-        </span>
+        <Badge color={cfg} label={cfg.label} />
       );
     },
   },

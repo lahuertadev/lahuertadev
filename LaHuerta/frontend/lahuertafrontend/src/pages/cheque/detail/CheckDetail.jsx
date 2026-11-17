@@ -11,14 +11,10 @@ import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
+import { BADGE_COLORS } from '../../../constants/badgeColors';
+import Badge from '../../../components/Badge';
+import { CHECK_STATE_CONFIG } from '../../../constants/grid/Check';
 
-const STATE_CONFIG = {
-  'EN_CARTERA': { label: 'En cartera',  bg: '#e8f0fb', color: '#4a7bc4' },
-  'DEPOSITADO': { label: 'Depositado',  bg: '#fef9c3', color: '#a16207' },
-  'ACREDITADO': { label: 'Acreditado', bg: '#dcfce7', color: '#166534' },
-  'ENDOSADO':   { label: 'Endosado',   bg: '#f3e8ff', color: '#7e22ce' },
-  'RECHAZADO':  { label: 'Rechazado',  bg: '#ffebee', color: '#c62828' },
-};
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -92,7 +88,7 @@ const CheckDetail = () => {
   }
 
   const estadoDesc = check.estado?.descripcion || '';
-  const stateCfg = STATE_CONFIG[estadoDesc] || { label: estadoDesc || '—', bg: '#f0f4f7', color: '#596064' };
+  const stateCfg = CHECK_STATE_CONFIG[estadoDesc] || { label: estadoDesc || '—', ...BADGE_COLORS.gray };
   const isOverdue = estadoDesc === 'EN_CARTERA' && check.fecha_deposito && new Date(check.fecha_deposito) < new Date();
 
   return (
@@ -118,20 +114,7 @@ const CheckDetail = () => {
         <Field label="Endosado" value={check.endosado ? 'Sí' : 'No'} />
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Estado</span>
-          <span style={{
-            display: 'inline-flex',
-            width: 'fit-content',
-            padding: '2px 10px',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            lineHeight: '18px',
-            backgroundColor: stateCfg.bg,
-            color: stateCfg.color,
-            whiteSpace: 'nowrap',
-          }}>
-            {stateCfg.label}
-          </span>
+          <Badge color={stateCfg} label={stateCfg.label} />
         </div>
       </SectionCard>
 

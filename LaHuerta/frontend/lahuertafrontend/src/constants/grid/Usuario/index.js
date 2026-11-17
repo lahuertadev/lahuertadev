@@ -1,6 +1,7 @@
 import React from 'react';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { ROLE_CONFIG } from '../../roles';
+import { BADGE_COLORS } from '../../badgeColors';
 
 const ROLE_MENU_OPTIONS = [
   { value: 'administrator', label: 'Administrador' },
@@ -16,9 +17,9 @@ const STATUS_MENU_OPTIONS = [
 ];
 
 const STATUS_CONFIG = {
-  active: { label: 'Activo', bg: '#e6f4ea', color: '#15803d' },
-  inactive: { label: 'Inactivo', bg: '#fdeaea', color: '#dc2626' },
-  pending: { label: 'Pendiente', bg: '#fff1e0', color: '#c2650a' },
+  active: { label: 'Activo', ...BADGE_COLORS.green },
+  inactive: { label: 'Inactivo', ...BADGE_COLORS.red },
+  pending: { label: 'Pendiente', ...BADGE_COLORS.yellow },
 };
 
 const pillStyle = (bg, color) => ({
@@ -39,7 +40,7 @@ const pillStyle = (bg, color) => ({
 // el popup nativo del navegador (igual que "Cliente" en FacturaForm.js) pero
 // se ve como un badge con flecha en vez de una caja de select.
 const RoleCell = ({ params, onChangeRole, busyId }) => {
-  const cfg = ROLE_CONFIG[params.value] || { label: params.value, bg: '#f0f4f7', color: '#596064' };
+  const cfg = ROLE_CONFIG[params.value] || { label: params.value, ...BADGE_COLORS.gray };
   const isBusy = busyId === params.row.id;
 
   if (params.value === 'superuser') {
