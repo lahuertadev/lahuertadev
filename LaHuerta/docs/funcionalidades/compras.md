@@ -44,7 +44,7 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 - `POST /buy/bulk/` — Crear varias compras para una misma fecha (carga masiva)
 - `GET /buy/:id/` — Detalle de compra
 - `PUT /buy/:id/` — Actualizar compra
-- `DELETE /buy/:id/` — Eliminar compra
+- `DELETE /buy/:id/` — Eliminar compra (400 si la cubre algún pago, vigente o anulado)
 
 ## Carga masiva
 
@@ -82,5 +82,7 @@ Los formularios de compra (carga simple y masiva) muestran un aviso fijo record�
 - La cuenta corriente del proveedor (`cuenta_corriente`) se actualiza automáticamente en el backend con cada operación de compra.
 - Al editar una compra y cambiar el proveedor, el sistema ajusta el balance de ambos proveedores.
 - Al eliminar una compra, el importe se revierte en la cuenta corriente del proveedor.
+- Una compra que cubre algún pago, vigente o anulado, no se puede eliminar (DEV-150): el pago conserva sus compras como registro. Con un pago vigente, primero hay que editarlo y destildar la compra; con un pago anulado, la compra ya no se puede eliminar. El mensaje de error nombra los pagos.
+- El diálogo de eliminar dice el número, el proveedor y el importe de la compra, y cuánto baja la deuda con el proveedor (importe menos seña).
 - El precio unitario no afecta el cálculo del importe total; es un dato informativo para la gestión de precios de venta.
 - Los vacíos **no forman parte de la compra** ni de su importe: impactan en la cuenta corriente del proveedor a través de sus propios movimientos (ver [vacios.md](vacios.md)).

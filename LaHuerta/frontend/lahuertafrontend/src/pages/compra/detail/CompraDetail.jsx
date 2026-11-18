@@ -7,6 +7,9 @@ import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
+import Toast from '../../../components/Toast';
+import { useToast } from '../../../context/ToastContext';
+import DeleteBuyMessage from '../shared/DeleteBuyMessage';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCartOutlined';
@@ -49,10 +52,21 @@ const CompraDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '' });
+  const { showToast } = useToast();
 
+  // Si un pago cubre la compra, el backend no la deja eliminar y explica por qué.
   const handleDelete = async () => {
-    await axios.delete(`${buyUrl}${id}/`);
-    navigate('/buy');
+    try {
+      await axios.delete(`${buyUrl}${id}/`);
+      showToast('La compra se eliminó correctamente.');
+      navigate('/buy');
+    } catch (err) {
+      console.error('Error eliminando la compra:', err);
+      setToast({ open: true, message: err?.response?.data?.detail || 'Error al eliminar la compra.' });
+    } finally {
+      setConfirmOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -219,10 +233,12 @@ const CompraDetail = () => {
       <AlertDialog
         open={confirmOpen}
         title="Eliminar compra"
-        message={`¿Estás seguro que querés eliminar la compra N° ${number} de ${compra?.proveedor?.nombre}? Esta acción no se puede deshacer.`}
+        message={<DeleteBuyMessage buy={compra} />}
+        confirmLabel="Eliminar compra"
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />
+      <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} duration={8000} />
 
     </div>
   );
