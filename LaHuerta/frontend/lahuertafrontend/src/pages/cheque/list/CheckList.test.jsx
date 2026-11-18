@@ -90,3 +90,40 @@ describe('Depositar titila cuando ya llegó la fecha de depósito', () => {
     expect(isDepositDue({ stateRaw: 'EN_CARTERA', depositDateRaw: null })).toBe(false);
   });
 });
+
+describe('Solapas Todos, Pendientes y Rechazados', () => {
+  test('entra en Todos y no manda la solapa', async () => {
+    renderList();
+    await screen.findByText('1001');
+
+    expect(screen.getByRole('tab', { name: 'Todos' })).toHaveAttribute('aria-selected', 'true');
+    expect(axios.get).toHaveBeenCalledWith(checkUrl);
+  });
+
+  test.each([
+    ['Pendientes', 'pendientes'],
+    ['Rechazados', 'rechazados'],
+  ])('%s pide el listado con solapa=%s', async (label, value) => {
+    renderList();
+    await screen.findByText('1001');
+
+    fireEvent.click(screen.getByRole('tab', { name: label }));
+
+    await waitFor(() => expect(axios.get).toHaveBeenLastCalledWith(`${checkUrl}?solapa=${value}`));
+    expect(screen.getByRole('tab', { name: label })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  test('al depositar se recarga en la misma solapa', async () => {
+    renderList();
+    await screen.findByText('1001');
+    fireEvent.click(screen.getByRole('tab', { name: 'Pendientes' }));
+    await waitFor(() => expect(axios.get).toHaveBeenLastCalledWith(`${checkUrl}?solapa=pendientes`));
+    await screen.findByText('1001');
+    axios.get.mockClear();
+
+    fireEvent.click(button(1, 'Depositar'));
+
+    await waitFor(() => expect(axios.get).toHaveBeenCalledWith(`${checkUrl}?solapa=pendientes`));
+    expect(screen.getByRole('tab', { name: 'Pendientes' })).toHaveAttribute('aria-selected', 'true');
+  });
+});

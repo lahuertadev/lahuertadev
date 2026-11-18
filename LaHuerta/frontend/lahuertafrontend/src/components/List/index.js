@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import DataGridDemo from '../Grid';
 import AlertDialog from '../DialogAlert';
 import SpotlightButton from '../SpotlightButton';
@@ -15,10 +15,12 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FilterAltOutlinedIcon from '@mui/icons-material/FilterAltOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 
-// Color de la solapa activa según su tono: el acento de la app, o el rojo de la etiqueta "Anulado".
+// Color de la solapa activa según su tono: el acento de la app, el rojo de la etiqueta "Anulado"
+// o el ámbar del aviso de algo pendiente (ej. cheques para depositar).
 const TAB_TONE_CLASSES = {
   accent: 'text-accent border-accent bg-accent/10',
   danger: 'text-red-600 border-red-600 bg-red-500/10 dark:text-red-400 dark:border-red-400',
+  attention: 'text-attention border-attention bg-attention/10',
 };
 
 /**
@@ -36,7 +38,8 @@ const TAB_TONE_CLASSES = {
  *                   DELETE a fetchUrl.baseUrl + id). Ej.: anular con POST a .../id/cancel/.
  *   tabs          — { param, options: [{ label, value, tone? }] }. Opcional: solapas debajo del título
  *                   que filtran el listado; la elegida va al backend como param=value, junto con los
- *                   filtros. La primera opción queda activa al entrar. tone: 'accent' (default) | 'danger'.
+ *                   filtros. La primera opción queda activa al entrar; una opción con value '' no manda
+ *                   el parámetro (ej. "Todos"). tone: 'accent' (default) | 'danger' | 'attention'.
  *   deleteSuccessMessage — (count) => string. Opcional: si está, muestra un toast de éxito
  *                   al eliminar (count = cantidad de registros eliminados).
  *   fetchUrl      — { baseUrl, createUrl, editUrl, detailUrl? }
@@ -50,8 +53,10 @@ const TAB_TONE_CLASSES = {
  * Props directas:
  *   onAdd         — (opcional) callback personalizado para el botón "Nueva X";
  *                   si no se pasa, navega a fetchUrl.createUrl
+ *   refreshKey    — (opcional) al cambiar, vuelve a pedir el listado con la solapa y los filtros
+ *                   que están elegidos (ej. después de cambiar el estado de un registro).
  */
-const GenericList = ({ data, onAdd }) => {
+const GenericList = ({ data, onAdd, refreshKey }) => {
   const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, tabs, extraActions, deleteConfirmLabel } = data;
 
   const [rows, setRows] = useState([]);
@@ -101,6 +106,16 @@ const GenericList = ({ data, onAdd }) => {
   };
 
   useEffect(() => { fetchItems(); }, []);
+
+  // Recarga sin perder la solapa ni los filtros. La primera vez no: ya lo hace el efecto de arriba.
+  const isFirstRefresh = useRef(true);
+  useEffect(() => {
+    if (isFirstRefresh.current) {
+      isFirstRefresh.current = false;
+      return;
+    }
+    fetchItems(filterValues);
+  }, [refreshKey]);
 
   const handleFilterChange = (e) => {
     setFilterValues((prev) => ({ ...prev, [e.target.name]: e.target.value }));

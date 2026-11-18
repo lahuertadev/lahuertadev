@@ -38,6 +38,17 @@ const mapCheckData = (data) => {
   }));
 };
 
+// Solapas debajo del título, como en Pagos de Compras. Pendientes: los que ya hay que depositar
+// (en cartera con la fecha de depósito cumplida), los mismos en los que titila Depositar.
+export const CHECK_TABS = {
+  param: 'solapa',
+  options: [
+    { label: 'Todos', value: '' },
+    { label: 'Pendientes', value: 'pendientes', tone: 'attention' },
+    { label: 'Rechazados', value: 'rechazados', tone: 'danger' },
+  ],
+};
+
 const FILTERS_CONFIG = [
   { label: 'Banco', name: 'banco', type: 'text' },
   {
@@ -124,13 +135,14 @@ const CheckList = () => {
     showDelete: false,
     groupActions: true,
     extraActions,
+    tabs: CHECK_TABS,
     filtersConfig: FILTERS_CONFIG,
   };
 
   return (
     <>
       <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} />
-      <GenericList key={refreshKey} data={data} />
+      <GenericList refreshKey={refreshKey} data={data} />
     </>
   );
 };
