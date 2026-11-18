@@ -51,23 +51,25 @@ html:not(.dark) .dialog-border-glow > .dialog-body {
 }
 
 /* Acción de la grilla que pide atención (ej. Depositar un cheque cuya fecha de depósito llegó):
-   el ícono titila en azul con un halo. Al pasar el mouse se queda quieto y toma el color del hover. */
+   un círculo ámbar suave aparece y se va detrás del ícono, que se tiñe de ámbar. Al pasar el mouse se
+   queda quieto y toma el color del hover. Las animaciones pisan los estilos inline del botón. */
 @keyframes actionAttention {
-  0%, 100% { color: var(--color-accent); box-shadow: 0 0 0 0 rgb(var(--color-accent-rgb) / 0.45); }
-  50%      { color: rgb(var(--color-accent-rgb) / 0.35); box-shadow: 0 0 0 5px rgb(var(--color-accent-rgb) / 0); }
+  0%, 100% { background: rgb(var(--color-attention-rgb) / 0); color: var(--color-on-surface-muted); }
+  50%      { background: rgb(var(--color-attention-rgb) / 0.2); color: var(--color-attention); }
 }
 
 .action-attention {
-  animation: actionAttention 1.4s ease-in-out infinite;
+  border-radius: 50% !important;
+  animation: actionAttention 1.8s ease-in-out infinite;
 }
 
 .action-attention:hover {
   animation: none;
 }
 
-/* Sin animaciones: queda fijo en azul, igual se distingue de los demás íconos. */
+/* Sin animaciones: queda fijo en ámbar, igual se distingue de los demás íconos. */
 @media (prefers-reduced-motion: reduce) {
-  .action-attention { animation: none; color: var(--color-accent) !important; }
+  .action-attention { animation: none; color: var(--color-attention) !important; }
 }
 
 /* Barra de progreso del punto activo del carrusel de novedades (NewsPanel). */
@@ -110,6 +112,9 @@ html:not(.dark) .dialog-border-glow > .dialog-body {
   /* Estado pendiente / a revisar (ej. tutorial sin hacer) */
   --color-warning:            #c2410c;
   --color-warning-rgb:        194 65 12;
+  /* Acción que hay que hacer ya (ej. Depositar un cheque cuya fecha llegó): ámbar, como "Depositado" */
+  --color-attention:          #d97706;
+  --color-attention-rgb:      217 119 6;
   /* Asterisco de campo obligatorio (RequiredMark): rojo con contraste AA sobre la tarjeta */
   --color-required:           #dc2626;
   --color-required-rgb:       220 38 38;
@@ -161,6 +166,8 @@ html:not(.dark) .dialog-border-glow > .dialog-body {
   --color-success-rgb:        74 222 128;
   --color-warning:            #fb923c;
   --color-warning-rgb:        251 146 60;
+  --color-attention:          #fbbf24;
+  --color-attention-rgb:      251 191 36;
   --color-required:           #f87171;
   --color-required-rgb:       248 113 113;
   --color-alert-surface:      #271f33;
