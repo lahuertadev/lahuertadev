@@ -51,25 +51,34 @@ html:not(.dark) .dialog-border-glow > .dialog-body {
 }
 
 /* Acción de la grilla que pide atención (ej. Depositar un cheque cuya fecha de depósito llegó):
-   un círculo ámbar suave aparece y se va detrás del ícono, que se tiñe de ámbar. Al pasar el mouse se
-   queda quieto y toma el color del hover. Las animaciones pisan los estilos inline del botón. */
+   un círculo suave aparece y se va detrás del ícono, que se tiñe del mismo color. Al pasar el mouse se
+   queda quieto y toma el color del hover. Las animaciones pisan los estilos inline del botón.
+   El color es el del estado al que lleva la acción: ámbar por defecto (Depositar → Depositado) y
+   verde con .action-attention-success (Cobrar → Cobrado). */
 @keyframes actionAttention {
-  0%, 100% { background: rgb(var(--color-attention-rgb) / 0); color: var(--color-on-surface-muted); }
-  50%      { background: rgb(var(--color-attention-rgb) / 0.2); color: var(--color-attention); }
+  0%, 100% { background: rgb(var(--attention-rgb) / 0); color: var(--color-on-surface-muted); }
+  50%      { background: rgb(var(--attention-rgb) / 0.2); color: var(--attention); }
 }
 
 .action-attention {
+  --attention: var(--color-attention);
+  --attention-rgb: var(--color-attention-rgb);
   border-radius: 50% !important;
   animation: actionAttention 1.8s ease-in-out infinite;
+}
+
+.action-attention-success {
+  --attention: var(--color-success);
+  --attention-rgb: var(--color-success-rgb);
 }
 
 .action-attention:hover {
   animation: none;
 }
 
-/* Sin animaciones: queda fijo en ámbar, igual se distingue de los demás íconos. */
+/* Sin animaciones: queda fijo en su color, igual se distingue de los demás íconos. */
 @media (prefers-reduced-motion: reduce) {
-  .action-attention { animation: none; color: var(--color-attention) !important; }
+  .action-attention { animation: none; color: var(--attention) !important; }
 }
 
 /* Barra de progreso del punto activo del carrusel de novedades (NewsPanel). */

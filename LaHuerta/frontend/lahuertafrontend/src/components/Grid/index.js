@@ -40,6 +40,8 @@ import RoundedCheckbox from '../RoundedCheckbox';
  *                         con el motivo en el tooltip. danger: se tiñe de rojo al pasar el mouse.
  *                         needsAttention: si devuelve true, el ícono titila (clase action-attention) para
  *                         marcar que esa acción está pendiente; attentionReason se suma al tooltip.
+ *                         attentionTone: 'attention' (ámbar, default) | 'success' (verde), el color del
+ *                         estado al que lleva la acción (ej. Cobrar → Cobrado).
  *   getRowClassName   — (params) => string — para resaltar filas (ej. devolver 'row-highlighted'
  *                         cuando la fila tiene cambios sin guardar)
  */
@@ -263,7 +265,7 @@ export default function DataGridDemo({
   const renderExtraAction = (action) => (params, buttonSx = actionButtonSx) => {
     const {
       label, icon: ActionIcon, onClick, isEnabled, disabledReason = `No se puede ${label.toLowerCase()}`, danger,
-      needsAttention, attentionReason,
+      needsAttention, attentionReason, attentionTone,
     } = action;
     if (isEnabled && !isEnabled(params.row)) return renderDisabledButton(ActionIcon, disabledReason, params.row, buttonSx);
     const hover = danger ? { color: '#ef4444', background: 'rgba(239,68,68,0.06)' } : { color: '#4a7bc4', background: 'rgba(93,137,200,0.08)' };
@@ -274,7 +276,7 @@ export default function DataGridDemo({
         <button
           type="button"
           aria-label={title}
-          className={attention ? 'action-attention' : undefined}
+          className={attention ? `action-attention${attentionTone === 'success' ? ' action-attention-success' : ''}` : undefined}
           style={buttonSx}
           onMouseEnter={e => { e.currentTarget.style.color = hover.color; e.currentTarget.style.background = hover.background; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}
