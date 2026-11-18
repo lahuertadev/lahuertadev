@@ -3,9 +3,9 @@ from decimal import Decimal
 
 from compra.service import BuyService
 from compra.interfaces import IBuyRepository
-from compra.exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
+from compra.exceptions import BuyNotFoundException, BuySupplierChangeBlockedException, BuyWithPaymentsException
 from compra_producto.interfaces import IBuyProductRepository
-from core.tests.mocks import mock_purchase, mock_supplier
+from core.tests.mocks import mock_purchase, mock_purchase_payment, mock_supplier
 from proveedor.interfaces import ISupplierRepository
 
 
@@ -95,6 +95,9 @@ class FakeBuyRepo(IBuyRepository):
     def delete(self, buy):
         self._items.pop(buy.id, None)
         self._deleted.append(buy)
+
+    def get_applied_payments(self, buy):
+        return getattr(self, '_payments', {}).get(buy.id, [])
 
 
 class FakeBuyProductRepo(IBuyProductRepository):
@@ -331,6 +334,55 @@ class TestDeleteBuy:
         service.delete_buy(buy_id)
 
         assert service.buy_repository.get_by_id(buy_id) is None
+
+
+    def _buy_with_payments(self, service, *payments):
+        buy = service.buy_repository.create(
+            proveedor=mock_supplier(cuenta_corriente=Decimal('500.00')), fecha='2024-01-01',
+            importe=Decimal('500.00'), senia=Decimal('0'),
+        )
+        service.buy_repository._payments = {buy.id: list(payments)}
+        return buy
+
+    def test_con_un_pago_vigente_no_se_elimina_y_pide_destildarla(self):
+        service = _make_service()
+        buy = self._buy_with_payments(service, mock_purchase_payment(id=12, estado_pago='VIGENTE'))
+
+        with pytest.raises(BuyWithPaymentsException) as error:
+            service.delete_buy(buy.id)
+
+        assert str(error.value) == (
+            'No se puede eliminar la compra porque la cubre el pago N° 00000012. '
+            'Editá el pago y destildá la compra para poder eliminarla.'
+        )
+        assert service.buy_repository.get_by_id(buy.id) is buy
+        assert buy.proveedor.cuenta_corriente == Decimal('500.00')
+
+    def test_con_un_pago_anulado_no_se_elimina_porque_lo_conserva(self):
+        service = _make_service()
+        buy = self._buy_with_payments(service, mock_purchase_payment(id=7, estado_pago='ANULADO'))
+
+        with pytest.raises(BuyWithPaymentsException) as error:
+            service.delete_buy(buy.id)
+
+        assert str(error.value) == 'No se puede eliminar la compra porque el pago anulado N° 00000007 la conserva como registro.'
+
+    def test_con_pagos_vigentes_y_anulados_los_nombra_a_todos(self):
+        service = _make_service()
+        buy = self._buy_with_payments(
+            service,
+            mock_purchase_payment(id=3, estado_pago='ANULADO'),
+            mock_purchase_payment(id=5, estado_pago='VIGENTE'),
+            mock_purchase_payment(id=9, estado_pago='VIGENTE'),
+        )
+
+        with pytest.raises(BuyWithPaymentsException) as error:
+            service.delete_buy(buy.id)
+
+        assert str(error.value) == (
+            'No se puede eliminar la compra porque la cubren los pagos N° 00000005 y N° 00000009, '
+            'y el pago anulado N° 00000003 la conserva como registro.'
+        )
 
 
 # ── Tests: create_bulk_buys ────────────────────────────────────────────────────

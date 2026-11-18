@@ -1,6 +1,7 @@
 from django.db.models import Q, Sum, DecimalField, Value
 from django.db.models.functions import Coalesce
 from .models import Compra
+from pago_compra.models import PagoCompra
 from .interfaces import IBuyRepository
 from pago_compra.constants import PaymentState
 
@@ -61,3 +62,6 @@ class BuyRepository(IBuyRepository):
 
     def delete(self, buy):
         buy.delete()
+
+    def get_applied_payments(self, buy):
+        return list(PagoCompra.objects.filter(purchase_applications__compra=buy).distinct().order_by('id'))

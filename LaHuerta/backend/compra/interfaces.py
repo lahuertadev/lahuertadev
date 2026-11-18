@@ -23,3 +23,8 @@ class IBuyRepository(ABC):
     @abstractmethod
     def delete(self, buy):
         pass
+
+    @abstractmethod
+    def get_applied_payments(self, buy):
+        '''Pagos (vigentes y anulados) que le aplicaron algo a la compra, del más viejo al más nuevo.'''
+        pass

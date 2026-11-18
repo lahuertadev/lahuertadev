@@ -284,3 +284,15 @@ def test_list_no_expone_los_pagos(factory):
     response = BuyViewSet().list(Request(factory.get('/buy/'), parsers=[JSONParser()]))
 
     assert 'payments' not in response.data[0]
+
+
+@pytest.mark.django_db
+def test_destroy_compra_con_pago_devuelve_400_y_no_la_elimina(factory):
+    buy = make_purchase()
+    payment = make_purchase_payment(compra=buy, importe_abonado=Decimal('100.00'))
+
+    response = BuyViewSet().destroy(Request(factory.delete(f'/buy/{buy.id}/'), parsers=[JSONParser()]), pk=buy.id)
+
+    assert response.status_code == 400
+    assert f'N° {payment.id:08d}' in response.data['detail']
+    buy.refresh_from_db()

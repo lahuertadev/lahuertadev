@@ -12,7 +12,7 @@ from .serializers import (
     BuyUpdateSerializer,
     BuyQueryParamsSerializer,
 )
-from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
+from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException, BuyWithPaymentsException
 from .factory import build_buy_service
 
 logger = logging.getLogger(__name__)
@@ -196,6 +196,7 @@ class BuyViewSet(viewsets.ViewSet):
     def destroy(self, request, pk=None):
         '''
         Elimina una compra y revierte el importe de la cuenta corriente del proveedor.
+        No se puede si la cubre algún pago, vigente o anulado (400).
         '''
         try:
             self.service.delete_buy(buy_id=pk)
@@ -203,6 +204,9 @@ class BuyViewSet(viewsets.ViewSet):
 
         except BuyNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except BuyWithPaymentsException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             logger.exception("Error al eliminar compra pk=%s", pk)

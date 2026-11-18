@@ -63,3 +63,21 @@ class TestBuyRepositoryPayments:
         make_purchase_payment(compra=buy, importe_abonado=Decimal('1000.00'), estado_pago='ANULADO')
 
         assert BuyService.calculate_payment_status(buy) == 'PENDIENTE'
+
+
+@pytest.mark.django_db
+class TestBuyRepositoryAppliedPayments:
+
+    def test_devuelve_los_pagos_vigentes_y_anulados_de_la_compra(self):
+        repo = BuyRepository()
+        supplier = make_supplier()
+        buy = make_purchase(proveedor=supplier)
+        other = make_purchase(proveedor=supplier)
+        current = make_purchase_payment(compra=buy, importe_abonado=Decimal('100.00'))
+        cancelled = make_purchase_payment(compra=buy, importe_abonado=Decimal('50.00'), estado_pago='ANULADO')
+        make_purchase_payment(compra=other, importe_abonado=Decimal('30.00'))
+
+        assert repo.get_applied_payments(buy) == [current, cancelled]
+
+    def test_sin_pagos_devuelve_lista_vacia(self):
+        assert BuyRepository().get_applied_payments(make_purchase()) == []
