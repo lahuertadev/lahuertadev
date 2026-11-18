@@ -47,6 +47,16 @@ Esto reemplazó un diseño anterior donde `numero` era la primary key global del
 ### Depositar, acreditar, rechazar
 Desde el listado de Cheques, sobre un cheque EN_CARTERA: acción "Depositar" (→ DEPOSITADO). Sobre uno DEPOSITADO: "Acreditar" (→ ACREDITADO) o "Rechazar" (→ RECHAZADO, revierte la cuenta corriente del cliente si el cheque tiene un pago de cliente asociado).
 
+### Solapas del listado y aviso de depósito (DEV-150)
+El listado de Cheques tiene tres solapas debajo del título, como Pagos de Compras. Se combinan con los filtros.
+- **Todos:** todos los cheques (es la que queda elegida al entrar).
+- **Pendientes:** solo los que ya hay que depositar: EN_CARTERA y con la fecha de depósito hoy o antes. No entran los que tienen la fecha de depósito más adelante ni los que no la tienen.
+- **Rechazados:** solo los RECHAZADO.
+
+En esos mismos cheques pendientes, el ícono de Depositar de la columna Acción se resalta con un círculo ámbar que aparece y se va, y su tooltip dice "Depositar: la fecha de depósito ya llegó". Al depositar, el listado se recarga en la misma solapa y con los mismos filtros.
+
+El estado ACREDITADO no tiene solapa: se busca con el filtro Estado.
+
 ### Eliminar un pago de cliente con cheque
 - Si el cheque **no está endosado**: se elimina el pago y el cheque junto con él, revirtiendo la cuenta corriente del cliente.
 - Si el cheque **ya está endosado**: el borrado se bloquea con un mensaje que indica el proveedor y la fecha del pago a proveedor que hay que resolver primero.
@@ -70,14 +80,14 @@ Es una operación válida y soportada: al eliminar el pago de compra, el cheque 
 - `/client-payment` — Listado de pagos de clientes
 - `/client-payment/create`, `/client-payment/edit/:id` — Formulario de pago de cliente
 - `/client-payment/detail/:id` — Detalle de pago de cliente (muestra cliente, cheque y banco)
-- `/check` — Listado de cheques (columna Cliente)
+- `/check` — Listado de cheques (columna Cliente; solapas Todos, Pendientes y Rechazados)
 - `/check/detail/:id` — Detalle de cheque (sección Datos del Cliente)
 - `/purchase-payment/create` — Formulario de pago de compra (sección Cheque)
 
 ## Endpoints involucrados
 - `POST /api/client-payments/`, `PUT /api/client-payments/:id/`, `PATCH /api/client-payments/:id/` — Alta/edición de pago con cheque
 - `DELETE /api/client-payments/:id/` — Eliminar pago (bloqueado si el cheque está endosado)
-- `GET /api/checks/`, `GET /api/checks/:id/` — Listado/detalle de cheques
+- `GET /api/checks/`, `GET /api/checks/:id/` — Listado/detalle de cheques. El listado acepta `solapa=pendientes|rechazados` además de los filtros (`banco`, `estado`, `endosado`, `fecha_deposito_desde`, `fecha_deposito_hasta`).
 - `POST /api/checks/:id/deposit|credit|reject/` — Transiciones de estado
 - `POST /api/purchase-payments/` — Endosa un cheque al crearse (tipo de pago "Cheque")
 - `DELETE /api/purchase-payments/:id/` — Elimina el pago y desendosa el cheque (sin restricciones)
