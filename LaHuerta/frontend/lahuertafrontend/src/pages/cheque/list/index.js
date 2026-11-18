@@ -3,7 +3,7 @@ import axios from 'axios';
 import { checkUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Check';
 import { formatCurrency } from '../../../utils/currency';
-import { formatDate } from '../../../utils/date';
+import { formatDate, getTodayDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
 import Toast from '../../../components/Toast';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
@@ -17,6 +17,9 @@ const ACTION_LABELS = {
 };
 
 const isInWallet = (row) => row.stateRaw === 'EN_CARTERA';
+// En cartera y con la fecha de depósito ya cumplida (hoy o antes): hay que depositarlo.
+// Se compara como texto YYYY-MM-DD con la fecha local, para no correr el día por la zona horaria.
+export const isDepositDue = (row) => isInWallet(row) && Boolean(row.depositDateRaw) && row.depositDateRaw.slice(0, 10) <= getTodayDate();
 const isDepositedOrEndorsed = (row) => row.stateRaw === 'DEPOSITADO' || row.stateRaw === 'ENDOSADO';
 
 const mapCheckData = (data) => {
@@ -86,6 +89,9 @@ const CheckList = () => {
       onClick: (row) => handleStateChange('deposit', row.id),
       isEnabled: isInWallet,
       disabledReason: 'Solo se depositan los cheques en cartera',
+      // Titila cuando ya se puede depositar, para que no quede olvidado en cartera.
+      needsAttention: isDepositDue,
+      attentionReason: 'la fecha de depósito ya llegó',
     },
     {
       key: 'credit',

@@ -34,9 +34,12 @@ import RoundedCheckbox from '../RoundedCheckbox';
  *   deleteIcon        — ícono del botón de borrar (default el tacho)
  *   extraActions      — acciones propias de la pantalla, como íconos después de Detalle (con groupActions):
  *                         [{ key, label, icon, onClick: (row) => void, isEnabled?: (row) => bool,
- *                            disabledReason?: string | (row) => string, danger?: bool }]
+ *                            disabledReason?: string | (row) => string, danger?: bool,
+ *                            needsAttention?: (row) => bool, attentionReason?: string }]
  *                         Igual que Editar y Eliminar: si isEnabled devuelve false, el ícono queda grisado
  *                         con el motivo en el tooltip. danger: se tiñe de rojo al pasar el mouse.
+ *                         needsAttention: si devuelve true, el ícono titila (clase action-attention) para
+ *                         marcar que esa acción está pendiente; attentionReason se suma al tooltip.
  *   getRowClassName   — (params) => string — para resaltar filas (ej. devolver 'row-highlighted'
  *                         cuando la fila tiene cambios sin guardar)
  */
@@ -258,14 +261,20 @@ export default function DataGridDemo({
   };
 
   const renderExtraAction = (action) => (params, buttonSx = actionButtonSx) => {
-    const { label, icon: ActionIcon, onClick, isEnabled, disabledReason = `No se puede ${label.toLowerCase()}`, danger } = action;
+    const {
+      label, icon: ActionIcon, onClick, isEnabled, disabledReason = `No se puede ${label.toLowerCase()}`, danger,
+      needsAttention, attentionReason,
+    } = action;
     if (isEnabled && !isEnabled(params.row)) return renderDisabledButton(ActionIcon, disabledReason, params.row, buttonSx);
     const hover = danger ? { color: '#ef4444', background: 'rgba(239,68,68,0.06)' } : { color: '#4a7bc4', background: 'rgba(93,137,200,0.08)' };
+    const attention = Boolean(needsAttention && needsAttention(params.row));
+    const title = attention && attentionReason ? `${label}: ${attentionReason}` : label;
     return (
-      <Tooltip title={label}>
+      <Tooltip title={title}>
         <button
           type="button"
-          aria-label={label}
+          aria-label={title}
+          className={attention ? 'action-attention' : undefined}
           style={buttonSx}
           onMouseEnter={e => { e.currentTarget.style.color = hover.color; e.currentTarget.style.background = hover.background; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-on-surface-muted)'; e.currentTarget.style.background = 'none'; }}

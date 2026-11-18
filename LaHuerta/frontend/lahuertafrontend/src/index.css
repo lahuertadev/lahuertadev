@@ -50,6 +50,26 @@ html:not(.dark) .dialog-border-glow > .dialog-body {
   .dialog-border-glow { animation: none; }
 }
 
+/* Acción de la grilla que pide atención (ej. Depositar un cheque cuya fecha de depósito llegó):
+   el ícono titila en azul con un halo. Al pasar el mouse se queda quieto y toma el color del hover. */
+@keyframes actionAttention {
+  0%, 100% { color: var(--color-accent); box-shadow: 0 0 0 0 rgb(var(--color-accent-rgb) / 0.45); }
+  50%      { color: rgb(var(--color-accent-rgb) / 0.35); box-shadow: 0 0 0 5px rgb(var(--color-accent-rgb) / 0); }
+}
+
+.action-attention {
+  animation: actionAttention 1.4s ease-in-out infinite;
+}
+
+.action-attention:hover {
+  animation: none;
+}
+
+/* Sin animaciones: queda fijo en azul, igual se distingue de los demás íconos. */
+@media (prefers-reduced-motion: reduce) {
+  .action-attention { animation: none; color: var(--color-accent) !important; }
+}
+
 /* Barra de progreso del punto activo del carrusel de novedades (NewsPanel). */
 @keyframes newsProgress {
   from { width: 0; }
