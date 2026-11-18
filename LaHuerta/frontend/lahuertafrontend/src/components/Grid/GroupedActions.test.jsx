@@ -98,3 +98,28 @@ describe('acciones propias de la pantalla (extraActions)', () => {
     expect(onDeposit).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('acción que pide atención (needsAttention)', () => {
+  const Icon = () => <span>ícono</span>;
+  const attentionAction = (extra = {}) => ({
+    key: 'cash', label: 'Cobrar', icon: Icon, onClick: jest.fn(),
+    needsAttention: (row) => row.id === 1, attentionReason: 'la fecha de depósito ya llegó', ...extra,
+  });
+  const twoRows = [{ id: 1, name: 'Vencida' }, { id: 2, name: 'Al día' }];
+
+  test('se destaca en ámbar por defecto, con el motivo en el tooltip, y solo en las filas que corresponde', () => {
+    render(<Grid {...props} rows={twoRows} groupActions extraActions={[attentionAction()]} />);
+
+    const due = screen.getByRole('button', { name: 'Cobrar: la fecha de depósito ya llegó' });
+    expect(due).toHaveClass('action-attention');
+    expect(due).not.toHaveClass('action-attention-success');
+    expect(screen.getByRole('button', { name: 'Cobrar' })).not.toHaveClass('action-attention');
+  });
+
+  test("con attentionTone 'success' se destaca en verde", () => {
+    render(<Grid {...props} rows={twoRows} groupActions extraActions={[attentionAction({ attentionTone: 'success' })]} />);
+
+    expect(screen.getByRole('button', { name: 'Cobrar: la fecha de depósito ya llegó' }))
+      .toHaveClass('action-attention', 'action-attention-success');
+  });
+});

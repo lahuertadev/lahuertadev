@@ -78,6 +78,7 @@ describe('Depositar titila cuando ya llegó la fecha de depósito', () => {
     const deposit = (id) => actionsCell(id).querySelector('button[aria-label^="Depositar"]');
     [1, 2].forEach((id) => {
       expect(deposit(id)).toHaveClass('action-attention');
+      expect(deposit(id)).not.toHaveClass('action-attention-success');
       expect(deposit(id)).toHaveAttribute('aria-label', 'Depositar: la fecha de depósito ya llegó');
     });
     expect(deposit(3)).not.toHaveClass('action-attention');
