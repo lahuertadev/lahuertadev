@@ -2,7 +2,8 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
-import CheckList from '.';
+import CheckList, { isDepositDue } from '.';
+import { getTodayDate } from '../../../utils/date';
 import { ToastProvider } from '../../../context/ToastContext';
 import { checkUrl } from '../../../constants/urls';
 
@@ -60,4 +61,32 @@ test('depositar llama al endpoint del cheque', async () => {
   fireEvent.click(button(1, 'Depositar'));
 
   await waitFor(() => expect(axios.post).toHaveBeenCalledWith(`${checkUrl}1/deposit/`));
+});
+
+describe('Depositar titila cuando ya llegó la fecha de depósito', () => {
+  const withDeposit = (id, state, date) => ({ ...check(id, state), fecha_deposito: date });
+
+  test('en cartera con la fecha de hoy o vencida titila y lo dice en el tooltip; con fecha futura no', async () => {
+    axios.get.mockResolvedValue({ data: [
+      withDeposit(1, 'EN_CARTERA', getTodayDate()),
+      withDeposit(2, 'EN_CARTERA', '2020-01-01'),
+      withDeposit(3, 'EN_CARTERA', '2999-01-01'),
+    ] });
+    renderList();
+    await screen.findByText('1001');
+
+    const deposit = (id) => actionsCell(id).querySelector('button[aria-label^="Depositar"]');
+    [1, 2].forEach((id) => {
+      expect(deposit(id)).toHaveClass('action-attention');
+      expect(deposit(id)).toHaveAttribute('aria-label', 'Depositar: la fecha de depósito ya llegó');
+    });
+    expect(deposit(3)).not.toHaveClass('action-attention');
+    expect(deposit(3)).toHaveAttribute('aria-label', 'Depositar');
+  });
+
+  test('solo cuenta para los cheques en cartera con fecha de depósito', () => {
+    expect(isDepositDue({ stateRaw: 'EN_CARTERA', depositDateRaw: '2020-01-01' })).toBe(true);
+    expect(isDepositDue({ stateRaw: 'DEPOSITADO', depositDateRaw: '2020-01-01' })).toBe(false);
+    expect(isDepositDue({ stateRaw: 'EN_CARTERA', depositDateRaw: null })).toBe(false);
+  });
 });
