@@ -11,6 +11,7 @@ import BackButton from '../../../components/BackButton';
 import PageHeader from '../../../components/PageHeader';
 import EditButton from '../../../components/EditButton';
 import SpotlightButton from '../../../components/SpotlightButton';
+import { useToast } from '../../../context/ToastContext';
 import StatusBadge from '../../../components/StatusBadge';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
@@ -43,6 +44,7 @@ const Field = ({ label, value }) => (
 const ClientPaymentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const isMobile = useMediaQuery('(max-width:600px)');
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +55,7 @@ const ClientPaymentDetail = () => {
   const handleDelete = async () => {
     try {
       await axios.delete(`${clientPaymentUrl}${id}/`);
+      showToast('El pago se eliminó correctamente.');
       navigate('/client-payment');
     } catch (err) {
       console.error('Error eliminando el pago:', err);

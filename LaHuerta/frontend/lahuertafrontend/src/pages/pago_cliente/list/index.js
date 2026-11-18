@@ -45,6 +45,7 @@ const buildData = (paymentTypeOptions) => ({
   deleteMessage: (row) => <DeleteClientPaymentMessage payment={row.payment} />,
   deleteDialogTitle: 'Eliminar pago',
   deleteConfirmLabel: 'Eliminar pago',
+  deleteSuccessMessage: (count) => (count > 1 ? `Se eliminaron ${count} pagos correctamente.` : 'El pago se eliminó correctamente.'),
   // Detalle, Editar y Eliminar en una sola columna "Acción" (como Cheques y Pagos de Compras).
   groupActions: true,
 });

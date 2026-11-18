@@ -18,6 +18,7 @@ import RequiredMark from '../../../components/RequiredMark';
 import Switch from '../../../components/Switch';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
+import { useToast } from '../../../context/ToastContext';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -64,6 +65,7 @@ const ClientPaymentForm = () => {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [toast, setToast] = useState({ open: false, message: '' });
   const [checkEndosado, setCheckEndosado] = useState(false);
 
@@ -163,6 +165,7 @@ const ClientPaymentForm = () => {
         const response = await axios.post(clientPaymentUrl, payload);
         emitTutorialEvent(TUTORIAL_EVENTS.clientPaymentCreated, { id: response.data.id });
       }
+      showToast(id ? 'El pago se actualizó correctamente.' : 'El pago se registró correctamente.');
       navigate('/client-payment');
     } catch (error) {
       console.error('Error enviando el formulario:', error);
