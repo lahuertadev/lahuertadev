@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
 import ClientPaymentDetail from './ClientPaymentDetail';
+import { ToastProvider } from '../../../context/ToastContext';
 import { BADGE_COLORS } from '../../../constants/badgeColors';
 
 jest.mock('axios', () => ({ get: jest.fn(), delete: jest.fn() }));
@@ -24,13 +25,15 @@ beforeAll(() => {
 const renderDetail = (payment) => {
   axios.get.mockResolvedValue({ data: payment });
   render(
-    <MemoryRouter initialEntries={['/client-payment/detail/8']}>
-      <Routes>
-        <Route path="/client-payment/detail/:id" element={<ClientPaymentDetail />} />
-        <Route path="/client-payment" element={<div>Listado</div>} />
-        <Route path="/check/detail/:id" element={<div>Detalle del cheque</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter initialEntries={['/client-payment/detail/8']}>
+        <Routes>
+          <Route path="/client-payment/detail/:id" element={<ClientPaymentDetail />} />
+          <Route path="/client-payment" element={<div>Listado</div>} />
+          <Route path="/check/detail/:id" element={<div>Detalle del cheque</div>} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
   );
 };
 
@@ -62,4 +65,17 @@ test('el número de cheque lleva al detalle del cheque', async () => {
   fireEvent.click(await screen.findByRole('button', { name: '123' }));
 
   expect(await screen.findByText('Detalle del cheque')).toBeInTheDocument();
+});
+
+test('en mobile, al eliminar vuelve al listado con el mensaje de éxito', async () => {
+  window.matchMedia = (query) => ({ matches: true, media: query, addEventListener: jest.fn(), removeEventListener: jest.fn() });
+  axios.delete.mockResolvedValue({});
+  renderDetail(PAYMENT);
+
+  fireEvent.click(await screen.findByRole('button', { name: /^Eliminar$/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Eliminar pago/ }));
+
+  expect(await screen.findByText('El pago se eliminó correctamente.')).toBeInTheDocument();
+  expect(screen.getByText('Listado')).toBeInTheDocument();
+  window.matchMedia = (query) => ({ matches: false, media: query, addEventListener: jest.fn(), removeEventListener: jest.fn() });
 });

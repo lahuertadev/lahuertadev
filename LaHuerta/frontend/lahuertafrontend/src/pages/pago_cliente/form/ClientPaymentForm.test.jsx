@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
 import ClientPaymentForm from './ClientPaymentForm';
+import { ToastProvider } from '../../../context/ToastContext';
 import { bankUrl, clientPaymentUrl, clientUrl, paymentTypeUrl } from '../../../constants/urls';
 
 // El primer render del formulario (MUI + Formik) es lento en el contenedor.
@@ -31,14 +32,17 @@ beforeEach(() => {
 
 afterEach(() => jest.clearAllMocks());
 
-const renderForm = () =>
+const renderForm = (path = '/client-payment/create') =>
   render(
-    <MemoryRouter initialEntries={['/client-payment/create']}>
-      <Routes>
-        <Route path="/client-payment/create" element={<ClientPaymentForm />} />
-        <Route path="/client-payment" element={<div>Listado</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <ToastProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/client-payment/create" element={<ClientPaymentForm />} />
+          <Route path="/client-payment/edit/:id" element={<ClientPaymentForm />} />
+          <Route path="/client-payment" element={<div>Listado</div>} />
+        </Routes>
+      </MemoryRouter>
+    </ToastProvider>,
   );
 
 const registerButton = () => screen.getByRole('button', { name: /Registrar Pago/ });
@@ -83,6 +87,25 @@ test('Registrar Pago se habilita recién con todos los obligatorios completos', 
   await waitFor(() => expect(registerButton()).toBeEnabled());
   fireEvent.click(registerButton());
   await waitFor(() => expect(axios.post).toHaveBeenCalledWith(clientPaymentUrl, expect.objectContaining({ cliente: '3', importe: '1500' })));
+  // Vuelve al listado con el mensaje de éxito.
+  expect(await screen.findByText('El pago se registró correctamente.')).toBeInTheDocument();
+  expect(screen.getByText('Listado')).toBeInTheDocument();
+});
+
+test('al editar un pago vuelve al listado con el mensaje de éxito', async () => {
+  const payment = { id: 5, cliente: { id: 3 }, importe: '1500.00', fecha_pago: '2026-11-16', tipo_pago: { id: 1 }, observaciones: '', cheque: null };
+  const getOptions = axios.get.getMockImplementation();
+  axios.get.mockImplementation((url) => (url === `${clientPaymentUrl}5/` ? Promise.resolve({ data: payment }) : getOptions(url)));
+  axios.put.mockResolvedValue({ data: {} });
+  renderForm('/client-payment/edit/5');
+
+  await waitFor(() => expect(screen.getByPlaceholderText('0,00')).toHaveValue('1.500,00'));
+  const confirm = await screen.findByRole('button', { name: /Guardar cambios/ });
+  await waitFor(() => expect(confirm).toBeEnabled());
+  fireEvent.click(confirm);
+
+  await waitFor(() => expect(axios.put).toHaveBeenCalledWith(`${clientPaymentUrl}5/`, expect.objectContaining({ cliente: 3 })));
+  expect(await screen.findByText('El pago se actualizó correctamente.')).toBeInTheDocument();
 });
 
 test('con cheque pide número, banco y fecha de emisión, y la de depósito si es diferido', async () => {

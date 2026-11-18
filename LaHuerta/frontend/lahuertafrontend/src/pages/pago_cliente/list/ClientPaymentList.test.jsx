@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
 import ClientPaymentList from '.';
@@ -46,4 +46,16 @@ test('al eliminar, el diálogo explica qué pasa con la cuenta corriente y el ch
   expect(screen.getByText(/La deuda del cliente sube/)).toBeInTheDocument();
   expect(screen.getByText('Se elimina el cheque N° 171717.')).toBeInTheDocument();
   expect(screen.getByText(/no se va a poder eliminar/)).toBeInTheDocument();
+});
+
+test('al eliminar desde el listado muestra el mensaje de éxito', async () => {
+  axios.delete.mockResolvedValue({});
+  render(<ToastProvider><MemoryRouter><ClientPaymentList /></MemoryRouter></ToastProvider>);
+  await screen.findByText('Clöe');
+
+  fireEvent.click(document.querySelector('[data-id="8"] [data-tour="grid-delete"]'));
+  fireEvent.click(await screen.findByRole('button', { name: /Eliminar pago/ }));
+
+  await waitFor(() => expect(axios.delete).toHaveBeenCalled());
+  expect(await screen.findByText('El pago se eliminó correctamente.')).toBeInTheDocument();
 });
