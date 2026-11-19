@@ -157,6 +157,7 @@ def test_retrieve_success(factory, viewset):
 
 def test_retrieve_success_con_pago_compra_asociado(factory, viewset):
     pago_compra = mock_purchase_payment(
+        id=42,
         fecha_pago='2024-05-01',
         importe_abonado=Decimal('750.00'),
         proveedor=mock_supplier(nombre='Proveedor Test'),
@@ -169,6 +170,7 @@ def test_retrieve_success_con_pago_compra_asociado(factory, viewset):
     response = viewset.retrieve(drf_request, pk=1001)
 
     assert response.status_code == 200
+    assert response.data['pago_compra']['id'] == 42
     assert response.data['pago_compra']['proveedor'] == 'Proveedor Test'
     assert response.data['pago_compra']['importe_abonado'] == Decimal('750.00')
 
