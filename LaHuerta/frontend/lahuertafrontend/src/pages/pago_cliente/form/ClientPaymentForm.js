@@ -6,14 +6,17 @@ import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
 import { clientPaymentUrl, clientUrl, paymentTypeUrl, bankUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
+import ClientAutocomplete from '../../../components/ClientAutocomplete';
+import ReadonlyField from '../../../components/ReadonlyField';
+import { formatCurrency } from '../../../utils/currency';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
-import BackButton from '../../../components/BackButton';
 import FormActions from '../../../components/FormActions';
+import PageHeader from '../../../components/PageHeader';
 import RequiredMark from '../../../components/RequiredMark';
 import Switch from '../../../components/Switch';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
@@ -68,14 +71,18 @@ const ClientPaymentForm = () => {
   const { showToast } = useToast();
   const [toast, setToast] = useState({ open: false, message: '' });
   const [checkEndosado, setCheckEndosado] = useState(false);
+  // Al editar: el cliente y el importe con que se guardó el pago, para calcular cómo queda la cuenta corriente.
+  const [savedPayment, setSavedPayment] = useState(null);
 
   const loadInitialOptions = async () => {
     const [clients, paymentTypes, banks] = await Promise.all([
-      loadOptions(clientUrl, (data) =>
-        data.map((c) => ({ name: `${c.cuit} - ${c.razon_social}`, value: c.id }))
-      ),
+      // Los clientes completos: el buscador filtra por razón social, nombre de fantasía o CUIT, y de ahí sale el saldo.
+      loadOptions(clientUrl, (data) => data),
+      // En orden alfabético, como en Pagos de Compras.
       loadOptions(paymentTypeUrl, (data) =>
-        data.map((t) => ({ name: t.descripcion, value: t.id }))
+        data
+          .map((t) => ({ name: t.descripcion, value: t.id }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'es'))
       ),
       loadOptions(bankUrl, (data) =>
         data.map((b) => ({ name: b.descripcion, value: b.id }))
@@ -91,6 +98,7 @@ const ClientPaymentForm = () => {
       const data = response.data;
       const check = data.cheque;
       setCheckEndosado(!!check?.endosado);
+      setSavedPayment({ clientId: data.cliente.id, amount: data.importe });
       setInitialValues({
         client: data.cliente.id,
         amount: data.importe,
@@ -189,6 +197,15 @@ const ClientPaymentForm = () => {
           (opt) => String(opt.value) === String(values.paymentType)
         );
         const isCheckPayment = selectedPaymentType?.name === 'Cheque';
+        const selectedClient = selectOptions.clients.find((client) => String(client.id) === String(values.client)) || null;
+        // Saldo del cliente (lo que debe) y cómo queda al guardar. Al editar, el saldo de hoy ya tiene
+        // descontado este pago: si el cliente es el mismo, se suma lo que tenía y se resta lo nuevo.
+        const currentBalance = selectedClient ? parseFloat(selectedClient.cuenta_corriente || 0) : null;
+        const alreadyDiscounted = savedPayment && String(savedPayment.clientId) === String(values.client)
+          ? parseFloat(savedPayment.amount || 0) : 0;
+        const balanceAfter = selectedClient
+          ? currentBalance + alreadyDiscounted - parseFloat(values.amount || 0)
+          : null;
 
         return (
           <Form className="w-full max-w-7xl mx-auto space-y-8 pb-12">
@@ -198,17 +215,14 @@ const ClientPaymentForm = () => {
               onClose={() => setToast({ open: false, message: '' })}
             />
 
-            {/* Breadcrumbs + Volver arriba a la derecha */}
-            <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
-              <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-                <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-                <span className="text-xs">›</span>
-                <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
-                <span className="text-xs">›</span>
-                <span className="text-on-surface font-semibold">{id ? 'Editar' : 'Nuevo'}</span>
-              </nav>
-              <BackButton onClick={() => navigate('/client-payment')} className="shrink-0 px-5 py-2.5 text-sm" />
-            </div>
+            <PageHeader
+              breadcrumbs={[
+                { label: 'Inicio', path: '/' },
+                { label: 'Pagos de Clientes', path: '/client-payment' },
+                { label: id ? 'Editar' : 'Nuevo' },
+              ]}
+              onBack={() => navigate('/client-payment')}
+            />
 
             {/* 1. Datos del pago */}
             <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Pago" cols={3}>
@@ -220,22 +234,30 @@ const ClientPaymentForm = () => {
                   </p>
                 </div>
               )}
-              <div className="flex flex-col gap-1" data-tour="payment-client">
+              {/* Buscador como el de Facturación. El tutorial da el paso por hecho recién con un cliente elegido. */}
+              <div className="flex flex-col gap-1" data-tour="payment-client" data-tour-complete={Boolean(selectedClient)}>
                 <label className={labelCls}>Cliente<RequiredMark /></label>
-                <select
-                  aria-required="true"
-                  value={values.client}
-                  onChange={(e) => setFieldValue('client', e.target.value)}
+                <ClientAutocomplete
+                  required
+                  clients={selectOptions.clients}
+                  value={selectedClient}
+                  onChange={(client) => setFieldValue('client', client ? client.id : '')}
+                  hasError={touched.client && Boolean(errors.client)}
                   disabled={checkEndosado}
-                  className={checkEndosado ? lockedSelectCls : inputCls(touched.client && errors.client)}
-                >
-                  <option value="">Seleccionar...</option>
-                  {selectOptions.clients.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.name}</option>
-                  ))}
-                </select>
+                />
                 <FieldError error={errors.client} touched={touched.client} />
               </div>
+              <ReadonlyField
+                label="Saldo en cuenta corriente"
+                value={selectedClient ? formatCurrency(currentBalance) : null}
+                helpText="Lo que el cliente debe hoy, incluido su saldo inicial."
+              />
+              <ReadonlyField
+                label={id ? 'Saldo al guardar los cambios' : 'Saldo después del pago'}
+                value={selectedClient ? formatCurrency(balanceAfter) : null}
+                highlight={Boolean(selectedClient)}
+                helpText="Cómo queda la cuenta corriente del cliente con este pago. Se actualiza al escribir el importe."
+              />
               <div className="flex flex-col gap-1" data-tour="payment-amount">
                 <label className={labelCls}>Importe<RequiredMark /></label>
                 <AmountInput
@@ -379,6 +401,7 @@ const ClientPaymentForm = () => {
 
             <FormActions
               onCancel={() => navigate('/client-payment')}
+              onBack={() => navigate('/client-payment')}
               confirmType="submit"
               confirmLabel={<><SaveOutlinedIcon sx={{ fontSize: 18 }} /> {id ? 'Guardar cambios' : 'Registrar Pago'}</>}
               confirmDisabled={isSubmitting || !formComplete}

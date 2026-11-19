@@ -9,14 +9,13 @@ import AlertDialog from '../../../components/DialogAlert';
 import Toast from '../../../components/Toast';
 import BackButton from '../../../components/BackButton';
 import PageHeader from '../../../components/PageHeader';
+import DeleteButton from '../../../components/DeleteButton';
 import EditButton from '../../../components/EditButton';
-import SpotlightButton from '../../../components/SpotlightButton';
 import { useToast } from '../../../context/ToastContext';
 import StatusBadge from '../../../components/StatusBadge';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteClientPaymentMessage from '../shared/DeleteClientPaymentMessage';
 
@@ -92,7 +91,7 @@ const ClientPaymentDetail = () => {
 
   if (error || !payment) {
     return (
-      <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+      <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el pago.</p>
         <button
           onClick={() => navigate('/client-payment')}
@@ -107,7 +106,7 @@ const ClientPaymentDetail = () => {
   const isRechazado = payment.cheque?.estado === 'RECHAZADO';
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+    <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
       <Toast
         open={toast.open}
         message={toast.message}
@@ -179,9 +178,7 @@ const ClientPaymentDetail = () => {
           <BackButton onClick={() => navigate('/client-payment')} className="w-full px-6 py-2.5 text-sm" />
         </div>
         {isMobile && (
-          <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full px-6 py-2.5 text-sm">
-            <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-          </SpotlightButton>
+          <DeleteButton onClick={() => setConfirmOpen(true)} />
         )}
         <EditButton onClick={() => navigate(`/client-payment/edit/${id}`)} label="Editar pago" />
       </div>
