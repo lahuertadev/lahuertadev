@@ -254,7 +254,9 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
       borderRadius: '8px',
       color: active ? BLUE : 'var(--color-on-surface-muted)',
       backgroundColor: active ? `rgba(74,123,196,0.10)` : 'transparent',
-      '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE },
+      // Solo con mouse: en pantallas táctiles el hover queda pegado en el último ítem tocado
+      // y parece seleccionado (ej. "Finanzas" marcado estando en Pagos de Clientes).
+      '@media (hover: hover)': { '&:hover': { backgroundColor: `rgba(74,123,196,0.08)`, color: BLUE } },
       justifyContent: open ? 'initial' : 'center',
     });
 
@@ -312,7 +314,7 @@ export default function MiniDrawer({title, menuOptions, open, onOpenChange}) {
                         color: childActive ? BLUE : 'var(--color-on-surface-muted)',
                         backgroundColor: childActive ? 'rgba(74,123,196,0.06)' : 'transparent',
                         fontWeight: childActive ? 600 : 400,
-                        '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE },
+                        '@media (hover: hover)': { '&:hover': { backgroundColor: 'rgba(74,123,196,0.06)', color: BLUE } },
                       }}
                     >
                       <ListItemText
