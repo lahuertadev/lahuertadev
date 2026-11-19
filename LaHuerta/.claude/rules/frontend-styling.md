@@ -78,6 +78,7 @@ Convención de todo el sitio (DEV-150). Referencia: `pages/movimiento_vacio/deta
 - **Arriba:** `PageHeader` con breadcrumbs y Volver.
 - **Abajo, en desktop:** solo Editar, con `components/EditButton` (azul translúcido, no relleno; `label` para "Editar cliente", etc.). No armar el botón a mano: su estilo se cambia solo en ese componente. Eliminar, Anular y los cambios de estado están en la columna Acción del listado.
 - **Abajo, en mobile:** el listado no tiene columna de acciones, así que en el detalle van esas acciones (`isMobile`), Editar y Volver abajo de todo, apilados a lo ancho.
+- **Eliminar o Anular:** `components/DeleteButton` (rojo translúcido; `label` e `icon` para "Anular"). Abre el diálogo de confirmación. Tampoco se arma a mano.
 - Si una acción no está en el listado, va también en desktop, al lado de Editar.
 
 ## Campos obligatorios
