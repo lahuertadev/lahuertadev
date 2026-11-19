@@ -81,6 +81,8 @@ class CheckResponseSerializer(serializers.ModelSerializer):
         if not obj.pago_compra:
             return None
         return {
+            # El id es para el link al detalle del pago desde el detalle del cheque.
+            'id': obj.pago_compra.id,
             'proveedor': obj.pago_compra.proveedor.nombre,
             'fecha_pago': obj.pago_compra.fecha_pago,
             'importe_abonado': obj.pago_compra.importe_abonado,
