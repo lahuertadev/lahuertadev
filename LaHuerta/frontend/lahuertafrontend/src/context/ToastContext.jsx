@@ -9,9 +9,10 @@ const ToastContext = createContext(null);
  * depende de que la pantalla que lo dispara siga montada.
  */
 export function ToastProvider({ children }) {
-  const [toast, setToast] = useState({ open: false, message: '', variant: 'success', duration: 4000 });
+  const [toast, setToast] = useState({ open: false, message: '', variant: 'success', duration: undefined });
 
-  const showToast = (message, { variant = 'success', duration = 4000 } = {}) => {
+  // Sin duration, el Toast usa la de su variante (los errores duran más).
+  const showToast = (message, { variant = 'success', duration } = {}) => {
     setToast({ open: true, message, variant, duration });
   };
 
