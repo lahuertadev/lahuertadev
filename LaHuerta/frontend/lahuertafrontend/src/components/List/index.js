@@ -3,6 +3,7 @@ import DataGridDemo from '../Grid';
 import AlertDialog from '../DialogAlert';
 import SpotlightButton from '../SpotlightButton';
 import CustomInput from '../Input';
+import AmountInput from '../AmountInput';
 import BasicDatePicker from '../DatePicker';
 import BasicSelect from '../Select';
 import Toast from '../Toast';
@@ -45,7 +46,9 @@ const TAB_TONE_CLASSES = {
  *   fetchUrl      — { baseUrl, createUrl, editUrl, detailUrl? }
  *   columns       — definición de columnas para DataGridDemo
  *   mapData       — (responseData) => rows[]   función para transformar la respuesta
- *   filtersConfig — array de { label, name, type: 'text'|'date'|'number'|'select', options? }
+ *   filtersConfig — array de { label, name, type: 'text'|'date'|'number'|'amount'|'select', options? }.
+ *                   'amount': importe con separador de miles y coma decimal (AmountInput); al backend va
+ *                   el número sin formato (ej. 1234567.5).
  *   newLabelText  — texto completo del botón de creación (ej. "Nuevo cliente", "Nueva categoría")
  *   breadcrumbs   — (opcional) array de { label, path? } para mostrar navegación superior
  *   getRowClassName — (opcional) (params) => string, para resaltar filas (ver DataGridDemo)
@@ -372,6 +375,18 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
                     value={filterValues[filter.name] || null}
                     onChange={(val) => setFilterValues((prev) => ({ ...prev, [filter.name]: val }))}
                   />
+                ) : filter.type === 'amount' ? (
+                  <div>
+                    <label htmlFor={`filter-${filter.name}`} className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5">
+                      {filter.label}
+                    </label>
+                    <AmountInput
+                      id={`filter-${filter.name}`}
+                      name={filter.name}
+                      value={filterValues[filter.name] || ''}
+                      onChange={(val) => setFilterValues((prev) => ({ ...prev, [filter.name]: val }))}
+                    />
+                  </div>
                 ) : filter.type === 'select' ? (
                   <BasicSelect
                     label={filter.label}

@@ -30,7 +30,7 @@ const formatDisplay = (raw, allowNegative = false) => {
 
 // suffix: texto opcional dentro del input, a la derecha (ej. la unidad: kg, u, b).
 // required: marca el input con aria-required (el asterisco va en el label, con RequiredMark).
-const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0,00', allowNegative = false, disabled = false, suffix = '', required = false }) => {
+const AmountInput = ({ id, name, value, onChange, hasError = false, placeholder = '0,00', allowNegative = false, disabled = false, suffix = '', required = false }) => {
 
   const handleChange = (e) => {
     const input = e.target.value;
@@ -61,6 +61,7 @@ const AmountInput = ({ name, value, onChange, hasError = false, placeholder = '0
 
   const input = (
     <input
+      id={id}
       name={name}
       type="text"
       inputMode="decimal"
