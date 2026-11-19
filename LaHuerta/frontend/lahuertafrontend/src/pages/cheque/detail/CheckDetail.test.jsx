@@ -51,3 +51,22 @@ test('tiene Volver arriba (desktop) y abajo (mobile), que vuelven al listado', a
 
   expect(await screen.findByText('Listado')).toBeInTheDocument();
 });
+
+test('un cheque endosado muestra su pago asociado con un link al detalle del pago', async () => {
+  axios.get.mockResolvedValue({ data: {
+    ...CHECK, estado: { descripcion: 'ENDOSADO' }, endosado: true, fecha_endoso: '2026-11-18',
+    pago_compra: { id: 12, proveedor: 'Migogus', fecha_pago: '2026-11-18', importe_abonado: '2000000.00' },
+  } });
+  render(
+    <MemoryRouter initialEntries={['/check/detail/31']}>
+      <Routes>
+        <Route path="/check/detail/:id" element={<CheckDetail />} />
+        <Route path="/purchase-payment/detail/:id" element={<div>Detalle del pago</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Pago N° 00000012' }));
+
+  expect(await screen.findByText('Detalle del pago')).toBeInTheDocument();
+});
