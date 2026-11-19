@@ -74,7 +74,7 @@ class FakeBuyRepo(IBuyRepository):
         self._saved = []
         self._deleted = []
 
-    def get_all(self, proveedor_id=None, fecha_desde=None, fecha_hasta=None, importe_min=None, importe_max=None):
+    def get_all(self, proveedor_id=None, fecha_desde=None, fecha_hasta=None, importe_min=None, importe_max=None, supplier=None):
         return list(self._items.values())
 
     def get_by_id(self, id):

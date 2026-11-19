@@ -66,6 +66,33 @@ class TestBuyRepositoryPayments:
 
 
 @pytest.mark.django_db
+class TestBuyRepositorySupplierSearch:
+    '''Filtro Proveedor del listado: puesto o nombre, como en Pagos de Compras.'''
+
+    def setup_method(self):
+        self.repo = BuyRepository()
+        self.salvita = make_supplier(nombre='Salvita', puesto=30)
+        self.migogus = make_supplier(nombre='Migogus', puesto=12)
+        self.salvita_buy = make_purchase(proveedor=self.salvita)
+        self.migogus_buy = make_purchase(proveedor=self.migogus)
+
+    def _ids(self, **filters):
+        return {buy.id for buy in self.repo.get_all(**filters)}
+
+    def test_busca_por_parte_del_nombre_sin_importar_mayusculas(self):
+        assert self._ids(supplier='salv') == {self.salvita_buy.id}
+
+    def test_un_numero_busca_por_puesto_exacto(self):
+        assert self._ids(supplier='12') == {self.migogus_buy.id}
+
+    def test_sin_coincidencias_devuelve_vacio(self):
+        assert self._ids(supplier='Frutas') == set()
+
+    def test_se_combina_con_los_otros_filtros(self):
+        assert self._ids(supplier='Salvita', proveedor_id=self.migogus.id) == set()
+
+
+@pytest.mark.django_db
 class TestBuyRepositoryAppliedPayments:
 
     def test_devuelve_los_pagos_vigentes_y_anulados_de_la_compra(self):
