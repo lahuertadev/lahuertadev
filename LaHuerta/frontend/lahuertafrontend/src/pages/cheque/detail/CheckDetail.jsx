@@ -149,6 +149,17 @@ const CheckDetail = () => {
           title="Pago Asociado"
           tooltip="Pago de compra al que se endosó este cheque"
         >
+          {/* El número lleva al detalle del pago, como en el detalle de la compra. */}
+          <div className="flex flex-col gap-1">
+            <span className={labelCls}>Pago</span>
+            <button
+              type="button"
+              onClick={() => navigate(`/purchase-payment/detail/${check.pago_compra.id}`)}
+              className="self-start text-sm font-semibold text-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded"
+            >
+              Pago N° {String(check.pago_compra.id).padStart(8, '0')}
+            </button>
+          </div>
           <Field label="Proveedor" value={check.pago_compra.proveedor} />
           <Field label="Fecha de pago" value={formatDate(check.pago_compra.fecha_pago)} />
           <div className="flex flex-col gap-1">
