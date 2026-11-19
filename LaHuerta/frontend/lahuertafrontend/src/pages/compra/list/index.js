@@ -32,9 +32,10 @@ const data = {
   columns: columns,
   mapData: mapBuyData,
   filtersConfig: [
-    { label: 'Proveedor',    name: 'proveedor_id', type: 'number' },
-    { label: 'Importe mín.', name: 'importe_min',  type: 'number' },
-    { label: 'Importe máx.', name: 'importe_max',  type: 'number' },
+    // Busca por puesto (un número) o por nombre del proveedor, como en Pagos de Compras.
+    { label: 'Proveedor (puesto o nombre)', name: 'supplier', type: 'text' },
+    { label: 'Importe mín.', name: 'importe_min',  type: 'amount' },
+    { label: 'Importe máx.', name: 'importe_max',  type: 'amount' },
     { label: 'Fecha desde',  name: 'fecha_desde',  type: 'date'   },
     { label: 'Fecha hasta',  name: 'fecha_hasta',  type: 'date'   },
   ],

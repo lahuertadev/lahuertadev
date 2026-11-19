@@ -10,18 +10,20 @@ import AlertDialog from '../../../components/DialogAlert';
 import Toast from '../../../components/Toast';
 import { useToast } from '../../../context/ToastContext';
 import DeleteBuyMessage from '../shared/DeleteBuyMessage';
+import BackButton from '../../../components/BackButton';
+import DeleteButton from '../../../components/DeleteButton';
+import EditButton from '../../../components/EditButton';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCartOutlined';
-import EditIcon from '@mui/icons-material/EditOutlined';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
+import { CancelledBadge, FallenCheckBadge } from '../../pago_compra/shared/OnAccountBadge';
+import { isCancelledPayment, hasFallenCheck } from '../../../constants/purchasePaymentTypes';
+import { BADGE_COLORS } from '../../../constants/badgeColors';
+import Badge from '../../../components/Badge';
+import { PAYMENT_STATUS_CONFIG } from '../../../constants/grid/Compra';
 
-const PAYMENT_STATUS_CONFIG = {
-  'PENDIENTE': { label: 'Pendiente', bg: '#ffebee', color: '#c62828' },
-  'PARCIAL':   { label: 'Parcial',   bg: '#fef9c3', color: '#a16207' },
-  'ABONADO':   { label: 'Abonado',   bg: '#dcfce7', color: '#166534' },
-};
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -107,22 +109,25 @@ const CompraDetail = () => {
     );
   }
 
-  const statusCfg = PAYMENT_STATUS_CONFIG[compra.payment_status] || { label: compra.payment_status || '—', bg: '#f0f4f7', color: '#596064' };
+  const statusCfg = PAYMENT_STATUS_CONFIG[compra.payment_status] || { label: compra.payment_status || '—', ...BADGE_COLORS.gray };
   const number = String(compra.id).padStart(8, '0');
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/buy')}>Compras</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">N° {number}</span>
-      </nav>
+      {/* Breadcrumbs + Volver */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
+          <span className="text-xs">›</span>
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
+          <span className="text-xs">›</span>
+          <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/buy')}>Compras</span>
+          <span className="text-xs">›</span>
+          <span className="text-on-surface font-semibold">N° {number}</span>
+        </nav>
+        <BackButton onClick={() => navigate('/buy')} className="shrink-0 px-5 py-2.5 text-sm" />
+      </div>
 
       {/* 1. Datos generales */}
       <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Compra">
@@ -144,19 +149,7 @@ const CompraDetail = () => {
         </div>
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Estado de pago</span>
-          <span style={{
-            display: 'inline-flex',
-            width: 'fit-content',
-            padding: '2px 10px',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            lineHeight: '18px',
-            backgroundColor: statusCfg.bg,
-            color: statusCfg.color,
-          }}>
-            {statusCfg.label}
-          </span>
+          <Badge color={statusCfg} label={statusCfg.label} />
         </div>
       </SectionCard>
 
@@ -182,52 +175,51 @@ const CompraDetail = () => {
         </SectionCard>
       )}
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+      {/* 4. Pagos que cubren la compra (un pago puede cubrir varias compras: se muestra lo aplicado a esta).
+          Los anulados se listan como registro, tachados: no cuentan para lo pagado. Si se cayó un cheque del
+          pago (que sigue vigente), se avisa con la etiqueta del cheque. */}
+      <SectionCard icon={<PaymentsIcon sx={{ fontSize: 20 }} />} title="Pagos" cols={1}>
+        {compra.payments?.length > 0 ? (
+          <div className="space-y-3">
+            {compra.payments.map((payment) => (
+              <div
+                key={payment.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/purchase-payment/detail/${payment.id}`)}
+                onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/purchase-payment/detail/${payment.id}`); }}
+                className="flex flex-col gap-1 py-2 border-b border-border-subtle last:border-0 cursor-pointer hover:bg-surface-low transition-colors sm:flex-row sm:items-center sm:justify-between"
               >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/buy/edit/${id}`)}
-                className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/buy')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
+                <div>
+                  <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-blue-lahuerta">
+                    Pago N° {String(payment.id).padStart(8, '0')}
+                    {isCancelledPayment(payment) && <CancelledBadge />}
+                    {hasFallenCheck(payment) && <FallenCheckBadge state={payment.fallen_check} />}
+                  </p>
+                  <p className="text-xs text-on-surface-muted">{formatDate(payment.fecha_pago)} · {payment.tipo_pago}</p>
+                </div>
+                <div className="sm:text-right">
+                  <p className={`text-sm font-semibold ${isCancelledPayment(payment) ? 'text-on-surface-muted line-through' : 'text-on-surface'}`}>
+                    {formatCurrency(payment.importe_aplicado)}
+                  </p>
+                  {parseFloat(payment.importe_aplicado) !== parseFloat(payment.importe_abonado) && (
+                    <p className="text-xs text-on-surface-muted">de un pago de {formatCurrency(payment.importe_abonado)}</p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/buy')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/buy/edit/${id}`)}
-              className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
-            >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar compra
-            </button>
-          </div>
+          <span className="text-sm text-on-surface-muted">Todavía no tiene pagos.</span>
         )}
+      </SectionCard>
+
+      {/* Action Bar: en mobile también se puede eliminar (no hay columna de acciones en el listado). */}
+      <div className="flex flex-col-reverse gap-3 pt-6 border-t border-border-subtle sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+        {isMobile && (
+          <DeleteButton onClick={() => setConfirmOpen(true)} />
+        )}
+        <EditButton onClick={() => navigate(`/buy/edit/${id}`)} label="Editar compra" />
       </div>
 
       <AlertDialog
