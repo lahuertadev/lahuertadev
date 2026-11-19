@@ -17,10 +17,9 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOu
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUserOutlined';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import BackButton from '../../../components/BackButton';
+import DeleteButton from '../../../components/DeleteButton';
 import EditButton from '../../../components/EditButton';
-import SpotlightButton from '../../../components/SpotlightButton';
 import ContactList from '../../../components/ContactList';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
@@ -188,9 +187,7 @@ const ClientDetail = () => {
           En desktop se elimina desde el listado; en mobile no hay acciones en la grilla, por eso Eliminar va acá. */}
       <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-4 border-t border-border-subtle">
         {isMobile && (
-          <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full sm:w-auto px-6 py-2.5 text-sm">
-            <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-          </SpotlightButton>
+          <DeleteButton onClick={() => setConfirmOpen(true)} />
         )}
         <EditButton onClick={() => navigate(`/client/edit/${id}`)} label="Editar cliente" />
       </div>

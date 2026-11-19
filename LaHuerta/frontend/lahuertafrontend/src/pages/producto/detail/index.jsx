@@ -6,11 +6,10 @@ import { productUrl } from '../../../constants/urls';
 import AlertDialog from '../../../components/DialogAlert';
 import Inventory2Icon from '@mui/icons-material/Inventory2Outlined';
 import StraightenIcon from '@mui/icons-material/StraightenOutlined';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import BackButton from '../../../components/BackButton';
 import PageHeader from '../../../components/PageHeader';
+import DeleteButton from '../../../components/DeleteButton';
 import EditButton from '../../../components/EditButton';
-import SpotlightButton from '../../../components/SpotlightButton';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -121,9 +120,7 @@ const ProductDetail = () => {
           <BackButton onClick={() => navigate('/product')} className="w-full px-6 py-2.5 text-sm" />
         </div>
         {isMobile && (
-          <SpotlightButton variant="danger" onClick={() => setConfirmOpen(true)} className="w-full px-6 py-2.5 text-sm">
-            <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-          </SpotlightButton>
+          <DeleteButton onClick={() => setConfirmOpen(true)} />
         )}
         <EditButton onClick={() => navigate(`/product/edit/${id}`)} label="Editar producto" />
       </div>
