@@ -41,6 +41,61 @@ const renderDetail = (buy) => {
   );
 };
 
+test('lista los pagos de la compra con lo que cada uno le aplicó', async () => {
+  renderDetail(BUY);
+
+  expect(await screen.findByText('Pago N° 00000005')).toBeInTheDocument();
+  expect(screen.getByText('Pago N° 00000006')).toBeInTheDocument();
+  // El pago 6 cubre varias compras: a esta le aplicó una parte.
+  expect(screen.getByText('de un pago de $3.000,00')).toBeInTheDocument();
+});
+
+test('un pago lleva a su detalle', async () => {
+  renderDetail(BUY);
+
+  fireEvent.click(await screen.findByText('Pago N° 00000005'));
+
+  expect(screen.getByText('Detalle del pago')).toBeInTheDocument();
+});
+
+test('sin pagos lo avisa', async () => {
+  renderDetail({ ...BUY, payments: [] });
+
+  expect(await screen.findByText('Todavía no tiene pagos.')).toBeInTheDocument();
+});
+
+test('un pago anulado se lista como registro con la etiqueta "Pago anulado"', async () => {
+  renderDetail({ ...BUY, payments: [{ ...BUY.payments[0], estado_pago: 'ANULADO' }] });
+
+  expect(await screen.findByText('Pago N° 00000005')).toBeInTheDocument();
+  expect(screen.getByText('Pago anulado')).toBeInTheDocument();
+});
+
+test('un pago con un cheque rechazado lleva la etiqueta "Cheque rechazado", cubra o no toda la compra', async () => {
+  renderDetail({
+    ...BUY,
+    payments: [
+      { ...BUY.payments[0], importe_abonado: '0.00', importe_aplicado: '0.00', fallen_check: 'RECHAZADO' },
+      { ...BUY.payments[1], fallen_check: 'RECHAZADO' },
+    ],
+  });
+
+  expect(await screen.findAllByText('Cheque rechazado')).toHaveLength(2);
+});
+
+test('un pago con un cheque propio anulado lleva la etiqueta "Cheque anulado"', async () => {
+  renderDetail({ ...BUY, payments: [{ ...BUY.payments[1], fallen_check: 'ANULADO' }] });
+
+  expect(await screen.findByText('Cheque anulado')).toBeInTheDocument();
+});
+
+test('un pago anulado no muestra la etiqueta del cheque', async () => {
+  renderDetail({ ...BUY, payments: [{ ...BUY.payments[1], estado_pago: 'ANULADO', fallen_check: 'RECHAZADO' }] });
+
+  expect(await screen.findByText('Pago anulado')).toBeInTheDocument();
+  expect(screen.queryByText('Cheque rechazado')).not.toBeInTheDocument();
+});
+
 describe('Eliminar la compra (en el celular)', () => {
   const desktopMatchMedia = window.matchMedia;
   beforeEach(() => {

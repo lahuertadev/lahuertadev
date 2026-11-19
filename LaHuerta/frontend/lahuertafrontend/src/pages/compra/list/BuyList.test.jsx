@@ -15,6 +15,31 @@ beforeAll(() => {
 beforeEach(() => axios.get.mockResolvedValue({ data: [] }));
 afterEach(() => jest.clearAllMocks());
 
+test('el filtro Proveedor acepta el nombre o el puesto y lo manda al backend', async () => {
+  render(<ToastProvider><MemoryRouter><BuyList /></MemoryRouter></ToastProvider>);
+  await screen.findByText('Listado de Compras');
+
+  const input = screen.getByLabelText('Proveedor (puesto o nombre)');
+  expect(input).toHaveAttribute('type', 'text');
+  fireEvent.change(input, { target: { value: 'Salvita' } });
+  expect(input).toHaveValue('Salvita');
+  fireEvent.click(screen.getByRole('button', { name: 'Aplicar Filtros' }));
+
+  await waitFor(() => expect(axios.get).toHaveBeenLastCalledWith(`${buyUrl}?supplier=Salvita`));
+});
+
+test('los importes del filtro se ven con separador de miles y van sin formato al backend', async () => {
+  render(<ToastProvider><MemoryRouter><BuyList /></MemoryRouter></ToastProvider>);
+  await screen.findByText('Listado de Compras');
+
+  const minAmount = screen.getByLabelText('Importe mín.');
+  fireEvent.change(minAmount, { target: { value: '1500000,5' } });
+  expect(minAmount).toHaveValue('1.500.000,5');
+  fireEvent.click(screen.getByRole('button', { name: 'Aplicar Filtros' }));
+
+  await waitFor(() => expect(axios.get).toHaveBeenLastCalledWith(`${buyUrl}?importe_min=1500000.5`));
+});
+
 test('eliminar desde el listado muestra el mensaje de la compra', async () => {
   axios.get.mockResolvedValue({ data: [{
     id: 62, fecha: '2026-11-01', importe: '300000.00', senia: '0.00', proveedor: { nombre: 'Migogus' },
