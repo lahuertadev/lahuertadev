@@ -8,21 +8,32 @@ import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import AlertDialog from '../../../components/DialogAlert';
 import Toast from '../../../components/Toast';
+import { useToast } from '../../../context/ToastContext';
 import OwnCheckSupplierPayments from './OwnCheckSupplierPayments';
+import EditButton from '../../../components/EditButton';
+import SpotlightButton from '../../../components/SpotlightButton';
+import { OWN_CHECK_STATE_CONFIG } from '../../../constants/grid/OwnCheck';
 import Tooltip from '@mui/material/Tooltip';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import AlertIcon from '../../../components/AlertIcon';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
 import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
-import EditIcon from '@mui/icons-material/EditOutlined';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { BADGE_COLORS } from '../../../constants/badgeColors';
+import Badge from '../../../components/Badge';
+import BackButton from '../../../components/BackButton';
+import PageHeader from '../../../components/PageHeader';
+import {
+  OWN_CHECK_ACTIONS, OWN_CHECK_ACTION_ERROR_VERBS, OWN_CHECK_ACTION_SUCCESS, canCancel, canCash, canReject, ownCheckConfirmation,
+} from '../shared/ownCheckActions';
 
-const STATE_CONFIG = {
-  'EMITIDO': { label: 'Emitido', bg: '#e8f0fb', color: '#4a7bc4' },
-  'COBRADO': { label: 'Cobrado', bg: '#dcfce7', color: '#166534' },
-  'ANULADO': { label: 'Anulado', bg: '#ffebee', color: '#c62828' },
-};
+// Acciones de estado que se muestran en el detalle solo en mobile (en desktop están en el listado).
+const MOBILE_ACTIONS = [
+  { key: 'cash', isEnabled: canCash, variant: 'outline' },
+  { key: 'reject', isEnabled: canReject, variant: 'warning' },
+  { key: 'cancel', isEnabled: canCancel, variant: 'danger' },
+];
+
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -48,12 +59,13 @@ const Field = ({ label, value }) => (
 const OwnCheckDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const isMobile = useMediaQuery('(max-width:600px)');
   const [check, setCheck] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ open: false, message: '' });
-  const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'cancel' | 'reject'
 
   const fetchCheck = async () => {
     try {
@@ -72,9 +84,10 @@ const OwnCheckDetail = () => {
   const handleStateChange = async (action) => {
     try {
       await axios.post(`${ownCheckUrl}${id}/${action}/`);
+      showToast(OWN_CHECK_ACTION_SUCCESS[action]);
       await fetchCheck();
     } catch (err) {
-      const msg = err?.response?.data?.detail || `Error al ${action === 'cash' ? 'cobrar' : 'anular'} el cheque.`;
+      const msg = err?.response?.data?.detail || `Error al ${OWN_CHECK_ACTION_ERROR_VERBS[action]} el cheque.`;
       setToast({ open: true, message: msg });
     }
   };
@@ -91,43 +104,32 @@ const OwnCheckDetail = () => {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el cheque.</p>
-        <button
-          onClick={() => navigate('/own-check')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/own-check')} label="Volver al listado" />
       </div>
     );
   }
 
-  const stateCfg = STATE_CONFIG[check.estado] || { label: check.estado || '—', bg: '#f0f4f7', color: '#596064' };
+  const stateCfg = OWN_CHECK_STATE_CONFIG[check.estado] || { label: check.estado || '—', ...BADGE_COLORS.gray };
   const isEmitido = check.estado === 'EMITIDO';
   const isOverdue = isEmitido && check.fecha_vencimiento && new Date(check.fecha_vencimiento) < new Date();
   const isWaitingDeposit = isEmitido && check.fecha_deposito && new Date(check.fecha_deposito) > new Date();
   const isReadyToDeposit = isEmitido && check.fecha_deposito && new Date(check.fecha_deposito) <= new Date();
-  const hasNoPayments = !check.payments || check.payments.length === 0;
-  const cashDisabledReason = hasNoPayments
-    ? 'No se puede cobrar un cheque que no está asociado a ningún pago.'
-    : isWaitingDeposit
-    ? 'No se puede cobrar antes de la fecha de depósito.'
-    : '';
+  const confirmation = confirmAction ? ownCheckConfirmation(confirmAction, check) : null;
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
       <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} />
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/own-check')}>Cheques emitidos</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap text-on-surface font-semibold">N° {check.numero}</span>
-      </nav>
+      <PageHeader
+        breadcrumbs={[
+          HOME,
+          PROVEEDORES,
+          { label: 'Cheques emitidos', path: '/own-check' },
+          { label: `N° ${check.numero}` },
+        ]}
+        onBack={() => navigate('/own-check')}
+      />
 
       {/* 1. Datos del Cheque */}
       <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque">
@@ -135,32 +137,11 @@ const OwnCheckDetail = () => {
         <Field label="Banco" value={check.banco?.descripcion} />
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Estado</span>
-          <span style={{
-            display: 'inline-flex',
-            width: 'fit-content',
-            padding: '2px 10px',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            lineHeight: '18px',
-            backgroundColor: stateCfg.bg,
-            color: stateCfg.color,
-          }}>
-            {stateCfg.label}
-          </span>
+          <Badge color={stateCfg} label={stateCfg.label} />
         </div>
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Importe</span>
           <span className="text-sm font-semibold text-on-surface">{formatCurrency(check.importe)}</span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-1">
-            <span className={labelCls}>Saldo restante</span>
-            <Tooltip title="Importe del cheque menos los pagos ya hechos con él (de compras y a cuenta)." placement="top" arrow>
-              <InfoOutlinedIcon sx={{ fontSize: 13, color: '#acb3b7', cursor: 'default', mb: '6px' }} />
-            </Tooltip>
-          </span>
-          <span className="text-sm font-semibold text-on-surface">{formatCurrency(check.remaining_balance)}</span>
         </div>
         {check.observaciones && (
           <div className="md:col-span-3 flex flex-col gap-1">
@@ -190,8 +171,8 @@ const OwnCheckDetail = () => {
                   borderRadius: '6px',
                   fontSize: '0.6875rem',
                   fontWeight: 600,
-                  backgroundColor: '#dcfce7',
-                  color: '#166534',
+                  backgroundColor: BADGE_COLORS.green.bg,
+                  color: BADGE_COLORS.green.color,
                 }}>
                   Disponible
                 </span>
@@ -204,9 +185,7 @@ const OwnCheckDetail = () => {
           <span className={`flex items-center gap-1.5 text-sm font-medium ${isOverdue ? 'text-red-500' : 'text-on-surface'}`}>
             {formatDate(check.fecha_vencimiento)}
             {isOverdue && (
-              <Tooltip title="Este cheque venció y sigue en estado Emitido. Verificá si fue cobrado o anulá el registro." placement="top" arrow>
-                <WarningAmberIcon sx={{ fontSize: 15, color: '#ef4444' }} />
-              </Tooltip>
+              <AlertIcon title="Este cheque venció y sigue en estado Emitido. Verificá si fue cobrado o anulá el registro." size={15} />
             )}
           </span>
         </div>
@@ -221,103 +200,44 @@ const OwnCheckDetail = () => {
         <OwnCheckSupplierPayments check={check} />
       </section>
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            {isEmitido && (
-              <div className="flex gap-3">
-                <Tooltip title={cashDisabledReason} placement="top" arrow>
-                  <span className="flex-1">
-                    <button
-                      type="button"
-                      onClick={() => handleStateChange('cash')}
-                      disabled={Boolean(cashDisabledReason)}
-                      className="w-full py-2.5 rounded-lg border border-green-300 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    >
-                      Cobrar
-                    </button>
-                  </span>
-                </Tooltip>
-                <button
-                  type="button"
-                  onClick={() => setCancelConfirm(true)}
-                  className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+      {/* Acciones. En desktop: solo Editar (Volver va arriba; Cobrar, Rechazar y Anular están en la
+          columna Acción del listado). En mobile el listado no tiene esa columna, así que acá van
+          Cobrar, Rechazar y Anular (grisadas con el motivo si no corresponden), Editar y Volver. */}
+      <div className="flex flex-col-reverse gap-3 pt-6 border-t border-border-subtle sm:flex-row sm:justify-end sm:gap-4">
+        <div className="sm:hidden">
+          <BackButton onClick={() => navigate('/own-check')} className="w-full px-6 py-2.5 text-sm" />
+        </div>
+        {isMobile && MOBILE_ACTIONS.map(({ key, isEnabled, variant }) => {
+          const { label, icon: ActionIcon, disabledReason } = OWN_CHECK_ACTIONS[key];
+          const enabled = isEnabled(check);
+          const reason = typeof disabledReason === 'function' ? disabledReason(check) : disabledReason;
+          return (
+            <Tooltip key={key} title={enabled ? '' : reason} arrow>
+              <span className="w-full">
+                <SpotlightButton
+                  variant={variant}
+                  disabled={!enabled}
+                  onClick={() => (key === 'cash' ? handleStateChange('cash') : setConfirmAction(key))}
+                  className="w-full px-6 py-2.5 text-sm"
                 >
-                  Anular
-                </button>
-              </div>
-            )}
-            {isEmitido && (
-              <button
-                type="button"
-                onClick={() => navigate(`/own-check/edit/${id}`)}
-                className="w-full py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => navigate('/own-check')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/own-check')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-            {isEmitido && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/own-check/edit/${id}`)}
-                  className="px-5 py-2.5 rounded-lg border border-border-subtle text-sm font-semibold text-on-surface-muted hover:bg-surface-low transition-colors flex items-center gap-2"
-                >
-                  <EditIcon sx={{ fontSize: 16 }} /> Editar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCancelConfirm(true)}
-                  className="px-5 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center gap-2"
-                >
-                  Anular
-                </button>
-                <Tooltip title={cashDisabledReason} placement="top" arrow>
-                  <span>
-                    <button
-                      type="button"
-                      onClick={() => handleStateChange('cash')}
-                      disabled={Boolean(cashDisabledReason)}
-                      className="px-5 py-2.5 rounded-lg border border-green-300 text-green-600 text-sm font-semibold hover:bg-green-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    >
-                      Cobrar
-                    </button>
-                  </span>
-                </Tooltip>
-              </>
-            )}
-          </div>
+                  <ActionIcon sx={{ fontSize: 16 }} /> {label}
+                </SpotlightButton>
+              </span>
+            </Tooltip>
+          );
+        })}
+        {isEmitido && (
+          <EditButton onClick={() => navigate(`/own-check/edit/${id}`)} />
         )}
       </div>
 
       <AlertDialog
-        open={cancelConfirm}
-        title={hasNoPayments ? 'Anular cheque sin pagos asociados' : 'Anular cheque con pagos asociados'}
-        message={
-          hasNoPayments
-            ? <>Este cheque no tiene pagos asociados. ¿Estás seguro que querés anularlo? Una vez anulado quedará el registro y <strong>no podrá ser editado ni eliminado</strong>.</>
-            : <>Este cheque tiene pagos asociados. Al anularlo, <strong>se descuenta de cada pago lo que se pagó con este cheque (si era su único cheque, el pago se elimina), la cuenta corriente del proveedor será restaurada y las compras pagadas volverán a su estado anterior</strong>. ¿Estás seguro que querés continuar?</>
-        }
-        onConfirm={() => { setCancelConfirm(false); handleStateChange('cancel'); }}
-        onCancel={() => setCancelConfirm(false)}
+        open={Boolean(confirmAction)}
+        title={confirmation?.title}
+        message={confirmation?.message}
+        confirmLabel={confirmation?.confirmLabel}
+        onConfirm={() => { const action = confirmAction; setConfirmAction(null); handleStateChange(action); }}
+        onCancel={() => setConfirmAction(null)}
       />
 
     </div>

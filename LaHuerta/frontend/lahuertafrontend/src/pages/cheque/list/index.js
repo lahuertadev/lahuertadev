@@ -8,7 +8,7 @@ import GenericList from '../../../components/List';
 import Toast from '../../../components/Toast';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
-import BlockIcon from '@mui/icons-material/Block';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 
 const ACTION_LABELS = {
   deposit: 'Depositar',
@@ -115,7 +115,7 @@ const CheckList = () => {
     {
       key: 'reject',
       label: ACTION_LABELS.reject,
-      icon: BlockIcon,
+      icon: HighlightOffIcon,
       onClick: (row) => handleStateChange('reject', row.id),
       isEnabled: isDepositedOrEndorsed,
       disabledReason: 'Solo se rechazan los cheques depositados o endosados',
