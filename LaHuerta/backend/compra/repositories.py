@@ -22,11 +22,13 @@ def _annotate_payments(qs):
 class BuyRepository(IBuyRepository):
 
     def get_all(self, proveedor_id=None, fecha_desde=None, fecha_hasta=None,
-                importe_min=None, importe_max=None):
+                importe_min=None, importe_max=None, supplier=None):
         qs = _annotate_payments(Compra.objects.select_related('proveedor').prefetch_related('proveedor__contactos'))
 
         if proveedor_id:
             qs = qs.filter(proveedor_id=proveedor_id)
+        if supplier:
+            qs = qs.filter(self._supplier_search(supplier))
         if fecha_desde:
             qs = qs.filter(fecha__gte=fecha_desde)
         if fecha_hasta:
@@ -38,10 +40,23 @@ class BuyRepository(IBuyRepository):
 
         return qs.order_by('-fecha', '-id')
 
+    @staticmethod
+    def _supplier_search(text):
+        '''Igual que en Pagos de Compras: un número busca por puesto exacto o por nombre; un texto, solo por nombre.'''
+        text = text.strip()
+        condition = Q(proveedor__nombre__icontains=text)
+        if text.isdigit():
+            condition |= Q(proveedor__puesto=int(text))
+        return condition
+
     def get_by_id(self, id):
         return (
             _annotate_payments(Compra.objects.select_related('proveedor'))
-            .prefetch_related('payment_applications__pago_compra__tipo_pago')
+            .prefetch_related(
+                'payment_applications__pago_compra__tipo_pago',
+                'payment_applications__pago_compra__client_check_uses__cheque__estado',
+                'payment_applications__pago_compra__own_check_uses__cheque_propio',
+            )
             .filter(id=id)
             .first()
         )

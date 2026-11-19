@@ -4,6 +4,8 @@ from .service import BuyService
 from proveedor.models import Proveedor
 from proveedor.serializers import SupplierSerializer
 from compra_producto.serializers import BuyItemResponseSerializer, BuyItemCreateSerializer
+from cheque_propio.models import OwnCheck
+from estado_cheque.constants import RECHAZADO
 
 
 def validate_unique_products(items):
@@ -64,9 +66,21 @@ class BuyDetailResponseSerializer(BuyResponseSerializer):
                 'importe_abonado': application.pago_compra.importe_abonado,
                 'importe_aplicado': application.importe,
                 'estado_pago': application.pago_compra.estado_pago,
+                'fallen_check': self._fallen_check_state(application.pago_compra),
             }
             for application in applications
         ]
+
+    @staticmethod
+    def _fallen_check_state(payment):
+        '''Estado del cheque que se cayó del pago (RECHAZADO o ANULADO), o None si no se cayó ninguno.'''
+        client_states = {use.cheque.estado.descripcion for use in payment.client_check_uses.all()}
+        own_states = {use.cheque_propio.estado for use in payment.own_check_uses.all()}
+        if RECHAZADO in client_states or OwnCheck.State.RECHAZADO in own_states:
+            return RECHAZADO
+        if OwnCheck.State.ANULADO in own_states:
+            return OwnCheck.State.ANULADO.value
+        return None
 
     class Meta(BuyResponseSerializer.Meta):
         fields = [*BuyResponseSerializer.Meta.fields, 'payments']
@@ -130,6 +144,7 @@ class BuyUpdateSerializer(serializers.Serializer):
 
 class BuyQueryParamsSerializer(serializers.Serializer):
     proveedor_id = serializers.IntegerField(required=False)
+    supplier     = serializers.CharField(required=False)
     fecha_desde  = serializers.DateField(required=False)
     fecha_hasta  = serializers.DateField(required=False)
     importe_min  = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
