@@ -1,12 +1,11 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
 import PurchasePaymentForm from './PurchasePaymentForm';
 import { buyUrl, checkUrl, ownCheckUrl, paymentTypeUrl, purchasePaymentUrl, supplierUrl } from '../../../constants/urls';
-import { PURCHASE_PAYMENT_KINDS } from '../../../constants/purchasePaymentTypes';
 import { TUTORIAL_EVENT_NAME, TUTORIAL_EVENTS } from '../../../constants/tutorials';
-import { formatCurrency } from '../../../utils/currency';
+import { ToastProvider } from '../../../context/ToastContext';
 
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn() }));
 // El selector de fecha de MUI no aporta a estos tests: un input simple con el mismo contrato.
@@ -15,16 +14,16 @@ jest.mock('../../../components/DatePicker', () => ({ value, onChange }) => (
 ));
 
 const SUPPLIER = { id: 7, nombre: 'Ricardo', puesto: 27, cuenta_corriente: '250000.00' };
-const BUY = {
-  id: 12, fecha: '2026-10-22', importe: '670000.00', outstanding_balance: '670000.00',
-  payment_status: 'PENDIENTE', proveedor: { id: 7, nombre: 'Ricardo', puesto: 27 },
-};
-// Texto de la compra en el selector: proveedor con su puesto, fecha y saldo pendiente.
-const BUY_OPTION = `Ricardo — Puesto 27 · 22/10/2026 · ${formatCurrency(BUY.outstanding_balance)}`;
+// Compras del proveedor: la del medio ya está pagada y no se ofrece.
+const BUYS = [
+  { id: 13, fecha: '2026-10-25', importe: '300000.00', outstanding_balance: '300000.00', payment_status: 'PENDIENTE' },
+  { id: 11, fecha: '2026-10-22', importe: '100000.00', outstanding_balance: '0.00', payment_status: 'ABONADO' },
+  { id: 12, fecha: '2026-10-20', importe: '670000.00', outstanding_balance: '200000.00', payment_status: 'PARCIAL' },
+];
 
 const OWN_CHECKS = [
-  { id: 884, numero: 884, banco: { descripcion: 'Galicia' }, remaining_balance: '1000000.00' },
-  { id: 885, numero: 885, banco: { descripcion: 'Galicia' }, remaining_balance: '500000.00' },
+  { id: 884, numero: 884, banco: { descripcion: 'Galicia' }, importe: '1000000.00' },
+  { id: 885, numero: 885, banco: { descripcion: 'Galicia' }, importe: '500000.00' },
 ];
 const CLIENT_CHECKS = [
   { id: 50, numero: 15915915, banco: { descripcion: 'Nación' }, importe: '200000.00' },
@@ -45,8 +44,7 @@ beforeEach(() => {
       ] });
     }
     if (url.startsWith(ownCheckUrl)) return Promise.resolve({ data: OWN_CHECKS });
-    if (url === buyUrl) return Promise.resolve({ data: [BUY] });
-    if (url === `${buyUrl}${BUY.id}/`) return Promise.resolve({ data: BUY });
+    if (url === `${buyUrl}?proveedor_id=7`) return Promise.resolve({ data: BUYS });
     if (url.startsWith(checkUrl)) return Promise.resolve({ data: CLIENT_CHECKS });
     return Promise.resolve({ data: [] });
   });
@@ -54,55 +52,74 @@ beforeEach(() => {
 
 afterEach(() => jest.clearAllMocks());
 
-const renderForm = (kind) =>
+const renderForm = () =>
   render(
-    <MemoryRouter initialEntries={['/purchase-payment/create/x']}>
+    <ToastProvider><MemoryRouter initialEntries={['/purchase-payment/create']}>
       <Routes>
-        <Route path="/purchase-payment/create/x" element={<PurchasePaymentForm kind={kind} />} />
+        <Route path="/purchase-payment/create" element={<PurchasePaymentForm />} />
         <Route path="/purchase-payment" element={<div>Listado</div>} />
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter></ToastProvider>
   );
 
 const tour = (name) => document.querySelector(`[data-tour="${name}"]`);
 const field = (name) => tour(name).querySelector('input, select');
 const confirmButton = () => screen.getByRole('button', { name: 'Registrar pago' });
+const buyCheckbox = (id) => screen.getByRole('checkbox', { name: `Compra N° ${String(id).padStart(8, '0')}` });
+const allocationInput = (id) => document.querySelector(`input[name="allocation-${id}"]`);
 
-const fillCashPayment = async () => {
+const chooseSupplier = async () => {
+  await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
+  fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
   await waitFor(() => expect(tour('payment-type')).not.toBeNull());
+};
+
+const fillCashPayment = async (amount = '1000') => {
   await screen.findByRole('option', { name: 'Efectivo' });
   fireEvent.change(field('payment-type'), { target: { value: '1' } });
   await waitFor(() => expect(tour('payment-amount')).not.toBeNull());
-  fireEvent.change(field('payment-amount'), { target: { value: '1000' } });
+  fireEvent.change(field('payment-amount'), { target: { value: amount } });
 };
 
-describe('pago a cuenta', () => {
-  test('pide el proveedor, no la compra', async () => {
-    renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
+describe('proveedor', () => {
+  test('arranca pidiendo solo el proveedor', async () => {
+    renderForm();
     await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
 
     expect(tour('payment-supplier')).not.toBeNull();
-    expect(tour('payment-buy')).toBeNull();
+    expect(tour('payment-type')).toBeNull();
+    expect(tour('payment-buys')).toBeNull();
     expect(confirmButton()).toBeDisabled();
   });
 
-  test('al elegir el proveedor muestra su saldo en cuenta corriente', async () => {
-    renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
-    await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-
-    fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
+  test('al elegir el proveedor muestra su saldo y sus compras pendientes, de la más vieja a la más nueva', async () => {
+    renderForm();
+    await chooseSupplier();
 
     expect(await screen.findByText('Saldo en cuenta corriente')).toBeInTheDocument();
-    expect(tour('payment-date')).not.toBeNull();
+    await waitFor(() => expect(buyCheckbox(12)).toBeInTheDocument());
+    const rows = within(tour('payment-buys')).getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'));
+    expect(rows).toEqual(['Compra N° 00000012', 'Compra N° 00000013']);
+    expect(screen.queryByRole('checkbox', { name: 'Compra N° 00000011' })).toBeNull();
   });
 
-  test('registra el pago con el proveedor y sin compra, y avisa al tutorial', async () => {
+  test('si el proveedor no tiene compras pendientes, avisa que el pago queda a cuenta', async () => {
+    const defaultGet = axios.get.getMockImplementation();
+    axios.get.mockImplementation((url) => (url === `${buyUrl}?proveedor_id=7` ? Promise.resolve({ data: [] }) : defaultGet(url)));
+    renderForm();
+    await chooseSupplier();
+
+    expect(await screen.findByText(/no tiene compras pendientes/)).toBeInTheDocument();
+  });
+});
+
+describe('pago a cuenta', () => {
+  test('sin compras tildadas registra el pago a cuenta y avisa al tutorial', async () => {
     const listener = jest.fn();
     window.addEventListener(TUTORIAL_EVENT_NAME, listener);
     axios.post.mockResolvedValue({ data: { id: 30 } });
-    renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
-    await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-    fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
+    renderForm();
+    await chooseSupplier();
     await fillCashPayment();
 
     fireEvent.click(confirmButton());
@@ -110,68 +127,145 @@ describe('pago a cuenta', () => {
     await waitFor(() => expect(axios.post).toHaveBeenCalled());
     const [url, payload] = axios.post.mock.calls[0];
     expect(url).toBe(purchasePaymentUrl);
-    expect(payload).toEqual(expect.objectContaining({ proveedor: 7, tipo_pago: '1', importe_abonado: '1000' }));
-    expect(payload).not.toHaveProperty('compra');
+    expect(payload).toEqual(expect.objectContaining({ proveedor: 7, tipo_pago: '1', importe_abonado: '1000', compras: [] }));
     await waitFor(() => expect(listener).toHaveBeenCalled());
     expect(listener.mock.calls[0][0].detail).toEqual({ name: TUTORIAL_EVENTS.purchasePaymentCreated, id: 30 });
+    expect(await screen.findByText('El pago se registró correctamente.')).toBeInTheDocument();
     window.removeEventListener(TUTORIAL_EVENT_NAME, listener);
   });
-});
 
-test('en efectivo, "Registrar pago" se habilita recién con el importe', async () => {
-  renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
-  await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-  fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
-  await waitFor(() => expect(tour('payment-type')).not.toBeNull());
-  await screen.findByRole('option', { name: 'Efectivo' });
-  fireEvent.change(field('payment-type'), { target: { value: '1' } });
-  expect(confirmButton()).toBeDisabled();
+  test('en efectivo, "Registrar pago" se habilita recién con el importe', async () => {
+    renderForm();
+    await chooseSupplier();
+    await screen.findByRole('option', { name: 'Efectivo' });
+    fireEvent.change(field('payment-type'), { target: { value: '1' } });
+    expect(confirmButton()).toBeDisabled();
 
-  fireEvent.change(field('payment-amount'), { target: { value: '1000' } });
+    fireEvent.change(field('payment-amount'), { target: { value: '1000' } });
 
-  await waitFor(() => expect(confirmButton()).not.toBeDisabled());
+    await waitFor(() => expect(confirmButton()).not.toBeDisabled());
+  });
 });
 
 describe('pago de compras', () => {
-  test('pide la compra, no el proveedor', async () => {
-    renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
-    await waitFor(() => expect(tour('payment-buy')).not.toBeNull());
+  test('al tildar compras reparte el importe de la más vieja a la más nueva y muestra lo que queda a cuenta', async () => {
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('600000');
+    await waitFor(() => expect(buyCheckbox(13)).toBeInTheDocument());
 
-    expect(tour('payment-supplier')).toBeNull();
+    fireEvent.click(buyCheckbox(13));
+    fireEvent.click(buyCheckbox(12));
+
+    await waitFor(() => expect(allocationInput(12)).toHaveValue('200.000,00'));
+    expect(allocationInput(13)).toHaveValue('300.000,00');
+    expect(within(tour('payment-buys')).getByText('Queda a cuenta').nextSibling).toHaveTextContent('$100.000,00');
   });
 
-  test('muestra cada compra con el proveedor, su puesto, la fecha y el saldo pendiente', async () => {
-    renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
+  test('si el importe no alcanza, la compra más nueva recibe lo que queda', async () => {
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('250000');
+    await waitFor(() => expect(buyCheckbox(12)).toBeInTheDocument());
 
-    expect(await screen.findByRole('option', { name: BUY_OPTION })).toBeInTheDocument();
+    fireEvent.click(buyCheckbox(12));
+    fireEvent.click(buyCheckbox(13));
+
+    await waitFor(() => expect(allocationInput(13)).toHaveValue('50.000,00'));
+    expect(allocationInput(12)).toHaveValue('200.000,00');
   });
 
-  test('distingue dos compras del mismo proveedor en el mismo día por su saldo pendiente', async () => {
-    const sameDayBuy = { ...BUY, id: 13, importe: '120000.00', outstanding_balance: '120000.00' };
-    const defaultGet = axios.get.getMockImplementation();
-    axios.get.mockImplementation((url) =>
-      url === buyUrl ? Promise.resolve({ data: [BUY, sameDayBuy] }) : defaultGet(url)
-    );
-    renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
+  test('al cambiar el importe se vuelve a repartir', async () => {
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('100000');
+    await waitFor(() => expect(buyCheckbox(12)).toBeInTheDocument());
+    fireEvent.click(buyCheckbox(12));
+    await waitFor(() => expect(allocationInput(12)).toHaveValue('100.000,00'));
 
-    expect(await screen.findByRole('option', { name: BUY_OPTION })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: `Ricardo — Puesto 27 · 22/10/2026 · ${formatCurrency('120000.00')}` })).toBeInTheDocument();
+    fireEvent.change(field('payment-amount'), { target: { value: '150000' } });
+
+    await waitFor(() => expect(allocationInput(12)).toHaveValue('150.000,00'));
   });
 
-  test('registra el pago con la compra y su proveedor', async () => {
+  test('registra el pago con lo aplicado a cada compra, corregido a mano', async () => {
     axios.post.mockResolvedValue({ data: { id: 31 } });
-    renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
-    await screen.findByRole('option', { name: BUY_OPTION });
-    fireEvent.change(field('payment-buy'), { target: { value: '12' } });
-    await fillCashPayment();
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('500000');
+    await waitFor(() => expect(buyCheckbox(12)).toBeInTheDocument());
+    fireEvent.click(buyCheckbox(12));
+    fireEvent.click(buyCheckbox(13));
+    await waitFor(() => expect(allocationInput(13)).toHaveValue('300.000,00'));
 
+    fireEvent.change(allocationInput(13), { target: { value: '100000' } });
     fireEvent.click(confirmButton());
 
     await waitFor(() => expect(axios.post).toHaveBeenCalled());
-    expect(axios.post.mock.calls[0][1]).toEqual(expect.objectContaining({ proveedor: 7, compra: '12' }));
+    expect(axios.post.mock.calls[0][1].compras).toEqual([
+      { compra: 12, importe: '200000.00' },
+      { compra: 13, importe: '100000.00' },
+    ]);
+  });
+
+  test('una compra que no recibe nada no se manda', async () => {
+    axios.post.mockResolvedValue({ data: { id: 32 } });
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('100000');
+    await waitFor(() => expect(buyCheckbox(12)).toBeInTheDocument());
+    fireEvent.click(buyCheckbox(12));
+    fireEvent.click(buyCheckbox(13));
+
+    // El aviso va en el ícono junto al importe (tooltip), no como texto debajo del campo.
+    expect(await screen.findByLabelText('El importe del pago no alcanza para esta compra.')).toBeInTheDocument();
+    fireEvent.click(confirmButton());
+
+    await waitFor(() => expect(axios.post).toHaveBeenCalled());
+    expect(axios.post.mock.calls[0][1].compras).toEqual([{ compra: 12, importe: '100000.00' }]);
+  });
+
+  test('no deja aplicarle a una compra más que su saldo', async () => {
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('500000');
+    await waitFor(() => expect(buyCheckbox(12)).toBeInTheDocument());
+    fireEvent.click(buyCheckbox(12));
+
+    fireEvent.change(allocationInput(12), { target: { value: '250000' } });
+    fireEvent.click(confirmButton());
+
+    expect(await screen.findByText('Supera el saldo de la compra.')).toBeInTheDocument();
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  test('no deja aplicar a las compras más que el importe del pago', async () => {
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('100000');
+    await waitFor(() => expect(buyCheckbox(13)).toBeInTheDocument());
+    fireEvent.click(buyCheckbox(13));
+
+    fireEvent.change(allocationInput(13), { target: { value: '150000' } });
+    fireEvent.click(confirmButton());
+
+    expect(await screen.findByText('Lo aplicado a las compras supera el importe del pago.')).toBeInTheDocument();
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  test('un error del backend se muestra en un toast con los importes formateados', async () => {
+    axios.post.mockRejectedValue({ response: { data: { detail: 'Lo aplicado a la compra N° 00000012 (200000.00) supera su saldo pendiente (150000.00).' } } });
+    renderForm();
+    await chooseSupplier();
+    await fillCashPayment('200000');
+    await waitFor(() => expect(buyCheckbox(12)).toBeInTheDocument());
+    fireEvent.click(buyCheckbox(12));
+
+    fireEvent.click(confirmButton());
+
+    expect(await screen.findByText(/supera su saldo pendiente \(\$150\.000,00\)/)).toBeInTheDocument();
   });
 });
-
 
 describe('pago con varios cheques', () => {
   const choosePaymentType = async (name) => {
@@ -181,11 +275,10 @@ describe('pago con varios cheques', () => {
   };
   const checkSelects = () => tour('payment-check').querySelectorAll('select');
 
-  test('cheques propios: cada uno con su importe, que arranca en el saldo, y el pago es la suma', async () => {
+  test('cheques propios: como los de clientes, se mandan sus ids, se usan enteros y el pago es la suma', async () => {
     axios.post.mockResolvedValue({ data: { id: 40 } });
-    renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
-    await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-    fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
+    renderForm();
+    await chooseSupplier();
     await choosePaymentType('Cheque Propio');
     await screen.findByRole('option', { name: /Nro. 884/ });
 
@@ -195,25 +288,22 @@ describe('pago con varios cheques', () => {
     // El cheque ya elegido no se ofrece en la segunda tarjeta.
     expect([...checkSelects()[1].options].map((option) => option.value)).toEqual(['', '885']);
     fireEvent.change(checkSelects()[1], { target: { value: '885' } });
-    fireEvent.change(document.querySelector('input[name^="check-amount-"]:not([disabled])'), { target: { value: '700000' } });
+    // No hay importe a escribir: cada cheque se usa entero.
+    expect(document.querySelector('input[name^="check-amount-"]')).toBeNull();
 
     fireEvent.click(confirmButton());
 
     await waitFor(() => expect(axios.post).toHaveBeenCalled());
     const payload = axios.post.mock.calls[0][1];
-    expect(payload.own_checks).toEqual([
-      { id: '884', importe: '700000' },
-      { id: '885', importe: '500000.00' },
-    ]);
+    expect(payload.own_check_ids).toEqual(['884', '885']);
     expect(payload).not.toHaveProperty('importe_abonado');
     expect(payload).not.toHaveProperty('cheque_ids');
   });
 
-  test('cheques de clientes: se mandan sus ids y no se escribe el importe', async () => {
+  test('cheques de clientes: se mandan sus ids, no se escribe el importe y su suma se reparte entre las compras', async () => {
     axios.post.mockResolvedValue({ data: { id: 41 } });
-    renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
-    await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-    fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
+    renderForm();
+    await chooseSupplier();
     await choosePaymentType('Cheque');
 
     expect(tour('payment-amount')).toBeNull();
@@ -222,32 +312,24 @@ describe('pago con varios cheques', () => {
     fireEvent.click(screen.getByRole('button', { name: /Agregar cheque/ }));
     await waitFor(() => expect(checkSelects()).toHaveLength(2));
     fireEvent.change(checkSelects()[1], { target: { value: '51' } });
+    // Un cheque de $500.000 en total que cubre las dos compras.
+    fireEvent.click(buyCheckbox(12));
+    fireEvent.click(buyCheckbox(13));
 
     fireEvent.click(confirmButton());
 
     await waitFor(() => expect(axios.post).toHaveBeenCalled());
-    expect(axios.post.mock.calls[0][1].cheque_ids).toEqual(['50', '51']);
-  });
-
-  test('si la suma de los cheques supera el saldo de la compra, lo avisa en un toast', async () => {
-    axios.post.mockRejectedValue({ response: { data: { detail: 'El importe abonado (700000.00) supera el saldo pendiente (670000.00).' } } });
-    renderForm(PURCHASE_PAYMENT_KINDS.PURCHASE);
-    await screen.findByRole('option', { name: BUY_OPTION });
-    fireEvent.change(field('payment-buy'), { target: { value: '12' } });
-    await choosePaymentType('Cheque Propio');
-    await screen.findByRole('option', { name: /Nro. 884/ });
-    fireEvent.change(checkSelects()[0], { target: { value: '884' } });
-    fireEvent.change(document.querySelector('input[name^="check-amount-"]'), { target: { value: '700000' } });
-
-    fireEvent.click(confirmButton());
-
-    expect(await screen.findByText(/La suma de los cheques .* supera el saldo pendiente/)).toBeInTheDocument();
+    const payload = axios.post.mock.calls[0][1];
+    expect(payload.cheque_ids).toEqual(['50', '51']);
+    expect(payload.compras).toEqual([
+      { compra: 12, importe: '200000.00' },
+      { compra: 13, importe: '300000.00' },
+    ]);
   });
 
   test('"Registrar pago" se habilita recién con los cheques elegidos', async () => {
-    renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
-    await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-    fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
+    renderForm();
+    await chooseSupplier();
     await choosePaymentType('Cheque Propio');
     await screen.findByRole('option', { name: /Nro. 884/ });
     expect(confirmButton()).toBeDisabled();
@@ -257,20 +339,5 @@ describe('pago con varios cheques', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Agregar cheque/ }));
     await waitFor(() => expect(confirmButton()).toBeDisabled());
-  });
-
-  test('un cheque propio por encima de su saldo no deja registrar', async () => {
-    renderForm(PURCHASE_PAYMENT_KINDS.ON_ACCOUNT);
-    await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-    fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
-    await choosePaymentType('Cheque Propio');
-    await screen.findByRole('option', { name: /Nro. 885/ });
-    fireEvent.change(checkSelects()[0], { target: { value: '885' } });
-    fireEvent.change(document.querySelector('input[name^="check-amount-"]'), { target: { value: '600000' } });
-
-    fireEvent.click(confirmButton());
-
-    expect(await screen.findByText(/Supera el saldo disponible del cheque/)).toBeInTheDocument();
-    expect(axios.post).not.toHaveBeenCalled();
   });
 });
