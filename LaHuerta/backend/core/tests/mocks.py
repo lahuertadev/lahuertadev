@@ -43,7 +43,7 @@ from movimiento_vacio.constants import EmptyMovementType
 from movimiento_vacio.models import MovimientoVacio
 from municipio.models import Municipio
 from pago_cliente.models import PagoCliente
-from pago_compra.models import PagoCompra, PagoCompraChequePropio
+from pago_compra.models import PagoCompra, ImputacionPago, PagoCompraCheque, PagoCompraChequePropio
 from producto.models import Producto
 from proveedor.models import Proveedor
 from provincia.models import Provincia
@@ -307,12 +307,16 @@ def mock_purchase(**overrides):
 
 def mock_purchase_payment(**overrides):
     '''
-    Pago a proveedor. Con compra=None es un pago a cuenta. Con cheque_propio=<mock>, el pago se hace
-    con ese cheque emitido por todo su importe (payment.own_check_uses.all()).
+    Pago a proveedor. Por defecto cubre una compra del proveedor por todo su importe; con
+    compra=<mock> cubre esa compra, y con compra=None es un pago a cuenta (sin compras). Las
+    compras quedan en payment.purchase_applications.all().
+
+    Con cheque_propio=<mock>, el pago se hace con ese cheque emitido por todo su importe
+    (payment.owncheck_set.all() y el historial en payment.own_check_uses.all()).
     '''
     own_check = overrides.pop('cheque_propio', None)
     if 'compra' in overrides:
-        buy = overrides['compra']
+        buy = overrides.pop('compra')
     elif 'proveedor' in overrides:
         buy = mock_purchase(proveedor=overrides['proveedor'])
     else:
@@ -321,16 +325,41 @@ def mock_purchase_payment(**overrides):
         'id': _next(),
         'fecha_pago': DEFAULT_DATE,
         'importe_abonado': Decimal('1000.00'),
-        'estado_pago': None,
-        'compra': buy,
-        'proveedor': overrides['proveedor'] if 'proveedor' in overrides else buy.proveedor,
+        'estado_pago': 'VIGENTE',
+        'fecha_anulacion': None,
+        'proveedor': overrides['proveedor'] if 'proveedor' in overrides else (buy.proveedor if buy else mock_supplier()),
         'tipo_pago': _related(overrides, 'tipo_pago', mock_payment_type),
     }
     payment = _build(PagoCompra, data, overrides)
+    applications = (
+        [mock_purchase_application(pago_compra=payment, compra=buy, importe=payment.importe_abonado)] if buy else []
+    )
+    payment.purchase_applications.all.return_value = applications
+    payment.own_check_uses.all.return_value = []
+    payment.owncheck_set.all.return_value = []
+    payment.owncheck_set.exists.return_value = False
+    payment.client_check_uses.all.return_value = []
     if own_check:
+        own_check.pago_compra = payment
+        own_check.pago_compra_id = payment.id
         use = mock_own_check_use(pago_compra=payment, cheque_propio=own_check, importe=payment.importe_abonado)
         payment.own_check_uses.all.return_value = [use]
+        payment.owncheck_set.all.return_value = [own_check]
+        payment.owncheck_set.exists.return_value = True
     return payment
+
+
+def mock_purchase_application(**overrides):
+    '''
+    Aplicación de un pago a una compra (cuánto del pago cubre esa compra).
+    '''
+    data = {
+        'id': _next(),
+        'importe': Decimal('1000.00'),
+        'compra': _related(overrides, 'compra', mock_purchase),
+        'pago_compra': _related(overrides, 'pago_compra', mock_purchase_payment, compra=None),
+    }
+    return _build(ImputacionPago, data, overrides)
 
 
 def mock_own_check_use(**overrides):
@@ -344,6 +373,20 @@ def mock_own_check_use(**overrides):
         'pago_compra': _related(overrides, 'pago_compra', mock_purchase_payment),
     }
     return _build(PagoCompraChequePropio, data, overrides)
+
+
+def mock_client_check_use(**overrides):
+    '''
+    Registro de un cheque de cliente en un pago a proveedor (queda aunque el pago se anule).
+    '''
+    check = _related(overrides, 'cheque', mock_check)
+    data = {
+        'id': _next(),
+        'cheque': check,
+        'importe': check.importe,
+        'pago_compra': _related(overrides, 'pago_compra', mock_purchase_payment),
+    }
+    return _build(PagoCompraCheque, data, overrides)
 
 
 def mock_empty_movement(**overrides):
@@ -390,6 +433,7 @@ def mock_own_check(**overrides):
         'estado': OwnCheck.State.EMITIDO,
         'observaciones': None,
         'banco': _related(overrides, 'banco', mock_bank),
+        'pago_compra': overrides.get('pago_compra'),
     }
     return _build(OwnCheck, data, overrides)
 

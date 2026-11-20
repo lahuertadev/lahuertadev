@@ -1,10 +1,11 @@
 import logging
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from .interfaces import IPurchasePaymentRepository
 from .repositories import PurchasePaymentRepository
 from .serializers import (
-    PurchasePaymentWriteSerializer,
+    PurchasePaymentCreateSerializer,
     PurchasePaymentUpdateSerializer,
     PurchasePaymentResponseSerializer,
     PurchasePaymentQueryParamsSerializer,
@@ -13,11 +14,12 @@ from .exceptions import (
     PurchasePaymentNotFoundException,
     PaymentExceedsBalanceException,
     PaymentSupplierMismatchException,
-    OwnCheckOtherSupplierException,
     PaymentEditBlockedException,
+    PaymentApplicationsExceedAmountException,
+    OwnCheckNotAvailableException,
+    PaymentCancelBlockedException,
 )
 from .factory import build_purchase_payment_service
-from .service import OwnCheckInsufficientBalanceException
 from cheque.exceptions import CheckNotFoundException, CheckAlreadyEndorsedException, CheckInvalidStateException
 from cheque_propio.exceptions import OwnCheckNotFoundException
 
@@ -50,6 +52,7 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
                 amount_max=params.get('amount_max'),
                 date_from=params.get('date_from'),
                 date_to=params.get('date_to'),
+                state=params.get('estado'),
             )
             serializer = PurchasePaymentResponseSerializer(payments, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -78,7 +81,7 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
             )
 
     def create(self, request):
-        serializer = PurchasePaymentWriteSerializer(data=request.data)
+        serializer = PurchasePaymentCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -95,8 +98,8 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
             CheckInvalidStateException,
             PaymentExceedsBalanceException,
             PaymentSupplierMismatchException,
-            OwnCheckInsufficientBalanceException,
-            OwnCheckOtherSupplierException,
+            PaymentApplicationsExceedAmountException,
+            OwnCheckNotAvailableException,
         ) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -119,7 +122,8 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
 
         except (
             PaymentExceedsBalanceException,
-            OwnCheckInsufficientBalanceException,
+            PaymentSupplierMismatchException,
+            PaymentApplicationsExceedAmountException,
             PaymentEditBlockedException,
         ) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -128,17 +132,25 @@ class PurchasePaymentViewSet(viewsets.ViewSet):
             logger.exception("Error al editar pago de compra pk=%s", pk)
             return Response({'detail': 'Error al editar el pago.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    def destroy(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel(self, request, pk=None):
+        '''
+        Anula el pago (POST .../cancel/). Un pago no se elimina: queda como registro con estado
+        Anulado. Ver PurchasePaymentService.cancel_payment.
+        '''
         try:
-            self.service.delete_payment(payment_id=pk)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            payment = self.service.cancel_payment(payment_id=pk)
+            return Response(PurchasePaymentResponseSerializer(payment).data, status=status.HTTP_200_OK)
 
         except PurchasePaymentNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
+        except PaymentCancelBlockedException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         except Exception:
-            logger.exception("Error al eliminar pago de compra pk=%s", pk)
+            logger.exception("Error al anular pago de compra pk=%s", pk)
             return Response(
-                {'detail': 'Error al eliminar el pago.'},
+                {'detail': 'Error al anular el pago.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

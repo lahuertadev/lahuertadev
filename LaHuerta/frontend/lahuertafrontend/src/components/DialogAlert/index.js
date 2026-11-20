@@ -4,16 +4,21 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import SpotlightButton from '../SpotlightButton';
 
-// Tono del diálogo: solo el botón de confirmar lleva el color (rojo o ámbar). El borde animado
-// usa el color de acento del sitio y el ícono es neutro, para que lo único destacado sea la acción.
+// Tono del diálogo: el borde animado, el halo y el ícono van en el color del tono (rojo para
+// eliminar o anular, amarillo para confirmar con avisos). El botón de confirmar es la variante
+// translúcida de SpotlightButton, con su efecto de luz al pasar el mouse.
 const TONES = {
   danger: {
     icon: <DeleteOutlineIcon sx={{ fontSize: 20 }} />,
     confirmVariant: 'danger',
+    rgb: '239 68 68',
+    iconCls: 'bg-red-500/10 text-red-500 dark:text-red-400',
   },
   warning: {
     icon: <WarningAmberIcon sx={{ fontSize: 20 }} />,
     confirmVariant: 'warning',
+    rgb: '245 158 11',
+    iconCls: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   },
 };
 
@@ -47,7 +52,7 @@ export default function AlertDialog({
       PaperProps={{
         className: 'dialog-border-glow',
         style: {
-          '--dialog-tone-rgb': 'var(--color-accent-rgb)',
+          '--dialog-tone-rgb': toneConfig.rgb,
           borderRadius: '18px',
           width: 'min(480px, calc(100vw - 32px))',
           margin: '16px',
@@ -58,14 +63,14 @@ export default function AlertDialog({
 
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-surface-low text-on-surface-muted flex items-center justify-center flex-shrink-0">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${toneConfig.iconCls}`}>
             {icon ?? toneConfig.icon}
           </div>
           <h2 className="text-base font-semibold text-on-surface">{title}</h2>
         </div>
 
         {/* Message */}
-        <div className="text-sm text-on-surface leading-relaxed sm:pl-[52px]">
+        <div className="text-sm text-on-surface leading-relaxed">
           {message}
         </div>
 

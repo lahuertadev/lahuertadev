@@ -38,7 +38,6 @@ class OwnCheckViewSet(viewsets.ViewSet):
                 state=params.get('state'),
                 bank=params.get('bank'),
                 available=params.get('available'),
-                supplier_id=params.get('supplier_id'),
             )
             serializer = OwnCheckResponseSerializer(own_checks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -149,7 +148,7 @@ class OwnCheckViewSet(viewsets.ViewSet):
 
         except ProtectedError:
             return Response(
-                {'detail': 'No se puede eliminar el cheque porque tiene pagos asociados. Eliminá los pagos primero.'},
+                {'detail': 'No se puede eliminar el cheque porque se usó en pagos, que lo conservan como registro aunque estén anulados. Si no se va a usar, anulalo.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -202,3 +201,26 @@ class OwnCheckViewSet(viewsets.ViewSet):
         except Exception:
             logger.exception("Error al anular cheque propio pk=%s", pk)
             return Response({'detail': 'Error al anular el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        '''
+        Registra el rechazo de un cheque propio por el banco (EMITIDO o COBRADO → RECHAZADO).
+        '''
+        try:
+            own_check = self.repository.get_by_id(pk)
+            if not own_check:
+                raise OwnCheckNotFoundException('Cheque propio no encontrado.')
+
+            own_check = self.service.reject_check(own_check)
+            return Response(OwnCheckResponseSerializer(own_check).data, status=status.HTTP_200_OK)
+
+        except OwnCheckNotFoundException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except OwnCheckInvalidTransitionException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception:
+            logger.exception("Error al rechazar cheque propio pk=%s", pk)
+            return Response({'detail': 'Error al rechazar el cheque.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -3,6 +3,7 @@ import { columns } from '../../../constants/grid/Compra';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
+import DeleteBuyMessage from '../shared/DeleteBuyMessage';
 import { useNavigate } from 'react-router-dom';
 
 const mapBuyData = (data) =>
@@ -15,6 +16,8 @@ const mapBuyData = (data) =>
     amount: formatCurrency(buy.importe),
     paymentStatus: buy.payment_status,
     outstandingBalance: formatCurrency(buy.outstanding_balance),
+    // Para el diálogo de eliminar.
+    buy,
   }));
 
 const data = {
@@ -29,13 +32,18 @@ const data = {
   columns: columns,
   mapData: mapBuyData,
   filtersConfig: [
-    { label: 'Proveedor',    name: 'proveedor_id', type: 'number' },
-    { label: 'Importe mín.', name: 'importe_min',  type: 'number' },
-    { label: 'Importe máx.', name: 'importe_max',  type: 'number' },
+    // Busca por puesto (un número) o por nombre del proveedor, como en Pagos de Compras.
+    { label: 'Proveedor (puesto o nombre)', name: 'supplier', type: 'text' },
+    { label: 'Importe mín.', name: 'importe_min',  type: 'amount' },
+    { label: 'Importe máx.', name: 'importe_max',  type: 'amount' },
     { label: 'Fecha desde',  name: 'fecha_desde',  type: 'date'   },
     { label: 'Fecha hasta',  name: 'fecha_hasta',  type: 'date'   },
   ],
   newLabelText: 'Nueva compra',
+  deleteDialogTitle: 'Eliminar compra',
+  deleteMessage: (row) => <DeleteBuyMessage buy={row.buy} />,
+  deleteConfirmLabel: 'Eliminar compra',
+  deleteSuccessMessage: (count) => (count > 1 ? `Se eliminaron ${count} compras correctamente.` : 'La compra se eliminó correctamente.'),
   // Detalle, Editar y Eliminar en una sola columna "Acción" (como Pagos de Compras), para dejarle más lugar a los datos.
   groupActions: true,
 };

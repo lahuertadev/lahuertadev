@@ -26,6 +26,31 @@ Toda pantalla y componente nuevo debe verse bien en los dos temas.
 - Si hace falta un color nuevo, agregarlo como token: variable CSS en `:root` y en `.dark` (color completo + tripleta `-rgb`) y su entrada en `tailwind.config.js` con `rgb(var(--color-x-rgb) / <alpha-value>)`, así funcionan las opacidades (`bg-x/15`).
 - `dark:` de Tailwind solo para ajustes puntuales que un token no resuelve.
 
+## Colores de etiquetas (estados y tipos)
+Convención de todo el sistema (DEV-150).
+- **Paleta única:** `constants/badgeColors.js` (`BADGE_COLORS`). Un solo tono por color: no puede haber dos azules, dos verdes ni dos rojos distintos. Fondo pastel claro y texto oscuro, igual en los dos temas. Ningún archivo define colores de etiquetas con hex propios: los toma de ahí (`...BADGE_COLORS.blue` en una config, o el componente).
+- **Estados:** `components/StatusBadge` con los tres colores base:
+  - **Rojo (`danger`):** eliminación, anulación, rechazo o pendiente (ej. "Pago anulado", "Rechazado", "Pendiente").
+  - **Amarillo (`warning`):** estado intermedio (ej. "Parcial", "Depositado").
+  - **Verde (`success`):** estado resuelto (ej. "Abonado", "Acreditado", "Cobrado").
+- **Tipos y otros estados:** `components/Badge` con un color de la paleta (`color="violet"` o la config `{ bg, color }`): tipos de pago, de factura, categorías, roles, y estados que no son ninguno de los tres (ej. "En cartera" y "Emitido" en azul, "Endosado" en violeta).
+- Un aviso dentro de una etiqueta de estado lleva un ícono de alerta (ej. "Cheque rechazado").
+
+## Diálogos de eliminar o anular
+Convención de todo el sitio (DEV-150). Referencia: `pages/pago_cliente/shared/DeleteClientPaymentMessage.jsx`.
+- `AlertDialog` (`components/DialogAlert`) con tono `danger`: borde animado, halo e ícono en rojo; el botón de confirmar es `SpotlightButton` `danger` (rojo translúcido con el efecto de luz). En mobile ocupa el ancho con márgenes y los botones van apilados a lo ancho, la acción arriba.
+- El texto se arma con `components/DeleteMessage`:
+  - **summary:** una frase con lo esencial (qué se elimina, de quién, el importe) y "No se puede deshacer.";
+  - **effects:** las consecuencias, cada una con su ícono, en el recuadro rojo;
+  - **note:** opcional, lo que no es una consecuencia (ej. cuándo no se puede eliminar).
+- El botón de confirmar dice la acción (ej. "Eliminar pago", "Anular"), no "Confirmar". En `GenericList`: `deleteDialogTitle`, `deleteMessage` y `deleteConfirmLabel`.
+
+## Alertas
+Un aviso de que algo requiere atención (cheque rechazado, fecha vencida) usa `components/AlertIcon`: "!" rojo con el detalle en el tooltip, que también es su texto para lectores de pantalla. No usar otros íconos ni colores para esto.
+- **Sobre una etiqueta:** adentro, a la derecha del texto (ej. Tipo de pago en Pagos de clientes y Pagos de compras). Así todas las etiquetas de la columna quedan centradas igual.
+- **Al lado de un texto o una fecha:** suelto, a la derecha, sin correr el texto: en una columna centrada va con posición absoluta (ej. Depósito en Cheques).
+- Si el aviso es un estado que tiene que leerse sin pasar el mouse (ej. "Cheque rechazado" en el detalle de la compra), usar `StatusBadge` con texto.
+
 ## Responsive (mobile)
 Toda pantalla nueva debe ser usable en el celular (ver DEV-96).
 - Diseñar mobile primero y ampliar con el breakpoint `sm:` (y `lg:` si hace falta).
@@ -35,17 +60,26 @@ Toda pantalla nueva debe ser usable en el celular (ver DEV-96).
 - Toasts: usar `responsive` para que en mobile ocupen el ancho con márgenes.
 
 ## Botones de formularios (Volver, Cancelar, Confirmar)
-Convención de todo formulario de alta/edición (definida en DEV-135). Referencias: `pages/cliente/form/ClientForm.js`, `pages/lista_precios/form/PriceListForm.js`.
-- **Arriba:** breadcrumbs a la izquierda y `BackButton` (`components/BackButton`) a la derecha, separados del contenido con una línea:
+Convención de todo formulario de alta/edición (definida en DEV-135; Volver en mobile, DEV-150). Referencia: `pages/pago_cliente/form/ClientPaymentForm.js`.
+- **Arriba:** `PageHeader` (`components/PageHeader`): breadcrumbs a la izquierda y Volver a la derecha, separados del contenido con una línea. En mobile Volver no se muestra arriba.
   ```jsx
-  <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
-    <nav>…breadcrumbs…</nav>
-    <BackButton onClick={() => navigate('/client')} className="shrink-0 px-5 py-2.5 text-sm" />
-  </div>
+  <PageHeader
+    breadcrumbs={[{ label: 'Inicio', path: '/' }, { label: 'Pagos de Clientes', path: '/client-payment' }, { label: 'Nuevo' }]}
+    onBack={() => navigate('/client-payment')}
+  />
   ```
-- **Abajo:** `FormActions` (`components/FormActions`) con Cancelar y Confirmar. En desktop quedan abajo a la derecha; en mobile apilados a lo ancho, con Confirmar arriba. En formularios Formik usar `confirmType="submit"`.
-- Cualquier otro botón usa `SpotlightButton` con su variante (`primary` acción principal, `outline` secundaria, `cancel` salir sin guardar, `danger` destructiva), no botones inline con colores propios. Así los botones se adaptan solos a los temas y un cambio de estilo se hace en un solo lugar.
+- **Abajo:** `FormActions` (`components/FormActions`) con Cancelar, Confirmar y `onBack`. En desktop quedan abajo a la derecha; en mobile apilados a lo ancho de la pantalla: Confirmar arriba, Cancelar y Volver abajo de todo. En formularios Formik usar `confirmType="submit"`.
+- Las pantallas que todavía arman el encabezado a mano (`div` con breadcrumbs + `BackButton`) se pasan a `PageHeader` y `onBack` cuando se toquen.
+- Cualquier otro botón usa `SpotlightButton` con su variante (`primary` acción principal, `soft` acción principal de un detalle, `outline` secundaria, `cancel` salir sin guardar, `danger` destructiva), no botones inline con colores propios. Así los botones se adaptan solos a los temas y un cambio de estilo se hace en un solo lugar.
 - Interruptores Sí/No: `components/Switch`, no checkbox inline ni el `Switch` de MUI.
+
+## Botones de los detalles
+Convención de todo el sitio (DEV-150). Referencia: `pages/movimiento_vacio/detail/EmptyMovementDetail.jsx`.
+- **Arriba:** `PageHeader` con breadcrumbs y Volver.
+- **Abajo, en desktop:** solo Editar, con `components/EditButton` (azul translúcido, no relleno; `label` para "Editar cliente", etc.). No armar el botón a mano: su estilo se cambia solo en ese componente. Eliminar, Anular y los cambios de estado están en la columna Acción del listado.
+- **Abajo, en mobile:** el listado no tiene columna de acciones, así que en el detalle van esas acciones (`isMobile`), Editar y Volver abajo de todo, apilados a lo ancho.
+- **Eliminar o Anular:** `components/DeleteButton` (rojo translúcido; `label` e `icon` para "Anular"). Abre el diálogo de confirmación. Tampoco se arma a mano.
+- Si una acción no está en el listado, va también en desktop, al lado de Editar.
 
 ## Campos obligatorios
 Convención definida en DEV-119. Referencia: `pages/cliente/form/ClientForm.js`.

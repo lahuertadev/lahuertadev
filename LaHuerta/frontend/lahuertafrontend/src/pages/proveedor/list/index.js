@@ -4,6 +4,7 @@ import { formatCurrency } from '../../../utils/currency';
 import { getMainPhone } from '../../../utils/phone';
 import GenericList from '../../../components/List';
 import { useNavigate } from 'react-router-dom';
+import DeleteSupplierMessage from '../shared/DeleteSupplierMessage';
 
 const mapSupplierData = (data) => {
   const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
@@ -24,6 +25,9 @@ const mapSupplierData = (data) => {
 const data = {
   title: 'Proveedores',
   subtitle: 'Gestioná los datos, los contactos y la cuenta corriente de cada proveedor.',
+  deleteMessage: (row) => <DeleteSupplierMessage name={row.nombre} stall={row.puesto} />,
+  deleteSuccessMessage: (count) =>
+    count === 1 ? 'El proveedor se eliminó correctamente.' : `Se eliminaron ${count} proveedores correctamente.`,
   fetchUrl: {
     baseUrl: supplierUrl,
     createUrl: '/supplier/create',

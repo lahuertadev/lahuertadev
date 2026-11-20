@@ -7,6 +7,7 @@ from pago_cliente.interfaces import IClientPaymentRepository
 from pago_cliente.service import ClientPaymentService
 from pago_cliente.exceptions import (
     ClientPaymentNotFoundException,
+    PaymentTypeChangeBlockedException,
     CheckAlreadyExistsException,
     PaymentDeletionBlockedException,
     CheckEditBlockedException,
@@ -63,6 +64,9 @@ class FakeCheckRepo(ICheckRepository):
 
     def delete(self, check):
         self._items.pop(check.numero, None)
+
+    def get_purchase_payment_ids(self, check):
+        return getattr(self, '_recorded', {}).get(check.id, [])
 
 
 class FakePaymentRepo(IClientPaymentRepository):
@@ -467,6 +471,19 @@ class TestUpdatePayment:
         assert result is not None
         assert len(service.check_repository._updated) == 0
 
+    def test_update_a_efectivo_con_cheque_registrado_en_un_pago_a_proveedor_lanza_excepcion(self):
+        service = _make_service()
+        payment, check, client = self._make_payment_with_check(service)
+        service.check_repository._recorded = {check.id: [120]}
+
+        with pytest.raises(PaymentTypeChangeBlockedException, match='pago a proveedor N° 00000120'):
+            service.update_payment(payment.id, {
+                'cliente': client,
+                'tipo_pago': self.tipo_efectivo,
+                'fecha_pago': '2024-01-01',
+                'importe': Decimal('1000.00'),
+            })
+
     def test_update_not_found_lanza_excepcion(self):
         service = _make_service()
 
@@ -573,6 +590,19 @@ class TestDeletePayment:
         # el pago y el cheque siguen existiendo, nada se revirtió
         assert service.payment_repository.get_by_id(payment.id) is not None
         assert service.check_repository.get_by_id(12345) is not None
+
+    def test_delete_pago_con_cheque_registrado_en_un_pago_a_proveedor_anulado_lanza_excepcion(self):
+        service = _make_service()
+        payment, client, check = self._make_payment(service, self.tipo_cheque, with_check=True)
+        client.cuenta_corriente = Decimal('5000.00')
+        service.check_repository._recorded = {check.id: [120, 121]}
+
+        with pytest.raises(PaymentDeletionBlockedException, match='N° 00000120, N° 00000121'):
+            service.delete_payment(payment.id)
+
+        assert service.payment_repository.get_by_id(payment.id) is not None
+        assert service.check_repository.get_by_id(12345) is not None
+        assert client.cuenta_corriente == Decimal('5000.00')
 
     def test_delete_pago_sin_cheque_no_falla(self):
         service = _make_service()

@@ -8,6 +8,7 @@ import { formatDate } from '../../../utils/date';
 import BadgeIcon from '@mui/icons-material/BadgeOutlined';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { BADGE_COLORS } from '../../../constants/badgeColors';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -38,7 +39,7 @@ const RoleBadge = ({ role }) => {
       <div>
         <span
           className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold"
-          style={{ backgroundColor: config.bg || '#f0f4f7', color: config.color || '#596064' }}
+          style={{ backgroundColor: config.bg || BADGE_COLORS.gray.bg, color: config.color || BADGE_COLORS.gray.color }}
         >
           {config.label || role}
         </span>

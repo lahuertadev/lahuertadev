@@ -5,7 +5,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CountUp from '../../../components/CountUp';
-import AmountInput from '../../../components/AmountInput';
 import RequiredMark from '../../../components/RequiredMark';
 import { formatCurrency } from '../../../utils/currency';
 
@@ -19,11 +18,10 @@ const selectCls = (hasError) =>
   }`;
 
 let nextKey = 1;
-export const newCheckEntry = () => ({ key: nextKey++, id: '', amount: '' });
+export const newCheckEntry = () => ({ key: nextKey++, id: '' });
 
-// Importe que aporta cada cheque al pago: el de cliente entero, el emitido lo que se indique.
-export const entryAmount = (entry, options, withAmount) => {
-  if (withAmount) return parseFloat(entry.amount) || 0;
+// Importe que aporta cada cheque al pago: el cheque entero, sea de cliente o emitido (DEV-150).
+export const entryAmount = (entry, options) => {
   const option = options.find((opt) => String(opt.value) === String(entry.id));
   return option ? parseFloat(option.importe) || 0 : 0;
 };
@@ -34,14 +32,13 @@ export const entryAmount = (entry, options, withAmount) => {
  * las demás.
  *
  * Props:
- *   entries     — [{ key, id, amount }]
+ *   entries     — [{ key, id }]
  *   onChange    — (entries) => void
- *   options     — [{ value, name, numero, banco, importe }]; importe = lo disponible del cheque
- *   withAmount  — true para cheques emitidos: cada uno con su importe (por defecto, su saldo)
- *   errors      — { [key]: { id?, amount? } }
+ *   options     — [{ value, name, numero, banco, importe }]; cada cheque se usa entero
+ *   errors      — { [key]: { id? } }
  *   emptyText   — aviso cuando no hay cheques para elegir
  */
-const PaymentChecksList = ({ entries, onChange, options, withAmount = false, errors = {}, emptyText }) => {
+const PaymentChecksList = ({ entries, onChange, options, errors = {}, emptyText }) => {
   const [collapsedKeys, setCollapsedKeys] = useState([]);
 
   const toggleCollapsed = (key) =>
@@ -50,10 +47,7 @@ const PaymentChecksList = ({ entries, onChange, options, withAmount = false, err
   const updateEntry = (key, changes) =>
     onChange(entries.map((entry) => (entry.key === key ? { ...entry, ...changes } : entry)));
 
-  const selectCheck = (key, id) => {
-    const option = options.find((opt) => String(opt.value) === String(id));
-    updateEntry(key, { id, amount: withAmount && option ? String(option.importe) : '' });
-  };
+  const selectCheck = (key, id) => updateEntry(key, { id });
 
   const removeEntry = (key) => onChange(entries.filter((entry) => entry.key !== key));
 
@@ -63,7 +57,7 @@ const PaymentChecksList = ({ entries, onChange, options, withAmount = false, err
     onChange([...entries, newCheckEntry()]);
   };
 
-  const total = entries.reduce((sum, entry) => sum + entryAmount(entry, options, withAmount), 0);
+  const total = entries.reduce((sum, entry) => sum + entryAmount(entry, options), 0);
   const chosenIds = entries.map((entry) => String(entry.id)).filter(Boolean);
 
   if (options.length === 0) {
@@ -100,7 +94,7 @@ const PaymentChecksList = ({ entries, onChange, options, withAmount = false, err
               </div>
 
               <span className="flex-shrink-0 font-bold text-on-surface">
-                {formatCurrency(entryAmount(entry, options, withAmount))}
+                {formatCurrency(entryAmount(entry, options))}
               </span>
 
               <IconButton
@@ -124,7 +118,7 @@ const PaymentChecksList = ({ entries, onChange, options, withAmount = false, err
             </div>
 
             <Collapse in={!collapsed} timeout={200}>
-              <div className={`p-3 sm:p-4 grid grid-cols-1 gap-4 ${withAmount ? 'md:grid-cols-2' : ''}`}>
+              <div className="p-3 sm:p-4 grid grid-cols-1 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className={labelCls} htmlFor={`check-${entry.key}`}>Cheque<RequiredMark /></label>
                   <select
@@ -141,24 +135,6 @@ const PaymentChecksList = ({ entries, onChange, options, withAmount = false, err
                   </select>
                   {entryErrors.id && <p className="mt-1 text-xs text-red-500">{entryErrors.id}</p>}
                 </div>
-
-                {withAmount && (
-                  <div className="flex flex-col gap-1">
-                    <label className={labelCls} htmlFor={`check-amount-${entry.key}`}>Importe a usar<RequiredMark /></label>
-                    <AmountInput
-                      name={`check-amount-${entry.key}`}
-                      value={entry.amount}
-                      onChange={(raw) => updateEntry(entry.key, { amount: raw })}
-                      hasError={Boolean(entryErrors.amount)}
-                      disabled={!entry.id}
-                    />
-                    {entryErrors.amount ? (
-                      <p className="mt-1 text-xs text-red-500">{entryErrors.amount}</p>
-                    ) : option && (
-                      <p className="mt-1 text-xs text-on-surface-muted">Saldo disponible: {formatCurrency(option.importe)}</p>
-                    )}
-                  </div>
-                )}
               </div>
             </Collapse>
           </div>

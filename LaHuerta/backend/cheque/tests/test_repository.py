@@ -1,7 +1,12 @@
 import pytest
+from datetime import timedelta
 from decimal import Decimal
 
-from core.tests.factories import make_bank, make_check, make_check_state, make_client_payment
+from django.utils import timezone
+
+from core.tests.factories import (
+    make_bank, make_check, make_check_state, make_client_check_use, make_client_payment, make_purchase_payment,
+)
 from cheque.models import Cheque
 from cheque.repositories import CheckRepository
 
@@ -32,6 +37,38 @@ class TestCheckRepository:
     def test_get_all_empty(self):
         result = self.repository.get_all()
         assert result.count() == 0
+
+    def test_get_all_pending_tab_only_due_checks_in_wallet(self):
+        today = timezone.localdate()
+        due_today = make_check(numero=1, banco=self.banco, estado=self.estado, fecha_deposito=today)
+        overdue = make_check(numero=2, banco=self.banco, estado=self.estado, fecha_deposito=today - timedelta(days=3))
+        make_check(numero=3, banco=self.banco, estado=self.estado, fecha_deposito=today + timedelta(days=1))
+        make_check(numero=4, banco=self.banco, estado=self.estado, fecha_deposito=None)
+        deposited = make_check_state(descripcion='DEPOSITADO')
+        make_check(numero=5, banco=self.banco, estado=deposited, fecha_deposito=today - timedelta(days=3))
+
+        result = self.repository.get_all(tab='pendientes')
+
+        assert set(result.values_list('id', flat=True)) == {due_today.id, overdue.id}
+
+    def test_get_all_rejected_tab_only_rejected(self):
+        rejected = make_check_state(descripcion='RECHAZADO')
+        rejected_check = make_check(numero=1, banco=self.banco, estado=rejected)
+        self._make_cheque(2)
+
+        result = self.repository.get_all(tab='rechazados')
+
+        assert list(result.values_list('id', flat=True)) == [rejected_check.id]
+
+    def test_get_all_tab_combines_with_filters(self):
+        rejected = make_check_state(descripcion='RECHAZADO')
+        make_check(numero=1, banco=self.banco, estado=rejected)
+        other_bank = make_bank(descripcion='Galicia')
+        galicia_check = make_check(numero=2, banco=other_bank, estado=rejected)
+
+        result = self.repository.get_all(tab='rechazados', bank='Galicia')
+
+        assert list(result.values_list('id', flat=True)) == [galicia_check.id]
 
     # ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
@@ -127,3 +164,18 @@ class TestCheckRepository:
         self.repository.delete(cheque)
 
         assert Cheque.objects.count() == 0
+
+    # ---------------- PAGOS A PROVEEDOR QUE LO REGISTRAN ----------------
+    def test_get_purchase_payment_ids_devuelve_los_pagos_que_registran_el_cheque(self):
+        check = self._make_cheque(1001)
+        first = make_purchase_payment(estado_pago='ANULADO')
+        second = make_purchase_payment()
+        make_client_check_use(cheque=check, pago_compra=second)
+        make_client_check_use(cheque=check, pago_compra=first)
+
+        assert self.repository.get_purchase_payment_ids(check) == sorted([first.id, second.id])
+
+    def test_get_purchase_payment_ids_sin_pagos_devuelve_lista_vacia(self):
+        check = self._make_cheque(1001)
+
+        assert self.repository.get_purchase_payment_ids(check) == []

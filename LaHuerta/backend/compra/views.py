@@ -6,12 +6,13 @@ from .interfaces import IBuyRepository
 from .service import BuyService
 from .serializers import (
     BuyResponseSerializer,
+    BuyDetailResponseSerializer,
     BuyCreateSerializer,
     BuyBulkCreateSerializer,
     BuyUpdateSerializer,
     BuyQueryParamsSerializer,
 )
-from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
+from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException, BuyWithPaymentsException
 from .factory import build_buy_service
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,8 @@ class BuyViewSet(viewsets.ViewSet):
 
     def list(self, request):
         '''
-        Lista todas las compras. Acepta filtros por proveedor_id, fechas e importe.
+        Lista todas las compras. Acepta filtros por proveedor_id, proveedor (supplier: puesto o nombre),
+        fechas e importe.
         '''
         serializer = BuyQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
@@ -43,6 +45,7 @@ class BuyViewSet(viewsets.ViewSet):
                 fecha_hasta=serializer.validated_data.get('fecha_hasta'),
                 importe_min=serializer.validated_data.get('importe_min'),
                 importe_max=serializer.validated_data.get('importe_max'),
+                supplier=serializer.validated_data.get('supplier'),
             )
 
             response_serializer = BuyResponseSerializer(buys, many=True)
@@ -54,7 +57,7 @@ class BuyViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         '''
-        Devuelve el detalle de una compra con sus ítems.
+        Devuelve el detalle de una compra con sus ítems y sus pagos.
         '''
         try:
             buy = self.repository.get_by_id(pk)
@@ -62,7 +65,7 @@ class BuyViewSet(viewsets.ViewSet):
             if not buy:
                 raise BuyNotFoundException('Compra no encontrada.')
 
-            serializer = BuyResponseSerializer(buy)
+            serializer = BuyDetailResponseSerializer(buy)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except BuyNotFoundException as e:
@@ -195,6 +198,7 @@ class BuyViewSet(viewsets.ViewSet):
     def destroy(self, request, pk=None):
         '''
         Elimina una compra y revierte el importe de la cuenta corriente del proveedor.
+        No se puede si la cubre algún pago, vigente o anulado (400).
         '''
         try:
             self.service.delete_buy(buy_id=pk)
@@ -202,6 +206,9 @@ class BuyViewSet(viewsets.ViewSet):
 
         except BuyNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
+
+        except BuyWithPaymentsException as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
             logger.exception("Error al eliminar compra pk=%s", pk)

@@ -28,19 +28,23 @@ const VARIANTS = {
  *   message     — string
  *   onClose     — () => void
  *   variant     — 'error' (default) | 'success'
- *   duration    — ms antes de auto-cerrar (default 4000, 0 = no auto-cierra)
+ *   duration    — ms antes de auto-cerrar (0 = no auto-cierra). Por defecto, 8000 para los errores
+ *                 (suelen ser largos y hay que llegar a leerlos) y 4000 para los de éxito.
  *   responsive  — bool (default false). Si es true, en mobile ocupa el ancho
  *                 disponible con márgenes en vez de quedar pegado/cortado
  *                 contra el borde derecho. Default false para no cambiar el
  *                 comportamiento de las pantallas que ya usan este componente
  *                 (ver DEV-112 para extenderlo a todas).
  */
-const Toast = ({ open, message, onClose, variant = 'error', duration = 4000, responsive = false }) => {
+export const DEFAULT_DURATIONS = { error: 8000, success: 4000 };
+
+const Toast = ({ open, message, onClose, variant = 'error', duration, responsive = false }) => {
+  const timeout = duration ?? DEFAULT_DURATIONS[variant];
   useEffect(() => {
-    if (!open || !duration) return;
-    const timer = setTimeout(onClose, duration);
+    if (!open || !timeout) return;
+    const timer = setTimeout(onClose, timeout);
     return () => clearTimeout(timer);
-  }, [open, message, duration, onClose]);
+  }, [open, message, timeout, onClose]);
 
   if (!open) return null;
 

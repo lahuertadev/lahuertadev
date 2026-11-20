@@ -21,7 +21,7 @@ from mercado.models import Mercado
 from movimiento_vacio.models import MovimientoVacio
 from municipio.models import Municipio
 from pago_cliente.models import PagoCliente
-from pago_compra.models import PagoCompra, PagoCompraChequePropio
+from pago_compra.models import PagoCompra, ImputacionPago, PagoCompraCheque, PagoCompraChequePropio
 from producto.models import Producto
 from proveedor.models import Proveedor
 from provincia.models import Provincia
@@ -58,7 +58,9 @@ ALL_MOCKS = [
     (mocks.mock_client_payment, PagoCliente),
     (mocks.mock_purchase, Compra),
     (mocks.mock_purchase_payment, PagoCompra),
+    (mocks.mock_purchase_application, ImputacionPago),
     (mocks.mock_own_check_use, PagoCompraChequePropio),
+    (mocks.mock_client_check_use, PagoCompraCheque),
     (mocks.mock_empty_movement, MovimientoVacio),
     (mocks.mock_check, Cheque),
     (mocks.mock_own_check, OwnCheck),
@@ -138,9 +140,9 @@ def test_mock_relation_set_to_none_leaves_id_empty():
 
 def test_mock_relation_managers_can_be_configured():
     own_check = mocks.mock_own_check()
-    own_check.pagocompra_set.exists.return_value = True
+    own_check.payment_uses.exists.return_value = True
 
-    assert own_check.pagocompra_set.exists() is True
+    assert own_check.payment_uses.exists() is True
 
 
 def test_purchase_annotation_exists_only_when_given():
@@ -160,22 +162,37 @@ def test_purchase_payment_takes_supplier_from_purchase():
     assert payment.proveedor_id == buy.proveedor.id
 
 
+def test_purchase_payment_covers_its_purchase_for_the_whole_amount():
+    buy = mocks.mock_purchase()
+
+    payment = mocks.mock_purchase_payment(compra=buy, importe_abonado=Decimal('700.00'))
+
+    application = payment.purchase_applications.all()[0]
+    assert application.compra is buy
+    assert application.pago_compra is payment
+    assert application.importe == Decimal('700.00')
+
+
 def test_purchase_payment_builds_purchase_of_given_supplier():
     supplier = mocks.mock_supplier()
 
     payment = mocks.mock_purchase_payment(proveedor=supplier)
 
-    assert payment.compra.proveedor is supplier
+    assert payment.purchase_applications.all()[0].compra.proveedor is supplier
 
 
-def test_purchase_payment_on_account_without_purchase():
+def test_purchase_payment_on_account_without_purchases():
     supplier = mocks.mock_supplier()
 
     payment = mocks.mock_purchase_payment(proveedor=supplier, compra=None)
 
-    assert payment.compra is None
-    assert payment.compra_id is None
+    assert payment.purchase_applications.all() == []
     assert payment.proveedor is supplier
+
+
+def test_purchase_payment_has_no_purchase_field():
+    with pytest.raises(AttributeError):
+        mocks.mock_purchase_payment().compra
 
 
 def test_purchase_payment_with_own_check_uses_it_for_the_whole_amount():

@@ -23,7 +23,8 @@ class CheckViewSet(viewsets.ViewSet):
 
     def list(self, request):
         '''
-        Lista todos los cheques. Acepta filtros por banco, estado, endosado y rango de fecha_deposito.
+        Lista todos los cheques. Acepta filtros por banco, estado, endosado, rango de fecha_deposito
+        y la solapa (pendientes de depositar o rechazados).
         '''
         params_serializer = CheckQueryParamsSerializer(data=request.query_params)
         params_serializer.is_valid(raise_exception=True)
@@ -43,6 +44,7 @@ class CheckViewSet(viewsets.ViewSet):
                 endorsed=endorsed,
                 deposit_date_from=params.get('fecha_deposito_desde'),
                 deposit_date_to=params.get('fecha_deposito_hasta'),
+                tab=params.get('solapa'),
             )
             serializer = CheckResponseSerializer(checks, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -177,7 +179,13 @@ class CheckViewSet(viewsets.ViewSet):
             if check.pago_compra_id:
                 raise CheckLinkedToPaymentException(
                     'No se puede eliminar el cheque porque está asociado a un pago de compra. '
-                    'Eliminá primero el pago correspondiente.'
+                    'Anulá primero el pago correspondiente.'
+                )
+
+            if self.repository.get_purchase_payment_ids(check):
+                raise CheckLinkedToPaymentException(
+                    'No se puede eliminar el cheque porque se usó en un pago a proveedor, '
+                    'que lo conserva como registro aunque esté anulado.'
                 )
 
             self.repository.delete(check)

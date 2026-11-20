@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ROLE_CONFIG } from '../../constants/roles';
 import { formatDate } from '../../utils/date';
 import { extractErrorMessage } from '../../utils/errors';
+import { BADGE_COLORS } from '../../constants/badgeColors';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ const RoleBadge = ({ role }) => {
       <div className="py-2.5">
         <span
           className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold"
-          style={{ backgroundColor: config.bg || '#f0f4f7', color: config.color || '#596064' }}
+          style={{ backgroundColor: config.bg || BADGE_COLORS.gray.bg, color: config.color || BADGE_COLORS.gray.color }}
         >
           {config.label || role}
         </span>

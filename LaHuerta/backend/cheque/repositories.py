@@ -1,10 +1,14 @@
+from django.utils import timezone
+
+from estado_cheque.constants import EN_CARTERA, RECHAZADO
+from .constants import TAB_PENDING, TAB_REJECTED
 from .models import Cheque
 from .interfaces import ICheckRepository
 
 
 class CheckRepository(ICheckRepository):
 
-    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None):
+    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None, tab=None):
         queryset = Cheque.objects.select_related(
             'banco', 'estado', 'pago_cliente__cliente', 'pago_compra__proveedor',
         ).all()
@@ -18,6 +22,11 @@ class CheckRepository(ICheckRepository):
             queryset = queryset.filter(fecha_deposito__gte=deposit_date_from)
         if deposit_date_to:
             queryset = queryset.filter(fecha_deposito__lte=deposit_date_to)
+        if tab == TAB_PENDING:
+            # Los que hay que depositar: en cartera y con la fecha de depósito hoy o antes.
+            queryset = queryset.filter(estado__descripcion=EN_CARTERA, fecha_deposito__lte=timezone.localdate())
+        elif tab == TAB_REJECTED:
+            queryset = queryset.filter(estado__descripcion=RECHAZADO)
         return queryset
 
     def get_by_id(self, id):
@@ -47,3 +56,6 @@ class CheckRepository(ICheckRepository):
 
     def delete(self, check):
         check.delete()
+
+    def get_purchase_payment_ids(self, check):
+        return list(check.purchase_payment_uses.order_by('pago_compra_id').values_list('pago_compra_id', flat=True))

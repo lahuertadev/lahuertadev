@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useId } from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
@@ -12,16 +12,18 @@ import CustomInput from '../../../components/Input';
 import BasicSelect from '../../../components/Select';
 import CountUp from '../../../components/CountUp';
 import FieldWarning from '../../../components/FieldWarning';
+import RequiredMark from '../../../components/RequiredMark';
+import SupplierAutocomplete from '../../../components/SupplierAutocomplete';
 import EmptiesNotice from './EmptiesNotice';
 import { EMPTY_ITEM, calculateItemSubtotal, calculateBlockTotals, getExistingBuyWarning } from './buyBlockUtils';
 import { getMainPhone } from '../../../utils/phone';
-import { formatSupplierLabel } from '../../../utils/supplier';
 
 // Línea con producto, cantidad y precio cargados.
 const isItemComplete = (item) =>
   Boolean(item?.producto) && parseFloat(item.cantidad_producto) > 0 && parseFloat(item.precio) > 0;
 
 // Label chico en mayúsculas, mismo patrón que ya usan CustomInput/BasicSelect en el resto del sitio.
+const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 const mobileLabelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1';
 
 /**
@@ -53,6 +55,8 @@ const BuyBlock = ({
   compact = false,
 }) => {
   const isMobile = useMediaQuery('(max-width:600px)');
+  // Un id por bloque: la carga masiva tiene varios selectores de proveedor en la misma pantalla.
+  const supplierInputId = useId();
   const { suppliers, products, saleTypes } = options;
   const { items, supplier: selectedSupplier } = block;
   const { subtotal, signValue, total } = calculateBlockTotals(block);
@@ -137,17 +141,16 @@ const BuyBlock = ({
           data-tour="buy-supplier"
           data-tour-complete={Boolean(selectedSupplier)}
         >
-          <BasicSelect
-            label="Proveedor *"
-            name="supplier"
-            value={selectedSupplier ? { name: formatSupplierLabel(selectedSupplier), value: selectedSupplier.id } : null}
-            options={availableSuppliers.map((s) => ({ name: formatSupplierLabel(s), value: s.id }))}
-            onChange={(e) => {
-              const supplierId = e.target.value?.value;
-              updateBlock({ supplier: suppliers.find((s) => s.id === supplierId) || null });
-            }}
-            error={errors.supplier}
+          <label htmlFor={supplierInputId} className={labelCls}>Proveedor<RequiredMark /></label>
+          <SupplierAutocomplete
+            id={supplierInputId}
+            suppliers={availableSuppliers}
+            value={selectedSupplier || null}
+            onChange={(supplier) => updateBlock({ supplier })}
+            hasError={Boolean(errors.supplier)}
+            required
           />
+          {errors.supplier && <p className="mt-1 text-xs text-red-500">{errors.supplier}</p>}
           {existingBuyDate && (
             <FieldWarning>{getExistingBuyWarning(existingBuyDate)} Podés guardarla igual.</FieldWarning>
           )}

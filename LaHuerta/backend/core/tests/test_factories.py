@@ -1,3 +1,4 @@
+from decimal import Decimal
 import pytest
 
 from core.tests import factories
@@ -31,6 +32,8 @@ ALL_FACTORIES = [
     factories.make_check,
     factories.make_own_check,
     factories.make_own_check_use,
+    factories.make_client_check_use,
+    factories.make_purchase_application,
     factories.make_user,
     factories.make_news,
     factories.make_news_view,
@@ -75,19 +78,31 @@ def test_purchase_payment_takes_supplier_from_purchase():
 
 
 @pytest.mark.django_db
-def test_purchase_payment_creates_purchase_of_given_supplier():
+def test_purchase_payment_covers_a_purchase_of_given_supplier_for_its_whole_amount():
     supplier = factories.make_supplier()
 
-    payment = factories.make_purchase_payment(proveedor=supplier)
+    payment = factories.make_purchase_payment(proveedor=supplier, importe_abonado=Decimal('700.00'))
 
-    assert payment.compra.proveedor == supplier
+    application = payment.purchase_applications.get()
+    assert application.compra.proveedor == supplier
+    assert application.importe == Decimal('700.00')
 
 
 @pytest.mark.django_db
-def test_purchase_payment_on_account_without_purchase():
+def test_purchase_payment_on_account_without_purchases():
     supplier = factories.make_supplier()
 
     payment = factories.make_purchase_payment(proveedor=supplier, compra=None)
 
-    assert payment.compra is None
+    assert not payment.purchase_applications.exists()
     assert payment.proveedor == supplier
+
+
+@pytest.mark.django_db
+def test_purchase_application_builds_a_payment_of_the_purchase_supplier():
+    buy = factories.make_purchase()
+
+    application = factories.make_purchase_application(compra=buy, importe=Decimal('300.00'))
+
+    assert application.pago_compra.proveedor == buy.proveedor
+    assert list(application.pago_compra.purchase_applications.all()) == [application]

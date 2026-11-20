@@ -1,9 +1,10 @@
 import React from 'react';
+import { BADGE_COLORS } from '../../badgeColors';
 
 const CC_BADGE_CONFIG = {
-  positive: { bg: '#ffebee', color: '#c62828' }, // deuda: La Huerta le debe al proveedor
-  zero:     { bg: '#f0f4f7', color: '#596064' }, // equilibrio
-  negative: { bg: '#dcfce7', color: '#166534' }, // saldo a favor: proveedor le debe a La Huerta
+  positive: { ...BADGE_COLORS.red }, // deuda: La Huerta le debe al proveedor
+  zero:     { ...BADGE_COLORS.gray }, // equilibrio
+  negative: { ...BADGE_COLORS.green }, // saldo a favor: proveedor le debe a La Huerta
 };
 
 const badgeStyle = (cfg) => ({

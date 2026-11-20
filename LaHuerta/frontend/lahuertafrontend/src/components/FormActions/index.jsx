@@ -1,5 +1,6 @@
 import React from 'react';
 import SpotlightButton from '../SpotlightButton';
+import BackButton from '../BackButton';
 
 /**
  * Botones Cancelar / Confirmar al pie de los formularios de alta y edición.
@@ -9,6 +10,8 @@ import SpotlightButton from '../SpotlightButton';
  *   onConfirm, confirmLabel — acción y texto del botón principal
  *   confirmDisabled         — deshabilita Confirmar (formulario incompleto o guardando)
  *   confirmType             — 'button' (default) | 'submit' para formularios Formik que envían con onSubmit
+ *   onBack                  — opcional: en mobile agrega Volver abajo de todo, a lo ancho (en desktop va arriba,
+ *                             en PageHeader)
  */
 const FormActions = ({
   onCancel,
@@ -17,8 +20,15 @@ const FormActions = ({
   confirmLabel = 'Confirmar',
   confirmDisabled = false,
   confirmType = 'button',
+  onBack,
 }) => (
   <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sm:gap-4 mt-6 pt-4 border-t border-border-subtle">
+    {onBack && (
+      <div className="sm:hidden">
+        <BackButton onClick={onBack} className="w-full px-6 py-2.5 text-sm" />
+      </div>
+    )}
+
     <SpotlightButton variant="cancel" onClick={onCancel} className="w-full sm:w-auto px-6 py-2.5 text-sm">
       {cancelLabel}
     </SpotlightButton>

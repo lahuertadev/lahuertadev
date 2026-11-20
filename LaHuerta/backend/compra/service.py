@@ -1,14 +1,12 @@
 from django.db import transaction
+from django.db.models import Sum
 from decimal import Decimal
 from .interfaces import IBuyRepository
-from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException
+from .exceptions import BuyNotFoundException, BuySupplierChangeBlockedException, BuyWithPaymentsException
 from compra_producto.interfaces import IBuyProductRepository
 from proveedor.interfaces import ISupplierRepository
-
-# Estados de pago de una compra
-PAYMENT_STATUS_PENDING = 'PENDIENTE'
-PAYMENT_STATUS_PARTIAL = 'PARCIAL'
-PAYMENT_STATUS_PAID    = 'ABONADO'
+from pago_compra.constants import PaymentState
+from .constants import PAYMENT_STATUS_PAID, PAYMENT_STATUS_PARTIAL, PAYMENT_STATUS_PENDING
 
 
 class BuyService:
@@ -75,10 +73,11 @@ class BuyService:
         old_proveedor = compra.proveedor
 
         new_proveedor = data.get('proveedor', old_proveedor)
-        if new_proveedor.id != old_proveedor.id and compra.pagocompra_set.exists():
+        has_current_payments = compra.pagocompra_set.filter(estado_pago=PaymentState.VIGENTE).exists()
+        if new_proveedor.id != old_proveedor.id and has_current_payments:
             raise BuySupplierChangeBlockedException(
                 'No se puede cambiar el proveedor: la compra ya tiene pagos registrados. '
-                'Eliminá esos pagos primero.'
+                'Anulá esos pagos primero.'
             )
         new_senia = Decimal(str(data['senia'])) if 'senia' in data else old_senia
 
@@ -115,6 +114,10 @@ class BuyService:
         if not compra:
             raise BuyNotFoundException('Compra no encontrada.')
 
+        payments = self.buy_repository.get_applied_payments(compra)
+        if payments:
+            raise BuyWithPaymentsException(self._payments_block_message(payments))
+
         proveedor = compra.proveedor
 
         # Revertir solo la deuda neta que se había acreditado al crear la compra.
@@ -125,18 +128,43 @@ class BuyService:
         self.buy_repository.delete(compra)
 
     @staticmethod
+    def _payments_block_message(payments) -> str:
+        '''
+        Por qué no se puede eliminar una compra con pagos (DEV-150): un pago, aunque esté anulado,
+        conserva sus compras como registro. A un pago vigente se le puede destildar la compra;
+        a uno anulado no, así que con un pago anulado la compra ya no se puede eliminar.
+        '''
+        def numbers(items):
+            labels = [f'N° {payment.id:08d}' for payment in items]
+            return labels[0] if len(labels) == 1 else ', '.join(labels[:-1]) + ' y ' + labels[-1]
+
+        current = [p for p in payments if p.estado_pago != PaymentState.ANULADO]
+        cancelled = [p for p in payments if p.estado_pago == PaymentState.ANULADO]
+        message = 'No se puede eliminar la compra porque '
+        if current:
+            message += f"la cubre el pago {numbers(current)}" if len(current) == 1 else f"la cubren los pagos {numbers(current)}"
+            if cancelled:
+                message += f", y el pago anulado {numbers(cancelled)} la conserva como registro." if len(cancelled) == 1 \
+                    else f", y los pagos anulados {numbers(cancelled)} la conservan como registro."
+            else:
+                message += '. Editá el pago y destildá la compra para poder eliminarla.' if len(current) == 1 \
+                    else '. Editá esos pagos y destildá la compra para poder eliminarla.'
+        else:
+            message += f"el pago anulado {numbers(cancelled)} la conserva como registro." if len(cancelled) == 1 \
+                else f"los pagos anulados {numbers(cancelled)} la conservan como registro."
+        return message
+
+    @staticmethod
     def _calculate_total_paid(buy) -> Decimal:
         '''
-        Suma la seña más todos los pagos registrados para la compra.
-        Usa la annotation total_payments del repositorio si está disponible;
-        si no, cae en una query directa.
+        Seña más lo que los pagos vigentes le imputan a la compra. Usa la annotation
+        total_payments del repositorio si está; si no, hace la consulta.
         '''
         payments = getattr(buy, 'total_payments', None)
         if payments is None:
-            from django.db.models import Sum
-            payments = buy.pagocompra_set.aggregate(
-                total=Sum('importe_abonado')
-            )['total'] or Decimal('0')
+            payments = buy.payment_applications.filter(
+                pago_compra__estado_pago=PaymentState.VIGENTE,
+            ).aggregate(total=Sum('importe'))['total'] or Decimal('0')
         return Decimal(str(payments)) + Decimal(str(buy.senia))
 
     @staticmethod

@@ -19,7 +19,7 @@ import {
 } from '../../../constants/urls';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
-import { formatCuit } from '../../../utils/cuit';
+import ClientAutocomplete from '../../../components/ClientAutocomplete';
 import Toast from '../../../components/Toast';
 import { useToast } from '../../../context/ToastContext';
 import CustomInput from '../../../components/Input';
@@ -105,25 +105,6 @@ const autocompleteSx = (hasError) => ({
     color: 'var(--color-on-surface)',
   },
 });
-
-// Normaliza para buscar sin distinguir mayúsculas ni acentos.
-const normalizeText = (text = '') =>
-  text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-// Filtra clientes por razón social, nombre de fantasía o CUIT (con o sin guiones).
-const filterClients = (options, { inputValue }) => {
-  const term = normalizeText(inputValue).trim();
-  if (!term) return options;
-
-  const isCuitSearch = /^[\d\s-]+$/.test(term);
-  const cuitDigits = term.replace(/\D/g, '');
-
-  return options.filter((client) =>
-    normalizeText(client.razon_social).includes(term) ||
-    normalizeText(client.nombre_fantasia || '').includes(term) ||
-    (isCuitSearch && client.cuit.includes(cuitDigits))
-  );
-};
 
 // ── Componente principal ───────────────────────────────────────────────────────
 const FacturaForm = () => {
@@ -560,37 +541,15 @@ const FacturaForm = () => {
       <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de la Factura" cols={2}>
         <div className="flex flex-col gap-1" data-tour="bill-client" data-tour-complete={Boolean(selectedClient)}>
           <label className={labelCls}>Cliente *</label>
-          <Autocomplete
-            options={clients}
+          <ClientAutocomplete
+            clients={clients}
             value={selectedClient}
-            onChange={(_, client) => {
+            onChange={(client) => {
               const priceModeChanged = Boolean(client?.lista_precios) !== Boolean(selectedClient?.lista_precios);
               if (!isNoteType && priceModeChanged) setItems([{ ...EMPTY_ITEM }]);
               setSelectedClient(client);
             }}
-            filterOptions={filterClients}
-            getOptionLabel={(client) => client.label}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            noOptionsText="No se encontraron clientes"
-            size="small"
-            renderOption={(props, client) => (
-              <li {...props} key={client.id}>
-                <div className="flex flex-col">
-                  <span className="text-sm">{client.razon_social}</span>
-                  <span className="text-xs opacity-70">
-                    {formatCuit(client.cuit)}{client.nombre_fantasia ? ` · ${client.nombre_fantasia}` : ''}
-                  </span>
-                </div>
-              </li>
-            )}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="Buscar por CUIT, razón social o nombre de fantasía..."
-                size="small"
-                sx={autocompleteSx(Boolean(errors.client))}
-              />
-            )}
+            hasError={Boolean(errors.client)}
           />
           <FieldError message={errors.client} />
         </div>

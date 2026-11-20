@@ -22,7 +22,7 @@ No incluye: datos de prueba ni modo "demo". Todo lo que se carga durante un tuto
 | Compras | `purchases` | Compras → Nueva compra → Carga simple | Diferencia entre carga simple y masiva, cargar una compra simple y las acciones del listado. |
 | Vacíos | `empty-movements` | Vacíos → Nuevo movimiento → Carga de vacíos | Diferencia entre carga y devolución, cargar un movimiento (proveedor, fecha, comprobante y renglones) y las acciones del listado. |
 | Cheques emitidos | `own-checks` | Cheques emitidos → Nuevo cheque | Registrar un cheque propio (número, banco, importe y fechas, con la de depósito si es diferido) y, en el listado, cómo verlo, editarlo, cobrarlo o anularlo. |
-| Pagos de Compras | `purchase-payments` | Pagos de Compras → Nuevo pago → Pago de compras o Pago a cuenta | Diferencia entre pago de compras y pago a cuenta; sigue por el que elija el usuario (compra o proveedor, fecha, tipo de pago, cheques o importe) y las acciones del listado (ver, editar y eliminar). |
+| Pagos de Compras | `purchase-payments` | Pagos de Compras → Nuevo pago | Proveedor, fecha, tipo de pago, cheques o importe, las compras que cubre el pago (reparto automático y lo que queda a cuenta) y las acciones del listado (ver, editar y anular). Desde DEV-150 es un solo formulario: ya no tiene los dos caminos de pago de compras y pago a cuenta. |
 
 ## Flujo de uso
 1. El usuario abre un tutorial de una de estas dos formas:

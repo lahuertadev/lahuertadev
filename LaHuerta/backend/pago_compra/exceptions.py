@@ -7,8 +7,14 @@ class PaymentExceedsBalanceException(Exception):
 class PaymentSupplierMismatchException(Exception):
     pass
 
-class OwnCheckOtherSupplierException(Exception):
+class PaymentEditBlockedException(Exception):
     pass
 
-class PaymentEditBlockedException(Exception):
+class PaymentApplicationsExceedAmountException(Exception):
+    pass
+
+class OwnCheckNotAvailableException(Exception):
+    pass
+
+class PaymentCancelBlockedException(Exception):
     pass

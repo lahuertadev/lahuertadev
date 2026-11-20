@@ -12,3 +12,12 @@
     const day = String(now.getDate()).padStart(2, '0');
     return `${now.getFullYear()}-${month}-${day}`;
   };
+
+  //* Suma días corridos a una fecha YYYY-MM-DD y devuelve otra YYYY-MM-DD. Cruza meses y años solo
+  //* (ej. 2026-01-30 + 30 → 2026-03-01). Se calcula en UTC para que el horario de verano no corra el día.
+  export const addDays = (dateString, days) => {
+    if (!dateString) return null;
+    const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day + days));
+    return date.toISOString().slice(0, 10);
+  };

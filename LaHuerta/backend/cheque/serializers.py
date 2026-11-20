@@ -1,5 +1,6 @@
 from decimal import Decimal
 from rest_framework import serializers
+from .constants import LIST_TABS
 from .models import Cheque
 from banco.models import Banco
 from banco.serializers import BankSerializer
@@ -38,6 +39,7 @@ class CheckQueryParamsSerializer(serializers.Serializer):
     endosado = serializers.CharField(required=False)
     fecha_deposito_desde = serializers.DateField(required=False)
     fecha_deposito_hasta = serializers.DateField(required=False)
+    solapa = serializers.ChoiceField(choices=LIST_TABS, required=False)
 
 
 class CheckResponseSerializer(serializers.ModelSerializer):
@@ -79,6 +81,8 @@ class CheckResponseSerializer(serializers.ModelSerializer):
         if not obj.pago_compra:
             return None
         return {
+            # El id es para el link al detalle del pago desde el detalle del cheque.
+            'id': obj.pago_compra.id,
             'proveedor': obj.pago_compra.proveedor.nombre,
             'fecha_pago': obj.pago_compra.fecha_pago,
             'importe_abonado': obj.pago_compra.importe_abonado,

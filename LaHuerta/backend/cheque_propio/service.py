@@ -1,6 +1,8 @@
 from django.db import transaction
 from django.utils import timezone
+from pago_compra.service import reduce_payment_amount
 from .models import OwnCheck
+from pago_compra.constants import PaymentState
 from .exceptions import (
     OwnCheckInvalidTransitionException,
     OwnCheckAlreadyExistsException,
@@ -30,14 +32,11 @@ class OwnCheckService:
         bank_changed = bank != own_check.banco
         amount_changed = amount != own_check.importe
 
-        if (number_changed or bank_changed or amount_changed) and own_check.pagocompra_set.exists():
-            suppliers = sorted({
-                payment.proveedor.nombre
-                for payment in own_check.pagocompra_set.select_related('proveedor')
-            })
+        payment = self._current_payment(own_check)
+        if (number_changed or bank_changed or amount_changed) and payment:
             raise OwnCheckEditBlockedException(
-                f'No se puede modificar el número, banco ni importe: este cheque ya está usado en '
-                f'pagos a {", ".join(suppliers)}. Editá o eliminá esos pagos primero.'
+                f'No se puede modificar el número, banco ni importe: este cheque ya está usado en el '
+                f'pago N° {payment.id:08d} a {payment.proveedor.nombre}. Anulá ese pago primero.'
             )
 
         if number_changed or bank_changed:
@@ -63,7 +62,7 @@ class OwnCheckService:
     def cash_check(self, own_check):
         if own_check.estado != OwnCheck.State.EMITIDO:
             raise OwnCheckInvalidTransitionException('Solo se pueden marcar como cobrados los cheques en estado EMITIDO.')
-        if not own_check.pagocompra_set.exists():
+        if not self._current_payment(own_check):
             raise OwnCheckInvalidTransitionException('No se puede cobrar un cheque que no está asociado a ningún pago.')
         if own_check.fecha_deposito and own_check.fecha_deposito > timezone.localdate():
             raise OwnCheckInvalidTransitionException('No se puede cobrar un cheque antes de su fecha de depósito.')
@@ -72,21 +71,42 @@ class OwnCheckService:
 
     @transaction.atomic
     def cancel_check(self, own_check):
+        '''Anula un cheque Emitido; si está en un pago vigente, lo saca del pago como el rechazo.'''
         if own_check.estado != OwnCheck.State.EMITIDO:
             raise OwnCheckInvalidTransitionException('Solo se pueden anular cheques en estado EMITIDO.')
 
-        # Cada pago pierde la parte que se pagó con este cheque: si era su único cheque se
-        # elimina, y si tenía otros queda con el importe de los demás.
-        for use in self.own_check_repository.get_payment_uses(own_check):
-            payment = use.pago_compra
-            supplier = payment.proveedor
-            supplier.cuenta_corriente += use.importe
-            self.supplier_repository.update_balance(supplier)
-            if payment.importe_abonado <= use.importe:
-                self.payment_repository.delete(payment)
-            else:
-                self.own_check_repository.delete_payment_use(use)
-                self.payment_repository.update(payment, {'importe_abonado': payment.importe_abonado - use.importe})
-
+        self._take_out_of_payment(own_check)
         self.own_check_repository.update(own_check, {'estado': OwnCheck.State.ANULADO})
         return own_check
+
+    @transaction.atomic
+    def reject_check(self, own_check):
+        '''Rechaza un cheque Emitido o Cobrado que está en un pago vigente, y lo saca del pago.'''
+        if own_check.estado not in (OwnCheck.State.EMITIDO, OwnCheck.State.COBRADO):
+            raise OwnCheckInvalidTransitionException('Solo se pueden rechazar cheques en estado EMITIDO o COBRADO.')
+
+        if not self._current_payment(own_check):
+            raise OwnCheckInvalidTransitionException('No se puede rechazar un cheque que no está asociado a ningún pago.')
+
+        self._take_out_of_payment(own_check)
+        self.own_check_repository.update(own_check, {'estado': OwnCheck.State.RECHAZADO})
+        return own_check
+
+    @staticmethod
+    def _current_payment(own_check):
+        '''Pago vigente en el que está usado el cheque, o None.'''
+        payment = own_check.pago_compra
+        return payment if payment and payment.estado_pago == PaymentState.VIGENTE else None
+
+    def _take_out_of_payment(self, own_check):
+        '''
+        Si el cheque está en un pago vigente, le devuelve su importe al proveedor y lo descuenta
+        del pago (ver reduce_payment_amount). El cheque sigue vinculado al pago como registro.
+        '''
+        payment = self._current_payment(own_check)
+        if not payment:
+            return
+        supplier = payment.proveedor
+        supplier.cuenta_corriente += own_check.importe
+        self.supplier_repository.update_balance(supplier)
+        reduce_payment_amount(self.payment_repository, payment, own_check.importe)
