@@ -68,9 +68,15 @@ const confirmButton = () => screen.getByRole('button', { name: 'Registrar pago' 
 const buyCheckbox = (id) => screen.getByRole('checkbox', { name: `Compra N° ${String(id).padStart(8, '0')}` });
 const allocationInput = (id) => document.querySelector(`input[name="allocation-${id}"]`);
 
+const supplierSearch = () => screen.getByPlaceholderText('Buscar por nombre o puesto...');
+
+// Espera a que carguen los proveedores (llegan junto con el resto de las opciones).
+const suppliersLoaded = () => waitFor(() => expect(axios.get).toHaveBeenCalledWith(supplierUrl, expect.anything()));
+
 const chooseSupplier = async () => {
-  await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
-  fireEvent.change(field('payment-supplier'), { target: { value: '7' } });
+  await suppliersLoaded();
+  fireEvent.change(supplierSearch(), { target: { value: 'Ricardo' } });
+  fireEvent.click(await screen.findByRole('option', { name: /Ricardo/ }));
   await waitFor(() => expect(tour('payment-type')).not.toBeNull());
 };
 
@@ -84,7 +90,7 @@ const fillCashPayment = async (amount = '1000') => {
 describe('proveedor', () => {
   test('arranca pidiendo solo el proveedor', async () => {
     renderForm();
-    await screen.findByRole('option', { name: 'Ricardo — Puesto 27' });
+    await suppliersLoaded();
 
     expect(tour('payment-supplier')).not.toBeNull();
     expect(tour('payment-type')).toBeNull();
