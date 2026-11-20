@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from django.db import migrations
 
-PUBLISHED_AT = date(2026, 11, 18)
+PUBLISHED_AT = date(2026, 11, 20)
 TITLE = 'Un pago para varias compras de un proveedor'
 CANCEL_TITLE = 'Los pagos a proveedores se anulan en lugar de eliminarse'
 TUTORIAL_KEY = 'purchase-payments'

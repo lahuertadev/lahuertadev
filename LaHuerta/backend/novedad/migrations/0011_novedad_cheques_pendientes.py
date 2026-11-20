@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from django.db import migrations
 
-PUBLISHED_AT = date(2026, 11, 18)
+PUBLISHED_AT = date(2026, 11, 20)
 TITLE = 'Cheques pendientes de depositar a la vista'
 
 
