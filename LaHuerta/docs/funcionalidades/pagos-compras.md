@@ -4,7 +4,7 @@
 Registrar lo que La Huerta le paga a cada proveedor y descontarlo de su cuenta corriente. Un mismo pago se aplica a **una compra, a varias o a ninguna**: lo que no se aplica a ninguna compra queda **a cuenta** del saldo del proveedor (DEV-141, DEV-150).
 
 ## Alcance
-- **Un solo formulario:** se elige el proveedor, se cargan los datos del pago y se tildan las compras que cubre. No hay que elegir antes entre "pago de compras" y "pago a cuenta".
+- **Un solo formulario:** se busca el proveedor por nombre o puesto, se cargan los datos del pago y se tildan las compras que cubre. No hay que elegir antes entre "pago de compras" y "pago a cuenta".
 - **Reparto entre compras:** el importe se reparte solo entre las compras tildadas, de la más vieja a la más nueva, y se puede corregir lo de cada una. Ninguna compra recibe más que su saldo pendiente.
 - **Pago a cuenta:** un pago sin compras tildadas, o lo que sobra de un pago después de cubrir sus compras. Sirve para el saldo inicial de un proveedor recién cargado, adelantos o pagos que no corresponden a una compra puntual.
 - Medios de pago: efectivo (y los demás tipos de pago simples), cheques de clientes (se endosan) o cheques emitidos (cheques propios). Un pago puede llevar **varios cheques**, todos del mismo tipo, y un cheque puede cubrir varias compras.

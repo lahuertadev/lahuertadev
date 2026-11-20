@@ -18,7 +18,7 @@ No incluye: control de stock de vacíos por proveedor (cuántos quedan pendiente
 2. Ve el listado de movimientos con fecha, proveedor, tipo, N° de comprobante, cantidad de vacíos e importe. Puede filtrar por nombre de proveedor (o nombre de fantasía), tipo, importe exacto y rango de fechas.
 3. Hace clic en **Nuevo movimiento** y elige **Carga de vacíos** o **Devolución de vacíos**.
 4. Se abre el formulario con el tipo ya precargado según lo elegido (se puede cambiar) y completa:
-   - proveedor y fecha;
+   - proveedor (se busca escribiendo su nombre o puesto) y fecha;
    - N° de comprobante (opcional): el número del vale o factura del proveedor;
    - uno o más renglones con tipo de vacío, cantidad y precio unitario.
 5. El formulario calcula el subtotal de cada renglón (cantidad × precio unitario) y el total del movimiento en tiempo real.

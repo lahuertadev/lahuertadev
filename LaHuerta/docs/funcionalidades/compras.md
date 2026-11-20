@@ -16,7 +16,7 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 1. El usuario accede a **Compras** desde el menú principal.
 2. Ve el listado de compras con número, fecha, proveedor, bultos, seña e importe.
 3. Hace clic en **Nueva compra** y elige el tipo de carga: **Carga simple** (un proveedor para una fecha) o **Carga masiva** (ver más abajo).
-4. En la carga simple, selecciona el proveedor (autocomplete), ingresa fecha, bultos y seña (opcional).
+4. En la carga simple, busca el proveedor escribiendo su nombre o puesto y lo elige de la lista; ingresa fecha, bultos y seña (opcional). En la carga masiva cada compra tiene el mismo buscador.
 5. Agrega productos a la tabla de ítems: selecciona producto, ingresa cantidad, precio por bulto y precio unitario.
 6. El formulario calcula el subtotal por ítem y el total general en tiempo real.
 7. Confirma. El sistema guarda la compra, actualiza la cuenta corriente del proveedor y redirige al listado.
