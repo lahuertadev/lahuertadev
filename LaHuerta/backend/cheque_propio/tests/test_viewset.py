@@ -34,13 +34,12 @@ def _mock_own_check(numero, banco=None, fecha_emision='2024-01-01', fecha_vencim
     )
 
     payments = pagocompra_list or []
-    obj.pagocompra_set.first.return_value = payments[0] if payments else None
-    obj.pagocompra_set.all.return_value = payments
-    obj.pagocompra_set.exists.return_value = bool(payments)
-    obj.pagocompra_set.aggregate.return_value = {'total': None}
-    obj.pagocompra_set.select_related.return_value = payments
+    # Pago en el que está usado hoy (cheque_propio.pago_compra): el vigente, si tiene uno.
+    current = next((payment for payment in payments if payment.estado_pago == 'VIGENTE'), None)
+    obj.pago_compra = current
+    obj.pago_compra_id = current.id if current else None
 
-    # Uso del cheque en cada pago (pago_compra_cheque_propio): por defecto, el pago entero.
+    # Historial del cheque en cada pago (pago_compra_cheque_propio): por defecto, el pago entero.
     uses = [
         mock_own_check_use(pago_compra=payment, cheque_propio=obj, importe=getattr(payment, 'importe_abonado', Decimal('0')))
         for payment in payments
@@ -95,11 +94,6 @@ class FakeOwnCheckRepo(IOwnCheckRepository):
     def delete(self, own_check):
         self._items.pop(own_check.numero, None)
 
-    def get_payment_uses(self, own_check):
-        return own_check.payment_uses.all()
-
-    def delete_payment_use(self, use):
-        pass
 
 
 @pytest.fixture
@@ -338,7 +332,7 @@ def test_destroy_con_pagos_asociados_retorna_400(factory, viewset):
     response = viewset.destroy(drf_request, pk=1001)
 
     assert response.status_code == 400
-    assert 'pagos asociados' in response.data['detail'].lower()
+    assert 'se usó en pagos' in response.data['detail'].lower()
 
 
 # ── CASH ─────────────────────────────────────────────────────────────────────
@@ -361,7 +355,7 @@ def test_cash_invalid_transition(factory, viewset):
 
 
 def test_cash_success(factory, viewset):
-    payment = Mock()
+    payment = mock_purchase_payment()
     viewset.repository._add(
         1001, estado=OwnCheck.State.EMITIDO, pagocompra_list=[payment],
     )
@@ -396,7 +390,9 @@ def test_cancel_invalid_transition(factory, viewset):
 def test_cancel_success_revierte_pagos(factory, viewset):
     supplier = mock_supplier(cuenta_corriente=Decimal('1000.00'))
     payment = mock_purchase_payment(importe_abonado=Decimal('500.00'), proveedor=supplier)
-    viewset.repository._add(1001, estado=OwnCheck.State.EMITIDO, pagocompra_list=[payment])
+    viewset.repository._add(1001, importe=Decimal('500.00'), estado=OwnCheck.State.EMITIDO, pagocompra_list=[payment])
+    viewset.service.payment_repository = Mock()
+    viewset.service.payment_repository.get_purchase_applications_newest_first.return_value = []
 
     request = factory.post('/own-checks/1001/cancel/')
     response = viewset.cancel(Request(request, parsers=[JSONParser()]), pk=1001)
@@ -418,12 +414,13 @@ def test_retrieve_expone_proveedor_y_pagos_de_compras_y_a_cuenta(factory):
         numero=884, importe=Decimal('1000000.00'), fecha_emision='2026-10-27',
         fecha_vencimiento='2027-01-23',
     )
+    # El cheque se usó en un pago que se anuló (a cuenta) y después en uno vigente (de compras).
     on_account = make_purchase_payment(
-        proveedor=supplier, compra=None, importe_abonado=Decimal('150000.00'), tipo_pago=payment_type,
-        fecha_pago='2026-10-29', cheque_propio=own_check,
+        proveedor=supplier, compra=None, importe_abonado=Decimal('1000000.00'), tipo_pago=payment_type,
+        fecha_pago='2026-10-29', cheque_propio=own_check, estado_pago='ANULADO',
     )
     purchase_payment = make_purchase_payment(
-        proveedor=supplier, compra=buy, importe_abonado=Decimal('300000.00'), tipo_pago=payment_type,
+        proveedor=supplier, compra=buy, importe_abonado=Decimal('1000000.00'), tipo_pago=payment_type,
         fecha_pago='2026-10-28', cheque_propio=own_check,
     )
     viewset = OwnCheckViewSet(repository=OwnCheckRepository())
@@ -434,16 +431,37 @@ def test_retrieve_expone_proveedor_y_pagos_de_compras_y_a_cuenta(factory):
     data = response.data
     assert data['supplier'] == {'id': supplier.id, 'nombre': 'Ricardo', 'puesto': 27}
     assert data['supplier_name'] == 'Ricardo'
-    assert data['used_amount'] == Decimal('450000.00')
-    assert data['remaining_balance'] == Decimal('550000.00')
     assert data['purchases'] == [buy.id]
     # Ordenados por fecha de pago: primero el de compras (28-10), después el a cuenta (29-10).
     assert [p['id'] for p in data['payments']] == [purchase_payment.id, on_account.id]
     assert data['payments'][0]['tipo'] == 'COMPRA'
-    assert data['payments'][0]['compra']['id'] == buy.id
+    assert [buy_data['id'] for buy_data in data['payments'][0]['compras']] == [buy.id]
     assert data['payments'][1]['tipo'] == 'A_CUENTA'
-    assert data['payments'][1]['compra'] is None
-    assert data['payments'][1]['importe_abonado'] == Decimal('150000.00')
+    assert data['payments'][1]['compras'] == []
+    assert data['payments'][1]['estado_pago'] == 'ANULADO'
+    assert data['payments'][1]['importe_abonado'] == Decimal('1000000.00')
+
+
+@pytest.mark.django_db
+def test_retrieve_pago_de_varias_compras_las_lista(factory):
+    from core.tests.factories import make_purchase_application
+
+    supplier = make_supplier()
+    older = make_purchase(fecha='2026-10-01', proveedor=supplier)
+    newer = make_purchase(fecha='2026-10-20', proveedor=supplier)
+    payment_type = make_payment_type(descripcion='Cheque Propio')
+    own_check = make_own_check(importe=Decimal('2000.00'))
+    payment = make_purchase_payment(
+        proveedor=supplier, compra=None, importe_abonado=Decimal('2000.00'), tipo_pago=payment_type, cheque_propio=own_check,
+    )
+    make_purchase_application(pago_compra=payment, compra=newer, importe=Decimal('1000.00'))
+    make_purchase_application(pago_compra=payment, compra=older, importe=Decimal('1000.00'))
+    viewset = OwnCheckViewSet(repository=OwnCheckRepository())
+
+    response = viewset.retrieve(Request(factory.get(f'/own-checks/{own_check.id}/'), parsers=[JSONParser()]), pk=own_check.id)
+
+    assert sorted(response.data['purchases']) == sorted([older.id, newer.id])
+    assert [buy_data['id'] for buy_data in response.data['payments'][0]['compras']] == [older.id, newer.id]
 
 
 @pytest.mark.django_db
@@ -458,4 +476,105 @@ def test_retrieve_cheque_sin_usar_no_tiene_proveedor_ni_pagos(factory):
 
     assert response.data['supplier'] is None
     assert response.data['payments'] == []
-    assert response.data['used_amount'] == Decimal('0')
+
+
+# ── REJECT ────────────────────────────────────────────────────────────────────
+
+def test_reject_not_found(factory, viewset):
+    response = viewset.reject(Request(factory.post('/own-checks/9999/reject/'), parsers=[JSONParser()]), pk=9999)
+
+    assert response.status_code == 404
+    assert 'no encontrado' in response.data['detail'].lower()
+
+
+def test_reject_success(factory, viewset):
+    supplier = mock_supplier(cuenta_corriente=Decimal('0.00'))
+    payment = mock_purchase_payment(proveedor=supplier, importe_abonado=Decimal('1000.00'))
+    viewset.repository._add(1001, estado=OwnCheck.State.COBRADO, pagocompra_list=[payment])
+    viewset.service.supplier_repository = Mock()
+    viewset.service.payment_repository = Mock()
+    viewset.service.payment_repository.get_purchase_applications_newest_first.return_value = []
+
+    response = viewset.reject(Request(factory.post('/own-checks/1001/reject/'), parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 200
+    assert response.data['estado'] == OwnCheck.State.RECHAZADO
+    assert supplier.cuenta_corriente == Decimal('1000.00')
+
+
+@pytest.mark.parametrize('state', [OwnCheck.State.ANULADO, OwnCheck.State.RECHAZADO])
+def test_reject_estado_invalido_retorna_400(factory, viewset, state):
+    viewset.repository._add(1001, estado=state, pagocompra_list=[mock_purchase_payment()])
+
+    response = viewset.reject(Request(factory.post('/own-checks/1001/reject/'), parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 400
+    assert 'EMITIDO o COBRADO' in response.data['detail']
+
+
+def test_reject_sin_pagos_retorna_400(factory, viewset):
+    viewset.repository._add(1001, estado=OwnCheck.State.EMITIDO)
+
+    response = viewset.reject(Request(factory.post('/own-checks/1001/reject/'), parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 400
+
+
+def test_reject_error_inesperado_retorna_500_generico(factory):
+    service = Mock()
+    service.reject_check.side_effect = RuntimeError('detalle interno')
+    repository = FakeOwnCheckRepo()
+    repository._add(1001)
+    viewset = OwnCheckViewSet(repository=repository, service=service)
+
+    response = viewset.reject(Request(factory.post('/own-checks/1001/reject/'), parsers=[JSONParser()]), pk=1001)
+
+    assert response.status_code == 500
+    assert response.data['detail'] == 'Error al rechazar el cheque.'
+
+
+@pytest.mark.django_db
+def test_reject_con_la_base_baja_el_pago_y_deja_la_compra_pendiente(factory):
+    '''De punta a punta: el pago queda en cero, la compra vuelve a Pendiente y se le vuelve a deber al proveedor.'''
+    from compra.repositories import BuyRepository
+    from compra.service import BuyService
+    from pago_compra.models import PagoCompra
+
+    supplier = make_supplier(cuenta_corriente=Decimal('0.00'))
+    buy = make_purchase(importe=Decimal('1000.00'), proveedor=supplier)
+    own_check = make_own_check(importe=Decimal('1000.00'))
+    payment = make_purchase_payment(
+        proveedor=supplier, compra=buy, importe_abonado=Decimal('1000.00'),
+        tipo_pago=make_payment_type(descripcion='Cheque Propio'), cheque_propio=own_check,
+    )
+    viewset = OwnCheckViewSet(repository=OwnCheckRepository())
+
+    response = viewset.reject(Request(factory.post(f'/own-checks/{own_check.id}/reject/'), parsers=[JSONParser()]), pk=own_check.id)
+
+    assert response.status_code == 200
+    payment = PagoCompra.objects.get(id=payment.id)
+    assert payment.importe_abonado == Decimal('0.00')
+    assert payment.own_check_uses.get().cheque_propio_id == own_check.id
+    assert BuyService.calculate_payment_status(BuyRepository().get_by_id(buy.id)) == 'PENDIENTE'
+    supplier.refresh_from_db()
+    assert supplier.cuenta_corriente == Decimal('1000.00')
+
+
+@pytest.mark.django_db
+def test_retrieve_un_pago_anulado_queda_como_registro_y_libera_el_cheque(factory):
+    supplier = make_supplier(nombre='Ricardo', puesto=27)
+    own_check = make_own_check(
+        numero=886, importe=Decimal('500000.00'), fecha_emision='2026-10-27',
+        fecha_vencimiento='2027-01-22',
+    )
+    make_purchase_payment(
+        proveedor=supplier, compra=None, importe_abonado=Decimal('500000.00'),
+        fecha_pago='2026-10-28', cheque_propio=own_check, estado_pago='ANULADO',
+    )
+    viewset = OwnCheckViewSet(repository=OwnCheckRepository())
+
+    response = viewset.retrieve(Request(factory.get(f'/own-checks/{own_check.id}/'), parsers=[JSONParser()]), pk=own_check.id)
+
+    assert [payment['estado_pago'] for payment in response.data['payments']] == ['ANULADO']
+    assert response.data['supplier'] is None
+

@@ -1,3 +1,4 @@
+import { BADGE_COLORS } from './badgeColors';
 // Badge de estado Activo/Inactivo, mismo estilo en toda la app (grilla de Clientes, detalle, etc.)
 export const getActiveBadgeStyle = (active) => ({
   display: 'inline-block',
@@ -6,7 +7,7 @@ export const getActiveBadgeStyle = (active) => ({
   fontSize: '0.75rem',
   fontWeight: 600,
   lineHeight: '18px',
-  backgroundColor: active ? '#dcfce7' : '#fee2e2',
-  color: active ? '#166534' : '#991b1b',
+  backgroundColor: (active ? BADGE_COLORS.green : BADGE_COLORS.red).bg,
+  color: (active ? BADGE_COLORS.green : BADGE_COLORS.red).color,
   whiteSpace: 'nowrap',
 });

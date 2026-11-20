@@ -3,8 +3,8 @@ from decimal import Decimal
 
 from cheque_propio.models import OwnCheck
 from cheque_propio.repositories import OwnCheckRepository
-from core.tests.factories import make_bank, make_own_check, make_own_check_use, make_purchase, make_purchase_payment, make_supplier
-from pago_compra.models import PagoCompra, PagoCompraChequePropio
+from core.tests.factories import make_bank, make_own_check, make_purchase, make_purchase_payment, make_supplier
+from pago_compra.models import PagoCompra
 
 
 @pytest.mark.django_db
@@ -66,7 +66,7 @@ class TestOwnCheckRepository:
         assert result.count() == 1
         assert result.first().numero == 1002
 
-    def test_get_all_available_excluye_totalmente_usados(self):
+    def test_get_all_available_excluye_el_cheque_usado_en_un_pago(self):
         own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
         proveedor = self._make_proveedor()
         self._make_pago_compra(own_check, proveedor, importe_abonado=Decimal('1000.00'))
@@ -77,16 +77,6 @@ class TestOwnCheckRepository:
         assert result.count() == 1
         assert result.first().numero == 1002
 
-    def test_get_all_available_incluye_parcialmente_usados(self):
-        own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
-        proveedor = self._make_proveedor()
-        self._make_pago_compra(own_check, proveedor, importe_abonado=Decimal('400.00'))
-
-        result = self.repository.get_all(available=True)
-
-        assert result.count() == 1
-        assert result.first().numero == 1001
-
     def test_get_all_available_excluye_no_emitidos(self):
         self._make_own_check(1001, estado=OwnCheck.State.ANULADO)
 
@@ -94,38 +84,14 @@ class TestOwnCheckRepository:
 
         assert result.count() == 0
 
-    def test_get_all_available_con_supplier_id_excluye_usados_por_otro_proveedor(self):
+    def test_get_all_available_un_pago_anulado_libera_el_cheque(self):
+        # Al anular el pago, el cheque deja de estar vinculado (el historial queda).
         own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
-        proveedor_a = self._make_proveedor('Proveedor A')
-        proveedor_b = self._make_proveedor('Proveedor B')
-        self._make_pago_compra(own_check, proveedor_a, importe_abonado=Decimal('300.00'))
-        self._make_own_check(1002, importe=Decimal('1000.00'))  # sin uso, disponible para cualquiera
+        payment = self._make_pago_compra(own_check, self._make_proveedor('Proveedor A'), importe_abonado=Decimal('1000.00'))
+        PagoCompra.objects.filter(id=payment.id).update(estado_pago='ANULADO')
+        OwnCheck.objects.filter(id=own_check.id).update(pago_compra=None)
 
-        result_a = self.repository.get_all(available=True, supplier_id=proveedor_a.id)
-        result_b = self.repository.get_all(available=True, supplier_id=proveedor_b.id)
-
-        assert {c.numero for c in result_a} == {1001, 1002}
-        assert {c.numero for c in result_b} == {1002}
-
-    def test_get_all_available_con_supplier_id_excluye_usados_a_cuenta_por_otro_proveedor(self):
-        own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
-        proveedor_a = self._make_proveedor('Proveedor A')
-        proveedor_b = self._make_proveedor('Proveedor B')
-        self._make_pago_compra(own_check, proveedor_a, importe_abonado=Decimal('300.00'), with_buy=False)
-
-        result_a = self.repository.get_all(available=True, supplier_id=proveedor_a.id)
-        result_b = self.repository.get_all(available=True, supplier_id=proveedor_b.id)
-
-        assert [c.numero for c in result_a] == [1001]
-        assert list(result_b) == []
-
-    def test_get_all_available_descuenta_pagos_a_cuenta_del_saldo(self):
-        own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
-        proveedor = self._make_proveedor()
-        self._make_pago_compra(own_check, proveedor, importe_abonado=Decimal('600.00'))
-        self._make_pago_compra(own_check, proveedor, importe_abonado=Decimal('400.00'), with_buy=False)
-
-        assert self.repository.get_all(available=True).count() == 0
+        assert [c.numero for c in self.repository.get_all(available=True)] == [1001]
 
     # ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
@@ -198,48 +164,3 @@ class TestOwnCheckRepository:
         self.repository.delete(own_check)
 
         assert OwnCheck.objects.count() == 0
-
-    # ------------------------- GET PAYMENTS ---------------------
-    def test_get_payment_uses_devuelve_el_uso_de_cada_pago(self):
-        own_check = self._make_own_check(1001)
-        proveedor = self._make_proveedor()
-        pago = self._make_pago_compra(own_check, proveedor, importe_abonado=Decimal('500.00'))
-
-        result = list(self.repository.get_payment_uses(own_check))
-
-        assert [(use.pago_compra, use.importe) for use in result] == [(pago, Decimal('500.00'))]
-
-    def test_get_payment_uses_incluye_pagos_a_cuenta(self):
-        own_check = self._make_own_check(1001)
-        proveedor = self._make_proveedor()
-        on_account = self._make_pago_compra(own_check, proveedor, with_buy=False)
-
-        assert [use.pago_compra for use in self.repository.get_payment_uses(own_check)] == [on_account]
-
-    def test_get_payment_uses_sin_pagos_returns_empty(self):
-        own_check = self._make_own_check(1001)
-
-        assert list(self.repository.get_payment_uses(own_check)) == []
-
-    def test_delete_payment_use_libera_el_cheque_sin_borrar_el_pago(self):
-        own_check = self._make_own_check(1001)
-        pago = self._make_pago_compra(own_check, self._make_proveedor())
-        use = own_check.payment_uses.get()
-
-        self.repository.delete_payment_use(use)
-
-        assert not own_check.payment_uses.exists()
-        assert PagoCompra.objects.filter(id=pago.id).exists()
-
-    def test_available_resta_lo_usado_en_pagos_con_varios_cheques(self):
-        # Pago de $1.500 con dos cheques: del 1001 se usan $500 (le quedan $500).
-        own_check = self._make_own_check(1001, importe=Decimal('1000.00'))
-        other = self._make_own_check(1002, importe=Decimal('1000.00'))
-        proveedor = self._make_proveedor()
-        pago = self._make_pago_compra(other, proveedor, importe_abonado=Decimal('1500.00'))
-        make_own_check_use(pago_compra=pago, cheque_propio=own_check, importe=Decimal('500.00'))
-        PagoCompraChequePropio.objects.filter(cheque_propio=other).update(importe=Decimal('1000.00'))
-
-        available = list(self.repository.get_all(available=True, supplier_id=proveedor.id))
-
-        assert available == [own_check]

@@ -1,12 +1,14 @@
 import React from 'react';
-import Tooltip from '@mui/material/Tooltip';
-import ErrorIcon from '@mui/icons-material/ErrorOutline';
+import AlertIcon from '../../../components/AlertIcon';
+import Badge from '../../../components/Badge';
 import OnAccountBadge, { PurchaseBadge } from '../../../pages/pago_compra/shared/OnAccountBadge';
+import { BADGE_COLORS } from '../../badgeColors';
 
-const PAYMENT_TYPE_CONFIG = {
-  'Efectivo':      { bg: '#dcfce7', color: '#166534' },
-  'Cheque':        { bg: '#e8f0fb', color: '#4a7bc4' },
-  'Cheque Propio': { bg: '#f3e8ff', color: '#7c3aed' },
+// Colores por tipo de pago a proveedor (también los usa el detalle del pago).
+export const PURCHASE_PAYMENT_TYPE_COLORS = {
+  'Efectivo':      { ...BADGE_COLORS.green },
+  'Cheque':        { ...BADGE_COLORS.blue },
+  'Cheque Propio': { ...BADGE_COLORS.violet },
 };
 
 export const columns = [
@@ -19,19 +21,25 @@ export const columns = [
     align: 'center',
     headerAlign: 'center',
     hiddenOnMobile: true,
-    // Qué se pagó: etiqueta "Compra" con el número de la compra, o "A cuenta" (pago sin compra).
+    // Qué se pagó: cuántas compras ("1 compra", "3 compras") o "A cuenta" (pago sin compras).
     renderCell: (params) => (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: '100%' }}>
-        {params.row.isOnAccount ? <OnAccountBadge /> : (
-          <>
-            <PurchaseBadge />
-            <span className="text-on-surface-muted">{params.row.buyNumber}</span>
-          </>
-        )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        {params.row.isOnAccount ? <OnAccountBadge /> : <PurchaseBadge label={params.row.concept} />}
       </div>
     ),
   },
-  { field: 'amount',      headerName: 'Importe',           minWidth: 120, align: 'center', headerAlign: 'center' },
+  {
+    field: 'amount',
+    headerName: 'Importe',
+    minWidth: 120,
+    align: 'center',
+    headerAlign: 'center',
+    // Un pago anulado muestra su importe tachado: queda como registro pero no cuenta. Sin la etiqueta
+    // "Pago anulado": los anulados se ven solo en su solapa, que ya lo dice, y la etiqueta no entraba en la columna.
+    renderCell: (params) => (params.row.isCancelled
+      ? <span className="line-through text-on-surface-muted">{params.value}</span>
+      : params.value),
+  },
   {
     field: 'paymentType',
     headerName: 'Tipo pago',
@@ -40,27 +48,13 @@ export const columns = [
     headerAlign: 'center',
     hiddenOnMobile: true,
     renderCell: (params) => {
-      const cfg = PAYMENT_TYPE_CONFIG[params.value] || { bg: '#f0f4f7', color: '#596064' };
+      const cfg = PURCHASE_PAYMENT_TYPE_COLORS[params.value];
       return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: '100%' }}>
-          <span style={{
-            display: 'inline-block',
-            padding: '2px 10px',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            lineHeight: '18px',
-            backgroundColor: cfg.bg,
-            color: cfg.color,
-            whiteSpace: 'nowrap',
-          }}>
-            {params.value}
-          </span>
-          {params.row.chequeRechazado && (
-            <Tooltip title="El cheque con el que se pagó fue rechazado. La cuenta corriente del proveedor ya fue revertida." arrow>
-              <ErrorIcon sx={{ fontSize: 16, color: '#ef4444', cursor: 'default' }} />
-            </Tooltip>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          {/* El aviso de cheques caídos va adentro de la etiqueta, a la derecha: así todas quedan centradas igual. */}
+          <Badge color={cfg} label={params.value}>
+            {params.row.droppedChecksNotice && <AlertIcon title={params.row.droppedChecksNotice} size={15} />}
+          </Badge>
         </div>
       );
     },

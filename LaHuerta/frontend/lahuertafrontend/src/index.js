@@ -1,6 +1,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { ThemeProvider } from "@mui/material/styles";
 import getTheme from "./theme";
@@ -58,11 +58,9 @@ import PurchasePaymentList from "./pages/pago_compra/list";
 import PurchasePaymentForm from "./pages/pago_compra/form/PurchasePaymentForm";
 import PurchasePaymentDetail from "./pages/pago_compra/detail/PurchasePaymentDetail";
 import PurchasePaymentEdit from './pages/pago_compra/form/PurchasePaymentEdit';
-import PurchasePaymentTypeSelection from "./pages/pago_compra/create/PurchasePaymentTypeSelection";
 import EmptyMovementList from "./pages/movimiento_vacio/list";
 import EmptyMovementTypeSelection from "./pages/movimiento_vacio/create/EmptyMovementTypeSelection";
 import { EMPTY_MOVEMENT_TYPE_CONFIG } from "./constants/emptyMovementTypes";
-import { PURCHASE_PAYMENT_KIND_CONFIG } from "./constants/purchasePaymentTypes";
 import EmptyMovementForm from "./pages/movimiento_vacio/form/EmptyMovementForm";
 import EmptyMovementDetail from "./pages/movimiento_vacio/detail/EmptyMovementDetail";
 import ClientReport from "./pages/reporte";
@@ -300,13 +298,14 @@ const router = createBrowserRouter([
         element: <PurchasePaymentList />,
       },
       {
+        // Un solo formulario para pagos de compras y a cuenta (DEV-150).
         path: 'purchase-payment/create',
-        element: <PurchasePaymentTypeSelection />,
+        element: <PurchasePaymentForm />,
       },
-      // Un formulario por tipo de pago (de compras, a cuenta), con el tipo precargado.
-      ...Object.entries(PURCHASE_PAYMENT_KIND_CONFIG).map(([kind, { path }]) => ({
+      // Rutas de los dos formularios anteriores (DEV-141): llevan al formulario único.
+      ...['purchase', 'on-account'].map((path) => ({
         path: `purchase-payment/create/${path}`,
-        element: <PurchasePaymentForm kind={kind} />,
+        element: <Navigate to="/purchase-payment/create" replace />,
       })),
       {
         path: 'purchase-payment/detail/:id',

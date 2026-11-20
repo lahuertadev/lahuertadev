@@ -13,8 +13,6 @@ import AddShoppingCartOutlined from '@mui/icons-material/AddShoppingCartOutlined
 import PlaylistAddOutlined from '@mui/icons-material/PlaylistAddOutlined';
 import MoveToInboxOutlined from '@mui/icons-material/MoveToInboxOutlined';
 import OutboxOutlined from '@mui/icons-material/OutboxOutlined';
-import RequestQuoteOutlined from '@mui/icons-material/RequestQuoteOutlined';
-import AccountBalanceWalletOutlined from '@mui/icons-material/AccountBalanceWalletOutlined';
 
 const ICONS = {
   expense: ReceiptLongOutlined,
@@ -29,8 +27,6 @@ const ICONS = {
   bulkPurchase: PlaylistAddOutlined,
   emptyLoad: MoveToInboxOutlined,
   emptyReturn: OutboxOutlined,
-  purchasePayment: RequestQuoteOutlined,
-  onAccountPayment: AccountBalanceWalletOutlined,
 };
 
 // size: 'compact' (default), 'featured' (ocupa dos columnas, con "Más usado") o 'large' (más grande, ej. pantallas de selección).

@@ -5,13 +5,19 @@ import { columns } from '../../../constants/grid/PagoCompra';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
-import DeletePaymentMessage from '../shared/DeletePaymentMessage';
+import CancelPaymentMessage from '../shared/CancelPaymentMessage';
+import BlockIcon from '@mui/icons-material/Block';
 import {
   ON_ACCOUNT_LABEL,
-  PURCHASE_LABEL,
   PURCHASE_PAYMENT_CONCEPT_OPTIONS,
-  formatBuyNumber,
+  PURCHASE_PAYMENT_STATE_TABS,
+  purchaseCountLabel,
+  droppedChecksNotice,
+  isCancelledPayment,
 } from '../../../constants/purchasePaymentTypes';
+
+// Qué cubre el pago: cuántas compras o ninguna (a cuenta).
+const conceptOf = (buys) => (buys.length === 0 ? ON_ACCOUNT_LABEL : purchaseCountLabel(buys.length));
 
 const mapPaymentData = (data) => {
   return data.map((p) => ({
@@ -19,20 +25,22 @@ const mapPaymentData = (data) => {
     paymentDate: formatDate(p.fecha_pago),
     // Primero el puesto, que es como identifican al proveedor; si el nombre es largo, la celda lo corta con "…".
     supplier: p.proveedor ? `Puesto ${p.proveedor.puesto} - ${p.proveedor.nombre}` : '-',
-    concept: p.compra ? `${PURCHASE_LABEL} N° ${formatBuyNumber(p.compra.id)}` : ON_ACCOUNT_LABEL,
-    buyNumber: p.compra ? `N° ${formatBuyNumber(p.compra.id)}` : '',
-    isOnAccount: !p.compra,
+    concept: conceptOf(p.compras || []),
+    isOnAccount: !p.compras?.length,
     amount: formatCurrency(p.importe_abonado),
     paymentType: p.tipo_pago?.descripcion || '-',
-    chequeRechazado: (p.cheques || []).some((check) => check.estado === 'RECHAZADO'),
-    // Para explicar en el diálogo de eliminar qué pasa con los cheques.
+    // Aviso del ícono rojo: el pago tiene cheques rechazados o anulados.
+    droppedChecksNotice: droppedChecksNotice(p),
+    // Pago anulado: queda como registro, sin editar ni volver a anular.
+    isCancelled: isCancelledPayment(p),
+    // Para explicar en el diálogo de anular qué pasa con las compras y los cheques.
     payment: p,
   }));
 };
 
 const buildData = (paymentTypeOptions) => ({
   title: 'Pagos de Compras',
-  subtitle: 'Registrá los pagos a proveedores, de una compra o a cuenta, y los cheques con que se pagan.',
+  subtitle: 'Registrá los pagos a proveedores, de una o varias compras o a cuenta, y los cheques con que se pagan.',
   fetchUrl: {
     baseUrl: purchasePaymentUrl,
     createUrl: '/purchase-payment/create',
@@ -44,7 +52,19 @@ const buildData = (paymentTypeOptions) => ({
   newLabelText: 'Nuevo pago',
   multiSelect: false,
   groupActions: true,
-  deleteMessage: (row) => <DeletePaymentMessage payment={row.payment} supplierName={row.payment.proveedor?.nombre || '—'} />,
+  // Un pago no se elimina: se anula (borrado lógico) y queda como registro.
+  deleteLabel: 'Anular',
+  deleteIcon: BlockIcon,
+  deleteDialogTitle: 'Anular pago',
+  deleteMessage: (row) => <CancelPaymentMessage payment={row.payment} supplierName={row.payment.proveedor?.nombre || '—'} />,
+  deleteSuccessMessage: () => 'El pago se anuló correctamente.',
+  deleteRequest: (id) => axios.post(`${purchasePaymentUrl}${id}/cancel/`),
+  // Solapas Vigentes / Anulados debajo del título, en lugar de un filtro de estado.
+  tabs: PURCHASE_PAYMENT_STATE_TABS,
+  canEdit: (row) => !row.isCancelled,
+  canDelete: (row) => !row.isCancelled,
+  editDisabledReason: 'El pago está anulado: no se puede editar',
+  deleteDisabledReason: 'El pago ya está anulado',
   filtersConfig: [
     // Busca por puesto (un número) o por nombre del proveedor.
     { label: 'Proveedor (puesto o nombre)', name: 'supplier', type: 'text' },

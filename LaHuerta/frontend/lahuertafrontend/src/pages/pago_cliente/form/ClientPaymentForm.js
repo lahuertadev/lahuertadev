@@ -6,13 +6,22 @@ import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
 import { clientPaymentUrl, clientUrl, paymentTypeUrl, bankUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
+import ClientAutocomplete from '../../../components/ClientAutocomplete';
+import ReadonlyField from '../../../components/ReadonlyField';
+import { formatCurrency } from '../../../utils/currency';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import FormActions from '../../../components/FormActions';
+import PageHeader from '../../../components/PageHeader';
+import RequiredMark from '../../../components/RequiredMark';
+import Switch from '../../../components/Switch';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
+import { useToast } from '../../../context/ToastContext';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
@@ -59,16 +68,21 @@ const ClientPaymentForm = () => {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [toast, setToast] = useState({ open: false, message: '' });
   const [checkEndosado, setCheckEndosado] = useState(false);
+  // Al editar: el cliente y el importe con que se guardó el pago, para calcular cómo queda la cuenta corriente.
+  const [savedPayment, setSavedPayment] = useState(null);
 
   const loadInitialOptions = async () => {
     const [clients, paymentTypes, banks] = await Promise.all([
-      loadOptions(clientUrl, (data) =>
-        data.map((c) => ({ name: `${c.cuit} - ${c.razon_social}`, value: c.id }))
-      ),
+      // Los clientes completos: el buscador filtra por razón social, nombre de fantasía o CUIT, y de ahí sale el saldo.
+      loadOptions(clientUrl, (data) => data),
+      // En orden alfabético, como en Pagos de Compras.
       loadOptions(paymentTypeUrl, (data) =>
-        data.map((t) => ({ name: t.descripcion, value: t.id }))
+        data
+          .map((t) => ({ name: t.descripcion, value: t.id }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'es'))
       ),
       loadOptions(bankUrl, (data) =>
         data.map((b) => ({ name: b.descripcion, value: b.id }))
@@ -84,6 +98,7 @@ const ClientPaymentForm = () => {
       const data = response.data;
       const check = data.cheque;
       setCheckEndosado(!!check?.endosado);
+      setSavedPayment({ clientId: data.cliente.id, amount: data.importe });
       setInitialValues({
         client: data.cliente.id,
         amount: data.importe,
@@ -125,6 +140,7 @@ const ClientPaymentForm = () => {
       if (!values.chequeNumero) errors.chequeNumero = 'Requerido';
       if (!values.chequeBanco) errors.chequeBanco = 'Requerido';
       if (!values.chequeFechaEmision) errors.chequeFechaEmision = 'Requerido';
+      if (values.chequeDiferido && !values.chequeFechaDeposito) errors.chequeFechaDeposito = 'Requerido';
     }
     return errors;
   };
@@ -157,6 +173,7 @@ const ClientPaymentForm = () => {
         const response = await axios.post(clientPaymentUrl, payload);
         emitTutorialEvent(TUTORIAL_EVENTS.clientPaymentCreated, { id: response.data.id });
       }
+      showToast(id ? 'El pago se actualizó correctamente.' : 'El pago se registró correctamente.');
       navigate('/client-payment');
     } catch (error) {
       console.error('Error enviando el formulario:', error);
@@ -173,28 +190,39 @@ const ClientPaymentForm = () => {
       enableReinitialize
       onSubmit={handleSubmit}
     >
-      {({ values, errors, touched, handleChange, setFieldValue }) => {
+      {({ values, errors, touched, handleChange, setFieldValue, isSubmitting }) => {
+        // Registrar se habilita cuando están todos los obligatorios (los del cheque, si es con cheque).
+        const formComplete = validationSchema.isValidSync(values) && Object.keys(validate(values)).length === 0;
         const selectedPaymentType = selectOptions.paymentTypes.find(
           (opt) => String(opt.value) === String(values.paymentType)
         );
         const isCheckPayment = selectedPaymentType?.name === 'Cheque';
+        const selectedClient = selectOptions.clients.find((client) => String(client.id) === String(values.client)) || null;
+        // Saldo del cliente (lo que debe) y cómo queda al guardar. Al editar, el saldo de hoy ya tiene
+        // descontado este pago: si el cliente es el mismo, se suma lo que tenía y se resta lo nuevo.
+        const currentBalance = selectedClient ? parseFloat(selectedClient.cuenta_corriente || 0) : null;
+        const alreadyDiscounted = savedPayment && String(savedPayment.clientId) === String(values.client)
+          ? parseFloat(savedPayment.amount || 0) : 0;
+        const balanceAfter = selectedClient
+          ? currentBalance + alreadyDiscounted - parseFloat(values.amount || 0)
+          : null;
 
         return (
-          <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+          <Form className="w-full max-w-7xl mx-auto space-y-8 pb-12">
             <Toast
               open={toast.open}
               message={toast.message}
               onClose={() => setToast({ open: false, message: '' })}
             />
 
-            {/* Breadcrumbs */}
-            <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-              <span className="text-xs">›</span>
-              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client-payment')}>Pagos de Clientes</span>
-              <span className="text-xs">›</span>
-              <span className="text-on-surface font-semibold">{id ? 'Editar' : 'Nuevo'}</span>
-            </nav>
+            <PageHeader
+              breadcrumbs={[
+                { label: 'Inicio', path: '/' },
+                { label: 'Pagos de Clientes', path: '/client-payment' },
+                { label: id ? 'Editar' : 'Nuevo' },
+              ]}
+              onBack={() => navigate('/client-payment')}
+            />
 
             {/* 1. Datos del pago */}
             <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Pago" cols={3}>
@@ -206,24 +234,34 @@ const ClientPaymentForm = () => {
                   </p>
                 </div>
               )}
-              <div className="flex flex-col gap-1" data-tour="payment-client">
-                <label className={labelCls}>Cliente</label>
-                <select
-                  value={values.client}
-                  onChange={(e) => setFieldValue('client', e.target.value)}
+              {/* Buscador como el de Facturación. El tutorial da el paso por hecho recién con un cliente elegido. */}
+              <div className="flex flex-col gap-1" data-tour="payment-client" data-tour-complete={Boolean(selectedClient)}>
+                <label className={labelCls}>Cliente<RequiredMark /></label>
+                <ClientAutocomplete
+                  required
+                  clients={selectOptions.clients}
+                  value={selectedClient}
+                  onChange={(client) => setFieldValue('client', client ? client.id : '')}
+                  hasError={touched.client && Boolean(errors.client)}
                   disabled={checkEndosado}
-                  className={checkEndosado ? lockedSelectCls : inputCls(touched.client && errors.client)}
-                >
-                  <option value="">Seleccionar...</option>
-                  {selectOptions.clients.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.name}</option>
-                  ))}
-                </select>
+                />
                 <FieldError error={errors.client} touched={touched.client} />
               </div>
+              <ReadonlyField
+                label="Saldo en cuenta corriente"
+                value={selectedClient ? formatCurrency(currentBalance) : null}
+                helpText="Lo que el cliente debe hoy, incluido su saldo inicial."
+              />
+              <ReadonlyField
+                label={id ? 'Saldo al guardar los cambios' : 'Saldo después del pago'}
+                value={selectedClient ? formatCurrency(balanceAfter) : null}
+                highlight={Boolean(selectedClient)}
+                helpText="Cómo queda la cuenta corriente del cliente con este pago. Se actualiza al escribir el importe."
+              />
               <div className="flex flex-col gap-1" data-tour="payment-amount">
-                <label className={labelCls}>Importe</label>
+                <label className={labelCls}>Importe<RequiredMark /></label>
                 <AmountInput
+                  required
                   name="amount"
                   value={values.amount}
                   onChange={(raw) => setFieldValue('amount', raw)}
@@ -233,8 +271,9 @@ const ClientPaymentForm = () => {
                 <FieldError error={errors.amount} touched={touched.amount} />
               </div>
               <div className="flex flex-col gap-1" data-tour="payment-date">
-                <label className={labelCls}>Fecha de pago</label>
+                <label className={labelCls}>Fecha de pago<RequiredMark /></label>
                 <BasicDatePicker
+                  required
                   value={values.paymentDate}
                   onChange={(date) => setFieldValue('paymentDate', date)}
                   hasError={touched.paymentDate && Boolean(errors.paymentDate)}
@@ -242,8 +281,9 @@ const ClientPaymentForm = () => {
                 <FieldError error={errors.paymentDate} touched={touched.paymentDate} />
               </div>
               <div className="flex flex-col gap-1" data-tour="payment-type">
-                <label className={labelCls}>Tipo de pago</label>
+                <label className={labelCls}>Tipo de pago<RequiredMark /></label>
                 <select
+                  aria-required="true"
                   value={values.paymentType}
                   onChange={(e) => setFieldValue('paymentType', e.target.value)}
                   disabled={checkEndosado}
@@ -273,12 +313,16 @@ const ClientPaymentForm = () => {
             {isCheckPayment && (
               <div
                 data-tour="payment-check"
-                data-tour-complete={Boolean(values.chequeNumero && values.chequeBanco && values.chequeFechaEmision)}
+                data-tour-complete={Boolean(
+                  values.chequeNumero && values.chequeBanco && values.chequeFechaEmision
+                  && (!values.chequeDiferido || values.chequeFechaDeposito),
+                )}
               >
                 <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
                   <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Número</label>
+                    <label className={labelCls}>Número<RequiredMark /></label>
                     <input
+                      aria-required="true"
                       name="chequeNumero"
                       type="number"
                       min="1"
@@ -294,8 +338,9 @@ const ClientPaymentForm = () => {
                     <FieldError error={errors.chequeNumero} touched={touched.chequeNumero} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Banco</label>
+                    <label className={labelCls}>Banco<RequiredMark /></label>
                     <select
+                      aria-required="true"
                       value={values.chequeBanco}
                       onChange={(e) => setFieldValue('chequeBanco', e.target.value)}
                       disabled={checkEndosado}
@@ -309,8 +354,9 @@ const ClientPaymentForm = () => {
                     <FieldError error={errors.chequeBanco} touched={touched.chequeBanco} />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Fecha de emisión</label>
+                    <label className={labelCls}>Fecha de emisión<RequiredMark /></label>
                     <BasicDatePicker
+                      required
                       value={values.chequeFechaEmision}
                       onChange={(date) => setFieldValue('chequeFechaEmision', date)}
                       hasError={touched.chequeFechaEmision && Boolean(errors.chequeFechaEmision)}
@@ -318,57 +364,48 @@ const ClientPaymentForm = () => {
                     />
                     <FieldError error={errors.chequeFechaEmision} touched={touched.chequeFechaEmision} />
                   </div>
-                  <div className="md:col-span-3 flex items-center gap-6 bg-surface-low/50 border border-border-subtle px-5 py-4 rounded-xl">
-                    <label className={`flex items-center gap-3 flex-1 ${checkEndosado ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
-                      <input
-                        type="checkbox"
+                  {/* Interruptor Sí/No con el mismo formato que "¿Se entrega en otra dirección?" de Clientes.
+                      La fecha de depósito aparece al lado, en la misma fila: la sección no cambia de alto
+                      (en mobile va debajo, como cualquier campo). */}
+                  <div className="flex flex-col gap-1">
+                    <label className={labelCls}>¿Es un cheque diferido?</label>
+                    <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
+                      <span className="text-sm font-medium text-on-surface-muted">{values.chequeDiferido ? 'Sí' : 'No'}</span>
+                      <Switch
                         checked={values.chequeDiferido}
                         disabled={checkEndosado}
-                        onChange={(e) => {
-                          setFieldValue('chequeDiferido', e.target.checked);
-                          if (!e.target.checked) setFieldValue('chequeFechaDeposito', null);
+                        ariaLabel="Cheque diferido"
+                        onChange={(checked) => {
+                          setFieldValue('chequeDiferido', checked);
+                          if (!checked) setFieldValue('chequeFechaDeposito', null);
                         }}
-                        className="sr-only peer"
                       />
-                      <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-lahuerta after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-on-surface">Cheque diferido</p>
-                        <p className="text-xs text-on-surface-muted">El cheque tiene una fecha futura a partir de la cual puede depositarse</p>
-                      </div>
-                    </label>
-                    {values.chequeDiferido && (
-                      <div className="flex flex-col gap-1 min-w-[180px]">
-                        <label className={labelCls}>Fecha de depósito</label>
-                        <BasicDatePicker
-                          value={values.chequeFechaDeposito}
-                          onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
-                          hasError={false}
-                          disabled={checkEndosado}
-                        />
-                      </div>
-                    )}
+                    </div>
                   </div>
+                  {values.chequeDiferido && (
+                    <div className="flex flex-col gap-1">
+                      <label className={labelCls}>Fecha de depósito<RequiredMark /></label>
+                      <BasicDatePicker
+                        required
+                        value={values.chequeFechaDeposito}
+                        onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
+                        hasError={touched.chequeFechaDeposito && Boolean(errors.chequeFechaDeposito)}
+                        disabled={checkEndosado}
+                      />
+                      <FieldError error={errors.chequeFechaDeposito} touched={touched.chequeFechaDeposito} />
+                    </div>
+                  )}
                 </SectionCard>
               </div>
             )}
 
-            {/* Action Bar */}
-            <div className="flex items-center justify-end gap-4 pt-6 border-t border-border-subtle">
-              <button
-                type="button"
-                onClick={() => navigate('/client-payment')}
-                className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                data-tour="form-confirm"
-                className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all"
-              >
-                {id ? 'Guardar cambios' : 'Registrar Pago'}
-              </button>
-            </div>
+            <FormActions
+              onCancel={() => navigate('/client-payment')}
+              onBack={() => navigate('/client-payment')}
+              confirmType="submit"
+              confirmLabel={<><SaveOutlinedIcon sx={{ fontSize: 18 }} /> {id ? 'Guardar cambios' : 'Registrar Pago'}</>}
+              confirmDisabled={isSubmitting || !formComplete}
+            />
 
           </Form>
         );

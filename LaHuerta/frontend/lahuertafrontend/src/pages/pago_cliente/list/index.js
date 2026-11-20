@@ -6,6 +6,7 @@ import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
 import { useNavigate } from 'react-router-dom';
+import DeleteClientPaymentMessage from '../shared/DeleteClientPaymentMessage';
 
 const mapClientPaymentData = (data) => {
   return data.map((payment) => ({
@@ -16,6 +17,8 @@ const mapClientPaymentData = (data) => {
     paymentType: payment.tipo_pago.descripcion,
     observations: payment.observaciones || '-',
     chequeRechazado: payment.cheque?.estado === 'RECHAZADO',
+    // Para explicar en el diálogo de eliminar qué pasa con la cuenta corriente y el cheque.
+    payment,
   }));
 };
 
@@ -39,6 +42,12 @@ const buildData = (paymentTypeOptions) => ({
     { label: 'Fecha hasta', name: 'date_to', type: 'date' },
   ],
   newLabelText: 'Nuevo pago',
+  deleteMessage: (row) => <DeleteClientPaymentMessage payment={row.payment} />,
+  deleteDialogTitle: 'Eliminar pago',
+  deleteConfirmLabel: 'Eliminar pago',
+  deleteSuccessMessage: (count) => (count > 1 ? `Se eliminaron ${count} pagos correctamente.` : 'El pago se eliminó correctamente.'),
+  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Cheques y Pagos de Compras).
+  groupActions: true,
 });
 
 const ClientPaymentList = () => {

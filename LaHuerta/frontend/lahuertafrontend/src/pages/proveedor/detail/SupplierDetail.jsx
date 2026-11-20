@@ -9,10 +9,14 @@ import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import PhoneIcon from '@mui/icons-material/PhoneOutlined';
-import EditIcon from '@mui/icons-material/EditOutlined';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PageHeader from '../../../components/PageHeader';
 import ContactList from '../../../components/ContactList';
+import BackButton from '../../../components/BackButton';
+import DeleteButton from '../../../components/DeleteButton';
+import EditButton from '../../../components/EditButton';
+import { useToast } from '../../../context/ToastContext';
+import { extractErrorMessage } from '../../../utils/errors';
+import DeleteSupplierMessage from '../shared/DeleteSupplierMessage';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -43,10 +47,18 @@ const SupplierDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { showToast } = useToast();
 
   const handleDelete = async () => {
-    await axios.delete(`${supplierUrl}${id}/`);
-    navigate('/supplier');
+    try {
+      await axios.delete(`${supplierUrl}${id}/`);
+      showToast('El proveedor se eliminó correctamente.');
+      navigate('/supplier');
+    } catch (err) {
+      console.error('Error eliminando proveedor:', err);
+      setConfirmOpen(false);
+      showToast(extractErrorMessage(err, 'No se pudo eliminar el proveedor.'), { variant: 'error' });
+    }
   };
 
   useEffect(() => {
@@ -77,12 +89,7 @@ const SupplierDetail = () => {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el proveedor.</p>
-        <button
-          onClick={() => navigate('/supplier')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/supplier')} label="Volver al listado" />
       </div>
     );
   }
@@ -92,14 +99,14 @@ const SupplierDetail = () => {
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/supplier')}>Proveedores</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{supplier.nombre}</span>
-      </nav>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', path: '/' },
+          { label: 'Proveedores', path: '/supplier' },
+          { label: supplier.nombre },
+        ]}
+        onBack={() => navigate('/supplier')}
+      />
 
       {/* 1. Datos del proveedor */}
       <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos del Proveedor">
@@ -130,58 +137,22 @@ const SupplierDetail = () => {
         </div>
       </SectionCard>
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                className="flex-1 py-2.5 rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
-              >
-                <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/supplier/edit/${id}`)}
-                className="flex-1 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <EditIcon sx={{ fontSize: 16 }} /> Editar
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/supplier')}
-              className="w-full py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/supplier')}
-              className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-            >
-              <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/supplier/edit/${id}`)}
-              className="px-5 py-2.5 rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center gap-2"
-            >
-              <EditIcon sx={{ fontSize: 16 }} /> Editar proveedor
-            </button>
-          </div>
+      {/* Acciones. En desktop: solo Editar (Volver va arriba; Eliminar está en la columna Acción del
+          listado). En mobile el listado no tiene esa columna, así que acá van Eliminar, Editar y Volver. */}
+      <div className="flex flex-col-reverse gap-3 pt-6 border-t border-border-subtle sm:flex-row sm:justify-end sm:gap-4">
+        <div className="sm:hidden">
+          <BackButton onClick={() => navigate('/supplier')} className="w-full px-6 py-2.5 text-sm" />
+        </div>
+        {isMobile && (
+          <DeleteButton onClick={() => setConfirmOpen(true)} />
         )}
+        <EditButton onClick={() => navigate(`/supplier/edit/${id}`)} label="Editar proveedor" />
       </div>
 
       <AlertDialog
         open={confirmOpen}
         title="Eliminar proveedor"
-        message={`¿Estás seguro que querés eliminar a ${supplier?.nombre}? Esta acción no se puede deshacer.`}
+        message={<DeleteSupplierMessage name={supplier?.nombre} stall={supplier?.puesto} />}
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />

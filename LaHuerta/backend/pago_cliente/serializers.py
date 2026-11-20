@@ -52,6 +52,7 @@ class ClientPaymentResponseSerializer(serializers.ModelSerializer):
         if not check:
             return None
         return {
+            'id': check.id,
             'numero': check.numero,
             'banco': check.banco.id,
             'banco_descripcion': check.banco.descripcion,

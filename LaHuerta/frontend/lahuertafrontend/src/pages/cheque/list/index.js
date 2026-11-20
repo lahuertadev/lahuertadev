@@ -3,9 +3,12 @@ import axios from 'axios';
 import { checkUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Check';
 import { formatCurrency } from '../../../utils/currency';
-import { formatDate } from '../../../utils/date';
+import { formatDate, getTodayDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
 import Toast from '../../../components/Toast';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 
 const ACTION_LABELS = {
   deposit: 'Depositar',
@@ -13,13 +16,11 @@ const ACTION_LABELS = {
   reject:  'Rechazar',
 };
 
-const actionBtnCls = (variant) => {
-  const base = 'px-2.5 py-1 rounded-md text-xs font-semibold transition-all active:scale-95 ';
-  if (variant === 'deposit') return base + 'bg-amber-50 text-amber-700 hover:bg-amber-100';
-  if (variant === 'credit')  return base + 'bg-green-50 text-green-700 hover:bg-green-100';
-  if (variant === 'reject')  return base + 'bg-red-50 text-red-600 hover:bg-red-100';
-  return base;
-};
+const isInWallet = (row) => row.stateRaw === 'EN_CARTERA';
+// En cartera y con la fecha de depósito ya cumplida (hoy o antes): hay que depositarlo.
+// Se compara como texto YYYY-MM-DD con la fecha local, para no correr el día por la zona horaria.
+export const isDepositDue = (row) => isInWallet(row) && Boolean(row.depositDateRaw) && row.depositDateRaw.slice(0, 10) <= getTodayDate();
+const isDepositedOrEndorsed = (row) => row.stateRaw === 'DEPOSITADO' || row.stateRaw === 'ENDOSADO';
 
 const mapCheckData = (data) => {
   return data.map((check) => ({
@@ -35,6 +36,17 @@ const mapCheckData = (data) => {
     stateRaw: check.estado ? check.estado.descripcion : null,
     endorsed: check.endosado ? 'Sí' : 'No',
   }));
+};
+
+// Solapas debajo del título, como en Pagos de Compras. Pendientes: los que ya hay que depositar
+// (en cartera con la fecha de depósito cumplida), los mismos en los que titila Depositar.
+export const CHECK_TABS = {
+  param: 'solapa',
+  options: [
+    { label: 'Todos', value: '' },
+    { label: 'Pendientes', value: 'pendientes', tone: 'attention' },
+    { label: 'Rechazados', value: 'rechazados', tone: 'danger' },
+  ],
 };
 
 const FILTERS_CONFIG = [
@@ -78,58 +90,59 @@ const CheckList = () => {
     }
   };
 
-  const actionsColumn = {
-    field: 'stateAction',
-    headerName: 'Acción',
-    hiddenOnMobile: true,
-    width: 170,
-    sortable: false,
-    headerAlign: 'center',
-    align: 'center',
-    renderCell: (params) => {
-      const state = params.row.stateRaw;
-      if (state === 'EN_CARTERA') {
-        return (
-          <div className="flex items-center justify-center h-full w-full">
-            <button className={actionBtnCls('deposit')} onClick={() => handleStateChange('deposit', params.row.id)}>
-              Depositar
-            </button>
-          </div>
-        );
-      }
-      if (state === 'DEPOSITADO' || state === 'ENDOSADO') {
-        return (
-          <div className="flex gap-1.5 items-center h-full">
-            <button className={actionBtnCls('credit')} onClick={() => handleStateChange('credit', params.row.id)}>
-              Acreditar
-            </button>
-            <button className={actionBtnCls('reject')} onClick={() => handleStateChange('reject', params.row.id)}>
-              Rechazar
-            </button>
-          </div>
-        );
-      }
-      return <span className="text-on-surface-muted text-xs">—</span>;
+  // Acciones de estado como íconos en la columna Acción, junto a Detalle (como Pagos de Compras):
+  // siempre visibles, grisadas con el motivo cuando no corresponden al estado del cheque.
+  const extraActions = [
+    {
+      key: 'deposit',
+      label: ACTION_LABELS.deposit,
+      icon: AccountBalanceIcon,
+      onClick: (row) => handleStateChange('deposit', row.id),
+      isEnabled: isInWallet,
+      disabledReason: 'Solo se depositan los cheques en cartera',
+      // Titila cuando ya se puede depositar, para que no quede olvidado en cartera.
+      needsAttention: isDepositDue,
+      attentionReason: 'la fecha de depósito ya llegó',
     },
-  };
+    {
+      key: 'credit',
+      label: ACTION_LABELS.credit,
+      icon: CheckCircleIcon,
+      onClick: (row) => handleStateChange('credit', row.id),
+      isEnabled: isDepositedOrEndorsed,
+      disabledReason: 'Solo se acreditan los cheques depositados o endosados',
+    },
+    {
+      key: 'reject',
+      label: ACTION_LABELS.reject,
+      icon: HighlightOffIcon,
+      onClick: (row) => handleStateChange('reject', row.id),
+      isEnabled: isDepositedOrEndorsed,
+      disabledReason: 'Solo se rechazan los cheques depositados o endosados',
+      danger: true,
+    },
+  ];
 
   const data = {
     title: 'Cheques',
     subtitle: 'Cheques recibidos de clientes: estado, depósito y endoso.',
     fetchUrl: { baseUrl: checkUrl, detailUrl: '/check/detail' },
-    columns: [...columns, actionsColumn],
+    columns,
     mapData: mapCheckData,
     multiSelect: false,
     showAdd: false,
     showEdit: false,
     showDelete: false,
+    groupActions: true,
+    extraActions,
+    tabs: CHECK_TABS,
     filtersConfig: FILTERS_CONFIG,
   };
 
   return (
     <>
       <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} />
-      <GenericList key={refreshKey} data={data} />
+      <GenericList refreshKey={refreshKey} data={data} />
     </>
   );
 };

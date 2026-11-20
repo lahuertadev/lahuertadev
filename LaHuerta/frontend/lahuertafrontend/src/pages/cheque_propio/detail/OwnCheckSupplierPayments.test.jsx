@@ -5,11 +5,9 @@ import OwnCheckSupplierPayments from './OwnCheckSupplierPayments';
 
 const CHECK = {
   supplier: { id: 7, nombre: 'Ricardo', puesto: 27 },
-  used_amount: '450000.00',
-  remaining_balance: '550000.00',
   payments: [
-    { id: 1, fecha_pago: '2026-10-28', tipo: 'COMPRA', compra: { id: 12, fecha: '2026-10-22' }, importe_abonado: '300000.00' },
-    { id: 2, fecha_pago: '2026-10-29', tipo: 'A_CUENTA', compra: null, importe_abonado: '150000.00' },
+    { id: 1, fecha_pago: '2026-10-28', tipo: 'COMPRA', compras: [{ id: 12, fecha: '2026-10-22' }], importe_abonado: '300000.00' },
+    { id: 2, fecha_pago: '2026-10-29', tipo: 'A_CUENTA', compras: [], importe_abonado: '150000.00' },
   ],
 };
 
@@ -62,4 +60,29 @@ test('la fila del pago lleva al detalle del pago', () => {
   fireEvent.click(within(screen.getByRole('table')).getByText('Pago a cuenta'));
 
   expect(screen.getByText('Detalle pago')).toBeInTheDocument();
+});
+
+
+test('un pago de varias compras muestra cada compra', () => {
+  renderSection({
+    ...CHECK,
+    payments: [{
+      id: 3, fecha_pago: '2026-10-30', tipo: 'COMPRA', importe_abonado: '500000.00',
+      compras: [{ id: 12, fecha: '2026-10-22' }, { id: 13, fecha: '2026-10-25' }],
+    }],
+  });
+  const row = within(screen.getByRole('table')).getAllByRole('row')[1];
+
+  expect(within(row).getByRole('button', { name: 'N° 00000012' })).toBeInTheDocument();
+  expect(within(row).getByRole('button', { name: 'N° 00000013' })).toBeInTheDocument();
+});
+
+test('con todos sus pagos anulados queda sin proveedor pero los lista como registro', () => {
+  renderSection({
+    supplier: null,
+    payments: [{ ...CHECK.payments[0], estado_pago: 'ANULADO' }],
+  });
+
+  expect(screen.getByText('Ninguno: sus pagos están anulados')).toBeInTheDocument();
+  expect(screen.getAllByText('Pago anulado').length).toBeGreaterThan(0);
 });

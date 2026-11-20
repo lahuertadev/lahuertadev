@@ -1,11 +1,14 @@
 import React from 'react';
 import Tooltip from '@mui/material/Tooltip';
 import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
+import { BADGE_COLORS } from '../../badgeColors';
+import Badge from '../../../components/Badge';
 
 export const OWN_CHECK_STATE_CONFIG = {
-  'EMITIDO': { label: 'Emitido', bg: '#e8f0fb', color: '#4a7bc4' },
-  'COBRADO': { label: 'Cobrado', bg: '#dcfce7', color: '#166534' },
-  'ANULADO': { label: 'Anulado', bg: '#ffebee', color: '#c62828' },
+  'EMITIDO': { label: 'Emitido', ...BADGE_COLORS.blue },
+  'COBRADO': { label: 'Cobrado', ...BADGE_COLORS.green },
+  'ANULADO': { label: 'Anulado', ...BADGE_COLORS.red },
+  'RECHAZADO': { label: 'Rechazado', ...BADGE_COLORS.red },
 };
 
 
@@ -66,21 +69,9 @@ export const columns = [
     align: 'center',
     headerAlign: 'center',
     renderCell: (params) => {
-      const cfg = OWN_CHECK_STATE_CONFIG[params.value] || { label: params.value || '-', bg: '#f0f4f7', color: '#596064' };
+      const cfg = OWN_CHECK_STATE_CONFIG[params.value] || { label: params.value || '-', ...BADGE_COLORS.gray };
       return (
-        <span style={{
-          display: 'inline-block',
-          padding: '2px 10px',
-          borderRadius: '6px',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          lineHeight: '18px',
-          backgroundColor: cfg.bg,
-          color: cfg.color,
-          whiteSpace: 'nowrap',
-        }}>
-          {cfg.label}
-        </span>
+        <Badge color={cfg} label={cfg.label} />
       );
     },
   },

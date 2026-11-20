@@ -24,7 +24,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   axios.get.mockImplementation((url) => {
-    if (url === supplierUrl) return Promise.resolve({ data: [{ id: 1, nombre: 'Puesto 14' }] });
+    if (url === supplierUrl) return Promise.resolve({ data: [{ id: 1, nombre: 'Frutas Sur', puesto: 14 }] });
     if (url === containerTypeUrl) {
       return Promise.resolve({ data: [{ id: 3, descripcion: 'Cajón', requiere_vacio: true }, { id: 4, descripcion: 'Bolsa', requiere_vacio: false }] });
     }
@@ -46,9 +46,17 @@ const renderForm = () =>
 
 const tour = (name) => document.querySelector(`[data-tour="${name}"]`);
 
+// Espera a que carguen las opciones: el tipo de envase es un select con sus opciones en la página.
+const optionsLoaded = () => screen.findByRole('option', { name: 'Cajón' });
+
+const chooseSupplier = async (text) => {
+  fireEvent.change(screen.getByPlaceholderText('Buscar por nombre o puesto...'), { target: { value: text } });
+  fireEvent.click(await screen.findByRole('option', { name: /Frutas Sur/ }));
+};
+
 const fillMovement = async () => {
-  await screen.findByRole('option', { name: 'Puesto 14' });
-  fireEvent.change(tour('empty-supplier').querySelector('select'), { target: { value: '1' } });
+  await optionsLoaded();
+  await chooseSupplier('Frutas');
   fireEvent.change(tour('empty-lines').querySelector('select'), { target: { value: '3' } });
   fireEvent.change(tour('empty-lines').querySelector('input[type="number"]'), { target: { value: '10' } });
   fireEvent.change(tour('empty-lines').querySelector('input[name="precio_unitario_0"]'), { target: { value: '4000' } });
@@ -63,7 +71,7 @@ test('la elección de tipo marca las dos tarjetas para el tutorial', () => {
 
 test('el formulario marca sus campos para el tutorial', async () => {
   renderForm();
-  await screen.findByRole('option', { name: 'Puesto 14' });
+  await optionsLoaded();
 
   ['empty-supplier', 'empty-date', 'empty-type', 'empty-receipt', 'empty-lines', 'form-confirm'].forEach((name) => {
     expect(tour(name)).not.toBeNull();
@@ -72,7 +80,7 @@ test('el formulario marca sus campos para el tutorial', async () => {
 
 test('proveedor y renglones quedan completos para el tutorial recién cuando están cargados', async () => {
   renderForm();
-  await screen.findByRole('option', { name: 'Puesto 14' });
+  await optionsLoaded();
   expect(tour('empty-supplier')).toHaveAttribute('data-tour-complete', 'false');
   expect(tour('empty-lines')).toHaveAttribute('data-tour-complete', 'false');
 

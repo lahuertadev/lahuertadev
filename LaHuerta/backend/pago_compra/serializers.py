@@ -5,15 +5,21 @@ from compra.models import Compra
 from proveedor.models import Proveedor
 from tipo_pago.models import TipoPago
 from tipo_pago.serializers import PaymentTypeSerializer
-from .constants import PAYMENT_KIND_CHOICES, PAYMENT_TYPE_CHECK, PAYMENT_TYPE_OWN_CHECK
+from .constants import (
+    CHECK_STATE_RELEASED,
+    DROPPED_CHECK_STATES,
+    PAYMENT_KIND_CHOICES,
+    PAYMENT_TYPE_CHECK,
+    PAYMENT_TYPE_OWN_CHECK,
+    PaymentState,
+)
 
 
-class CompraResumenSerializer(serializers.ModelSerializer):
-    proveedor = serializers.CharField(source='proveedor.nombre')
-
-    class Meta:
-        model = Compra
-        fields = ['id', 'fecha', 'proveedor']
+def validate_unique_purchases(applications):
+    purchase_ids = [application['compra'].id for application in applications]
+    if len(set(purchase_ids)) != len(purchase_ids):
+        raise serializers.ValidationError('Una compra no puede estar dos veces en el mismo pago.')
+    return applications
 
 
 class SupplierSummarySerializer(serializers.ModelSerializer):
@@ -23,40 +29,38 @@ class SupplierSummarySerializer(serializers.ModelSerializer):
         fields = ['id', 'nombre', 'puesto']
 
 
-class OwnCheckUseSerializer(serializers.Serializer):
-    '''Un cheque emitido del pago y cuánto se usa de él.'''
-    id = serializers.IntegerField()
+class PurchaseApplicationSerializer(serializers.Serializer):
+    '''Compra del pago con el importe que se le aplica (mayor a cero).'''
+    compra = serializers.PrimaryKeyRelatedField(queryset=Compra.objects.all())
     importe = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
 
 
-class PurchasePaymentWriteSerializer(serializers.Serializer):
+class PurchasePaymentCreateSerializer(serializers.Serializer):
     '''
-    DTO de alta. Sin compra, el pago es a cuenta. La correspondencia entre la compra
-    y el proveedor se valida en PurchasePaymentService.
-
-    Un pago tiene un solo tipo de pago. Con cheques de clientes se mandan sus ids
-    (cheque_ids) y con cheques emitidos cada cheque con su importe (own_checks); en los dos
-    casos el importe del pago es la suma de los cheques. Con otro tipo, va importe_abonado.
+    Alta de un pago. Valida que tenga un solo tipo de pago y los datos que ese tipo necesita:
+    cheque_ids con Cheque, own_check_ids con Cheque Propio (al menos uno y sin repetir) o
+    importe_abonado con cualquier otro. Las compras son opcionales y no se repiten.
     '''
     proveedor = serializers.PrimaryKeyRelatedField(queryset=Proveedor.objects.all())
-    compra = serializers.PrimaryKeyRelatedField(queryset=Compra.objects.all(), required=False, allow_null=True)
+    compras = PurchaseApplicationSerializer(many=True, required=False)
     importe_abonado = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'), required=False)
     tipo_pago = serializers.PrimaryKeyRelatedField(queryset=TipoPago.objects.all())
     fecha_pago = serializers.DateField()
     cheque_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
-    own_checks = OwnCheckUseSerializer(many=True, required=False)
+    own_check_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
+
+    def validate_compras(self, applications):
+        return validate_unique_purchases(applications)
 
     def validate(self, data):
         payment_type = data['tipo_pago'].descripcion
-        # Un pago tiene un solo tipo de pago: no se mezclan cheques de clientes, cheques propios
-        # ni otros medios. Si se paga con varios, se cargan pagos separados.
         if payment_type != PAYMENT_TYPE_CHECK and data.get('cheque_ids'):
             raise serializers.ValidationError(
                 {'cheque_ids': f'Un pago con {payment_type} no lleva cheques de clientes. Cargá un pago por cada tipo de pago.'}
             )
-        if payment_type != PAYMENT_TYPE_OWN_CHECK and data.get('own_checks'):
+        if payment_type != PAYMENT_TYPE_OWN_CHECK and data.get('own_check_ids'):
             raise serializers.ValidationError(
-                {'own_checks': f'Un pago con {payment_type} no lleva cheques propios. Cargá un pago por cada tipo de pago.'}
+                {'own_check_ids': f'Un pago con {payment_type} no lleva cheques propios. Cargá un pago por cada tipo de pago.'}
             )
         if payment_type == PAYMENT_TYPE_CHECK:
             check_ids = data.get('cheque_ids') or []
@@ -65,12 +69,11 @@ class PurchasePaymentWriteSerializer(serializers.Serializer):
             if len(set(check_ids)) != len(check_ids):
                 raise serializers.ValidationError({'cheque_ids': 'Un cheque no puede estar dos veces en el mismo pago.'})
         elif payment_type == PAYMENT_TYPE_OWN_CHECK:
-            own_checks = data.get('own_checks') or []
-            if not own_checks:
-                raise serializers.ValidationError({'own_checks': 'Elegí al menos un cheque propio.'})
-            own_check_ids = [item['id'] for item in own_checks]
+            own_check_ids = data.get('own_check_ids') or []
+            if not own_check_ids:
+                raise serializers.ValidationError({'own_check_ids': 'Elegí al menos un cheque propio.'})
             if len(set(own_check_ids)) != len(own_check_ids):
-                raise serializers.ValidationError({'own_checks': 'Un cheque no puede estar dos veces en el mismo pago.'})
+                raise serializers.ValidationError({'own_check_ids': 'Un cheque no puede estar dos veces en el mismo pago.'})
         elif not data.get('importe_abonado'):
             raise serializers.ValidationError({'importe_abonado': 'Este campo es requerido.'})
         return data
@@ -78,56 +81,93 @@ class PurchasePaymentWriteSerializer(serializers.Serializer):
 
 class PurchasePaymentUpdateSerializer(serializers.Serializer):
     '''
-    DTO de edición: solo la fecha y el importe. El proveedor, la compra y el medio de
-    pago no se cambian (para eso se elimina el pago y se carga de nuevo).
+    Edición de un pago: fecha obligatoria; importe y compras opcionales, sin compras repetidas.
+    El proveedor y el tipo de pago no se editan.
     '''
-    importe_abonado = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
+    importe_abonado = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'), required=False)
     fecha_pago = serializers.DateField()
+    compras = PurchaseApplicationSerializer(many=True, required=False)
+
+    def validate_compras(self, applications):
+        return validate_unique_purchases(applications)
 
 
 class PurchasePaymentResponseSerializer(serializers.ModelSerializer):
     proveedor = SupplierSummarySerializer()
-    compra = CompraResumenSerializer(allow_null=True)
     tipo_pago = PaymentTypeSerializer()
+    compras = serializers.SerializerMethodField()
+    importe_a_cuenta = serializers.SerializerMethodField()
     cheques = serializers.SerializerMethodField()
     cheques_propios = serializers.SerializerMethodField()
 
-    def get_cheques(self, obj):
+    def get_compras(self, obj):
+        '''Compras del pago, de la más vieja a la más nueva, con lo aplicado a cada una.'''
+        applications = sorted(
+            obj.purchase_applications.all(),
+            key=lambda application: (application.compra.fecha, application.compra.id),
+        )
         return [
             {
-                'id': check.id,
-                'numero': check.numero,
-                'importe': check.importe,
-                'banco': check.banco.descripcion,
-                'estado': check.estado.descripcion if check.estado else None,
+                'id': application.compra.id,
+                'fecha': application.compra.fecha,
+                'importe': application.compra.importe,
+                'importe_aplicado': application.importe,
             }
-            for check in obj.cheque_set.all()
+            for application in applications
+        ]
+
+    def get_importe_a_cuenta(self, obj):
+        '''Lo que el pago no aplica a ninguna compra.'''
+        applied = sum((application.importe for application in obj.purchase_applications.all()), Decimal('0'))
+        return max(obj.importe_abonado - applied, Decimal('0'))
+
+    @staticmethod
+    def _check_state(payment, state):
+        '''En un pago anulado, los cheques que quedaron libres se muestran como Liberado.'''
+        if payment.estado_pago == PaymentState.ANULADO and state not in DROPPED_CHECK_STATES:
+            return CHECK_STATE_RELEASED
+        return state
+
+    def get_cheques(self, obj):
+        '''Cheques de clientes del pago, tomados del historial.'''
+        return [
+            {
+                'id': use.cheque_id,
+                'numero': use.cheque.numero,
+                'importe': use.importe,
+                'banco': use.cheque.banco.descripcion,
+                'estado': self._check_state(obj, use.cheque.estado.descripcion if use.cheque.estado else None),
+            }
+            for use in obj.client_check_uses.all()
         ]
 
     def get_cheques_propios(self, obj):
+        '''Cheques emitidos del pago, tomados del historial.'''
         return [
             {
                 'id': use.cheque_propio.id,
                 'numero': use.cheque_propio.numero,
-                'importe': use.cheque_propio.importe,
-                'importe_usado': use.importe,
+                'importe': use.importe,
                 'banco': use.cheque_propio.banco.descripcion,
-                'estado': use.cheque_propio.estado,
+                'estado': self._check_state(obj, use.cheque_propio.estado),
             }
             for use in obj.own_check_uses.all()
         ]
 
     class Meta:
         model = PagoCompra
-        fields = ['id', 'proveedor', 'compra', 'importe_abonado', 'tipo_pago', 'fecha_pago', 'estado_pago', 'cheques', 'cheques_propios']
+        fields = [
+            'id', 'proveedor', 'compras', 'importe_abonado', 'importe_a_cuenta', 'tipo_pago', 'fecha_pago',
+            'estado_pago', 'fecha_anulacion', 'cheques', 'cheques_propios',
+        ]
 
 
 class PurchasePaymentQueryParamsSerializer(serializers.Serializer):
     compra_id = serializers.IntegerField(required=False)
     supplier_id = serializers.IntegerField(required=False)
-    # Texto libre: busca por puesto (si es un número) o por nombre del proveedor.
     supplier = serializers.CharField(required=False, allow_blank=True)
     kind = serializers.ChoiceField(choices=PAYMENT_KIND_CHOICES, required=False)
+    estado = serializers.ChoiceField(choices=PaymentState.choices, required=False)
     payment_type_id = serializers.IntegerField(required=False)
     amount_min = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     amount_max = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)

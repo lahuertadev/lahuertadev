@@ -6,19 +6,16 @@ import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import CalendarTodayIcon from '@mui/icons-material/CalendarTodayOutlined';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Tooltip from '@mui/material/Tooltip';
+import { BADGE_COLORS } from '../../../constants/badgeColors';
+import Badge from '../../../components/Badge';
+import BackButton from '../../../components/BackButton';
+import PageHeader from '../../../components/PageHeader';
+import { CHECK_STATE_CONFIG } from '../../../constants/grid/Check';
 
-const STATE_CONFIG = {
-  'EN_CARTERA': { label: 'En cartera',  bg: '#e8f0fb', color: '#4a7bc4' },
-  'DEPOSITADO': { label: 'Depositado',  bg: '#fef9c3', color: '#a16207' },
-  'ACREDITADO': { label: 'Acreditado', bg: '#dcfce7', color: '#166534' },
-  'ENDOSADO':   { label: 'Endosado',   bg: '#f3e8ff', color: '#7e22ce' },
-  'RECHAZADO':  { label: 'Rechazado',  bg: '#ffebee', color: '#c62828' },
-};
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -81,31 +78,26 @@ const CheckDetail = () => {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el cheque.</p>
-        <button
-          onClick={() => navigate('/check')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/check')} label="Volver al listado" />
       </div>
     );
   }
 
   const estadoDesc = check.estado?.descripcion || '';
-  const stateCfg = STATE_CONFIG[estadoDesc] || { label: estadoDesc || '—', bg: '#f0f4f7', color: '#596064' };
+  const stateCfg = CHECK_STATE_CONFIG[estadoDesc] || { label: estadoDesc || '—', ...BADGE_COLORS.gray };
   const isOverdue = estadoDesc === 'EN_CARTERA' && check.fecha_deposito && new Date(check.fecha_deposito) < new Date();
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/check')}>Cheques</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">N° {check.numero}</span>
-      </nav>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', path: '/' },
+          { label: 'Cheques', path: '/check' },
+          { label: `N° ${check.numero}` },
+        ]}
+        onBack={() => navigate('/check')}
+      />
 
       {/* 1. Datos del cheque */}
       <SectionCard icon={<ReceiptIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque">
@@ -118,20 +110,7 @@ const CheckDetail = () => {
         <Field label="Endosado" value={check.endosado ? 'Sí' : 'No'} />
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Estado</span>
-          <span style={{
-            display: 'inline-flex',
-            width: 'fit-content',
-            padding: '2px 10px',
-            borderRadius: '6px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            lineHeight: '18px',
-            backgroundColor: stateCfg.bg,
-            color: stateCfg.color,
-            whiteSpace: 'nowrap',
-          }}>
-            {stateCfg.label}
-          </span>
+          <Badge color={stateCfg} label={stateCfg.label} />
         </div>
       </SectionCard>
 
@@ -170,6 +149,17 @@ const CheckDetail = () => {
           title="Pago Asociado"
           tooltip="Pago de compra al que se endosó este cheque"
         >
+          {/* El número lleva al detalle del pago, como en el detalle de la compra. */}
+          <div className="flex flex-col gap-1">
+            <span className={labelCls}>Pago</span>
+            <button
+              type="button"
+              onClick={() => navigate(`/purchase-payment/detail/${check.pago_compra.id}`)}
+              className="self-start text-sm font-semibold text-accent hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded"
+            >
+              Pago N° {String(check.pago_compra.id).padStart(8, '0')}
+            </button>
+          </div>
           <Field label="Proveedor" value={check.pago_compra.proveedor} />
           <Field label="Fecha de pago" value={formatDate(check.pago_compra.fecha_pago)} />
           <div className="flex flex-col gap-1">
@@ -179,15 +169,9 @@ const CheckDetail = () => {
         </SectionCard>
       )}
 
-      {/* Action Bar */}
-      <div className="flex items-center justify-end pt-6 border-t border-border-subtle">
-        <button
-          type="button"
-          onClick={() => navigate('/check')}
-          className="px-5 py-2.5 rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center gap-2"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-        </button>
+      {/* En mobile Volver va abajo de todo, a lo ancho (en desktop está arriba, en PageHeader). */}
+      <div className="sm:hidden pt-6 border-t border-border-subtle">
+        <BackButton onClick={() => navigate('/check')} className="w-full px-6 py-2.5 text-sm" />
       </div>
 
     </div>

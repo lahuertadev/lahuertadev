@@ -7,10 +7,12 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { ownCheckUrl, bankUrl } from '../../../constants/urls';
 import { HOME, PROVEEDORES } from '../../../constants/breadcrumbs';
 import Toast from '../../../components/Toast';
+import { useToast } from '../../../context/ToastContext';
 import BackButton from '../../../components/BackButton';
 import FormActions from '../../../components/FormActions';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
+import { addDays } from '../../../utils/date';
 import CustomInput from '../../../components/Input';
 import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
@@ -55,6 +57,10 @@ const FieldLabel = ({ text, help, required = false }) => (
 );
 
 // ── Componente principal ──────────────────────────────────────────────────────
+// Plazo para presentar un cheque diferido al cobro: 30 días corridos desde su fecha de pago (Ley de
+// Cheques 24.452, art. 25). Al cargar la fecha de depósito, el vencimiento se completa con ese plazo.
+export const OWN_CHECK_VALIDITY_DAYS = 30;
+
 const OwnCheckForm = () => {
   const [banks, setBanks] = useState([]);
   const [initialValues, setInitialValues] = useState({
@@ -69,6 +75,7 @@ const OwnCheckForm = () => {
 
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [toast, setToast] = useState({ open: false, message: '' });
   const [usedInPurchase, setUsedInPurchase] = useState(false);
   const [purchaseSupplier, setPurchaseSupplier] = useState('');
@@ -138,9 +145,11 @@ const OwnCheckForm = () => {
       };
       if (id) {
         await axios.put(`${ownCheckUrl}${id}/`, payload);
+        showToast('El cheque se actualizó correctamente.');
       } else {
         const response = await axios.post(ownCheckUrl, payload);
         emitTutorialEvent(TUTORIAL_EVENTS.ownCheckCreated, { id: response.data.id });
+        showToast('El cheque se registró correctamente.');
       }
       navigate('/own-check');
     } catch (error) {
@@ -163,7 +172,7 @@ const OwnCheckForm = () => {
       onSubmit={handleSubmit}
     >
       {({ values, errors, touched, handleChange, setFieldValue, isSubmitting }) => (
-        <Form className="w-full max-w-5xl mx-auto space-y-8 pb-12">
+        <Form className="w-full max-w-7xl mx-auto space-y-8 pb-12">
           <Toast
             open={toast.open}
             message={toast.message}
@@ -250,14 +259,18 @@ const OwnCheckForm = () => {
               <FieldLabel text="Fecha de depósito" help="Fecha desde la cual el cheque puede depositarse (cheque diferido). Si el cheque es a la vista, dejar vacío." />
               <BasicDatePicker
                 value={values.depositDate}
-                onChange={(date) => setFieldValue('depositDate', date)}
+                onChange={(date) => {
+                  setFieldValue('depositDate', date);
+                  // El vencimiento se completa solo; se puede cambiar a mano después.
+                  if (date) setFieldValue('dueDate', addDays(date, OWN_CHECK_VALIDITY_DAYS));
+                }}
                 hasError={touched.depositDate && Boolean(errors.depositDate)}
                 clearable
               />
               <FieldError error={errors.depositDate} touched={touched.depositDate} />
             </div>
             <div className="flex flex-col gap-1" data-tour="own-check-due-date">
-              <FieldLabel text="Fecha de vencimiento" help="Fecha límite para cobrar el cheque, generalmente 30 días corridos después de la fecha de pago según la ley de cheques." required />
+              <FieldLabel text="Fecha de vencimiento" help="Fecha límite para cobrar el cheque: 30 días corridos después de la fecha de pago según la ley de cheques. Al cargar la fecha de depósito se completa sola; se puede cambiar." required />
               <BasicDatePicker
                 value={values.dueDate}
                 onChange={(date) => setFieldValue('dueDate', date)}

@@ -6,16 +6,17 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 ## Alcance
 - Crear, editar y eliminar compras.
 - Cargar de una vez varias compras a distintos proveedores para una misma fecha (carga masiva).
-- Listar compras con filtros por proveedor, importe y rango de fechas.
+- Listar compras con filtros por proveedor (puesto o nombre, como en Pagos de Compras), importe y rango de fechas.
 - Cada compra tiene uno o más ítems (productos) con cantidad, precio por bulto y precio unitario.
 - El importe final se calcula como: `Σ(cantidad × precio_bulto) - seña`.
 - La cuenta corriente del proveedor se ajusta automáticamente al crear, editar o eliminar una compra.
+- El estado de pago (PENDIENTE, PARCIAL, ABONADO) y el saldo pendiente de cada compra salen de la seña más lo que le aplicaron sus pagos. Un pago puede cubrir varias compras: a cada una le cuenta solo lo que le aplicó (DEV-150, ver `pagos-compras.md`).
 
 ## Flujo de uso
 1. El usuario accede a **Compras** desde el menú principal.
 2. Ve el listado de compras con número, fecha, proveedor, bultos, seña e importe.
 3. Hace clic en **Nueva compra** y elige el tipo de carga: **Carga simple** (un proveedor para una fecha) o **Carga masiva** (ver más abajo).
-4. En la carga simple, selecciona el proveedor (autocomplete), ingresa fecha, bultos y seña (opcional).
+4. En la carga simple, busca el proveedor escribiendo su nombre o puesto y lo elige de la lista; ingresa fecha, bultos y seña (opcional). En la carga masiva cada compra tiene el mismo buscador.
 5. Agrega productos a la tabla de ítems: selecciona producto, ingresa cantidad, precio por bulto y precio unitario.
 6. El formulario calcula el subtotal por ítem y el total general en tiempo real.
 7. Confirma. El sistema guarda la compra, actualiza la cuenta corriente del proveedor y redirige al listado.
@@ -37,14 +38,15 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 - `/buy/create/simple` — Formulario de nueva compra (un proveedor)
 - `/buy/create/bulk` — Carga masiva de compras
 - `/buy/edit/:id` — Formulario de edición de compra
+- `/buy/detail/:id` — Detalle de compra: datos, importes, estado de pago, productos y **pagos** (cada pago con su fecha, tipo y lo que le aplicó a esta compra; si el pago cubre varias compras, también su importe total). Tocar un pago abre su detalle.
 
 ## Endpoints involucrados
-- `GET /buy/` — Listado con filtros opcionales (`proveedor_id`, `fecha_desde`, `fecha_hasta`, `importe_min`, `importe_max`)
+- `GET /buy/` — Listado con filtros opcionales (`supplier`: puesto exacto o parte del nombre; `proveedor_id`, `fecha_desde`, `fecha_hasta`, `importe_min`, `importe_max`)
 - `POST /buy/` — Crear compra
 - `POST /buy/bulk/` — Crear varias compras para una misma fecha (carga masiva)
-- `GET /buy/:id/` — Detalle de compra
+- `GET /buy/:id/` — Detalle de compra, con `payments` (`id`, `fecha_pago`, `tipo_pago`, `importe_abonado`, `importe_aplicado`). El listado no trae los pagos.
 - `PUT /buy/:id/` — Actualizar compra
-- `DELETE /buy/:id/` — Eliminar compra
+- `DELETE /buy/:id/` — Eliminar compra (400 si la cubre algún pago, vigente o anulado)
 
 ## Carga masiva
 
@@ -82,5 +84,8 @@ Los formularios de compra (carga simple y masiva) muestran un aviso fijo record�
 - La cuenta corriente del proveedor (`cuenta_corriente`) se actualiza automáticamente en el backend con cada operación de compra.
 - Al editar una compra y cambiar el proveedor, el sistema ajusta el balance de ambos proveedores.
 - Al eliminar una compra, el importe se revierte en la cuenta corriente del proveedor.
+- Una compra que cubre algún pago, vigente o anulado, no se puede eliminar (DEV-150): el pago conserva sus compras como registro. Con un pago vigente, primero hay que editarlo y destildar la compra; con un pago anulado, la compra ya no se puede eliminar. El mensaje de error nombra los pagos.
+- El diálogo de eliminar dice el número, el proveedor y el importe de la compra, y cuánto baja la deuda con el proveedor (importe menos seña).
+- Un pago anulado deja de contar para lo pagado y el estado de la compra; el detalle lo sigue listando, tachado y con la etiqueta "Anulado".
 - El precio unitario no afecta el cálculo del importe total; es un dato informativo para la gestión de precios de venta.
 - Los vacíos **no forman parte de la compra** ni de su importe: impactan en la cuenta corriente del proveedor a través de sus propios movimientos (ver [vacios.md](vacios.md)).

@@ -8,6 +8,7 @@ class OwnCheck(models.Model):
         EMITIDO = 'EMITIDO', 'Emitido'
         COBRADO = 'COBRADO', 'Cobrado'
         ANULADO = 'ANULADO', 'Anulado'
+        RECHAZADO = 'RECHAZADO', 'Rechazado'
 
     numero = models.IntegerField()
     importe = models.DecimalField(max_digits=10, decimal_places=2)
@@ -17,6 +18,9 @@ class OwnCheck(models.Model):
     banco = models.ForeignKey(Banco, on_delete=models.PROTECT)
     estado = models.CharField(max_length=20, choices=State.choices, default=State.EMITIDO)
     observaciones = models.CharField(max_length=255, blank=True, null=True)
+    # Pago vigente en el que se usó el cheque, igual que cheque.pago_compra (DEV-150). Se vacía al
+    # anular el pago; el historial de pagos del cheque queda en pago_compra_cheque_propio.
+    pago_compra = models.ForeignKey('pago_compra.PagoCompra', null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
         return f'Cheque Propio N°{self.numero} ({self.banco.descripcion})'

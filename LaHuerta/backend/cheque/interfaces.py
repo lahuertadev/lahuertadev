@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 class ICheckRepository(ABC):
 
     @abstractmethod
-    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None):
+    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None, tab=None):
         pass
 
     @abstractmethod
@@ -25,4 +25,8 @@ class ICheckRepository(ABC):
 
     @abstractmethod
     def delete(self, check):
+        pass
+
+    @abstractmethod
+    def get_purchase_payment_ids(self, check):
         pass

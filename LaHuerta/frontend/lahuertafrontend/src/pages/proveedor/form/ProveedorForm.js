@@ -7,12 +7,16 @@ import { loadOptions } from '../../../utils/selectOptions';
 import { extractErrorMessage } from '../../../utils/errors';
 import { supplierUrl, marketUrl } from '../../../constants/urls';
 import Toast from '../../../components/Toast';
+import { useToast } from '../../../context/ToastContext';
 import AmountInput from '../../../components/AmountInput';
+import BackButton from '../../../components/BackButton';
+import FormActions from '../../../components/FormActions';
 import ContactFields, { EMPTY_CONTACT, contactsSchema, toContactRows, toContactsPayload } from '../../../components/ContactFields';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import LocationOnIcon from '@mui/icons-material/LocationOnOutlined';
 import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 
@@ -82,6 +86,7 @@ const ProveedorForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [toast, setToast] = useState({ open: false, message: '' });
+  const { showToast } = useToast();
 
   const loadInitialOptions = async () => {
     const marketOptions = await loadOptions(marketUrl, (data) =>
@@ -135,6 +140,7 @@ const ProveedorForm = () => {
       } else {
         await axios.post(supplierUrl, mappedValues);
       }
+      showToast(id ? 'El proveedor se actualizó correctamente.' : 'El proveedor se creó correctamente.');
       navigate('/supplier');
     } catch (error) {
       console.error('Error enviando el formulario:', error);
@@ -172,14 +178,17 @@ const ProveedorForm = () => {
             onClose={() => setToast({ open: false, message: '' })}
           />
 
-          {/* Breadcrumbs */}
-          <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-            <span className="text-xs">›</span>
-            <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/supplier')}>Proveedores</span>
-            <span className="text-xs">›</span>
-            <span className="text-on-surface font-semibold">{id ? 'Editar Proveedor' : 'Nuevo Proveedor'}</span>
-          </nav>
+          {/* Breadcrumbs + Volver */}
+          <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
+            <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
+              <span className="text-xs">›</span>
+              <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/supplier')}>Proveedores</span>
+              <span className="text-xs">›</span>
+              <span className="text-on-surface font-semibold">{id ? 'Editar Proveedor' : 'Nuevo Proveedor'}</span>
+            </nav>
+            <BackButton onClick={() => navigate('/supplier')} className="shrink-0 px-5 py-2.5 text-sm" />
+          </div>
 
           {/* 1. Datos del Proveedor */}
           <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos del Proveedor">
@@ -269,22 +278,13 @@ const ProveedorForm = () => {
             </div>
           </SectionCard>
 
-          {/* Action Bar */}
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-border-subtle">
-            <button
-              type="button"
-              onClick={() => navigate('/supplier')}
-              className="px-6 py-2.5 text-sm font-semibold text-on-surface-muted border border-border-subtle rounded-lg hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="px-8 py-2.5 bg-blue-lahuerta text-white font-bold text-sm rounded-lg shadow-sm hover:bg-blue-lahuerta/90 active:scale-[0.98] transition-all"
-            >
-              {id ? 'Guardar cambios' : 'Registrar Proveedor'}
-            </button>
-          </div>
+          <FormActions
+            onCancel={() => navigate('/supplier')}
+            confirmType="submit"
+            confirmLabel={id
+              ? <><SaveOutlinedIcon sx={{ fontSize: 18 }} /> Guardar cambios</>
+              : 'Registrar Proveedor'}
+          />
 
         </Form>
       )}

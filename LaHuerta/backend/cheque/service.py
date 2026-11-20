@@ -3,15 +3,17 @@ from decimal import Decimal
 from django.db import transaction
 from estado_cheque.models import EstadoCheque
 from estado_cheque import constants as check_status
+from pago_compra.service import reduce_payment_amount
 from .exceptions import CheckAlreadyEndorsedException, CheckInvalidStateException, CheckInvalidTransitionException
 
 
 class CheckService:
 
-    def __init__(self, check_repository, client_repository=None, supplier_repository=None):
+    def __init__(self, check_repository, client_repository=None, supplier_repository=None, payment_repository=None):
         self.check_repository = check_repository
         self.client_repository = client_repository
         self.supplier_repository = supplier_repository
+        self.payment_repository = payment_repository
 
     @transaction.atomic
     def endorse_check(self, check, pago_compra):
@@ -65,10 +67,11 @@ class CheckService:
             client.cuenta_corriente = Decimal(str(client.cuenta_corriente)) + Decimal(str(check.pago_cliente.importe))
             self.client_repository.update_balance(client)
 
-        # Un pago a proveedor puede tener varios cheques: se devuelve solo el importe de este.
         if check.endosado and self.supplier_repository and check.pago_compra:
+            amount = Decimal(str(check.importe))
             supplier = check.pago_compra.proveedor
-            supplier.cuenta_corriente = Decimal(str(supplier.cuenta_corriente)) + Decimal(str(check.importe))
+            supplier.cuenta_corriente = Decimal(str(supplier.cuenta_corriente)) + amount
             self.supplier_repository.update_balance(supplier)
+            reduce_payment_amount(self.payment_repository, check.pago_compra, amount)
 
         return check

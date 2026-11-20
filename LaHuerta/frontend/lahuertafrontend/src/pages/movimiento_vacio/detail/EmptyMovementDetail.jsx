@@ -11,9 +11,12 @@ import { useToast } from '../../../context/ToastContext';
 import AlertDialog from '../../../components/DialogAlert';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
 import Inventory2Icon from '@mui/icons-material/Inventory2Outlined';
-import EditIcon from '@mui/icons-material/EditOutlined';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import BackButton from '../../../components/BackButton';
+import DeleteMessage from '../../../components/DeleteMessage';
+import PageHeader from '../../../components/PageHeader';
+import DeleteButton from '../../../components/DeleteButton';
+import EditButton from '../../../components/EditButton';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
@@ -80,61 +83,25 @@ const EmptyMovementDetail = () => {
     return (
       <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
         <p className="text-sm text-red-500">Error al cargar el movimiento de vacíos.</p>
-        <button
-          onClick={() => navigate('/empty-movement')}
-          className="flex items-center gap-2 text-sm text-on-surface-muted hover:text-accent transition-colors"
-        >
-          <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver al listado
-        </button>
+        <BackButton onClick={() => navigate('/empty-movement')} label="Volver al listado" />
       </div>
     );
   }
 
   const supplierName = movement.proveedor?.nombre || '—';
 
-  const editButton = (className) => (
-    <button
-      type="button"
-      onClick={() => navigate(`/empty-movement/edit/${id}`)}
-      className={`${className} rounded-lg bg-blue-lahuerta text-white text-sm font-semibold hover:bg-blue-lahuerta/90 transition-colors flex items-center justify-center gap-2`}
-    >
-      <EditIcon sx={{ fontSize: 16 }} /> Editar
-    </button>
-  );
-
-  const deleteButton = (className) => (
-    <button
-      type="button"
-      onClick={() => setConfirmOpen(true)}
-      className={`${className} rounded-lg border border-red-300 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors flex items-center justify-center gap-2`}
-    >
-      <DeleteIcon sx={{ fontSize: 16 }} /> Eliminar
-    </button>
-  );
-
-  const backButton = (className) => (
-    <button
-      type="button"
-      onClick={() => navigate('/empty-movement')}
-      className={`${className} rounded-lg border border-accent text-sm font-semibold text-accent hover:bg-accent/10 transition-colors flex items-center justify-center gap-2`}
-    >
-      <ArrowBackIcon sx={{ fontSize: 16 }} /> Volver
-    </button>
-  );
-
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(HOME.path)}>{HOME.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(PROVEEDORES.path)}>{PROVEEDORES.label}</span>
-        <span className="text-xs">›</span>
-        <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/empty-movement')}>Vacíos</span>
-        <span className="text-xs">›</span>
-        <span className="text-on-surface font-semibold">{supplierName}</span>
-      </nav>
+      <PageHeader
+        breadcrumbs={[
+          HOME,
+          PROVEEDORES,
+          { label: 'Vacíos', path: '/empty-movement' },
+          { label: supplierName },
+        ]}
+        onBack={() => navigate('/empty-movement')}
+      />
 
       {/* 1. Datos del movimiento */}
       <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos del movimiento">
@@ -172,29 +139,36 @@ const EmptyMovementDetail = () => {
         </div>
       </SectionCard>
 
-      {/* Action Bar */}
-      <div className="pt-6 border-t border-border-subtle">
-        {isMobile ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              {deleteButton('flex-1 py-2.5')}
-              {editButton('flex-1 py-2.5')}
-            </div>
-            {backButton('w-full py-2.5')}
-          </div>
-        ) : (
-          <div className="flex items-center justify-end gap-4">
-            {backButton('px-5 py-2.5')}
-            {deleteButton('px-5 py-2.5')}
-            {editButton('px-5 py-2.5')}
-          </div>
+      {/* Acciones. En desktop: solo Editar (Volver va arriba; Eliminar está en la columna Acción del
+          listado). En mobile el listado no tiene esa columna, así que acá van Eliminar, Editar y Volver. */}
+      <div className="flex flex-col-reverse gap-3 pt-6 border-t border-border-subtle sm:flex-row sm:justify-end sm:gap-4">
+        <div className="sm:hidden">
+          <BackButton onClick={() => navigate('/empty-movement')} className="w-full px-6 py-2.5 text-sm" />
+        </div>
+        {isMobile && (
+          <DeleteButton onClick={() => setConfirmOpen(true)} />
         )}
+        <EditButton onClick={() => navigate(`/empty-movement/edit/${id}`)} />
       </div>
 
       <AlertDialog
         open={confirmOpen}
         title="Eliminar movimiento"
-        message={`¿Estás seguro que querés eliminar este movimiento de vacíos de ${supplierName}? Se revierte su efecto en la cuenta corriente del proveedor.`}
+        message={(
+          <DeleteMessage
+            summary={(
+              <>
+                Vas a eliminar el movimiento de vacíos de <strong>{formatCurrency(movement.importe)}</strong> de{' '}
+                <strong>{supplierName}</strong>. No se puede deshacer.
+              </>
+            )}
+            effects={[{
+              icon: <AccountBalanceWalletOutlinedIcon sx={{ fontSize: 16 }} />,
+              text: 'Se revierte su efecto en la cuenta corriente del proveedor.',
+            }]}
+          />
+        )}
+        confirmLabel="Eliminar movimiento"
         onConfirm={handleDelete}
         onCancel={() => setConfirmOpen(false)}
       />

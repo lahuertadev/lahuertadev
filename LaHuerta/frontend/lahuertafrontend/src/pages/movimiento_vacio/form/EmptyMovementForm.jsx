@@ -17,6 +17,8 @@ import Toast from '../../../components/Toast';
 import BackButton from '../../../components/BackButton';
 import BasicDatePicker from '../../../components/DatePicker';
 import BasicSelect from '../../../components/Select';
+import RequiredMark from '../../../components/RequiredMark';
+import SupplierAutocomplete from '../../../components/SupplierAutocomplete';
 import CustomInput from '../../../components/Input';
 import AmountInput from '../../../components/AmountInput';
 import CountUp from '../../../components/CountUp';
@@ -238,14 +240,16 @@ const EmptyMovementForm = ({ defaultType = EMPTY_MOVEMENT_TYPES.LOAD }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div data-tour="empty-supplier" data-tour-complete={Boolean(supplier)}>
-            <BasicSelect
-              label="Proveedor *"
-              name="supplier"
-              value={supplier ? { name: supplier.nombre, value: supplier.id } : null}
-              options={suppliers.map((s) => ({ name: s.nombre, value: s.id }))}
-              onChange={(e) => setSupplier(suppliers.find((s) => s.id === e.target.value?.value) || null)}
-              error={errors.supplier}
+            <label htmlFor="empty-supplier-input" className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5">Proveedor<RequiredMark /></label>
+            <SupplierAutocomplete
+              id="empty-supplier-input"
+              suppliers={suppliers}
+              value={supplier}
+              onChange={setSupplier}
+              hasError={Boolean(errors.supplier)}
+              required
             />
+            {errors.supplier && <p className="mt-1 text-xs text-red-500">{errors.supplier}</p>}
           </div>
 
           <div data-tour="empty-date">
