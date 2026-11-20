@@ -9,6 +9,7 @@ import { purchasePaymentUrl, buyUrl, paymentTypeUrl, checkUrl, ownCheckUrl, supp
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
 import Toast from '../../../components/Toast';
+import SupplierAutocomplete from '../../../components/SupplierAutocomplete';
 import ReadonlyField from '../../../components/ReadonlyField';
 import { useToast } from '../../../context/ToastContext';
 import BasicDatePicker from '../../../components/DatePicker';
@@ -17,7 +18,6 @@ import BackButton from '../../../components/BackButton';
 import FormActions from '../../../components/FormActions';
 import RequiredMark from '../../../components/RequiredMark';
 import { formatCurrency } from '../../../utils/currency';
-import { formatSupplierLabel } from '../../../utils/supplier';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCartOutlined';
 import PaymentsOutlinedIcon from '@mui/icons-material/PaymentsOutlined';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
@@ -274,18 +274,15 @@ const PurchasePaymentForm = () => {
             {/* 1. Proveedor y su saldo */}
             <SectionCard icon={<LocalShippingIcon sx={{ fontSize: 20 }} />} title="Proveedor" cols={2}>
               <div className="flex flex-col gap-1" data-tour="payment-supplier" data-tour-complete={Boolean(selectedSupplier)}>
-                <label className={labelCls}>Proveedor<RequiredMark /></label>
-                <select
-                  value={values.supplier}
-                  onChange={(e) => handleSupplierChange(e.target.value, setFieldValue)}
-                  className={inputCls(touched.supplier && errors.supplier)}
-                  aria-required="true"
-                >
-                  <option value="">Seleccionar...</option>
-                  {selectOptions.suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>{formatSupplierLabel(supplier)}</option>
-                  ))}
-                </select>
+                <label htmlFor="payment-supplier-input" className={labelCls}>Proveedor<RequiredMark /></label>
+                <SupplierAutocomplete
+                  id="payment-supplier-input"
+                  suppliers={selectOptions.suppliers}
+                  value={selectedSupplier}
+                  onChange={(supplier) => handleSupplierChange(supplier ? String(supplier.id) : '', setFieldValue)}
+                  hasError={Boolean(touched.supplier && errors.supplier)}
+                  required
+                />
                 <FieldError error={errors.supplier} touched={touched.supplier} />
               </div>
               {selectedSupplier && (
