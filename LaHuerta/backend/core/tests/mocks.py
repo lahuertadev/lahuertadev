@@ -283,6 +283,8 @@ def mock_client_payment(**overrides):
         'fecha_pago': DEFAULT_DATE,
         'importe': Decimal('1000.00'),
         'observaciones': None,
+        'estado_pago': 'VIGENTE',
+        'fecha_anulacion': None,
         'cliente': _related(overrides, 'cliente', mock_client),
         'tipo_pago': _related(overrides, 'tipo_pago', mock_payment_type),
     }
