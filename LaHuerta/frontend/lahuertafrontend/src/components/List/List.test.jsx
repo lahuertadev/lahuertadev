@@ -83,3 +83,34 @@ test('la solapa activa va junto con los filtros del panel', async () => {
 
   await waitFor(() => expect(axios.get).toHaveBeenLastCalledWith(`${BASE_URL}?name=abc&estado=ANULADO`));
 });
+
+describe('motivo al borrar (deleteReason)', () => {
+  const openDeleteDialog = async (data) => {
+    axios.get.mockResolvedValue({ data: [{ id: 7, name: 'Ítem 7' }] });
+    renderList(buildData({ mapData: (items) => items, groupActions: true, deleteLabel: 'Anular', ...data }));
+    await screen.findByText('Ítem 7');
+    fireEvent.click(document.querySelector('[data-id="7"] [data-tour="grid-delete"]'));
+  };
+
+  test('pide el motivo, habilita Confirmar al escribirlo y lo pasa a deleteRequest', async () => {
+    const deleteRequest = jest.fn().mockResolvedValue({});
+    await openDeleteDialog({ deleteRequest, deleteReason: { label: 'Motivo de la anulación' } });
+
+    const confirm = await screen.findByRole('button', { name: 'Anular' });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Motivo de la anulación/), { target: { value: '   ' } });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/Motivo de la anulación/), { target: { value: ' Se cargó mal ' } });
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(deleteRequest).toHaveBeenCalledWith(7, 'Se cargó mal'));
+  });
+
+  test('sin deleteReason el diálogo no pide motivo', async () => {
+    await openDeleteDialog({ deleteRequest: jest.fn().mockResolvedValue({}) });
+
+    expect(await screen.findByRole('button', { name: 'Anular' })).toBeEnabled();
+    expect(screen.queryByLabelText(/Motivo/)).toBeNull();
+  });
+});
