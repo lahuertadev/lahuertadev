@@ -1,6 +1,7 @@
 from datetime import date
 from factura.models import Factura
 from factura.constants import CREDIT_NOTE_CODES
+from pago_cliente.constants import PaymentState
 from pago_cliente.models import PagoCliente
 from .interfaces import IReportRepository
 
@@ -34,12 +35,14 @@ class ReportRepository(IReportRepository):
         )
 
     def get_payments(self, client_id: int, date_from: date, date_to: date):
+        '''Pagos vigentes del cliente en el período: los anulados no cuentan en el reporte.'''
         return (
             PagoCliente.objects
             .select_related('tipo_pago')
             .filter(
                 cliente_id=client_id,
                 fecha_pago__range=(date_from, date_to),
+                estado_pago=PaymentState.VIGENTE,
             )
             .order_by('fecha_pago')
         )
