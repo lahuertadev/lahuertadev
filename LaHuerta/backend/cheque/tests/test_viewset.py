@@ -323,6 +323,20 @@ def test_destroy_cheque_registrado_en_un_pago_a_proveedor_devuelve_400(factory, 
     assert viewset.repository.get_by_id(1001) is not None
 
 
+def test_destroy_cheque_de_un_pago_de_cliente_indica_anular_el_pago(factory, viewset):
+    check = viewset.repository._add(1001)
+    check.pago_cliente_id = 7
+    check.pago_compra_id = None
+
+    request = factory.delete('/checks/1001/')
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.destroy(drf_request, pk=1001)
+
+    assert response.status_code == 400
+    assert 'anulá el pago' in response.data['detail']
+    assert viewset.repository.get_by_id(1001) is not None
+
+
 # ── ENDORSE ──────────────────────────────────────────────────────────────────
 
 def _create_pago_compra():

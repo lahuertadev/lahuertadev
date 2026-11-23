@@ -109,6 +109,19 @@ class TestCheckRepository:
 
         assert self.repository.exists_duplicate(3001, self.banco, cliente, exclude_id=cheque.id) is False
 
+    def test_exists_duplicate_ignora_los_cheques_anulados(self):
+        # Un cheque de un pago anulado fue una carga equivocada: se puede volver a cargar.
+        cliente, payment = self._make_cliente_con_pago()
+        make_check(numero=3001, banco=self.banco, estado=make_check_state(descripcion='ANULADO'), pago_cliente=payment)
+
+        assert self.repository.exists_duplicate(3001, self.banco, cliente) is False
+
+    def test_exists_duplicate_cuenta_los_cheques_rechazados(self):
+        cliente, payment = self._make_cliente_con_pago()
+        make_check(numero=3001, banco=self.banco, estado=make_check_state(descripcion='RECHAZADO'), pago_cliente=payment)
+
+        assert self.repository.exists_duplicate(3001, self.banco, cliente) is True
+
     # ------------------------- CREATE --------------------------
     def test_create_ok(self):
         data = {
