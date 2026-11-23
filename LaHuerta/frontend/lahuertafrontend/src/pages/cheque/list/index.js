@@ -50,6 +50,7 @@ export const CHECK_TABS = {
 };
 
 const FILTERS_CONFIG = [
+  { label: 'Número', name: 'numero', type: 'text' },
   { label: 'Banco', name: 'banco', type: 'text' },
   {
     label: 'Estado',
