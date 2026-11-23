@@ -16,6 +16,7 @@ const PAYMENT_TYPE_CONFIG = {
 };
 
 export const columns = [
+  { field: 'number',  headerName: 'N° Pago', flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'date',    headerName: 'Fecha',   flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'client',  headerName: 'Cliente', flex: 2, align: 'center', headerAlign: 'center', mobileClickable: true },
   {

@@ -2,6 +2,7 @@ import { buyUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Compra';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { formatDocumentNumber } from '../../../utils/documentNumber';
 import GenericList from '../../../components/List';
 import DeleteBuyMessage from '../shared/DeleteBuyMessage';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 const mapBuyData = (data) =>
   data.map((buy) => ({
     id: buy.id,
-    number: String(buy.id).padStart(8, '0'),
+    number: formatDocumentNumber(buy.id),
     date: formatDate(buy.fecha),
     supplier: buy.proveedor.nombre,
     senia: formatCurrency(buy.senia),

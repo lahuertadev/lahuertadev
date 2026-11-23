@@ -12,6 +12,7 @@ export const PURCHASE_PAYMENT_TYPE_COLORS = {
 };
 
 export const columns = [
+  { field: 'number',      headerName: 'N° Pago',           minWidth: 120, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'paymentDate', headerName: 'Fecha pago',        minWidth: 180, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'supplier',    headerName: 'Proveedor',         minWidth: 150, align: 'center', headerAlign: 'center', mobileClickable: true },
   {

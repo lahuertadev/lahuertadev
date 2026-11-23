@@ -6,6 +6,7 @@ import { columns } from '../../../constants/grid/ClientPayment';
 import { CLIENT_PAYMENT_STATE_TABS, isCancelledClientPayment, rejectedChecksNotice } from '../../../constants/clientPayment';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { formatDocumentNumber } from '../../../utils/documentNumber';
 import GenericList from '../../../components/List';
 import { useNavigate } from 'react-router-dom';
 import CancelClientPaymentMessage from '../shared/CancelClientPaymentMessage';
@@ -13,6 +14,7 @@ import CancelClientPaymentMessage from '../shared/CancelClientPaymentMessage';
 const mapClientPaymentData = (data) => {
   return data.map((payment) => ({
     id: payment.id,
+    number: formatDocumentNumber(payment.id),
     date: formatDate(payment.fecha_pago),
     client: payment.cliente.razon_social,
     amount: formatCurrency(payment.importe),
