@@ -36,6 +36,13 @@ test('Detalle, Editar y Anular van juntos en la columna "Acción", con sus data-
   ['grid-detail', 'grid-edit', 'grid-delete'].forEach((tour) => expect(cell.querySelector(`[data-tour="${tour}"]`)).not.toBeNull());
 });
 
+test('la primera columna es el número del pago', async () => {
+  await renderList();
+
+  expect(screen.getByText('N° Pago')).toBeInTheDocument();
+  expect(document.querySelector('[data-id="8"] [data-field="number"]')).toHaveTextContent('00000008');
+});
+
 test('entra en la solapa Vigentes y pide al backend los pagos vigentes', async () => {
   await renderList();
 

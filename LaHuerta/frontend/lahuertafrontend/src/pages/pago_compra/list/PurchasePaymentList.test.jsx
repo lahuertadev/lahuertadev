@@ -44,6 +44,23 @@ test('busca por puesto mandando el filtro al backend', async () => {
   await waitFor(() => expect(axios.get).toHaveBeenCalledWith(`${purchasePaymentUrl}?supplier=21&estado=VIGENTE`));
 });
 
+test('la primera columna es el número del pago', async () => {
+  axios.get.mockImplementation((url) => Promise.resolve({ data: url === paymentTypeUrl ? [] : [{
+    id: 70,
+    proveedor: { id: 3, nombre: 'Migogus', puesto: 20 },
+    compras: [],
+    importe_abonado: '10000.00',
+    tipo_pago: { id: 1, descripcion: 'Efectivo' },
+    fecha_pago: '2026-11-23',
+    cheques: [],
+    cheques_propios: [],
+  }] }));
+  render(<ToastProvider><MemoryRouter><PurchasePaymentList /></MemoryRouter></ToastProvider>);
+
+  await waitFor(() => expect(document.querySelector('[data-id="70"] [data-field="number"]')).toHaveTextContent('00000070'));
+  expect(screen.getByText('N° Pago')).toBeInTheDocument();
+});
+
 test('anular un pago con cheques explica qué pasa con ellos', async () => {
   axios.get.mockImplementation((url) => Promise.resolve({ data: url === paymentTypeUrl ? [] : [{
     id: 9,
