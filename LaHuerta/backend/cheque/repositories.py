@@ -8,10 +8,12 @@ from .interfaces import ICheckRepository
 
 class CheckRepository(ICheckRepository):
 
-    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None, tab=None):
+    def get_all(self, number=None, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None, tab=None):
         queryset = Cheque.objects.select_related(
             'banco', 'estado', 'pago_cliente__cliente', 'pago_compra__proveedor',
         ).all()
+        if number:
+            queryset = queryset.filter(numero__contains=number)
         if bank:
             queryset = queryset.filter(banco__descripcion__icontains=bank)
         if state:
@@ -23,7 +25,6 @@ class CheckRepository(ICheckRepository):
         if deposit_date_to:
             queryset = queryset.filter(fecha_deposito__lte=deposit_date_to)
         if tab == TAB_PENDING:
-            # Los que hay que depositar: en cartera y con la fecha de depósito hoy o antes.
             queryset = queryset.filter(estado__descripcion=EN_CARTERA, fecha_deposito__lte=timezone.localdate())
         elif tab == TAB_REJECTED:
             queryset = queryset.filter(estado__descripcion=RECHAZADO)

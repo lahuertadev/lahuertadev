@@ -180,9 +180,9 @@ class ClientPaymentService:
 
             if check.endosado:
                 raise CheckEditBlockedException(self._endorsed_message(check, 'No se pueden modificar los datos del'))
-            if 'importe' in changes and not _is_in_wallet(check):
+            if not _is_in_wallet(check):
                 raise PaymentEditBlockedException(
-                    f'No se puede cambiar el importe del cheque N° {check.numero}: ya no está en cartera. '
+                    f'No se puede modificar el cheque N° {check.numero}: ya no está en cartera. '
                     'Para corregirlo, anulá el pago y cargalo de nuevo.'
                 )
             if 'numero' in changes or 'banco' in changes:

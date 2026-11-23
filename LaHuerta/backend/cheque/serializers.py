@@ -34,6 +34,7 @@ class EndorseCheckSerializer(serializers.Serializer):
 
 
 class CheckQueryParamsSerializer(serializers.Serializer):
+    numero = serializers.RegexField(r'^\d+$', required=False, error_messages={'invalid': 'El número de cheque solo lleva dígitos.'})
     banco = serializers.CharField(required=False)
     estado = serializers.CharField(required=False)
     endosado = serializers.CharField(required=False)

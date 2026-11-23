@@ -23,7 +23,7 @@ class CheckViewSet(viewsets.ViewSet):
 
     def list(self, request):
         '''
-        Lista todos los cheques. Acepta filtros por banco, estado, endosado, rango de fecha_deposito
+        Lista todos los cheques. Acepta filtros por número (o parte de él), banco, estado, endosado, rango de fecha_deposito
         y la solapa (pendientes de depositar o rechazados).
         '''
         params_serializer = CheckQueryParamsSerializer(data=request.query_params)
@@ -39,6 +39,7 @@ class CheckViewSet(viewsets.ViewSet):
 
         try:
             checks = self.repository.get_all(
+                number=params.get('numero'),
                 bank=params.get('banco'),
                 state=params.get('estado'),
                 endorsed=endorsed,
