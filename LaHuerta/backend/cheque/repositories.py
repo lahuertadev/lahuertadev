@@ -1,6 +1,6 @@
 from django.utils import timezone
 
-from estado_cheque.constants import EN_CARTERA, RECHAZADO
+from estado_cheque.constants import ANULADO, EN_CARTERA, RECHAZADO
 from .constants import TAB_PENDING, TAB_REJECTED
 from .models import Cheque
 from .interfaces import ICheckRepository
@@ -38,7 +38,11 @@ class CheckRepository(ICheckRepository):
         )
 
     def exists_duplicate(self, number, bank, client, exclude_id=None):
-        queryset = Cheque.objects.filter(numero=number, banco=bank, pago_cliente__cliente=client)
+        queryset = (
+            Cheque.objects
+            .filter(numero=number, banco=bank, pago_cliente__cliente=client)
+            .exclude(estado__descripcion=ANULADO)
+        )
         if exclude_id is not None:
             queryset = queryset.exclude(id=exclude_id)
         return queryset.exists()

@@ -163,7 +163,8 @@ class CheckViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         '''
-        Elimina un cheque. No se permite si está asociado a un pago de cliente o de compra.
+        Elimina un cheque. No se permite si está asociado a un pago de cliente o de compra: los
+        cheques de pagos se dan de baja anulando el pago.
         '''
         try:
             check = self.repository.get_by_id(pk)
@@ -172,8 +173,8 @@ class CheckViewSet(viewsets.ViewSet):
 
             if check.pago_cliente_id:
                 raise CheckLinkedToPaymentException(
-                    'No se puede eliminar el cheque porque está asociado a un pago de cliente. '
-                    'Eliminá primero el pago correspondiente.'
+                    'No se puede eliminar el cheque porque está asociado a un pago de cliente, '
+                    'que lo conserva como registro. Si el pago se cargó mal, anulá el pago.'
                 )
 
             if check.pago_compra_id:
