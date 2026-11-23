@@ -1,15 +1,25 @@
+from django.db.models import Prefetch
+from cheque.models import Cheque
 from .models import PagoCliente
 from .interfaces import IClientPaymentRepository
+
+
+def _checks_prefetch():
+    '''Cheques del pago en el orden en que se cargaron, con lo que leen el service y el serializer.'''
+    return Prefetch(
+        'cheque_set',
+        queryset=Cheque.objects.select_related('banco', 'estado', 'pago_compra__proveedor').order_by('id'),
+    )
 
 
 class ClientPaymentRepository(IClientPaymentRepository):
 
     def get_all(self, client_id=None, business_name=None, amount_min=None, amount_max=None,
-                date_from=None, date_to=None, payment_type_id=None):
+                date_from=None, date_to=None, payment_type_id=None, state=None):
         qs = (
             PagoCliente.objects
             .select_related('cliente', 'tipo_pago')
-            .prefetch_related('cheque_set__banco', 'cheque_set__estado', 'cliente__contactos')
+            .prefetch_related(_checks_prefetch(), 'cliente__contactos')
             .all()
         )
         if client_id:
@@ -26,13 +36,15 @@ class ClientPaymentRepository(IClientPaymentRepository):
             qs = qs.filter(fecha_pago__lte=date_to)
         if payment_type_id:
             qs = qs.filter(tipo_pago_id=payment_type_id)
+        if state:
+            qs = qs.filter(estado_pago=state)
         return qs.order_by('-fecha_pago', '-id')
 
     def get_by_id(self, id):
         return (
             PagoCliente.objects
             .select_related('cliente', 'tipo_pago')
-            .prefetch_related('cheque_set__banco', 'cheque_set__estado')
+            .prefetch_related(_checks_prefetch())
             .filter(id=id)
             .first()
         )
@@ -57,6 +69,3 @@ class ClientPaymentRepository(IClientPaymentRepository):
             setattr(payment, key, value)
         payment.save()
         return payment
-
-    def delete(self, payment):
-        payment.delete()
