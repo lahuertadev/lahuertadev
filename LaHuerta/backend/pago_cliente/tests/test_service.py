@@ -374,6 +374,24 @@ class TestUpdateCheckPayment:
         assert client.cuenta_corriente == Decimal('2000.00')
         assert payment.cheque_set.all()[1].importe == Decimal('2000.00')
 
+    @pytest.mark.parametrize('state', ['DEPOSITADO', 'ACREDITADO', 'RECHAZADO'])
+    def test_corregir_los_datos_de_un_cheque_que_no_esta_en_cartera_pide_anular(self, service, state):
+        payment = _create(service, mock_client(), [_check(111)])
+        payment.cheque_set.all()[0].estado = mock_check_state(descripcion=state)
+
+        with pytest.raises(PaymentEditBlockedException, match='modificar el cheque N° 111: ya no está en cartera'):
+            self._update(service, payment, cheques=_edit_entries(payment, n111={'numero': 112}))
+
+        assert payment.cheque_set.all()[0].numero == 111
+
+    def test_un_cheque_que_no_esta_en_cartera_sin_cambios_no_bloquea_la_edicion(self, service):
+        payment = _create(service, mock_client(), [_check(111)])
+        payment.cheque_set.all()[0].estado = mock_check_state(descripcion='DEPOSITADO')
+
+        self._update(service, payment, cheques=_edit_entries(payment), observaciones='Corregido')
+
+        assert payment.observaciones == 'Corregido'
+
     def test_cambiar_el_importe_de_un_cheque_endosado_lo_bloquea_por_el_endoso(self, service):
         payment = _create(service, mock_client(), [_check(111)])
         endorsed = payment.cheque_set.all()[0]
