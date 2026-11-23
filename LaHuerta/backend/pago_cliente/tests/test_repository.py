@@ -78,6 +78,15 @@ class TestClientPaymentRepository:
         assert result.count() == 1
         assert result.first().id == payment_transferencia.id
 
+    def test_get_all_filter_by_state(self):
+        current = self._make_payment()
+        cancelled = self._make_payment()
+        self.repository.update(cancelled, {'estado_pago': 'ANULADO'})
+
+        assert [p.id for p in self.repository.get_all(state='VIGENTE')] == [current.id]
+        assert [p.id for p in self.repository.get_all(state='ANULADO')] == [cancelled.id]
+        assert self.repository.get_all().count() == 2
+
     # ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
         payment = self._make_payment()
@@ -97,6 +106,8 @@ class TestClientPaymentRepository:
         assert payment.observaciones == 'Prueba'
         assert payment.cliente == self.cliente
         assert payment.tipo_pago == self.tipo_pago
+        assert payment.estado_pago == 'VIGENTE'
+        assert payment.fecha_anulacion is None
 
     # ------------------------- UPDATE --------------------------
     def test_update_modifica_campos(self):
@@ -114,12 +125,11 @@ class TestClientPaymentRepository:
         assert payment.tipo_pago == tipo_cheque
         assert payment.observaciones == 'Actualizado'
 
-    # ------------------------- DELETE --------------------------
-    def test_delete_elimina_de_db(self):
-        from pago_cliente.models import PagoCliente
+    def test_update_anula_el_pago(self):
         payment = self._make_payment()
-        payment_id = payment.id
 
-        self.repository.delete(payment)
+        self.repository.update(payment, {'estado_pago': 'ANULADO', 'fecha_anulacion': '2024-02-01'})
 
-        assert PagoCliente.objects.filter(id=payment_id).count() == 0
+        payment.refresh_from_db()
+        assert payment.estado_pago == 'ANULADO'
+        assert str(payment.fecha_anulacion) == '2024-02-01'
