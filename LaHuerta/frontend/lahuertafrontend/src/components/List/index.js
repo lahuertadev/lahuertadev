@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import DataGridDemo from '../Grid';
 import AlertDialog from '../DialogAlert';
+import ReasonField from '../ReasonField';
 import SpotlightButton from '../SpotlightButton';
 import CustomInput from '../Input';
 import AmountInput from '../AmountInput';
@@ -35,8 +36,10 @@ const TAB_TONE_CLASSES = {
  *   deleteLabel / deleteIcon — texto e ícono del botón de borrar de la grilla (default 'Eliminar' y el tacho).
  *   deleteConfirmLabel — texto del botón de confirmar del diálogo (ej. 'Eliminar pago'; default deleteLabel o 'Confirmar').
  *   deleteDialogTitle — título del diálogo al borrar un registro (default 'Confirmar eliminación').
- *   deleteRequest — (id) => Promise. Opcional: el pedido que hace la acción de borrar (por defecto,
+ *   deleteRequest — (id, reason) => Promise. Opcional: el pedido que hace la acción de borrar (por defecto,
  *                   DELETE a fetchUrl.baseUrl + id). Ej.: anular con POST a .../id/cancel/.
+ *   deleteReason  — { label?, placeholder? }. Opcional: el diálogo pide un motivo obligatorio (ej. por qué
+ *                   se anula un pago); Confirmar se habilita al escribirlo y llega a deleteRequest.
  *   tabs          — { param, options: [{ label, value, tone? }] }. Opcional: solapas debajo del título
  *                   que filtran el listado; la elegida va al backend como param=value, junto con los
  *                   filtros. La primera opción queda activa al entrar; una opción con value '' no manda
@@ -60,7 +63,7 @@ const TAB_TONE_CLASSES = {
  *                   que están elegidos (ej. después de cambiar el estado de un registro).
  */
 const GenericList = ({ data, onAdd, refreshKey }) => {
-  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, tabs, extraActions, deleteConfirmLabel } = data;
+  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, deleteReason, tabs, extraActions, deleteConfirmLabel } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +76,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
   const [filterValues, setFilterValues] = useState({});
   const [toast, setToast] = useState({ open: false, message: '' });
   const [activeTab, setActiveTab] = useState(tabs?.options[0]?.value);
+  const [reason, setReason] = useState('');
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -151,9 +155,12 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
     setOpenConfirmDialog(false);
     setSelectedIds([]);
     setIsMultipleDelete(false);
+    setReason('');
   };
 
-  const deleteItem = (id) => (deleteRequest ? deleteRequest(id) : axios.delete(`${fetchUrl.baseUrl}${id}/`));
+  const deleteItem = (id) => (
+    deleteRequest ? deleteRequest(id, reason.trim()) : axios.delete(`${fetchUrl.baseUrl}${id}/`)
+  );
 
   const handleDeleteConfirm = async () => {
     const deletedCount = itemToDelete ? 1 : selectedIds.length;
@@ -425,15 +432,26 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
         open={openConfirmDialog}
         title={isMultipleDelete ? 'Confirmar eliminación múltiple' : deleteDialogTitle}
         message={
-          isMultipleDelete
-            ? '¿Estás seguro que querés eliminar estos elementos?'
-            : (deleteMessage && rows.find((row) => row.id === itemToDelete)
-              ? deleteMessage(rows.find((row) => row.id === itemToDelete))
-              : '¿Estás seguro que querés eliminar este elemento?')
+          <>
+            {isMultipleDelete
+              ? '¿Estás seguro que querés eliminar estos elementos?'
+              : (deleteMessage && rows.find((row) => row.id === itemToDelete)
+                ? deleteMessage(rows.find((row) => row.id === itemToDelete))
+                : '¿Estás seguro que querés eliminar este elemento?')}
+            {deleteReason && (
+              <ReasonField
+                value={reason}
+                onChange={setReason}
+                label={deleteReason.label}
+                placeholder={deleteReason.placeholder}
+              />
+            )}
+          </>
         }
         onConfirm={handleDeleteConfirm}
         onCancel={handleCloseConfirmDialog}
         confirmLabel={deleteConfirmLabel || deleteLabel || 'Confirmar'}
+        confirmDisabled={Boolean(deleteReason) && !reason.trim()}
       />
     </div>
   );

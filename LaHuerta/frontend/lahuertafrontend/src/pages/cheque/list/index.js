@@ -62,6 +62,7 @@ const FILTERS_CONFIG = [
       { name: 'Acreditado',  value: 'ACREDITADO' },
       { name: 'Endosado',    value: 'ENDOSADO'   },
       { name: 'Rechazado',   value: 'RECHAZADO'  },
+      { name: 'Anulado',     value: 'ANULADO'    },
     ],
   },
   {

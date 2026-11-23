@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import BlockIcon from '@mui/icons-material/Block';
 import { clientPaymentUrl, paymentTypeUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/ClientPayment';
+import { CLIENT_PAYMENT_STATE_TABS, isCancelledClientPayment, rejectedChecksNotice } from '../../../constants/clientPayment';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
 import { useNavigate } from 'react-router-dom';
-import DeleteClientPaymentMessage from '../shared/DeleteClientPaymentMessage';
+import CancelClientPaymentMessage from '../shared/CancelClientPaymentMessage';
 
 const mapClientPaymentData = (data) => {
   return data.map((payment) => ({
@@ -16,15 +18,18 @@ const mapClientPaymentData = (data) => {
     amount: formatCurrency(payment.importe),
     paymentType: payment.tipo_pago.descripcion,
     observations: payment.observaciones || '-',
-    chequeRechazado: payment.cheque?.estado === 'RECHAZADO',
-    // Para explicar en el diálogo de eliminar qué pasa con la cuenta corriente y el cheque.
+    // Aviso del ícono rojo: el pago vigente tiene cheques rechazados.
+    rejectedChecksNotice: rejectedChecksNotice(payment),
+    // Pago anulado: queda como registro, sin editar ni volver a anular.
+    isCancelled: isCancelledClientPayment(payment),
+    // Para explicar en el diálogo de anular qué pasa con la cuenta corriente y los cheques.
     payment,
   }));
 };
 
 const buildData = (paymentTypeOptions) => ({
   title: 'Pagos de Clientes',
-  subtitle: 'Registrá los pagos de los clientes y su imputación a facturas.',
+  subtitle: 'Registrá los pagos de los clientes y los cheques con que pagan.',
   fetchUrl: {
     baseUrl: clientPaymentUrl,
     createUrl: '/client-payment/create',
@@ -42,12 +47,23 @@ const buildData = (paymentTypeOptions) => ({
     { label: 'Fecha hasta', name: 'date_to', type: 'date' },
   ],
   newLabelText: 'Nuevo pago',
-  deleteMessage: (row) => <DeleteClientPaymentMessage payment={row.payment} />,
-  deleteDialogTitle: 'Eliminar pago',
-  deleteConfirmLabel: 'Eliminar pago',
-  deleteSuccessMessage: (count) => (count > 1 ? `Se eliminaron ${count} pagos correctamente.` : 'El pago se eliminó correctamente.'),
-  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Cheques y Pagos de Compras).
+  multiSelect: false,
+  // Detalle, Editar y Anular en una sola columna "Acción" (como Cheques y Pagos de Compras).
   groupActions: true,
+  // Un pago no se elimina: se anula (borrado lógico), con un motivo, y queda como registro.
+  deleteLabel: 'Anular',
+  deleteIcon: BlockIcon,
+  deleteDialogTitle: 'Anular pago',
+  deleteMessage: (row) => <CancelClientPaymentMessage payment={row.payment} />,
+  deleteReason: { label: 'Motivo de la anulación', placeholder: 'Ej.: lo pagó otro cliente, se cargó dos veces…' },
+  deleteRequest: (id, reason) => axios.post(`${clientPaymentUrl}${id}/cancel/`, { motivo: reason }),
+  deleteSuccessMessage: () => 'El pago se anuló correctamente.',
+  // Solapas Vigentes / Anulados debajo del título, en lugar de un filtro de estado.
+  tabs: CLIENT_PAYMENT_STATE_TABS,
+  canEdit: (row) => !row.isCancelled,
+  canDelete: (row) => !row.isCancelled,
+  editDisabledReason: 'El pago está anulado: no se puede editar',
+  deleteDisabledReason: 'El pago ya está anulado',
 });
 
 const ClientPaymentList = () => {

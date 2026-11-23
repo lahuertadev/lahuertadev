@@ -31,6 +31,7 @@ const TONES = {
  *   tone                      — color del botón de confirmar: 'danger' (default, acciones destructivas) | 'warning' (confirmar con avisos)
  *   icon                      — reemplaza el ícono del tono
  *   confirmLabel, cancelLabel
+ *   confirmDisabled           — deshabilita Confirmar (ej. mientras falta el motivo de una anulación)
  */
 export default function AlertDialog({
   open,
@@ -42,6 +43,7 @@ export default function AlertDialog({
   icon,
   confirmLabel = 'Confirmar',
   cancelLabel = 'Cancelar',
+  confirmDisabled = false,
 }) {
   const toneConfig = TONES[tone] || TONES.danger;
 
@@ -82,6 +84,7 @@ export default function AlertDialog({
           <SpotlightButton
             variant={toneConfig.confirmVariant}
             onClick={onConfirm}
+            disabled={confirmDisabled}
             className="w-full sm:w-auto sm:min-w-[8rem] px-6 py-2.5 text-sm"
           >
             {confirmLabel}
