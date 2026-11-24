@@ -17,8 +17,8 @@ import Badge from '../../../components/Badge';
 import { useToast } from '../../../context/ToastContext';
 import { CHECK_STATE_CONFIG } from '../../../constants/grid/Check';
 import { BADGE_COLORS } from '../../../constants/badgeColors';
-import { isCancelledClientPayment, rejectedChecksNotice } from '../../../constants/clientPayment';
-import { CancelledBadge } from '../../pago_compra/shared/OnAccountBadge';
+import { excludedChecksNotice, isCancelledClientPayment, rejectedChecksNotice } from '../../../constants/clientPayment';
+import AlertIcon from '../../../components/AlertIcon';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import CreditCardIcon from '@mui/icons-material/CreditCardOutlined';
@@ -29,13 +29,14 @@ import CancelClientPaymentMessage from '../shared/CancelClientPaymentMessage';
 
 const labelCls = 'block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1.5';
 
-const SectionCard = ({ icon, title, children, cols = 3 }) => (
+// danger: la sección de la anulación, con el ícono y el borde en rojo.
+const SectionCard = ({ icon, title, children, cols = 3, danger = false }) => (
   <section className="space-y-3">
     <div className="flex items-center gap-2 px-1">
-      <span className="text-blue-lahuerta">{icon}</span>
+      <span className={danger ? 'text-red-500' : 'text-blue-lahuerta'}>{icon}</span>
       <h2 className="text-base font-semibold text-on-surface">{title}</h2>
     </div>
-    <div className={`bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle grid grid-cols-1 md:grid-cols-${cols} gap-6`}>
+    <div className={`bg-surface-card p-6 rounded-xl shadow-sm border ${danger ? 'border-red-500/40' : 'border-border-subtle'} grid grid-cols-1 md:grid-cols-${cols} gap-6`}>
       {children}
     </div>
   </section>
@@ -129,6 +130,7 @@ const ClientPaymentDetail = () => {
 
   const cancelled = isCancelledClientPayment(payment);
   const checksNotice = rejectedChecksNotice(payment);
+  const amountNotice = excludedChecksNotice(payment);
   const checks = payment.cheques || [];
 
   return (
@@ -142,17 +144,16 @@ const ClientPaymentDetail = () => {
         onBack={() => navigate('/client-payment')}
       />
 
+      {/* Anulación (solo si está anulado): lo primero que se ve de un pago anulado, con el estado, la fecha y el motivo. */}
       {cancelled && (
-        <div className="space-y-1 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-          <p className="flex flex-wrap items-center gap-2">
-            <CancelledBadge />
-            Pago anulado{payment.fecha_anulacion ? ` el ${formatDate(payment.fecha_anulacion)}` : ''}: queda como registro y no
-            cuenta para la cuenta corriente del cliente.
-          </p>
-          {payment.motivo_anulacion && (
-            <p><span className="font-semibold">Motivo:</span> {payment.motivo_anulacion}</p>
-          )}
-        </div>
+        <SectionCard icon={<BlockIcon sx={{ fontSize: 20 }} />} title="Anulación" danger>
+          <div className="flex flex-col gap-1">
+            <span className={labelCls}>Estado</span>
+            <StatusBadge tone="danger" label="Anulado" />
+          </div>
+          <Field label="Fecha de anulación" value={payment.fecha_anulacion && formatDate(payment.fecha_anulacion)} />
+          <Field label="Motivo" value={payment.motivo_anulacion} />
+        </SectionCard>
       )}
 
       {/* 1. Cliente */}
@@ -166,15 +167,21 @@ const ClientPaymentDetail = () => {
         <Field label="Fecha" value={formatDate(payment.fecha_pago)} />
         <div className="flex flex-col gap-1">
           <span className={labelCls}>Importe</span>
-          <span className={`text-sm font-semibold ${cancelled ? 'line-through text-on-surface-muted' : 'text-on-surface'}`}>
-            {formatCurrency(payment.importe)}
+          <span className="flex items-center gap-1.5">
+            <span className={`text-sm font-semibold ${cancelled ? 'line-through text-on-surface-muted' : 'text-on-surface'}`}>
+              {formatCurrency(payment.importe)}
+            </span>
+            {amountNotice && <AlertIcon title={amountNotice} />}
           </span>
         </div>
         <Field label="Tipo de pago" value={payment.tipo_pago.descripcion} />
-        <div className="flex flex-col gap-1">
-          <span className={labelCls}>Estado</span>
-          <StatusBadge tone={cancelled ? 'danger' : 'success'} label={cancelled ? 'Anulado' : 'Vigente'} />
-        </div>
+        {/* Anulado ya se ve en la sección Anulación. */}
+        {!cancelled && (
+          <div className="flex flex-col gap-1">
+            <span className={labelCls}>Estado</span>
+            <StatusBadge tone="success" label="Vigente" />
+          </div>
+        )}
         {payment.observaciones && (
           <div className="md:col-span-3 flex flex-col gap-1">
             <span className={labelCls}>Observaciones</span>
