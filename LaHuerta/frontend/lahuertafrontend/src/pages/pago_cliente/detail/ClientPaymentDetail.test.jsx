@@ -66,13 +66,32 @@ test('un pago con un cheque rechazado avisa que su importe se descontó', async 
   expect(screen.getByText('Rechazado')).toHaveStyle({ color: BADGE_COLORS.red.color });
 });
 
-test('un pago anulado muestra el aviso con la fecha y el motivo, sin Editar', async () => {
+test('un pago anulado muestra la sección Anulación con el estado, la fecha y el motivo, sin Editar', async () => {
   renderDetail(CANCELLED);
 
-  expect(await screen.findByText(new RegExp(`Pago anulado el ${formatDate('2026-11-20')}`))).toBeInTheDocument();
-  expect(screen.getByText('Lo pagó Kona, no Clöe')).toBeInTheDocument();
+  expect(await screen.findByText('Anulación')).toBeInTheDocument();
   expect(screen.getByText('Anulado')).toBeInTheDocument();
+  expect(screen.getByText(formatDate('2026-11-20'))).toBeInTheDocument();
+  expect(screen.getByText('Lo pagó Kona, no Clöe')).toBeInTheDocument();
+  expect(screen.queryByText('Vigente')).toBeNull();
   expect(screen.queryByRole('button', { name: /Editar pago/ })).toBeNull();
+});
+
+test('si el importe no incluye un cheque rechazado, lo avisa con el "!" del importe', async () => {
+  renderDetail({
+    ...CANCELLED, importe: '1000000.00', cheques: [check(31, 123, 'RECHAZADO'), check(32, 456, 'ANULADO')],
+  });
+
+  expect(await screen.findByRole('img', {
+    name: /No incluye el cheque rechazado N° 123 \(\$1\.000\.000,00\).*Importe original: \$2\.000\.000,00\./,
+  })).toBeInTheDocument();
+});
+
+test('un pago anulado porque se rechazaron todos sus cheques muestra el importe original, sin "!"', async () => {
+  renderDetail({ ...CANCELLED, cheques: [check(31, 123, 'RECHAZADO'), check(32, 456, 'RECHAZADO')] });
+
+  await screen.findByText('Anulación');
+  expect(screen.queryByRole('img', { name: /No incluye/ })).toBeNull();
 });
 
 test('tiene Volver arriba (desktop) y abajo (mobile), que vuelven al listado', async () => {
@@ -108,5 +127,5 @@ test('en mobile, anular pide el motivo y muestra el pago anulado', async () => {
 
   expect(await screen.findByText('El pago se anuló correctamente.')).toBeInTheDocument();
   expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/8\/cancel\/$/), { motivo: 'Lo pagó Kona, no Clöe' });
-  expect(screen.getByText(/Pago anulado el/)).toBeInTheDocument();
+  expect(screen.getByText('Anulación')).toBeInTheDocument();
 });
