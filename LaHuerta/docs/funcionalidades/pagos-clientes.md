@@ -53,7 +53,7 @@ Al rechazar un cheque de un pago de cliente (desde Cheques):
 ## Pantallas involucradas
 - `/client-payment` — Listado, con solapas **Vigentes** (al entrar) y **Anulados**. Un pago anulado muestra el importe tachado; uno vigente con cheques rechazados lleva el ícono de alerta en el tipo de pago.
 - `/client-payment/create`, `/client-payment/edit/:id` — Formulario.
-- `/client-payment/detail/:id` — Detalle, con el estado (Vigente / Anulado), los cheques y, si está anulado, el aviso con la fecha y el motivo.
+- `/client-payment/detail/:id` — Detalle, con el estado, los cheques y, si está anulado, la sección **Anulación** al principio (estado, fecha y motivo). Si el importe no incluye cheques rechazados, lleva el "!" con cuáles son y el importe original al pasar el mouse.
 
 ## Endpoints involucrados
 - `GET /api/client-payment/` — Listado. Filtros: `client_id`, `business_name`, `amount_min`, `amount_max`, `date_from`, `date_to`, `payment_type_id` y `state` (`VIGENTE` | `ANULADO`).
