@@ -7,7 +7,6 @@ import CustomInput from '../Input';
 import AmountInput from '../AmountInput';
 import BasicDatePicker from '../DatePicker';
 import BasicSelect from '../Select';
-import Toast from '../Toast';
 import { useToast } from '../../context/ToastContext';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -77,7 +76,6 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({});
-  const [toast, setToast] = useState({ open: false, message: '' });
   const [activeTab, setActiveTab] = useState(tabs?.value ?? tabs?.options[0]?.value);
   const [reason, setReason] = useState('');
   const { showToast } = useToast();
@@ -196,7 +194,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
         err?.response?.data?.detail ||
         err?.message ||
         'Error inesperado al eliminar';
-      setToast({ open: true, message: msg });
+      showToast(msg, { variant: 'error' });
     } finally {
       fetchItems();
       handleCloseConfirmDialog();
@@ -220,7 +218,6 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
-      <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} duration={8000} />
 
       {/* Breadcrumbs */}
       {resolvedBreadcrumbs && (

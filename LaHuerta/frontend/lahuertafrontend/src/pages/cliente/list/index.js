@@ -51,6 +51,8 @@ const data = {
     { label: 'Dirección', name: 'address', type: 'text' },
   ],
   newLabelText: 'Nuevo cliente',
+  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Pagos de Clientes).
+  groupActions: true,
 };
 
 const ClientsList = () => {
