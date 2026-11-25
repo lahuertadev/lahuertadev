@@ -39,39 +39,6 @@
     justify-content: space-between;
   }
 
-  .btn-back {
-    background: #fff;
-    border: 1px solid #d1d5db;
-    color: #374151;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
-  }
-
-  .btn-back:hover {
-    background: #f3f4f6;
-  }
-
-  .btn-print {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #4a7bc4;
-    color: #fff;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-
-  .btn-print:hover {
-    opacity: 0.9;
-  }
-
   /* Mat blanco alrededor de la hoja, para que se note que el remito
      está "contenido" ahí en vez de tocar directamente el fondo oscuro
      de la app (mismo efecto que ya da el padding de la factura). */

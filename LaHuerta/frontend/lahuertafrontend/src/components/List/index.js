@@ -44,6 +44,9 @@ const TAB_TONE_CLASSES = {
  *                   que filtran el listado; la elegida va al backend como param=value, junto con los
  *                   filtros. La primera opción queda activa al entrar; una opción con value '' no manda
  *                   el parámetro (ej. "Todos"). tone: 'accent' (default) | 'danger' | 'attention'.
+ *                   ariaLabel (default "Estado de {title}") y dataTour (para el tutorial) son opcionales.
+ *                   Sin param, la solapa no va al backend: la maneja la pantalla con value (la activa) y
+ *                   onChange(value), y cambia los datos del listado (ej. Facturas / Remitos).
  *   deleteSuccessMessage — (count) => string. Opcional: si está, muestra un toast de éxito
  *                   al eliminar (count = cantidad de registros eliminados).
  *   fetchUrl      — { baseUrl, createUrl, editUrl, detailUrl? }
@@ -75,7 +78,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({});
   const [toast, setToast] = useState({ open: false, message: '' });
-  const [activeTab, setActiveTab] = useState(tabs?.options[0]?.value);
+  const [activeTab, setActiveTab] = useState(tabs?.value ?? tabs?.options[0]?.value);
   const [reason, setReason] = useState('');
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -99,7 +102,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
           if (value) queryParams.append(filter.name, value);
         });
       }
-      if (tabs && tab) queryParams.append(tabs.param, tab);
+      if (tabs?.param && tab) queryParams.append(tabs.param, tab);
       const query = queryParams.toString();
       const urlWithParams = query ? `${fetchUrl.baseUrl}?${query}` : fetchUrl.baseUrl;
       const response = await axios.get(urlWithParams);
@@ -140,6 +143,11 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
 
   const selectTab = (value) => {
     if (value === activeTab) return;
+    // Solapas que maneja la pantalla (ej. Facturas / Remitos): ella cambia los datos del listado.
+    if (tabs.onChange) {
+      tabs.onChange(value);
+      return;
+    }
     setActiveTab(value);
     setSelectedIds([]);
     fetchItems(filterValues, value);
@@ -261,8 +269,8 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
                 className="px-4 py-2 text-sm"
                 data-tour="list-add"
               >
-                {newLabelText || ''}
                 <AddCircleOutlineIcon fontSize="small" />
+                {newLabelText || ''}
               </SpotlightButton>
             )}
           </div>
@@ -274,7 +282,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
         <div className={`px-6 border-b border-border-subtle bg-surface-low/30 ${tabs ? 'pt-4' : 'py-4'}`}>
           <h3 className="font-semibold text-on-surface">Listado de {title}</h3>
           {tabs && (
-            <div role="tablist" aria-label={`Estado de ${title}`} className="mt-2.5 flex flex-wrap gap-1">
+            <div role="tablist" aria-label={tabs.ariaLabel || `Estado de ${title}`} data-tour={tabs.dataTour} className="mt-2.5 flex flex-wrap gap-1">
               {tabs.options.map((option) => {
                 const active = option.value === activeTab;
                 return (
