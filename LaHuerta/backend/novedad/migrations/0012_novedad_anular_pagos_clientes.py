@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from django.db import migrations
 
-PUBLISHED_AT = date(2026, 11, 23)
+PUBLISHED_AT = date(2026, 11, 25)
 TITLE = 'Los pagos de clientes se anulan y pueden tener varios cheques'
 TUTORIAL_KEY = 'client-payments'
 
