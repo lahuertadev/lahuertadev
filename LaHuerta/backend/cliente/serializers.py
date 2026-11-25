@@ -8,6 +8,7 @@ from localidad.serializers import DistrictResponseSerializer
 from tipo_condicion_iva.serializers import ConditionIvaTypeSerializer
 from lista_precios.serializers import PricesListSerializer
 from contacto.serializers import ContactSerializer, validate_contacts
+from .constants import ClientState
 
 
 class DeliveryAddressValidationMixin:
@@ -174,6 +175,7 @@ class ClientQueryParamsSerializer(serializers.Serializer):
     })
     searchQuery = serializers.CharField(required=False, allow_blank=True)
     address = serializers.CharField(required=False, allow_blank=True)
+    state = serializers.ChoiceField(choices=ClientState.CHOICES, required=False)
 
 class ClientResponseSerializer(serializers.ModelSerializer):
     '''

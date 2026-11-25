@@ -52,8 +52,11 @@ class FakeClientRepo(IClientRepository):
         self._items[client.id] = client
         return client
 
-    def get_all_clients(self, cuit=None, searchQuery=None, address=None):
-        return Cliente.objects.all()
+    def get_all_clients(self, cuit=None, searchQuery=None, address=None, state=None):
+        queryset = Cliente.objects.all()
+        if state:
+            queryset = queryset.filter(estado=state == 'ACTIVO')
+        return queryset
 
     def get_client_by_id(self, id):
         return Cliente.objects.filter(id=id).first()
@@ -135,6 +138,22 @@ def test_list_filter_by_search_query(factory, db_setup):
     response = vs.list(Request(request, parsers=[JSONParser()]))
     assert response.status_code == 200
     assert len(response.data) == 1
+
+
+@pytest.mark.django_db
+def test_list_filter_by_state(factory, db_setup):
+    vs, _ = _make_viewset()
+    active = vs.list(Request(factory.get('/client/', {'state': 'ACTIVO'}), parsers=[JSONParser()]))
+    inactive = vs.list(Request(factory.get('/client/', {'state': 'INACTIVO'}), parsers=[JSONParser()]))
+    assert len(active.data) == 1
+    assert inactive.data == []
+
+
+@pytest.mark.django_db
+def test_list_invalid_state_returns_400(factory, db_setup):
+    vs, _ = _make_viewset()
+    response = vs.list(Request(factory.get('/client/', {'state': 'OTRO'}), parsers=[JSONParser()]))
+    assert response.status_code == 400
 
 
 # ── RETRIEVE ───────────────────────────────────────────────────────────────────

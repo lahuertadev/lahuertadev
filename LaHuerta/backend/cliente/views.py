@@ -38,7 +38,7 @@ class ClientViewSet(ViewSet):
 
     def list(self, request):
         '''
-        Obtiene todos los clientes. Acepta filtros por cuit, searchQuery y address.
+        Obtiene todos los clientes. Acepta filtros por cuit, searchQuery, address y state (ACTIVO / INACTIVO).
         '''
         serializer = ClientQueryParamsSerializer(data=request.query_params)
         if not serializer.is_valid():
@@ -49,6 +49,7 @@ class ClientViewSet(ViewSet):
                 cuit=serializer.validated_data.get('cuit'),
                 searchQuery=serializer.validated_data.get('searchQuery'),
                 address=serializer.validated_data.get('address'),
+                state=serializer.validated_data.get('state'),
             )
             return Response(ClientResponseSerializer(clients, many=True).data, status=status.HTTP_200_OK)
 

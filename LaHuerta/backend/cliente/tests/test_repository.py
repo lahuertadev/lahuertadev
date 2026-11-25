@@ -56,6 +56,15 @@ class TestClientRepository:
         result = self.repository.get_all_clients(searchQuery='Rincón')
         assert result.count() == 1
 
+    def test_get_all_filter_by_state(self):
+        active = self._make_client(cuit='20111111111', razon_social='Cliente A')
+        inactive = self._make_client(cuit='20222222222', razon_social='Cliente B')
+        inactive.estado = False
+        inactive.save()
+        assert list(self.repository.get_all_clients(state='ACTIVO')) == [active]
+        assert list(self.repository.get_all_clients(state='INACTIVO')) == [inactive]
+        assert self.repository.get_all_clients(state=None).count() == 2
+
     # ── GET BY ID ────────────────────────────────────────────────────────────────
 
     def test_get_client_by_id_ok(self):
