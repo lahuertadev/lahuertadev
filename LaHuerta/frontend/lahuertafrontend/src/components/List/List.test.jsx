@@ -114,3 +114,38 @@ describe('motivo al borrar (deleteReason)', () => {
     expect(screen.queryByLabelText(/Motivo/)).toBeNull();
   });
 });
+
+describe('mensajes al eliminar', () => {
+  const deleteRow = async (data) => {
+    axios.get.mockResolvedValue({ data: [{ id: 7, name: 'Ítem 7' }] });
+    renderList(buildData({ mapData: (items) => items, groupActions: true, deleteLabel: 'Eliminar', ...data }));
+    await screen.findByText('Ítem 7');
+    fireEvent.click(document.querySelector('[data-id="7"] [data-tour="grid-delete"]'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Eliminar' }));
+  };
+
+  test('al eliminar muestra el mensaje de éxito', async () => {
+    axios.delete.mockResolvedValue({});
+    await deleteRow({ deleteSuccessMessage: () => 'El ítem se eliminó correctamente.' });
+
+    expect(await screen.findByText('El ítem se eliminó correctamente.')).toBeInTheDocument();
+  });
+
+  test('si el backend no deja eliminar, muestra su mensaje en el toast', async () => {
+    axios.delete.mockRejectedValue({ response: { data: { detail: 'El cliente tiene facturas: no se puede eliminar.' } } });
+    await deleteRow({});
+
+    expect(await screen.findByText('El cliente tiene facturas: no se puede eliminar.')).toBeInTheDocument();
+  });
+});
+
+test('las solapas manejadas por la pantalla no van al backend y avisan el cambio', async () => {
+  const onChange = jest.fn();
+  renderList(buildData({ tabs: { options: [{ label: 'Facturas', value: 0 }, { label: 'Remitos', value: 1 }], value: 0, onChange } }));
+  await waitFor(() => expect(axios.get).toHaveBeenCalledWith(BASE_URL));
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Remitos' }));
+
+  expect(onChange).toHaveBeenCalledWith(1);
+  expect(axios.get).toHaveBeenCalledTimes(1);
+});
