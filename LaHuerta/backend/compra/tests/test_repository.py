@@ -48,6 +48,28 @@ class TestBuyRepositoryPayments:
         buy.refresh_from_db()
         assert BuyService.calculate_outstanding_balance(buy) == Decimal('500.00')
 
+    def test_filtro_por_pagar_trae_pendientes_y_parciales_y_abonadas_el_resto(self):
+        pending = make_purchase(importe=Decimal('1000.00'), proveedor=self.supplier)
+        partial = make_purchase(importe=Decimal('1000.00'), proveedor=self.supplier)
+        make_purchase_payment(compra=partial, importe_abonado=Decimal('400.00'))
+        paid = make_purchase(importe=Decimal('1000.00'), proveedor=self.supplier)
+        make_purchase_payment(compra=paid, importe_abonado=Decimal('1000.00'))
+        paid_with_deposit = make_purchase(importe=Decimal('1000.00'), senia=Decimal('200.00'), proveedor=self.supplier)
+        make_purchase_payment(compra=paid_with_deposit, importe_abonado=Decimal('800.00'))
+
+        unpaid_ids = {buy.id for buy in self.repo.get_all(payment_status='por_pagar')}
+        paid_ids = {buy.id for buy in self.repo.get_all(payment_status='abonadas')}
+
+        assert unpaid_ids == {pending.id, partial.id}
+        assert paid_ids == {paid.id, paid_with_deposit.id}
+        assert self.repo.get_all().count() == 4
+
+    def test_filtro_por_pagar_no_cuenta_los_pagos_anulados(self):
+        buy = make_purchase(importe=Decimal('1000.00'), proveedor=self.supplier)
+        make_purchase_payment(compra=buy, importe_abonado=Decimal('1000.00'), estado_pago='ANULADO')
+
+        assert [b.id for b in self.repo.get_all(payment_status='por_pagar')] == [buy.id]
+
     def test_un_pago_anulado_deja_de_contar_para_la_compra(self):
         buy = make_purchase(importe=Decimal('1000.00'), proveedor=self.supplier)
         make_purchase_payment(compra=buy, importe_abonado=Decimal('300.00'))

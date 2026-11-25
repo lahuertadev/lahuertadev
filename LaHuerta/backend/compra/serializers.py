@@ -6,6 +6,7 @@ from proveedor.serializers import SupplierSerializer
 from compra_producto.serializers import BuyItemResponseSerializer, BuyItemCreateSerializer
 from cheque_propio.models import OwnCheck
 from estado_cheque.constants import RECHAZADO
+from .constants import LIST_STATUS_CHOICES
 
 
 def validate_unique_products(items):
@@ -149,3 +150,4 @@ class BuyQueryParamsSerializer(serializers.Serializer):
     fecha_hasta  = serializers.DateField(required=False)
     importe_min  = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     importe_max  = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    payment_status = serializers.ChoiceField(choices=LIST_STATUS_CHOICES, required=False)

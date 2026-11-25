@@ -339,6 +339,26 @@ def test_list_filtra_por_proveedor_puesto_o_nombre(factory):
 
 
 @pytest.mark.django_db
+def test_list_filtra_por_estado_de_pago(factory):
+    unpaid = make_purchase(importe=Decimal('1000.00'))
+    paid = make_purchase(importe=Decimal('1000.00'))
+    make_purchase_payment(compra=paid, importe_abonado=Decimal('1000.00'))
+
+    unpaid_response = BuyViewSet().list(Request(factory.get('/buy/', {'payment_status': 'por_pagar'}), parsers=[JSONParser()]))
+    paid_response = BuyViewSet().list(Request(factory.get('/buy/', {'payment_status': 'abonadas'}), parsers=[JSONParser()]))
+
+    assert [item['id'] for item in unpaid_response.data] == [unpaid.id]
+    assert [item['id'] for item in paid_response.data] == [paid.id]
+
+
+@pytest.mark.django_db
+def test_list_estado_de_pago_invalido_se_rechaza(factory):
+    from rest_framework.exceptions import ValidationError
+    with pytest.raises(ValidationError):
+        BuyViewSet().list(Request(factory.get('/buy/', {'payment_status': 'otro'}), parsers=[JSONParser()]))
+
+
+@pytest.mark.django_db
 def test_destroy_compra_con_pago_devuelve_400_y_no_la_elimina(factory):
     buy = make_purchase()
     payment = make_purchase_payment(compra=buy, importe_abonado=Decimal('100.00'))

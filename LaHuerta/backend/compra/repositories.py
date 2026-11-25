@@ -1,9 +1,10 @@
-from django.db.models import Q, Sum, DecimalField, Value
+from django.db.models import F, Q, Sum, DecimalField, Value
 from django.db.models.functions import Coalesce
 from .models import Compra
 from pago_compra.models import PagoCompra
 from .interfaces import IBuyRepository
 from pago_compra.constants import PaymentState
+from .constants import LIST_STATUS_PAID, LIST_STATUS_UNPAID
 
 
 def _annotate_payments(qs):
@@ -22,7 +23,7 @@ def _annotate_payments(qs):
 class BuyRepository(IBuyRepository):
 
     def get_all(self, proveedor_id=None, fecha_desde=None, fecha_hasta=None,
-                importe_min=None, importe_max=None, supplier=None):
+                importe_min=None, importe_max=None, supplier=None, payment_status=None):
         qs = _annotate_payments(Compra.objects.select_related('proveedor').prefetch_related('proveedor__contactos'))
 
         if proveedor_id:
@@ -37,6 +38,11 @@ class BuyRepository(IBuyRepository):
             qs = qs.filter(importe__gte=importe_min)
         if importe_max is not None:
             qs = qs.filter(importe__lte=importe_max)
+        # Lo pagado es la seña más lo que le imputan los pagos vigentes, igual que en BuyService.calculate_payment_status.
+        if payment_status == LIST_STATUS_UNPAID:
+            qs = qs.filter(importe__gt=F('total_payments') + F('senia'))
+        elif payment_status == LIST_STATUS_PAID:
+            qs = qs.filter(importe__lte=F('total_payments') + F('senia'))
 
         return qs.order_by('-fecha', '-id')
 
