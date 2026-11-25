@@ -41,6 +41,17 @@ const data = {
     { label: 'Fecha hasta',  name: 'fecha_hasta',  type: 'date'   },
   ],
   newLabelText: 'Nueva compra',
+  // Solapas debajo del título (parámetro payment_status del backend). Todas al entrar, como en Cheques;
+  // Por pagar junta las pendientes y las parciales (las que tienen saldo).
+  tabs: {
+    param: 'payment_status',
+    ariaLabel: 'Estado de pago de las compras',
+    options: [
+      { label: 'Todas', value: '' },
+      { label: 'Por pagar', value: 'por_pagar', tone: 'attention' },
+      { label: 'Abonadas', value: 'abonadas' },
+    ],
+  },
   deleteDialogTitle: 'Eliminar compra',
   deleteMessage: (row) => <DeleteBuyMessage buy={row.buy} />,
   deleteConfirmLabel: 'Eliminar compra',

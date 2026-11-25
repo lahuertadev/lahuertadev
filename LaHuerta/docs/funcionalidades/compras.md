@@ -33,7 +33,7 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 - El precio unitario es opcional.
 
 ## Pantallas involucradas
-- `/buy` — Listado de compras
+- `/buy` — Listado de compras, con solapas **Todas** (al entrar), **Por pagar** (pendientes y parciales: las que tienen saldo) y **Abonadas**.
 - `/buy/create` — Elección del tipo de carga (simple o masiva)
 - `/buy/create/simple` — Formulario de nueva compra (un proveedor)
 - `/buy/create/bulk` — Carga masiva de compras
@@ -41,7 +41,7 @@ Registrar las compras que La Huerta realiza a sus proveedores, incluyendo los pr
 - `/buy/detail/:id` — Detalle de compra: datos, importes, estado de pago, productos y **pagos** (cada pago con su fecha, tipo y lo que le aplicó a esta compra; si el pago cubre varias compras, también su importe total). Tocar un pago abre su detalle.
 
 ## Endpoints involucrados
-- `GET /buy/` — Listado con filtros opcionales (`supplier`: puesto exacto o parte del nombre; `proveedor_id`, `fecha_desde`, `fecha_hasta`, `importe_min`, `importe_max`)
+- `GET /buy/` — Listado con filtros opcionales (`supplier`: puesto exacto o parte del nombre; `proveedor_id`, `fecha_desde`, `fecha_hasta`, `importe_min`, `importe_max`; `payment_status`: `por_pagar` o `abonadas`, comparando el importe con la seña más lo aplicado por los pagos vigentes)
 - `POST /buy/` — Crear compra
 - `POST /buy/bulk/` — Crear varias compras para una misma fecha (carga masiva)
 - `GET /buy/:id/` — Detalle de compra, con `payments` (`id`, `fecha_pago`, `tipo_pago`, `importe_abonado`, `importe_aplicado`). El listado no trae los pagos.

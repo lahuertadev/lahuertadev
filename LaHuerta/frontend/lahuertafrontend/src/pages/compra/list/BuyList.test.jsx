@@ -55,3 +55,17 @@ test('eliminar desde el listado muestra el mensaje de la compra', async () => {
   expect(within(dialog).getByText(/La deuda con el proveedor baja \$\s?300\.000/)).toBeInTheDocument();
   expect(within(dialog).getByRole('button', { name: 'Eliminar compra' })).toBeInTheDocument();
 });
+
+test('entra en Todas (sin filtro) y las solapas Por pagar y Abonadas filtran por estado de pago', async () => {
+  render(<ToastProvider><MemoryRouter><BuyList /></MemoryRouter></ToastProvider>);
+  await screen.findByText('Listado de Compras');
+
+  expect(screen.getByRole('tab', { name: 'Todas' })).toHaveAttribute('aria-selected', 'true');
+  expect(axios.get).toHaveBeenLastCalledWith(buyUrl);
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Por pagar' }));
+  await waitFor(() => expect(axios.get).toHaveBeenLastCalledWith(`${buyUrl}?payment_status=por_pagar`));
+
+  fireEvent.click(screen.getByRole('tab', { name: 'Abonadas' }));
+  await waitFor(() => expect(axios.get).toHaveBeenLastCalledWith(`${buyUrl}?payment_status=abonadas`));
+});
