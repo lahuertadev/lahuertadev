@@ -63,6 +63,29 @@ test('depositar llama al endpoint del cheque', async () => {
   await waitFor(() => expect(axios.post).toHaveBeenCalledWith(`${checkUrl}1/deposit/`));
 });
 
+test.each([
+  [1, 'Depositar', 'El cheque se depositó correctamente.'],
+  [2, 'Acreditar', 'El cheque se acreditó correctamente.'],
+  [2, 'Rechazar', 'Se registró el rechazo del cheque.'],
+])('%#: cada acción confirma con un mensaje (%s)', async (id, action, message) => {
+  renderList();
+  await screen.findByText('1001');
+
+  fireEvent.click(button(id, action));
+
+  expect(await screen.findByText(message)).toBeInTheDocument();
+});
+
+test('si la acción falla muestra el error del backend', async () => {
+  axios.post.mockRejectedValue({ response: { data: { detail: 'El cheque ya fue rechazado.' } } });
+  renderList();
+  await screen.findByText('1001');
+
+  fireEvent.click(button(2, 'Rechazar'));
+
+  expect(await screen.findByText('El cheque ya fue rechazado.')).toBeInTheDocument();
+});
+
 describe('Depositar titila cuando ya llegó la fecha de depósito', () => {
   const withDeposit = (id, state, date) => ({ ...check(id, state), fecha_deposito: date });
 
