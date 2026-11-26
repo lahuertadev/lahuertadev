@@ -72,17 +72,16 @@ const TileDetails = ({ fields, values }) => {
   );
 };
 
-// Tarjeta en edición: un campo por cada uno del catálogo, sus errores y Cancelar / Guardar.
+// Tarjeta en edición: un campo por cada uno del catálogo, sus errores de carga y Cancelar / Guardar.
+// Los errores del backend (duplicados) van en un toast, como los de eliminar; la tarjeta queda abierta.
 // Enter guarda y Escape cancela.
 const EditTile = ({ fields, initialValues, label, onSave, onCancel, saving }) => {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
-  const [formError, setFormError] = useState('');
 
   const setValue = (name, value) => {
     setValues((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: '' }));
-    setFormError('');
   };
 
   const validate = (trimmed) => {
@@ -100,8 +99,7 @@ const EditTile = ({ fields, initialValues, label, onSave, onCancel, saving }) =>
     const trimmed = Object.fromEntries(fields.map((field) => [field.name, String(values[field.name] ?? '').trim()]));
     const found = validate(trimmed);
     if (Object.keys(found).length > 0) return setErrors(found);
-    const backendError = await onSave(trimmed);
-    if (backendError) setFormError(backendError);
+    await onSave(trimmed);
   };
 
   return (
@@ -139,7 +137,6 @@ const EditTile = ({ fields, initialValues, label, onSave, onCancel, saving }) =>
           {errors[field.name] && <p className="mt-1 text-xs text-red-500">{errors[field.name]}</p>}
         </div>
       ))}
-      {formError && <p className="text-xs text-red-500">{formError}</p>}
       <div className="mt-auto flex justify-end gap-1">
         <IconButton size="small" onClick={onCancel} aria-label="Cancelar" sx={{ color: 'var(--color-on-surface-muted)' }}>
           <CloseIcon fontSize="small" />
@@ -168,8 +165,10 @@ const EditTile = ({ fields, initialValues, label, onSave, onCancel, saving }) =>
  *                   Cada uno: { name, label, placeholder?, maxLength?, requiredMessage?,
  *                   type?: 'text' | 'select', options?: [{ value, label, color }] }.
  *                   Todos son obligatorios. Un select se ve en la tarjeta como Badge del color de su opción.
+ *   deleteEffects — qué pasa al eliminar un registro (lista de textos, recuadro rojo del diálogo)
+ *   deleteNote    — opcional: cuándo no se puede eliminar (ej. si tiene productos)
  */
-const Catalog = ({ url, title, itemLabel, newLabel, subtitle, breadcrumbKey, fields }) => {
+const Catalog = ({ url, title, itemLabel, newLabel, subtitle, breadcrumbKey, fields, deleteEffects = [], deleteNote }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
@@ -212,7 +211,7 @@ const Catalog = ({ url, title, itemLabel, newLabel, subtitle, breadcrumbKey, fie
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }, [rows, query]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Devuelve el error del backend para mostrarlo en la tarjeta, o null si se guardó.
+  // Si el backend rechaza (ej. un duplicado), el error va en un toast y la tarjeta queda abierta para corregir.
   const save = async (values, id = null) => {
     const name = values[titleField.name];
     setSaving(true);
@@ -227,10 +226,9 @@ const Catalog = ({ url, title, itemLabel, newLabel, subtitle, breadcrumbKey, fie
         setAdding(false);
       }
       fetchItems();
-      return null;
     } catch (err) {
       console.error('Error guardando:', err);
-      return extractErrorMessage(err, 'No se pudo guardar. Revisá que no haya otro registro con esa descripción.');
+      showToast(extractErrorMessage(err, `No se pudo guardar "${name}".`), { variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -369,8 +367,14 @@ const Catalog = ({ url, title, itemLabel, newLabel, subtitle, breadcrumbKey, fie
       <AlertDialog
         open={Boolean(itemToDelete)}
         title={`Eliminar ${itemLabel}`}
-        message={itemToDelete && <DeleteMessage summary={<>Se elimina <b>{itemToDelete.name}</b>. No se puede deshacer.</>} />}
-        confirmLabel="Eliminar"
+        message={itemToDelete && (
+          <DeleteMessage
+            summary={<>Se elimina <b>{itemToDelete.name}</b>. No se puede deshacer.</>}
+            effects={deleteEffects}
+            note={deleteNote}
+          />
+        )}
+        confirmLabel={`Eliminar ${itemLabel}`}
         onConfirm={confirmDelete}
         onCancel={() => setItemToDelete(null)}
       />
