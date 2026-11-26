@@ -2,7 +2,7 @@
  * Mapa de rutas → breadcrumbs.
  * Cada entrada define el trail completo para esa sección.
  * Se usa en GenericList (auto-detección por URL) y puede importarse
- * en páginas standalone como ConditionIvaTypeList.
+ * en páginas standalone como los catálogos (components/Catalog).
  *
  * Formato de cada item: { label: string, path?: string }
  * El último item no lleva `path` (es la página actual).
@@ -29,6 +29,7 @@ export const breadcrumbsMap = {
   '/condition-iva-type': [HOME, CATALOGOS, { label: 'Condición de IVA' }],
   '/category':         [HOME, CATALOGOS, { label: 'Categorías' }],
   '/bank':             [HOME, CATALOGOS, { label: 'Bancos' }],
+  '/unit-type':        [HOME, CATALOGOS, { label: 'Tipos de unidad' }],
   '/check':            [HOME, { label: 'Cheques' }],
   '/own-check':        [HOME, PROVEEDORES, { label: 'Cheques emitidos' }],
   '/user':             [HOME, { label: 'Usuarios' }],

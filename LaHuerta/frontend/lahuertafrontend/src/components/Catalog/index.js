@@ -12,12 +12,25 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import AlertDialog from '../DialogAlert';
 import DeleteMessage from '../DeleteMessage';
 import LockedIcon from '../LockedIcon';
+import Badge from '../Badge';
 import { useToast } from '../../context/ToastContext';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
 import { extractErrorMessage } from '../../utils/errors';
 import { normalizeText } from '../../utils/text';
 
 const SYSTEM_RECORD_REASON = 'Registro del sistema: no se puede editar ni eliminar.';
+
+/**
+ * Campo "Descripción", el primero de todo catálogo (es el título de la tarjeta).
+ *   descriptionField({ placeholder: 'Ej: Mercado Central', maxLength: 50 })
+ */
+export const descriptionField = ({ placeholder = '', maxLength = 100 } = {}) => ({
+  name: 'descripcion',
+  label: 'Descripción',
+  placeholder,
+  maxLength,
+  requiredMessage: 'Escribí la descripción.',
+});
 
 const fieldCls = (hasError) =>
   `w-full h-10 rounded-lg border bg-surface-card px-3 text-sm text-on-surface placeholder:text-on-surface-muted/70 focus:outline-none focus:ring-2 ${
@@ -26,6 +39,11 @@ const fieldCls = (hasError) =>
 
 const tileCls = 'flex min-h-[7.5rem] flex-col gap-3 rounded-xl border p-4';
 
+const emptyValues = (fields) =>
+  Object.fromEntries(fields.map((field) => [field.name, field.type === 'select' ? field.options[0].value : '']));
+
+const optionOf = (field, value) => field.options.find((option) => option.value === value);
+
 // Inicial del registro, en un cuadrado con el color de acento (como las tarjetas del Inicio).
 const Initial = ({ text }) => (
   <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-sm font-bold text-accent">
@@ -33,39 +51,95 @@ const Initial = ({ text }) => (
   </span>
 );
 
-// Tarjeta en edición: el campo, el error y Cancelar / Guardar. Enter guarda y Escape cancela.
-const EditTile = ({ initialValue, label, placeholder, maxLength, onSave, onCancel, saving }) => {
-  const [value, setValue] = useState(initialValue);
-  const [error, setError] = useState('');
+// Datos de la tarjeta debajo del título: los textos en gris y los select como etiqueta de su color.
+const TileDetails = ({ fields, values }) => {
+  const details = fields.filter((field) => values[field.name]);
+  if (details.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 pl-12">
+      {details.map((field) => {
+        if (field.type === 'select') {
+          const option = optionOf(field, values[field.name]);
+          return <Badge key={field.name} color={option?.color} label={option?.label || values[field.name]} />;
+        }
+        return (
+          <span key={field.name} className="text-xs text-on-surface-muted">
+            {field.label}: <b className="font-semibold text-on-surface">{values[field.name]}</b>
+          </span>
+        );
+      })}
+    </div>
+  );
+};
+
+// Tarjeta en edición: un campo por cada uno del catálogo, sus errores y Cancelar / Guardar.
+// Enter guarda y Escape cancela.
+const EditTile = ({ fields, initialValues, label, onSave, onCancel, saving }) => {
+  const [values, setValues] = useState(initialValues);
+  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
+
+  const setValue = (name, value) => {
+    setValues((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: '' }));
+    setFormError('');
+  };
+
+  const validate = (trimmed) => {
+    const found = {};
+    fields.forEach((field) => {
+      const value = trimmed[field.name];
+      if (!value) found[field.name] = field.requiredMessage || `Completá ${field.label.toLowerCase()}.`;
+      else if (field.maxLength && value.length > field.maxLength) found[field.name] = `Máximo ${field.maxLength} caracteres.`;
+    });
+    return found;
+  };
 
   const submit = async (e) => {
     e.preventDefault();
-    const trimmed = value.trim();
-    if (!trimmed) return setError('Escribí la descripción.');
-    if (trimmed.length > maxLength) return setError(`Máximo ${maxLength} caracteres.`);
+    const trimmed = Object.fromEntries(fields.map((field) => [field.name, String(values[field.name] ?? '').trim()]));
+    const found = validate(trimmed);
+    if (Object.keys(found).length > 0) return setErrors(found);
     const backendError = await onSave(trimmed);
-    if (backendError) setError(backendError);
+    if (backendError) setFormError(backendError);
   };
 
   return (
     <form onSubmit={submit} className={`${tileCls} border-accent/60 bg-surface-card`} aria-label={label}>
       <div className="flex items-center gap-3">
-        <Initial text={value} />
+        <Initial text={values[fields[0].name]} />
         <span className="text-sm font-semibold text-on-surface">{label}</span>
       </div>
-      <div>
-        <input
-          autoFocus
-          value={value}
-          onChange={(e) => { setValue(e.target.value); setError(''); }}
-          onKeyDown={(e) => { if (e.key === 'Escape') onCancel(); }}
-          placeholder={placeholder}
-          aria-label="Descripción"
-          aria-invalid={Boolean(error)}
-          className={fieldCls(Boolean(error))}
-        />
-        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-      </div>
+      {fields.map((field, index) => (
+        <div key={field.name}>
+          {fields.length > 1 && <label htmlFor={`catalog-${field.name}`} className="mb-1 block text-xs font-medium text-on-surface-muted">{field.label}</label>}
+          {field.type === 'select' ? (
+            <select
+              id={`catalog-${field.name}`}
+              value={values[field.name]}
+              onChange={(e) => setValue(field.name, e.target.value)}
+              aria-label={field.label}
+              className={fieldCls(Boolean(errors[field.name]))}
+            >
+              {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          ) : (
+            <input
+              id={`catalog-${field.name}`}
+              autoFocus={index === 0}
+              value={values[field.name]}
+              onChange={(e) => setValue(field.name, e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') onCancel(); }}
+              placeholder={field.placeholder}
+              aria-label={field.label}
+              aria-invalid={Boolean(errors[field.name])}
+              className={fieldCls(Boolean(errors[field.name]))}
+            />
+          )}
+          {errors[field.name] && <p className="mt-1 text-xs text-red-500">{errors[field.name]}</p>}
+        </div>
+      ))}
+      {formError && <p className="text-xs text-red-500">{formError}</p>}
       <div className="mt-auto flex justify-end gap-1">
         <IconButton size="small" onClick={onCancel} aria-label="Cancelar" sx={{ color: 'var(--color-on-surface-muted)' }}>
           <CloseIcon fontSize="small" />
@@ -79,8 +153,8 @@ const EditTile = ({ initialValue, label, placeholder, maxLength, onSave, onCance
 };
 
 /**
- * SimpleCatalog — pantalla de un catálogo de un solo campo (Mercados, Bancos, Categorías, Condición de IVA):
- * cada registro es una tarjeta, como las del Inicio, con renombrar y eliminar; la tarjeta "+ Nuevo" agrega.
+ * Catalog — pantalla de todo catálogo (Mercados, Bancos, Categorías, Condición de IVA, Tipos de unidad):
+ * cada registro es una tarjeta, como las del Inicio, con editar y eliminar; la tarjeta "+ Nuevo" agrega.
  * Se edita en la misma tarjeta. Un registro del sistema (is_system) muestra el candado y no se toca.
  *
  * Props:
@@ -90,21 +164,12 @@ const EditTile = ({ initialValue, label, placeholder, maxLength, onSave, onCance
  *   newLabel      — texto de la tarjeta de alta, ej: "Nuevo mercado" / "Nueva categoría"
  *   subtitle      — opcional: para qué sirve el catálogo
  *   breadcrumbKey — clave en breadcrumbsMap, ej: '/market'
- *   fieldName     — campo del modelo (default 'descripcion')
- *   placeholder   — placeholder del campo
- *   maxLength     — máximo de caracteres (default 100)
+ *   fields        — campos del registro; el primero es el título de la tarjeta (usar descriptionField).
+ *                   Cada uno: { name, label, placeholder?, maxLength?, requiredMessage?,
+ *                   type?: 'text' | 'select', options?: [{ value, label, color }] }.
+ *                   Todos son obligatorios. Un select se ve en la tarjeta como Badge del color de su opción.
  */
-const SimpleCatalog = ({
-  url,
-  title,
-  itemLabel,
-  newLabel,
-  subtitle,
-  breadcrumbKey,
-  fieldName = 'descripcion',
-  placeholder = '',
-  maxLength = 100,
-}) => {
+const Catalog = ({ url, title, itemLabel, newLabel, subtitle, breadcrumbKey, fields }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
@@ -116,13 +181,20 @@ const SimpleCatalog = ({
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const breadcrumbs = breadcrumbsMap[breadcrumbKey] || [];
+  const [titleField, ...detailFields] = fields;
+  const searchableFields = fields.filter((field) => field.type !== 'select');
 
   const fetchItems = async () => {
     setLoading(true);
     try {
       const response = await axios.get(url);
       const list = Array.isArray(response.data) ? response.data : [];
-      setRows(list.map((item) => ({ id: item.id, name: item[fieldName], isSystem: item.is_system })));
+      setRows(list.map((item) => ({
+        id: item.id,
+        name: item[titleField.name],
+        values: Object.fromEntries(fields.map((field) => [field.name, item[field.name] ?? ''])),
+        isSystem: item.is_system,
+      })));
     } catch (err) {
       console.error('Error cargando datos:', err);
       showToast(extractErrorMessage(err, 'No se pudo cargar el listado.'), { variant: 'error' });
@@ -136,20 +208,21 @@ const SimpleCatalog = ({
   const visibleRows = useMemo(() => {
     const term = normalizeText(query).trim();
     return rows
-      .filter((row) => !term || normalizeText(row.name).includes(term))
+      .filter((row) => !term || searchableFields.some((field) => normalizeText(row.values[field.name]).includes(term)))
       .sort((a, b) => a.name.localeCompare(b.name, 'es'));
-  }, [rows, query]);
+  }, [rows, query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Devuelve el error del backend para mostrarlo en la tarjeta, o null si se guardó.
-  const save = async (name, id = null) => {
+  const save = async (values, id = null) => {
+    const name = values[titleField.name];
     setSaving(true);
     try {
       if (id) {
-        await axios.put(`${url}${id}/`, { [fieldName]: name });
+        await axios.put(`${url}${id}/`, values);
         showToast(`"${name}" se actualizó correctamente.`);
         setEditingId(null);
       } else {
-        await axios.post(url, { [fieldName]: name });
+        await axios.post(url, values);
         showToast(`"${name}" se agregó correctamente.`);
         setAdding(false);
       }
@@ -227,16 +300,16 @@ const SimpleCatalog = ({
             <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-lahuerta rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 px-5 pb-6 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+          // items-start: la tarjeta en edición crece sola, sin estirar las de su fila.
+          <div className="grid grid-cols-1 items-start gap-3 px-5 pb-6 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
             {visibleRows.map((row) => (editingId === row.id ? (
               <EditTile
                 key={row.id}
-                initialValue={row.name}
+                fields={fields}
+                initialValues={row.values}
                 label={`Editar ${itemLabel}`}
-                placeholder={placeholder}
-                maxLength={maxLength}
                 saving={saving}
-                onSave={(name) => save(name, row.id)}
+                onSave={(values) => save(values, row.id)}
                 onCancel={() => setEditingId(null)}
               />
             ) : (
@@ -247,7 +320,9 @@ const SimpleCatalog = ({
                     <span className="truncate text-sm font-semibold text-on-surface">{row.name}</span>
                   </Tooltip>
                 </div>
-                <div className="mt-auto flex justify-end gap-1">
+                <TileDetails fields={detailFields} values={row.values} />
+                {/* Alto fijo: con candado o con botones, todas las tarjetas miden lo mismo. */}
+                <div className="mt-auto flex h-[34px] items-center justify-end gap-1">
                   {row.isSystem ? (
                     <LockedIcon title={SYSTEM_RECORD_REASON} />
                   ) : (
@@ -270,12 +345,11 @@ const SimpleCatalog = ({
 
             {adding ? (
               <EditTile
-                initialValue=""
+                fields={fields}
+                initialValues={emptyValues(fields)}
                 label={newLabel}
-                placeholder={placeholder}
-                maxLength={maxLength}
                 saving={saving}
-                onSave={(name) => save(name)}
+                onSave={(values) => save(values)}
                 onCancel={() => setAdding(false)}
               />
             ) : (
@@ -304,4 +378,4 @@ const SimpleCatalog = ({
   );
 };
 
-export default SimpleCatalog;
+export default Catalog;
