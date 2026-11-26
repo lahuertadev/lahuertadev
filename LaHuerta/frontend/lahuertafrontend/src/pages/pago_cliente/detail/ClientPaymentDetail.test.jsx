@@ -5,22 +5,35 @@ import axios from 'axios';
 import ClientPaymentDetail from './ClientPaymentDetail';
 import { ToastProvider } from '../../../context/ToastContext';
 import { BADGE_COLORS } from '../../../constants/badgeColors';
+import { formatDate } from '../../../utils/date';
 
-jest.mock('axios', () => ({ get: jest.fn(), delete: jest.fn() }));
+jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn() }));
+
+const check = (id, numero, estado = 'EN_CARTERA', importe = '1000000.00') => ({
+  id, numero, importe, banco: 1, banco_descripcion: 'Nación', fecha_emision: '2026-11-10', fecha_deposito: null, endosado: false, estado,
+});
 
 const PAYMENT = {
   id: 8,
   fecha_pago: '2026-11-16',
   importe: '2000000.00',
   observaciones: null,
+  estado_pago: 'VIGENTE',
+  fecha_anulacion: null,
+  motivo_anulacion: null,
   cliente: { razon_social: 'Clöe', cuit: '20111111112' },
   tipo_pago: { descripcion: 'Cheque' },
-  cheque: { id: 31, numero: 123, banco_descripcion: 'Nación', fecha_emision: '2026-11-10', fecha_deposito: null, estado: 'EN_CARTERA' },
+  cheques: [check(31, 123), check(32, 456)],
 };
 
-beforeAll(() => {
-  window.matchMedia = (query) => ({ matches: false, media: query, addEventListener: jest.fn(), removeEventListener: jest.fn() });
-});
+const CANCELLED = { ...PAYMENT, estado_pago: 'ANULADO', fecha_anulacion: '2026-11-20', motivo_anulacion: 'Lo pagó Kona, no Clöe' };
+
+const setMobile = (matches) => {
+  window.matchMedia = (query) => ({ matches, media: query, addEventListener: jest.fn(), removeEventListener: jest.fn() });
+};
+
+beforeEach(() => setMobile(false));
+afterEach(() => jest.clearAllMocks());
 
 const renderDetail = (payment) => {
   axios.get.mockResolvedValue({ data: payment });
@@ -37,16 +50,48 @@ const renderDetail = (payment) => {
   );
 };
 
-test('un pago con el cheque rechazado muestra la etiqueta roja "Rechazado"', async () => {
-  renderDetail({ ...PAYMENT, cheque: { ...PAYMENT.cheque, estado: 'RECHAZADO' } });
-
-  expect(await screen.findByText('Rechazado')).toHaveStyle({ color: BADGE_COLORS.red.color });
-});
-
-test('un pago sin cheque rechazado muestra la etiqueta verde "Acreditado"', async () => {
+test('un pago vigente muestra el estado "Vigente" y todos sus cheques', async () => {
   renderDetail(PAYMENT);
 
-  expect(await screen.findByText('Acreditado')).toHaveStyle({ color: BADGE_COLORS.green.color });
+  expect(await screen.findByText('Vigente')).toBeInTheDocument();
+  expect(screen.getByText('Cheques (2)')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '123' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: '456' })).toBeInTheDocument();
+});
+
+test('un pago con un cheque rechazado avisa que su importe se descontó', async () => {
+  renderDetail({ ...PAYMENT, cheques: [check(31, 123, 'RECHAZADO'), check(32, 456)] });
+
+  expect(await screen.findByText(/El cheque N° 123 fue rechazado/)).toBeInTheDocument();
+  expect(screen.getByText('Rechazado')).toHaveStyle({ color: BADGE_COLORS.red.color });
+});
+
+test('un pago anulado muestra la sección Anulación con el estado, la fecha y el motivo, sin Editar', async () => {
+  renderDetail(CANCELLED);
+
+  expect(await screen.findByText('Anulación')).toBeInTheDocument();
+  expect(screen.getByText('Anulado')).toBeInTheDocument();
+  expect(screen.getByText(formatDate('2026-11-20'))).toBeInTheDocument();
+  expect(screen.getByText('Lo pagó Kona, no Clöe')).toBeInTheDocument();
+  expect(screen.queryByText('Vigente')).toBeNull();
+  expect(screen.queryByRole('button', { name: /Editar pago/ })).toBeNull();
+});
+
+test('si el importe no incluye un cheque rechazado, lo avisa con el "!" del importe', async () => {
+  renderDetail({
+    ...CANCELLED, importe: '1000000.00', cheques: [check(31, 123, 'RECHAZADO'), check(32, 456, 'ANULADO')],
+  });
+
+  expect(await screen.findByRole('img', {
+    name: /No incluye el cheque rechazado N° 123 \(\$1\.000\.000,00\).*Importe original: \$2\.000\.000,00\./,
+  })).toBeInTheDocument();
+});
+
+test('un pago anulado porque se rechazaron todos sus cheques muestra el importe original, sin "!"', async () => {
+  renderDetail({ ...CANCELLED, cheques: [check(31, 123, 'RECHAZADO'), check(32, 456, 'RECHAZADO')] });
+
+  await screen.findByText('Anulación');
+  expect(screen.queryByRole('img', { name: /No incluye/ })).toBeNull();
 });
 
 test('tiene Volver arriba (desktop) y abajo (mobile), que vuelven al listado', async () => {
@@ -67,15 +112,20 @@ test('el número de cheque lleva al detalle del cheque', async () => {
   expect(await screen.findByText('Detalle del cheque')).toBeInTheDocument();
 });
 
-test('en mobile, al eliminar vuelve al listado con el mensaje de éxito', async () => {
-  window.matchMedia = (query) => ({ matches: true, media: query, addEventListener: jest.fn(), removeEventListener: jest.fn() });
-  axios.delete.mockResolvedValue({});
+test('en mobile, anular pide el motivo y muestra el pago anulado', async () => {
+  setMobile(true);
+  axios.post.mockResolvedValue({ data: CANCELLED });
   renderDetail(PAYMENT);
 
-  fireEvent.click(await screen.findByRole('button', { name: /^Eliminar$/ }));
-  fireEvent.click(screen.getByRole('button', { name: /Eliminar pago/ }));
+  fireEvent.click(await screen.findByRole('button', { name: /^Anular$/ }));
+  const confirm = screen.getAllByRole('button', { name: /Anular/ }).at(-1);
+  expect(confirm).toBeDisabled();
 
-  expect(await screen.findByText('El pago se eliminó correctamente.')).toBeInTheDocument();
-  expect(screen.getByText('Listado')).toBeInTheDocument();
-  window.matchMedia = (query) => ({ matches: false, media: query, addEventListener: jest.fn(), removeEventListener: jest.fn() });
+  fireEvent.change(screen.getByLabelText(/Motivo de la anulación/), { target: { value: '  Lo pagó Kona, no Clöe ' } });
+  expect(confirm).toBeEnabled();
+  fireEvent.click(confirm);
+
+  expect(await screen.findByText('El pago se anuló correctamente.')).toBeInTheDocument();
+  expect(axios.post).toHaveBeenCalledWith(expect.stringMatching(/\/8\/cancel\/$/), { motivo: 'Lo pagó Kona, no Clöe' });
+  expect(screen.getByText('Anulación')).toBeInTheDocument();
 });

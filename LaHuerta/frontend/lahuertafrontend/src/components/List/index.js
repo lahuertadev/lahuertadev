@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import DataGridDemo from '../Grid';
 import AlertDialog from '../DialogAlert';
+import ReasonField from '../ReasonField';
 import SpotlightButton from '../SpotlightButton';
 import CustomInput from '../Input';
 import AmountInput from '../AmountInput';
 import BasicDatePicker from '../DatePicker';
 import BasicSelect from '../Select';
-import Toast from '../Toast';
 import { useToast } from '../../context/ToastContext';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -35,12 +35,17 @@ const TAB_TONE_CLASSES = {
  *   deleteLabel / deleteIcon — texto e ícono del botón de borrar de la grilla (default 'Eliminar' y el tacho).
  *   deleteConfirmLabel — texto del botón de confirmar del diálogo (ej. 'Eliminar pago'; default deleteLabel o 'Confirmar').
  *   deleteDialogTitle — título del diálogo al borrar un registro (default 'Confirmar eliminación').
- *   deleteRequest — (id) => Promise. Opcional: el pedido que hace la acción de borrar (por defecto,
+ *   deleteRequest — (id, reason) => Promise. Opcional: el pedido que hace la acción de borrar (por defecto,
  *                   DELETE a fetchUrl.baseUrl + id). Ej.: anular con POST a .../id/cancel/.
+ *   deleteReason  — { label?, placeholder? }. Opcional: el diálogo pide un motivo obligatorio (ej. por qué
+ *                   se anula un pago); Confirmar se habilita al escribirlo y llega a deleteRequest.
  *   tabs          — { param, options: [{ label, value, tone? }] }. Opcional: solapas debajo del título
  *                   que filtran el listado; la elegida va al backend como param=value, junto con los
  *                   filtros. La primera opción queda activa al entrar; una opción con value '' no manda
  *                   el parámetro (ej. "Todos"). tone: 'accent' (default) | 'danger' | 'attention'.
+ *                   ariaLabel (default "Estado de {title}") y dataTour (para el tutorial) son opcionales.
+ *                   Sin param, la solapa no va al backend: la maneja la pantalla con value (la activa) y
+ *                   onChange(value), y cambia los datos del listado (ej. Facturas / Remitos).
  *   deleteSuccessMessage — (count) => string. Opcional: si está, muestra un toast de éxito
  *                   al eliminar (count = cantidad de registros eliminados).
  *   fetchUrl      — { baseUrl, createUrl, editUrl, detailUrl? }
@@ -60,7 +65,7 @@ const TAB_TONE_CLASSES = {
  *                   que están elegidos (ej. después de cambiar el estado de un registro).
  */
 const GenericList = ({ data, onAdd, refreshKey }) => {
-  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, tabs, extraActions, deleteConfirmLabel } = data;
+  const { title, subtitle, deleteMessage, deleteSuccessMessage, fetchUrl, columns, mapData, filtersConfig, newLabelText, breadcrumbs, multiSelect = true, canDelete, canEdit, editDisabledReason, deleteDisabledReason, isRowSelectable, getRowClassName, showAdd = true, showEdit = true, showDelete = true, groupActions = false, deleteLabel, deleteIcon, deleteDialogTitle = 'Confirmar eliminación', deleteRequest, deleteReason, tabs, extraActions, deleteConfirmLabel } = data;
 
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,8 +76,8 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({});
-  const [toast, setToast] = useState({ open: false, message: '' });
-  const [activeTab, setActiveTab] = useState(tabs?.options[0]?.value);
+  const [activeTab, setActiveTab] = useState(tabs?.value ?? tabs?.options[0]?.value);
+  const [reason, setReason] = useState('');
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,7 +100,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
           if (value) queryParams.append(filter.name, value);
         });
       }
-      if (tabs && tab) queryParams.append(tabs.param, tab);
+      if (tabs?.param && tab) queryParams.append(tabs.param, tab);
       const query = queryParams.toString();
       const urlWithParams = query ? `${fetchUrl.baseUrl}?${query}` : fetchUrl.baseUrl;
       const response = await axios.get(urlWithParams);
@@ -136,6 +141,11 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
 
   const selectTab = (value) => {
     if (value === activeTab) return;
+    // Solapas que maneja la pantalla (ej. Facturas / Remitos): ella cambia los datos del listado.
+    if (tabs.onChange) {
+      tabs.onChange(value);
+      return;
+    }
     setActiveTab(value);
     setSelectedIds([]);
     fetchItems(filterValues, value);
@@ -151,9 +161,12 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
     setOpenConfirmDialog(false);
     setSelectedIds([]);
     setIsMultipleDelete(false);
+    setReason('');
   };
 
-  const deleteItem = (id) => (deleteRequest ? deleteRequest(id) : axios.delete(`${fetchUrl.baseUrl}${id}/`));
+  const deleteItem = (id) => (
+    deleteRequest ? deleteRequest(id, reason.trim()) : axios.delete(`${fetchUrl.baseUrl}${id}/`)
+  );
 
   const handleDeleteConfirm = async () => {
     const deletedCount = itemToDelete ? 1 : selectedIds.length;
@@ -181,7 +194,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
         err?.response?.data?.detail ||
         err?.message ||
         'Error inesperado al eliminar';
-      setToast({ open: true, message: msg });
+      showToast(msg, { variant: 'error' });
     } finally {
       fetchItems();
       handleCloseConfirmDialog();
@@ -205,7 +218,6 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
-      <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} duration={8000} />
 
       {/* Breadcrumbs */}
       {resolvedBreadcrumbs && (
@@ -254,8 +266,8 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
                 className="px-4 py-2 text-sm"
                 data-tour="list-add"
               >
-                {newLabelText || ''}
                 <AddCircleOutlineIcon fontSize="small" />
+                {newLabelText || ''}
               </SpotlightButton>
             )}
           </div>
@@ -267,7 +279,7 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
         <div className={`px-6 border-b border-border-subtle bg-surface-low/30 ${tabs ? 'pt-4' : 'py-4'}`}>
           <h3 className="font-semibold text-on-surface">Listado de {title}</h3>
           {tabs && (
-            <div role="tablist" aria-label={`Estado de ${title}`} className="mt-2.5 flex flex-wrap gap-1">
+            <div role="tablist" aria-label={tabs.ariaLabel || `Estado de ${title}`} data-tour={tabs.dataTour} className="mt-2.5 flex flex-wrap gap-1">
               {tabs.options.map((option) => {
                 const active = option.value === activeTab;
                 return (
@@ -425,15 +437,26 @@ const GenericList = ({ data, onAdd, refreshKey }) => {
         open={openConfirmDialog}
         title={isMultipleDelete ? 'Confirmar eliminación múltiple' : deleteDialogTitle}
         message={
-          isMultipleDelete
-            ? '¿Estás seguro que querés eliminar estos elementos?'
-            : (deleteMessage && rows.find((row) => row.id === itemToDelete)
-              ? deleteMessage(rows.find((row) => row.id === itemToDelete))
-              : '¿Estás seguro que querés eliminar este elemento?')
+          <>
+            {isMultipleDelete
+              ? '¿Estás seguro que querés eliminar estos elementos?'
+              : (deleteMessage && rows.find((row) => row.id === itemToDelete)
+                ? deleteMessage(rows.find((row) => row.id === itemToDelete))
+                : '¿Estás seguro que querés eliminar este elemento?')}
+            {deleteReason && (
+              <ReasonField
+                value={reason}
+                onChange={setReason}
+                label={deleteReason.label}
+                placeholder={deleteReason.placeholder}
+              />
+            )}
+          </>
         }
         onConfirm={handleDeleteConfirm}
         onCancel={handleCloseConfirmDialog}
         confirmLabel={deleteConfirmLabel || deleteLabel || 'Confirmar'}
+        confirmDisabled={Boolean(deleteReason) && !reason.trim()}
       />
     </div>
   );

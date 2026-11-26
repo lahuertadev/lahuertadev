@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 class IClientRepository(ABC):
 
     @abstractmethod
-    def get_all_clients(self, cuit=None, searchQuery=None, address=None):
+    def get_all_clients(self, cuit=None, searchQuery=None, address=None, state=None):
         pass
       
     @abstractmethod

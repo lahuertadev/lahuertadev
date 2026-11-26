@@ -107,7 +107,7 @@ test('Registrar Pago se habilita recién con todos los obligatorios completos', 
 });
 
 test('al editar un pago vuelve al listado con el mensaje de éxito', async () => {
-  const payment = { id: 5, cliente: { id: 3 }, importe: '1500.00', fecha_pago: '2026-11-16', tipo_pago: { id: 1 }, observaciones: '', cheque: null };
+  const payment = { id: 5, cliente: { id: 3 }, importe: '1500.00', fecha_pago: '2026-11-16', tipo_pago: { id: 1 }, observaciones: '', cheques: [] };
   const getOptions = axios.get.getMockImplementation();
   axios.get.mockImplementation((url) => (url === `${clientPaymentUrl}5/` ? Promise.resolve({ data: payment }) : getOptions(url)));
   axios.put.mockResolvedValue({ data: {} });
@@ -122,23 +122,119 @@ test('al editar un pago vuelve al listado con el mensaje de éxito', async () =>
   expect(await screen.findByText('El pago se actualizó correctamente.')).toBeInTheDocument();
 });
 
-test('con cheque pide número, banco y fecha de emisión, y la de depósito si es diferido', async () => {
-  renderForm();
-  await fillPayment('2');
+// Los <select> del formulario: el tipo de pago y el banco de cada cheque.
+const selects = () => screen.getAllByRole('combobox').filter((element) => element.tagName === 'SELECT');
 
-  expect((await screen.findByText('Número')).querySelector('[aria-hidden="true"]')).toHaveTextContent('*');
-  expect(registerButton()).toBeDisabled();
+// Completa el cheque en la posición index. dateIndex: su fecha de emisión entre los datepickers.
+const fillCheck = (index, numero, amount, dateIndex) => {
+  fireEvent.change(screen.getAllByPlaceholderText('Nº de cheque')[index], { target: { value: numero } });
+  fireEvent.change(selects()[index + 1], { target: { value: '9' } });
+  fireEvent.change(screen.getAllByPlaceholderText('0,00')[index], { target: { value: amount } });
+  fireEvent.change(screen.getAllByTestId('date')[dateIndex], { target: { value: '2026-11-10' } });
+};
 
-  fireEvent.change(screen.getByPlaceholderText('Nº de cheque'), { target: { value: '1234' } });
-  fireEvent.change(screen.getAllByRole('combobox')[2], { target: { value: '9' } });
-  fireEvent.change(screen.getAllByTestId('date')[1], { target: { value: '2026-11-10' } });
-  await waitFor(() => expect(registerButton()).toBeEnabled());
+describe('pago con cheques', () => {
+  test('cada cheque pide número, banco, importe y fecha de emisión, y la de depósito si es diferido', async () => {
+    renderForm();
+    await fillPayment('2');
 
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Cheque diferido' }));
-  await waitFor(() => expect(registerButton()).toBeDisabled());
+    expect((await screen.findByText('Número')).querySelector('[aria-hidden="true"]')).toHaveTextContent('*');
+    expect(registerButton()).toBeDisabled();
 
-  fireEvent.change(screen.getAllByTestId('date')[2], { target: { value: '2026-12-01' } });
-  await waitFor(() => expect(registerButton()).toBeEnabled());
+    fillCheck(0, '1234', '1000', 1);
+    await waitFor(() => expect(registerButton()).toBeEnabled());
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Cheque diferido' }));
+    await waitFor(() => expect(registerButton()).toBeDisabled());
+
+    fireEvent.change(screen.getAllByTestId('date')[2], { target: { value: '2026-12-01' } });
+    await waitFor(() => expect(registerButton()).toBeEnabled());
+  });
+
+  test('con varios cheques el importe es la suma y se mandan todos', async () => {
+    renderForm();
+    await fillPayment('2');
+    fillCheck(0, '111', '1000', 1);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Agregar cheque/ }));
+    await waitFor(() => expect(registerButton()).toBeDisabled());
+    fillCheck(1, '222', '2500', 2);
+
+    await waitFor(() => expect(registerButton()).toBeEnabled());
+    // El primer "Importe" es el del pago, de solo lectura; después vienen los de cada cheque.
+    expect(screen.getAllByText('Importe')[0].parentElement.parentElement).toHaveTextContent(/3\.500,00/);
+    expect(screen.getByText('Saldo después del pago').parentElement.parentElement).toHaveTextContent(/1\.500,00/);
+
+    fireEvent.click(registerButton());
+    await waitFor(() => expect(axios.post).toHaveBeenCalled());
+    const payload = axios.post.mock.calls[0][1];
+    expect(payload.importe).toBeUndefined();
+    expect(payload.cheques).toEqual([
+      { numero: '111', banco: '9', importe: '1000', fecha_emision: '2026-11-10', fecha_deposito: null },
+      { numero: '222', banco: '9', importe: '2500', fecha_emision: '2026-11-10', fecha_deposito: null },
+    ]);
+  });
+
+  test('el mismo cheque dos veces no deja registrar y lo avisa', async () => {
+    renderForm();
+    await fillPayment('2');
+    fillCheck(0, '111', '1000', 1);
+    fireEvent.click(await screen.findByRole('button', { name: /Agregar cheque/ }));
+    fillCheck(1, '111', '500', 2);
+
+    expect(await screen.findByText('Este cheque ya está en el pago')).toBeInTheDocument();
+    expect(registerButton()).toBeDisabled();
+  });
+
+  test('al editar, el cliente y el tipo quedan fijos, un cheque endosado no se toca y uno en cartera se puede quitar', async () => {
+    const check = (id, numero, importe, estado) => ({
+      id, numero, banco: 9, importe, fecha_emision: '2026-11-10', fecha_deposito: null, estado, endosado: estado === 'ENDOSADO',
+    });
+    const payment = {
+      id: 5, cliente: { id: 3 }, importe: '1500.00', fecha_pago: '2026-11-16', tipo_pago: { id: 2 }, observaciones: '',
+      cheques: [check(31, 111, '1000.00', 'ENDOSADO'), check(32, 222, '500.00', 'EN_CARTERA')],
+    };
+    const getOptions = axios.get.getMockImplementation();
+    axios.get.mockImplementation((url) => (url === `${clientPaymentUrl}5/` ? Promise.resolve({ data: payment }) : getOptions(url)));
+    axios.put.mockResolvedValue({ data: {} });
+    renderForm('/client-payment/edit/5');
+
+    expect(await screen.findByText(/para cambiar el cliente o el tipo de pago, anulá el pago/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByPlaceholderText('Nº de cheque')[0]).toHaveValue(111));
+    expect(typeSelect()).toBeDisabled();
+    expect(screen.getAllByPlaceholderText('Nº de cheque')[0]).toBeDisabled();
+    expect(screen.getAllByPlaceholderText('Nº de cheque')[1]).toBeEnabled();
+    expect(screen.getAllByRole('button', { name: 'Quitar cheque' })).toHaveLength(1);
+    // El endosado queda compacto y sin el botón de expandir; el que está en cartera sí lo tiene.
+    expect(screen.getAllByRole('button', { name: /Expandir cheque|Compactar cheque/ })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar cheque' }));
+    const confirm = screen.getByRole('button', { name: /Guardar cambios/ });
+    await waitFor(() => expect(confirm).toBeEnabled());
+    fireEvent.click(confirm);
+
+    await waitFor(() => expect(axios.put).toHaveBeenCalled());
+    expect(axios.put.mock.calls[0][1].cheques).toEqual([
+      { id: 31, numero: 111, banco: 9, importe: '1000.00', fecha_emision: '2026-11-10', fecha_deposito: null },
+    ]);
+  });
+
+  test('al editar, un cheque depositado queda compacto, con el candado y sin expandir ni quitar', async () => {
+    const payment = {
+      id: 6, cliente: { id: 3 }, importe: '700.00', fecha_pago: '2026-11-16', tipo_pago: { id: 2 }, observaciones: '',
+      cheques: [
+        { id: 41, numero: 333, banco: 9, importe: '700.00', fecha_emision: '2026-11-10', fecha_deposito: null, estado: 'DEPOSITADO', endosado: false },
+      ],
+    };
+    const getOptions = axios.get.getMockImplementation();
+    axios.get.mockImplementation((url) => (url === `${clientPaymentUrl}6/` ? Promise.resolve({ data: payment }) : getOptions(url)));
+    renderForm('/client-payment/edit/6');
+
+    expect(await screen.findByText('Cheque N° 333')).toBeInTheDocument();
+    expect(screen.getByLabelText('Ya no está en cartera: no se puede modificar ni quitar.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Expandir cheque|Compactar cheque/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quitar cheque' })).not.toBeInTheDocument();
+  });
 });
 
 test('los tipos de pago están en orden alfabético', async () => {
@@ -182,7 +278,7 @@ describe('saldo del cliente', () => {
 
   test('al editar, el saldo de hoy ya tiene descontado el pago: se suma lo guardado y se resta lo nuevo', async () => {
     // Ana debía 6.500 y pagó 1.500: hoy debe 5.000. Si el pago pasa a 1.000, queda en 5.500.
-    const payment = { id: 5, cliente: { id: 3 }, importe: '1500.00', fecha_pago: '2026-11-16', tipo_pago: { id: 1 }, observaciones: '', cheque: null };
+    const payment = { id: 5, cliente: { id: 3 }, importe: '1500.00', fecha_pago: '2026-11-16', tipo_pago: { id: 1 }, observaciones: '', cheques: [] };
     const getOptions = axios.get.getMockImplementation();
     axios.get.mockImplementation((url) => (url === `${clientPaymentUrl}5/` ? Promise.resolve({ data: payment }) : getOptions(url)));
     renderForm('/client-payment/edit/5');

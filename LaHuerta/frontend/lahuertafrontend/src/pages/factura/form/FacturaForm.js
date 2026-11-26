@@ -20,13 +20,13 @@ import {
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
 import ClientAutocomplete from '../../../components/ClientAutocomplete';
-import Toast from '../../../components/Toast';
 import { useToast } from '../../../context/ToastContext';
 import CustomInput from '../../../components/Input';
 import AmountInput from '../../../components/AmountInput';
 import CountUp from '../../../components/CountUp';
 import FormActions from '../../../components/FormActions';
-import BackButton from '../../../components/BackButton';
+import PageHeader from '../../../components/PageHeader';
+import { extractErrorMessage } from '../../../utils/errors';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
 import { emitTutorialEvent } from '../../../utils/tutorial';
 
@@ -130,7 +130,6 @@ const FacturaForm = () => {
 
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
-  const [toast, setToast] = useState({ open: false, message: '' });
   const { showToast } = useToast();
 
   const isDebitNote = DEBIT_NOTE_CODES.has(selectedBillType?.codigo_afip);
@@ -494,12 +493,7 @@ const FacturaForm = () => {
       showToast(isEdit ? `${receipt} se actualizó correctamente.` : `${receipt} se generó correctamente.`);
       navigate(`/bill/detail/${response.data.id}`);
     } catch (error) {
-      const message =
-        error?.response?.data?.detail ||
-        error?.response?.data ||
-        'Error al guardar la factura.';
-
-      setToast({ open: true, message: typeof message === 'string' ? message : JSON.stringify(message) });
+      showToast(extractErrorMessage(error, 'Error al guardar la factura.'), { variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -508,34 +502,14 @@ const FacturaForm = () => {
   // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8 pb-12">
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        onClose={() => setToast({ open: false, message: '' })}
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Inicio', path: '/' },
+          { label: 'Facturación', path: '/bill' },
+          { label: isEdit ? `Editar #${String(id).padStart(8, '0')}` : 'Nueva' },
+        ]}
+        onBack={() => navigate('/bill')}
       />
-      {/* Breadcrumbs + Volver arriba a la derecha, separados del contenido con la misma línea que el pie */}
-      <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
-        <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-          <span
-            className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
-            onClick={() => navigate('/')}
-          >
-            Home
-          </span>
-          <span className="text-xs">›</span>
-          <span
-            className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors"
-            onClick={() => navigate('/bill')}
-          >
-            Facturas
-          </span>
-          <span className="text-xs">›</span>
-          <span className="text-on-surface font-semibold">
-            {isEdit ? `Editar #${String(id).padStart(8, '0')}` : 'Nueva'}
-          </span>
-        </nav>
-        <BackButton onClick={() => navigate('/bill')} className="shrink-0 px-5 py-2.5 text-sm" />
-      </div>
 
       {/* 1. Datos de la factura */}
       <SectionCard icon={<ReceiptLongIcon sx={{ fontSize: 20 }} />} title="Datos de la Factura" cols={2}>
@@ -895,6 +869,7 @@ const FacturaForm = () => {
 
       <FormActions
         onCancel={() => navigate('/bill')}
+        onBack={() => navigate('/bill')}
         onConfirm={handleSave}
         confirmLabel={saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Confirmar'}
         confirmDisabled={

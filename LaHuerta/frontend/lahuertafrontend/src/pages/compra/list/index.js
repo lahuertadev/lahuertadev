@@ -2,6 +2,7 @@ import { buyUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Compra';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { formatDocumentNumber } from '../../../utils/documentNumber';
 import GenericList from '../../../components/List';
 import DeleteBuyMessage from '../shared/DeleteBuyMessage';
 import { useNavigate } from 'react-router-dom';
@@ -9,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 const mapBuyData = (data) =>
   data.map((buy) => ({
     id: buy.id,
-    number: String(buy.id).padStart(8, '0'),
+    number: formatDocumentNumber(buy.id),
     date: formatDate(buy.fecha),
     supplier: buy.proveedor.nombre,
     senia: formatCurrency(buy.senia),
@@ -40,6 +41,17 @@ const data = {
     { label: 'Fecha hasta',  name: 'fecha_hasta',  type: 'date'   },
   ],
   newLabelText: 'Nueva compra',
+  // Solapas debajo del título (parámetro payment_status del backend). Todas al entrar, como en Cheques;
+  // Por pagar junta las pendientes y las parciales (las que tienen saldo).
+  tabs: {
+    param: 'payment_status',
+    ariaLabel: 'Estado de pago de las compras',
+    options: [
+      { label: 'Todas', value: '' },
+      { label: 'Por pagar', value: 'por_pagar', tone: 'attention' },
+      { label: 'Abonadas', value: 'abonadas' },
+    ],
+  },
   deleteDialogTitle: 'Eliminar compra',
   deleteMessage: (row) => <DeleteBuyMessage buy={row.buy} />,
   deleteConfirmLabel: 'Eliminar compra',

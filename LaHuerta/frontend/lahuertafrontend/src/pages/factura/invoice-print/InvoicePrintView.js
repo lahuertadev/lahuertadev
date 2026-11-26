@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import { ThemeProvider } from '@mui/material/styles';
-import Button from '@mui/material/Button';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import { billUrl } from '../../../constants/urls';
+import SpotlightButton from '../../../components/SpotlightButton';
+import BackButton from '../../../components/BackButton';
 import { useDarkModeSync } from '../../../hooks/useDarkModeSync';
 import '../../../styles/print-invoice.css';
 import logoLaHuerta from '../../../assets/logo-lahuerta-sin-fondo.png';
@@ -95,18 +95,12 @@ const InvoicePrintView = () => {
   return (
     <ThemeProvider theme={theme}>
     <div className="invoice-page">
-      <div className="invoice-actions no-print">
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/bill')}
-          color="primary"
-          variant="outlined"
-        >
-          Volver al listado
-        </Button>
-        <button onClick={() => window.print()} className="btn-print">
+      <div className="invoice-actions no-print flex-col sm:flex-row">
+        {/* Imprimir a la izquierda y Volver a la derecha; en mobile, a lo ancho con Volver abajo. */}
+        <SpotlightButton variant="primary" onClick={() => window.print()} className="w-full sm:w-auto px-5 py-2 text-sm">
           <PrintOutlinedIcon fontSize="small" /> Imprimir / Guardar PDF
-        </button>
+        </SpotlightButton>
+        <BackButton onClick={() => navigate('/bill')} label="Volver al listado" className="w-full sm:w-auto px-5 py-2 text-sm" />
       </div>
 
       {itemPages.map((pageItems, pageIdx) => (

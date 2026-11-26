@@ -90,3 +90,16 @@ class TestReportRepositoryGetPayments:
         cliente = db_setup['cliente']
         result = list(repo.get_payments(cliente.id, date(2025, 3, 1), date(2025, 3, 31)))
         assert result == []
+
+    def test_no_retorna_pagos_anulados(self, db_setup, repo):
+        cliente = db_setup['cliente']
+        tipo_pago = db_setup['tipo_pago']
+
+        current = make_client_payment(cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 10), importe=Decimal('400'))
+        make_client_payment(
+            cliente=cliente, tipo_pago=tipo_pago, fecha_pago=date(2025, 3, 12), importe=Decimal('900'),
+            estado_pago='ANULADO', fecha_anulacion=date(2025, 3, 15),
+        )
+
+        result = list(repo.get_payments(cliente.id, date(2025, 3, 1), date(2025, 3, 31)))
+        assert [payment.id for payment in result] == [current.id]

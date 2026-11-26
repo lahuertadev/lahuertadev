@@ -18,7 +18,7 @@ No incluye: datos de prueba ni modo "demo". Todo lo que se carga durante un tuto
 |---|---|---|---|
 | Clientes | `clients` | Clientes → Nuevo cliente | Alta de un cliente (con o sin lista de precios, con o sin dirección de entrega, con sus contactos) y, en el listado, cómo ver el detalle, editar y eliminar. |
 | Facturación | `bills` | Facturación → Nueva factura | Qué hay en Facturas y en Remitos, y cómo hacer una factura (precio de la lista o a mano según el cliente). |
-| Pagos de Clientes | `client-payments` | Pagos de Clientes → Nuevo pago | Registrar un pago (con los datos del cheque si es con cheque) y las acciones del listado. |
+| Pagos de Clientes | `client-payments` | Pagos de Clientes → Nuevo pago | Registrar un pago (con uno o varios cheques si es con cheque) y las acciones del listado, incluida Anular. |
 | Compras | `purchases` | Compras → Nueva compra → Carga simple | Diferencia entre carga simple y masiva, cargar una compra simple y las acciones del listado. |
 | Vacíos | `empty-movements` | Vacíos → Nuevo movimiento → Carga de vacíos | Diferencia entre carga y devolución, cargar un movimiento (proveedor, fecha, comprobante y renglones) y las acciones del listado. |
 | Cheques emitidos | `own-checks` | Cheques emitidos → Nuevo cheque | Registrar un cheque propio (número, banco, importe y fechas, con la de depósito si es diferido) y, en el listado, cómo verlo, editarlo, cobrarlo o anularlo. |

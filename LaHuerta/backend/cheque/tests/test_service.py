@@ -69,6 +69,13 @@ class FakePaymentRepo:
         self.deleted.append(payment)
 
 
+class FakeClientPaymentRepo:
+    def update(self, payment, data):
+        for field, value in data.items():
+            setattr(payment, field, value)
+        return payment
+
+
 def _make_service(with_client_repo=False, with_supplier_repo=False):
     repo = Mock()
     repo.update.side_effect = lambda check, data: [setattr(check, k, v) for k, v in data.items()]
@@ -76,6 +83,7 @@ def _make_service(with_client_repo=False, with_supplier_repo=False):
     supplier_repo = FakeSupplierRepo() if with_supplier_repo else None
     service = CheckService(
         repo, client_repository=client_repo, supplier_repository=supplier_repo, payment_repository=FakePaymentRepo(),
+        client_payment_repository=FakeClientPaymentRepo(),
     )
     return service, repo, client_repo, supplier_repo
 
@@ -96,6 +104,14 @@ def test_endorse_invalid_state():
     check = _make_check(estado_descripcion='DEPOSITADO')
     with pytest.raises(CheckInvalidStateException):
         service.endorse_check(check, pago_compra=Mock())
+
+
+def test_endorse_cheque_de_un_pago_de_cliente_anulado_lanza_excepcion():
+    service, repo, _, __ = _make_service()
+    check = _make_check(estado_descripcion='ANULADO')
+    with pytest.raises(CheckInvalidStateException):
+        service.endorse_check(check, pago_compra=Mock())
+    repo.update.assert_not_called()
 
 
 @pytest.mark.django_db
@@ -121,6 +137,14 @@ def test_deposit_invalid_state():
     check = _make_check(estado_descripcion='DEPOSITADO')
     with pytest.raises(CheckInvalidTransitionException):
         service.deposit_check(check)
+
+
+def test_deposit_cheque_de_un_pago_de_cliente_anulado_lanza_excepcion():
+    service, repo, _, __ = _make_service()
+    check = _make_check(estado_descripcion='ANULADO')
+    with pytest.raises(CheckInvalidTransitionException):
+        service.deposit_check(check)
+    repo.update.assert_not_called()
 
 
 @pytest.mark.django_db
@@ -180,17 +204,35 @@ def test_reject_success():
 
 
 @pytest.mark.django_db
-def test_reject_con_pago_cliente_revierte_cc():
+def test_reject_con_pago_cliente_revierte_cc_y_anula_el_pago():
     make_check_state(descripcion='RECHAZADO')
     service, _, client_repo, __ = _make_service(with_client_repo=True)
     client = mock_client(cuenta_corriente=Decimal('3000.00'))
-    pago_cliente = mock_client_payment(importe=Decimal('2000.00'), cliente=client)
-    check = _make_check(estado_descripcion='DEPOSITADO', pago_cliente=pago_cliente)
+    check = _make_check(estado_descripcion='DEPOSITADO')
+    pago_cliente = mock_client_payment(importe=Decimal('2000.00'), cliente=client, cheques=[check])
 
     service.reject_check(check)
 
     assert client.cuenta_corriente == Decimal('5000.00')
     assert len(client_repo.updated) == 1
+    assert pago_cliente.estado_pago == 'ANULADO'
+    assert pago_cliente.motivo_anulacion == f'Cheque rechazado: N° {check.numero}'
+
+
+@pytest.mark.django_db
+def test_reject_de_uno_de_varios_cheques_del_pago_de_cliente_devuelve_solo_su_importe():
+    make_check_state(descripcion='RECHAZADO')
+    service, _, __, ___ = _make_service(with_client_repo=True)
+    client = mock_client(cuenta_corriente=Decimal('0.00'))
+    rejected = _make_check(estado_descripcion='DEPOSITADO', importe='1000.00')
+    other = _make_check(estado_descripcion='EN_CARTERA', importe='2500.00')
+    pago_cliente = mock_client_payment(importe=Decimal('3500.00'), cliente=client, cheques=[rejected, other])
+
+    service.reject_check(rejected)
+
+    assert client.cuenta_corriente == Decimal('1000.00')
+    assert pago_cliente.importe == Decimal('2500.00')
+    assert pago_cliente.estado_pago == 'VIGENTE'
 
 
 @pytest.mark.django_db
@@ -236,14 +278,9 @@ def test_reject_desde_endosado_revierte_cc_cliente_y_proveedor():
     service, _, client_repo, supplier_repo = _make_service(with_client_repo=True, with_supplier_repo=True)
     client = mock_client(cuenta_corriente=Decimal('3000.00'))
     supplier = mock_supplier(cuenta_corriente=Decimal('5000.00'))
-    pago_cliente = mock_client_payment(importe=Decimal('2000.00'), cliente=client)
     pago_compra = mock_purchase_payment(importe_abonado=Decimal('2000.00'), proveedor=supplier)
-    check = _make_check(
-        endosado=True,
-        estado_descripcion='ENDOSADO',
-        pago_cliente=pago_cliente,
-        pago_compra=pago_compra,
-    )
+    check = _make_check(endosado=True, estado_descripcion='ENDOSADO', pago_compra=pago_compra)
+    mock_client_payment(importe=Decimal('2000.00'), cliente=client, cheques=[check])
 
     service.reject_check(check)
 

@@ -1,5 +1,6 @@
 import logging
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from .repositories import ClientPaymentRepository
 from .interfaces import IClientPaymentRepository
@@ -8,12 +9,13 @@ from .serializers import (
     ClientPaymentResponseSerializer,
     ClientPaymentSerializer,
     ClientPaymentQueryParamsSerializer,
+    ClientPaymentCancelSerializer,
 )
 from .exceptions import (
     ClientPaymentNotFoundException,
-    PaymentTypeChangeBlockedException,
     CheckAlreadyExistsException,
-    PaymentDeletionBlockedException,
+    PaymentCancelBlockedException,
+    PaymentEditBlockedException,
     CheckEditBlockedException,
 )
 from .factory import build_client_payment_service
@@ -35,7 +37,7 @@ class ClientPaymentViewSet(viewsets.ViewSet):
 
     def list(self, request):
         '''
-        Lista todos los pagos. Acepta filtros por cliente, importe, fecha y tipo de pago.
+        Lista todos los pagos. Acepta filtros por cliente, importe, fecha, tipo de pago y estado.
         '''
         params_serializer = ClientPaymentQueryParamsSerializer(data=request.query_params)
         params_serializer.is_valid(raise_exception=True)
@@ -54,7 +56,7 @@ class ClientPaymentViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         '''
-        Devuelve el detalle de un pago con sus imputaciones a facturas.
+        Devuelve el detalle de un pago con su cheque, si tiene.
         '''
         try:
             payment = self.repository.get_by_id(pk)
@@ -113,13 +115,10 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         except ClientPaymentNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except PaymentTypeChangeBlockedException as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
         except CheckAlreadyExistsException as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        except CheckEditBlockedException as e:
+        except (CheckEditBlockedException, PaymentEditBlockedException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
@@ -148,13 +147,10 @@ class ClientPaymentViewSet(viewsets.ViewSet):
         except ClientPaymentNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except PaymentTypeChangeBlockedException as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
         except CheckAlreadyExistsException as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        except CheckEditBlockedException as e:
+        except (CheckEditBlockedException, PaymentEditBlockedException) as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
@@ -164,23 +160,28 @@ class ClientPaymentViewSet(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    def destroy(self, request, pk=None):
+    @action(detail=True, methods=['post'], url_path='cancel')
+    def cancel(self, request, pk=None):
         '''
-        Elimina un pago y revierte el descuento en la cuenta corriente del cliente.
+        Anula el pago. Queda como registro con estado Anulado.
         '''
+        serializer = ClientPaymentCancelSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            self.service.delete_payment(payment_id=pk)
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            payment = self.service.cancel_payment(payment_id=pk, reason=serializer.validated_data['motivo'])
+            return Response(ClientPaymentResponseSerializer(payment).data, status=status.HTTP_200_OK)
 
         except ClientPaymentNotFoundException as e:
             return Response({'detail': str(e)}, status=status.HTTP_404_NOT_FOUND)
 
-        except PaymentDeletionBlockedException as e:
+        except PaymentCancelBlockedException as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception:
-            logger.exception("Error al eliminar pago de cliente pk=%s", pk)
+            logger.exception("Error al anular pago de cliente pk=%s", pk)
             return Response(
-                {'detail': 'Error al eliminar el pago.'},
+                {'detail': 'Error al anular el pago.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

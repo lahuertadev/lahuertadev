@@ -1,270 +1,225 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Formik, Form } from 'formik';
-import * as Yup from 'yup';
-import AlertDialog from '../DialogAlert';
-import RoundedCheckbox from '../RoundedCheckbox';
-import Toast from '../Toast';
 import { useNavigate } from 'react-router-dom';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { breadcrumbsMap } from '../../constants/breadcrumbs';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import AddIcon from '@mui/icons-material/AddCircleOutline';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import AlertDialog from '../DialogAlert';
+import DeleteMessage from '../DeleteMessage';
+import LockedIcon from '../LockedIcon';
+import { useToast } from '../../context/ToastContext';
+import { breadcrumbsMap } from '../../constants/breadcrumbs';
+import { extractErrorMessage } from '../../utils/errors';
+import { normalizeText } from '../../utils/text';
+
+const SYSTEM_RECORD_REASON = 'Registro del sistema: no se puede editar ni eliminar.';
+
+const fieldCls = (hasError) =>
+  `w-full h-10 rounded-lg border bg-surface-card px-3 text-sm text-on-surface placeholder:text-on-surface-muted/70 focus:outline-none focus:ring-2 ${
+    hasError ? 'border-red-400 ring-1 ring-red-400' : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
+  }`;
+
+const tileCls = 'flex min-h-[7.5rem] flex-col gap-3 rounded-xl border p-4';
+
+// Inicial del registro, en un cuadrado con el color de acento (como las tarjetas del Inicio).
+const Initial = ({ text }) => (
+  <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent/15 text-sm font-bold text-accent">
+    {(text || '+').trim().charAt(0).toUpperCase()}
+  </span>
+);
+
+// Tarjeta en edición: el campo, el error y Cancelar / Guardar. Enter guarda y Escape cancela.
+const EditTile = ({ initialValue, label, placeholder, maxLength, onSave, onCancel, saving }) => {
+  const [value, setValue] = useState(initialValue);
+  const [error, setError] = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const trimmed = value.trim();
+    if (!trimmed) return setError('Escribí la descripción.');
+    if (trimmed.length > maxLength) return setError(`Máximo ${maxLength} caracteres.`);
+    const backendError = await onSave(trimmed);
+    if (backendError) setError(backendError);
+  };
+
+  return (
+    <form onSubmit={submit} className={`${tileCls} border-accent/60 bg-surface-card`} aria-label={label}>
+      <div className="flex items-center gap-3">
+        <Initial text={value} />
+        <span className="text-sm font-semibold text-on-surface">{label}</span>
+      </div>
+      <div>
+        <input
+          autoFocus
+          value={value}
+          onChange={(e) => { setValue(e.target.value); setError(''); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') onCancel(); }}
+          placeholder={placeholder}
+          aria-label="Descripción"
+          aria-invalid={Boolean(error)}
+          className={fieldCls(Boolean(error))}
+        />
+        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+      </div>
+      <div className="mt-auto flex justify-end gap-1">
+        <IconButton size="small" onClick={onCancel} aria-label="Cancelar" sx={{ color: 'var(--color-on-surface-muted)' }}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" type="submit" disabled={saving} aria-label="Guardar" sx={{ color: 'var(--color-accent)' }}>
+          <CheckIcon fontSize="small" />
+        </IconButton>
+      </div>
+    </form>
+  );
+};
 
 /**
- * SimpleCatalog — CRUD inline reutilizable para catálogos de un solo campo.
+ * SimpleCatalog — pantalla de un catálogo de un solo campo (Mercados, Bancos, Categorías, Condición de IVA):
+ * cada registro es una tarjeta, como las del Inicio, con renombrar y eliminar; la tarjeta "+ Nuevo" agrega.
+ * Se edita en la misma tarjeta. Un registro del sistema (is_system) muestra el candado y no se toca.
  *
  * Props:
- *   url          — endpoint base (string), ej: ConditionIvaTypeUrl
- *   title        — nombre del catálogo, ej: "Condición de IVA"
- *   breadcrumbKey — clave en breadcrumbsMap, ej: '/condition-iva-type'
- *   fieldLabel   — label del campo (default: 'Descripción')
- *   fieldName    — nombre del campo en el modelo (default: 'descripcion')
- *   placeholder  — placeholder del input (default: '')
- *   maxLength    — validación máximo de caracteres (default: 100)
- *   multiSelect  — habilita checkboxes y eliminación múltiple (default: true)
+ *   url           — endpoint base, ej: marketUrl
+ *   title         — nombre del catálogo en plural, ej: "Mercados"
+ *   itemLabel     — un registro, en singular y minúscula, ej: "mercado" (para "Editar mercado")
+ *   newLabel      — texto de la tarjeta de alta, ej: "Nuevo mercado" / "Nueva categoría"
+ *   subtitle      — opcional: para qué sirve el catálogo
+ *   breadcrumbKey — clave en breadcrumbsMap, ej: '/market'
+ *   fieldName     — campo del modelo (default 'descripcion')
+ *   placeholder   — placeholder del campo
+ *   maxLength     — máximo de caracteres (default 100)
  */
 const SimpleCatalog = ({
   url,
   title,
+  itemLabel,
+  newLabel,
+  subtitle,
   breadcrumbKey,
-  fieldLabel = 'Descripción',
   fieldName = 'descripcion',
   placeholder = '',
   maxLength = 100,
-  multiSelect = true,
 }) => {
   const navigate = useNavigate();
-  const isMobile = useMediaQuery('(max-width:600px)');
-  const formRef = React.useRef(null);
+  const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState('');
   const [itemToDelete, setItemToDelete] = useState(null);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [toast, setToast] = useState({ open: false, message: '' });
 
   const breadcrumbs = breadcrumbsMap[breadcrumbKey] || [];
-
-  const validationSchema = Yup.object().shape({
-    [fieldName]: Yup.string().max(maxLength, `Máximo ${maxLength} caracteres`).required('Requerido'),
-  });
 
   const fetchItems = async () => {
     setLoading(true);
     try {
       const response = await axios.get(url);
       const list = Array.isArray(response.data) ? response.data : [];
-      setRows(list.map(item => ({ id: item.id, [fieldName]: item[fieldName], isSystem: item.is_system })));
+      setRows(list.map((item) => ({ id: item.id, name: item[fieldName], isSystem: item.is_system })));
     } catch (err) {
       console.error('Error cargando datos:', err);
+      showToast(extractErrorMessage(err, 'No se pudo cargar el listado.'), { variant: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => { fetchItems(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmit = async (values, { resetForm }) => {
+  const visibleRows = useMemo(() => {
+    const term = normalizeText(query).trim();
+    return rows
+      .filter((row) => !term || normalizeText(row.name).includes(term))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }, [rows, query]);
+
+  // Devuelve el error del backend para mostrarlo en la tarjeta, o null si se guardó.
+  const save = async (name, id = null) => {
+    setSaving(true);
     try {
-      if (editingId) {
-        await axios.put(`${url}${editingId}/`, values);
+      if (id) {
+        await axios.put(`${url}${id}/`, { [fieldName]: name });
+        showToast(`"${name}" se actualizó correctamente.`);
         setEditingId(null);
       } else {
-        await axios.post(url, values);
+        await axios.post(url, { [fieldName]: name });
+        showToast(`"${name}" se agregó correctamente.`);
+        setAdding(false);
       }
-      resetForm();
       fetchItems();
+      return null;
     } catch (err) {
       console.error('Error guardando:', err);
-      const msg = err?.response?.data?.error || err?.response?.data?.detail || 'Registro duplicado. Por favor, verificá la información.';
-      setToast({ open: true, message: msg });
+      return extractErrorMessage(err, 'No se pudo guardar. Revisá que no haya otro registro con esa descripción.');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleEdit = (id) => {
-    setEditingId(id);
-    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
-  };
-
-  const handleCancel = (resetForm) => {
-    setEditingId(null);
-    resetForm();
-  };
-
-  const selectableRows = rows.filter(r => !r.isSystem);
-
-  const toggleSelectAll = () => {
-    setSelectedIds(selectedIds.length === selectableRows.length ? [] : selectableRows.map(r => r.id));
-  };
-
-  const toggleSelectOne = (id) => {
-    const row = rows.find(r => r.id === id);
-    if (row?.isSystem) return;
-    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
-  const handleDeleteConfirm = async () => {
+  const confirmDelete = async () => {
+    const item = itemToDelete;
+    setItemToDelete(null);
     try {
-      if (itemToDelete) {
-        await axios.delete(`${url}${itemToDelete}/`);
-      } else {
-        await Promise.all(selectedIds.map(id => axios.delete(`${url}${id}/`)));
-        setSelectedIds([]);
-      }
+      await axios.delete(`${url}${item.id}/`);
+      showToast(`"${item.name}" se eliminó correctamente.`);
       fetchItems();
     } catch (err) {
       console.error('Error eliminando:', err);
-      setToast({ open: true, message: err.message });
-    } finally {
-      setOpenConfirmDialog(false);
-      setItemToDelete(null);
-      setEditingId(null);
+      showToast(extractErrorMessage(err, `No se pudo eliminar "${item.name}".`), { variant: 'error' });
     }
   };
 
-  const getInitialValues = () => {
-    if (editingId) {
-      const item = rows.find(r => r.id === editingId);
-      return { [fieldName]: item?.[fieldName] || '' };
-    }
-    return { [fieldName]: '' };
-  };
-
-  const colSpan = multiSelect ? 4 : 3;
+  const startEdit = (id) => { setAdding(false); setEditingId(id); };
+  const startAdd = () => { setEditingId(null); setAdding(true); };
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
-      <Toast
-        open={toast.open}
-        message={toast.message}
-        onClose={() => setToast({ open: false, message: '' })}
-      />
-
-      {/* Breadcrumbs */}
       {breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-2 text-sm font-medium text-on-surface-muted">
           {breadcrumbs.map((crumb, i) => (
-            <React.Fragment key={i}>
+            <React.Fragment key={crumb.label}>
               {i > 0 && <span className="text-xs">›</span>}
               {crumb.path ? (
-                <span className="hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(crumb.path)}>
-                  {crumb.label}
-                </span>
+                <span className="hover:text-accent cursor-pointer transition-colors" onClick={() => navigate(crumb.path)}>{crumb.label}</span>
               ) : (
-                <span className="text-on-surface font-semibold">{crumb.label}</span>
+                <span className={i === breadcrumbs.length - 1 ? 'text-on-surface font-semibold' : ''}>{crumb.label}</span>
               )}
             </React.Fragment>
           ))}
         </nav>
       )}
 
-      {/* Card: formulario */}
-      <div ref={formRef} className="bg-surface-card p-6 rounded-xl shadow-sm border border-border-subtle">
-        <h2 className="text-lg font-semibold text-on-surface mb-4">
-          {editingId ? `Editar ${title}` : `Nueva ${title}`}
-        </h2>
-        <Formik
-          initialValues={getInitialValues()}
-          validationSchema={validationSchema}
-          onSubmit={handleSubmit}
-          enableReinitialize
-        >
-          {({ values, handleChange, errors, touched, resetForm }) => (
-            <Form>
-              <div className="group">
-                <label className="block text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider mb-1 group-focus-within:text-blue-lahuerta transition-colors">
-                  {fieldLabel}
-                </label>
-                {isMobile ? (
-                  <div className="flex flex-col gap-3">
-                    <input
-                      name={fieldName}
-                      type="text"
-                      value={values[fieldName]}
-                      onChange={handleChange}
-                      placeholder={placeholder}
-                      className={`w-full h-11 bg-surface-low px-4 rounded-lg border focus:outline-none focus:ring-2 transition-all text-sm text-on-surface placeholder:text-gray-400 ${
-                        touched[fieldName] && errors[fieldName]
-                          ? 'border-red-400 ring-2 ring-red-100 focus:border-red-400 focus:ring-red-100'
-                          : 'border-transparent focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
-                      }`}
-                    />
-                    <button
-                      type="submit"
-                      className="w-full h-11 flex items-center justify-center gap-2 bg-blue-lahuerta text-white rounded-lg font-semibold text-sm hover:bg-blue-lahuerta/90 active:scale-95 transition-all shadow-sm"
-                    >
-                      {!editingId && <AddIcon fontSize="small" />}
-                      {editingId ? 'Actualizar' : 'Agregar'}
-                    </button>
-                    {editingId && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleCancel(resetForm)}
-                          className="flex-1 h-11 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setItemToDelete(editingId); setOpenConfirmDialog(true); }}
-                          className="flex-1 h-11 rounded-lg border border-red-200 text-red-500 text-sm font-medium hover:bg-red-50 transition-all"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex gap-3">
-                    <input
-                      name={fieldName}
-                      type="text"
-                      value={values[fieldName]}
-                      onChange={handleChange}
-                      placeholder={placeholder}
-                      className={`flex-1 h-10 bg-surface-low px-4 rounded-lg border focus:outline-none focus:ring-2 transition-all text-sm text-on-surface placeholder:text-gray-400 ${
-                        touched[fieldName] && errors[fieldName]
-                          ? 'border-red-400 ring-2 ring-red-100 focus:border-red-400 focus:ring-red-100'
-                          : 'border-transparent focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
-                      }`}
-                    />
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        type="submit"
-                        className="h-10 flex items-center gap-2 bg-blue-lahuerta text-white px-6 rounded-lg font-semibold text-sm hover:bg-blue-lahuerta/90 active:scale-95 transition-all shadow-sm"
-                      >
-                        {!editingId && <AddIcon fontSize="small" />}
-                        {editingId ? 'Actualizar' : 'Agregar'}
-                      </button>
-                      {editingId && (
-                        <button
-                          type="button"
-                          onClick={() => handleCancel(resetForm)}
-                          className="h-10 px-5 rounded-lg border border-border-subtle text-on-surface-muted text-sm font-medium hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:font-bold transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {touched[fieldName] && errors[fieldName] && (
-                  <p className="mt-1 text-xs text-red-500">{errors[fieldName]}</p>
-                )}
-              </div>
-            </Form>
-          )}
-        </Formik>
-      </div>
-
-      {/* Card: tabla */}
-      <div className="bg-surface-card rounded-xl shadow-sm border border-border-subtle overflow-hidden">
-        <div className="px-6 py-4 border-b border-border-subtle bg-surface-low/30">
-          <h3 className="font-semibold text-on-surface">Listado de {title}</h3>
+      <section className="bg-surface-card rounded-xl shadow-sm border border-border-subtle">
+        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-on-surface">
+              {title}
+              {!loading && (
+                <span className="rounded-full border border-border-subtle bg-surface-low px-2 py-0.5 text-xs font-semibold text-on-surface-muted">
+                  {rows.length}
+                </span>
+              )}
+            </h2>
+            {subtitle && <p className="mt-1 text-sm text-on-surface-muted">{subtitle}</p>}
+          </div>
+          <div className="relative w-full sm:w-64">
+            <SearchIcon sx={{ fontSize: 18 }} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-muted" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar…"
+              aria-label={`Buscar ${title.toLowerCase()}`}
+              className={`${fieldCls(false)} pl-9`}
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -272,118 +227,78 @@ const SimpleCatalog = ({
             <div className="w-10 h-10 border-4 border-gray-200 border-t-blue-lahuerta rounded-full animate-spin" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-surface-low/50">
-                  {multiSelect && !isMobile && (
-                    <th className="px-4 py-4 w-10">
-                      <RoundedCheckbox
-                        checked={selectableRows.length > 0 && selectedIds.length === selectableRows.length}
-                        indeterminate={selectedIds.length > 0 && selectedIds.length < selectableRows.length}
-                        onChange={toggleSelectAll}
-                      />
-                    </th>
+          <div className="grid grid-cols-1 gap-3 px-5 pb-6 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
+            {visibleRows.map((row) => (editingId === row.id ? (
+              <EditTile
+                key={row.id}
+                initialValue={row.name}
+                label={`Editar ${itemLabel}`}
+                placeholder={placeholder}
+                maxLength={maxLength}
+                saving={saving}
+                onSave={(name) => save(name, row.id)}
+                onCancel={() => setEditingId(null)}
+              />
+            ) : (
+              <article key={row.id} className={`${tileCls} border-border-subtle bg-surface-low/60 transition-colors hover:border-accent/40`}>
+                <div className="flex min-w-0 items-center gap-3">
+                  <Initial text={row.name} />
+                  <Tooltip title={row.name} placement="top" arrow disableHoverListener={row.name.length < 24}>
+                    <span className="truncate text-sm font-semibold text-on-surface">{row.name}</span>
+                  </Tooltip>
+                </div>
+                <div className="mt-auto flex justify-end gap-1">
+                  {row.isSystem ? (
+                    <LockedIcon title={SYSTEM_RECORD_REASON} />
+                  ) : (
+                    <>
+                      <IconButton size="small" onClick={() => startEdit(row.id)} aria-label={`Editar ${row.name}`} sx={{ color: 'var(--color-on-surface-muted)', '&:hover': { color: 'var(--color-accent)' } }}>
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => setItemToDelete(row)} aria-label={`Eliminar ${row.name}`} sx={{ color: 'var(--color-on-surface-muted)', '&:hover': { color: '#ef4444' } }}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </>
                   )}
-                  <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center">
-                    {fieldLabel}
-                  </th>
-                  {!isMobile && (
-                    <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center w-24">
-                      Editar
-                    </th>
-                  )}
-                  {!isMobile && (
-                    <th className="px-6 py-4 text-[0.6875rem] font-bold text-on-surface-muted uppercase tracking-wider text-center w-24">
-                      Eliminar
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-subtle">
-                {rows.map(row => (
-                  <tr
-                    key={row.id}
-                    onClick={isMobile && !row.isSystem ? () => handleEdit(row.id) : undefined}
-                    className={`hover:bg-surface-low transition-colors duration-150 ${isMobile && !row.isSystem ? 'cursor-pointer' : ''} ${multiSelect && selectedIds.includes(row.id) ? 'bg-blue-lahuerta/5' : ''}`}
-                  >
-                    {multiSelect && !isMobile && (
-                      <td className="px-4 py-4 w-10">
-                        <RoundedCheckbox
-                          checked={selectedIds.includes(row.id)}
-                          onChange={() => toggleSelectOne(row.id)}
-                          disabled={row.isSystem}
-                        />
-                      </td>
-                    )}
-                    <td className="px-6 py-4 text-sm text-on-surface text-center">{row[fieldName]}</td>
-                    {!isMobile && (
-                      <td className="px-6 py-4 text-center">
-                        {!row.isSystem && (
-                          <button
-                            onClick={() => handleEdit(row.id)}
-                            className="p-2 text-on-surface-muted hover:text-accent hover:bg-blue-lahuerta/10 rounded-lg transition-all"
-                            title="Editar"
-                          >
-                            <EditIcon fontSize="small" />
-                          </button>
-                        )}
-                      </td>
-                    )}
-                    {!isMobile && (
-                      <td className="px-6 py-4 text-center">
-                        {!row.isSystem && (
-                          <button
-                            onClick={() => { setItemToDelete(row.id); setOpenConfirmDialog(true); }}
-                            className="p-2 text-on-surface-muted hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                            title="Eliminar"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </button>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr>
-                    <td colSpan={colSpan} className="px-6 py-10 text-center text-sm text-on-surface-muted">
-                      No hay {title.toLowerCase()} cargados.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                </div>
+              </article>
+            )))}
+
+            {query && visibleRows.length === 0 && (
+              <p className="col-span-full py-6 text-center text-sm text-on-surface-muted">No hay {title.toLowerCase()} que coincidan con "{query}".</p>
+            )}
+
+            {adding ? (
+              <EditTile
+                initialValue=""
+                label={newLabel}
+                placeholder={placeholder}
+                maxLength={maxLength}
+                saving={saving}
+                onSave={(name) => save(name)}
+                onCancel={() => setAdding(false)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={startAdd}
+                className={`${tileCls} items-center justify-center border-dashed border-accent/50 bg-transparent text-sm font-semibold text-accent transition-colors hover:bg-accent/5`}
+              >
+                <AddCircleOutlineIcon />
+                {newLabel}
+              </button>
+            )}
           </div>
         )}
-
-        {/* Pie de tabla */}
-        <div className="px-6 py-4 border-t border-border-subtle bg-surface-low/10 flex justify-between items-center">
-          <p className="text-[0.6875rem] font-medium text-on-surface-muted">
-            {rows.length === 1 ? '1 resultado' : `${rows.length} resultados`}
-          </p>
-          {multiSelect && selectedIds.length > 0 && (
-            <button
-              onClick={() => { setItemToDelete(null); setOpenConfirmDialog(true); }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition-all"
-            >
-              <DeleteIcon fontSize="small" />
-              Eliminar {selectedIds.length} seleccionado{selectedIds.length !== 1 ? 's' : ''}
-            </button>
-          )}
-        </div>
-      </div>
+      </section>
 
       <AlertDialog
-        open={openConfirmDialog}
-        title="Confirmar eliminación"
-        message={
-          itemToDelete
-            ? '¿Estás seguro que querés eliminar este elemento?'
-            : `¿Estás seguro que querés eliminar los ${selectedIds.length} elementos seleccionados?`
-        }
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => { setOpenConfirmDialog(false); setItemToDelete(null); }}
+        open={Boolean(itemToDelete)}
+        title={`Eliminar ${itemLabel}`}
+        message={itemToDelete && <DeleteMessage summary={<>Se elimina <b>{itemToDelete.name}</b>. No se puede deshacer.</>} />}
+        confirmLabel="Eliminar"
+        onConfirm={confirmDelete}
+        onCancel={() => setItemToDelete(null)}
       />
     </div>
   );

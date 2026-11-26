@@ -19,7 +19,7 @@ const mapClientData = (data) => {
       ivaCondition: client.condicion_IVA.descripcion,
       phone: getMainPhone(client.contactos),
       salesStartDate: formatDate(client.fecha_inicio_ventas),
-      fantasyName: client.nombre_fantasia,
+      fantasyName: client.nombre_fantasia || client.razon_social,
       state: client.estado ? 'Activo' : 'Inactivo'
   }));
 };
@@ -51,6 +51,17 @@ const data = {
     { label: 'Dirección', name: 'address', type: 'text' },
   ],
   newLabelText: 'Nuevo cliente',
+  // Detalle, Editar y Eliminar en una sola columna "Acción" (como Pagos de Clientes).
+  groupActions: true,
+  // Solapas Activos / Inactivos debajo del título (parámetro state del backend), como en Pagos de Clientes.
+  tabs: {
+    param: 'state',
+    ariaLabel: 'Estado de los clientes',
+    options: [
+      { label: 'Activos', value: 'ACTIVO' },
+      { label: 'Inactivos', value: 'INACTIVO', tone: 'danger' },
+    ],
+  },
 };
 
 const ClientsList = () => {

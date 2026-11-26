@@ -5,7 +5,7 @@ class IClientPaymentRepository(ABC):
 
     @abstractmethod
     def get_all(self, client_id=None, business_name=None, amount_min=None, amount_max=None,
-                date_from=None, date_to=None, payment_type_id=None):
+                date_from=None, date_to=None, payment_type_id=None, state=None):
         pass
 
     @abstractmethod
@@ -22,8 +22,4 @@ class IClientPaymentRepository(ABC):
 
     @abstractmethod
     def update(self, payment, data: dict):
-        pass
-
-    @abstractmethod
-    def delete(self, payment):
         pass

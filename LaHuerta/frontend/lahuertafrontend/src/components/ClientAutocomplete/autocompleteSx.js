@@ -6,7 +6,10 @@ export const autocompleteSx = (hasError, disabled) => ({
     borderRadius: '0.5rem',
     minHeight: '2.75rem',
     fontSize: '0.875rem',
-    padding: '0 !important',
+    // Sin padding arriba, abajo ni a la izquierda; el derecho lo deja MUI para la flecha y la cruz de borrar.
+    paddingTop: '0 !important',
+    paddingBottom: '0 !important',
+    paddingLeft: '0 !important',
     '& fieldset': { borderColor: hasError ? '#f87171' : 'var(--color-border-subtle)' },
     '&:hover fieldset': { borderColor: hasError ? '#f87171' : '#4a7bc4' },
     '&.Mui-focused fieldset': { borderColor: '#4a7bc4', borderWidth: '1px' },

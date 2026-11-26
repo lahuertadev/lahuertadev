@@ -4,6 +4,7 @@ import { paymentTypeUrl, purchasePaymentUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/PagoCompra';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate } from '../../../utils/date';
+import { formatDocumentNumber } from '../../../utils/documentNumber';
 import GenericList from '../../../components/List';
 import CancelPaymentMessage from '../shared/CancelPaymentMessage';
 import BlockIcon from '@mui/icons-material/Block';
@@ -22,6 +23,7 @@ const conceptOf = (buys) => (buys.length === 0 ? ON_ACCOUNT_LABEL : purchaseCoun
 const mapPaymentData = (data) => {
   return data.map((p) => ({
     id: p.id,
+    number: formatDocumentNumber(p.id),
     paymentDate: formatDate(p.fecha_pago),
     // Primero el puesto, que es como identifican al proveedor; si el nombre es largo, la celda lo corta con "…".
     supplier: p.proveedor ? `Puesto ${p.proveedor.puesto} - ${p.proveedor.nombre}` : '-',

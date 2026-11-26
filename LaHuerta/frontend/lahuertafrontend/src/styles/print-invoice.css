@@ -10,20 +10,6 @@
   max-width: 210mm;
   justify-content: space-between;
 }
-.btn-print {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #4a7bc4;
-  color: #fff;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-.btn-print:hover { opacity: 0.9; }
 
 /* ── Página ── */
 .invoice-page {

@@ -1,10 +1,6 @@
-import React, { useState } from 'react';
-import IconButton from '@mui/material/IconButton';
-import Collapse from '@mui/material/Collapse';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import CountUp from '../../../components/CountUp';
+import React from 'react';
+import CardListFooter from '../../../components/CardListFooter';
+import CollapsibleCard, { useCollapsedKeys } from '../../../components/CollapsibleCard';
 import RequiredMark from '../../../components/RequiredMark';
 import { formatCurrency } from '../../../utils/currency';
 
@@ -39,10 +35,7 @@ export const entryAmount = (entry, options) => {
  *   emptyText   — aviso cuando no hay cheques para elegir
  */
 const PaymentChecksList = ({ entries, onChange, options, errors = {}, emptyText }) => {
-  const [collapsedKeys, setCollapsedKeys] = useState([]);
-
-  const toggleCollapsed = (key) =>
-    setCollapsedKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  const { isCollapsed, toggle, collapseOnly } = useCollapsedKeys();
 
   const updateEntry = (key, changes) =>
     onChange(entries.map((entry) => (entry.key === key ? { ...entry, ...changes } : entry)));
@@ -53,7 +46,7 @@ const PaymentChecksList = ({ entries, onChange, options, errors = {}, emptyText 
 
   // Al agregar uno nuevo se compactan los ya completos, para que la lista no crezca de más.
   const addEntry = () => {
-    setCollapsedKeys(entries.filter((entry) => entry.id).map((entry) => entry.key));
+    collapseOnly(entries.filter((entry) => entry.id).map((entry) => entry.key));
     onChange([...entries, newCheckEntry()]);
   };
 
@@ -68,97 +61,53 @@ const PaymentChecksList = ({ entries, onChange, options, errors = {}, emptyText 
     <div className="space-y-3">
       {entries.map((entry, position) => {
         const option = options.find((opt) => String(opt.value) === String(entry.id));
-        const collapsed = collapsedKeys.includes(entry.key);
         const entryErrors = errors[entry.key] || {};
         const available = options.filter(
           (opt) => String(opt.value) === String(entry.id) || !chosenIds.includes(String(opt.value))
         );
 
         return (
-          <div key={entry.key} className="rounded-xl border border-border-subtle bg-surface-card overflow-hidden">
-            {/* Encabezado: número, cheque elegido, importe y compactar/expandir */}
-            <div className={`flex items-center gap-3 px-3 sm:px-4 py-3 bg-surface-low/60 ${collapsed ? '' : 'border-b border-border-subtle'}`}>
-              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent">
-                {position + 1}
-              </span>
-
-              <div className="min-w-0 flex-1">
-                {option ? (
-                  <>
-                    <p className="truncate font-semibold text-on-surface">Cheque N° {option.numero}</p>
-                    <p className="truncate text-xs text-on-surface-muted">{option.banco}</p>
-                  </>
-                ) : (
-                  <p className="text-sm text-on-surface-muted">Elegí un cheque</p>
-                )}
+          <CollapsibleCard
+            key={entry.key}
+            position={position + 1}
+            title={option && `Cheque N° ${option.numero}`}
+            subtitle={option?.banco}
+            placeholder="Elegí un cheque"
+            amount={formatCurrency(entryAmount(entry, options))}
+            itemLabel="cheque"
+            collapsed={isCollapsed(entry.key)}
+            onToggle={() => toggle(entry.key)}
+            onRemove={entries.length > 1 ? () => removeEntry(entry.key) : undefined}
+          >
+            <div className="p-3 sm:p-4 grid grid-cols-1 gap-4">
+              <div className="flex flex-col gap-1">
+                <label className={labelCls} htmlFor={`check-${entry.key}`}>Cheque<RequiredMark /></label>
+                <select
+                  id={`check-${entry.key}`}
+                  value={entry.id}
+                  onChange={(e) => selectCheck(entry.key, e.target.value)}
+                  className={selectCls(Boolean(entryErrors.id))}
+                  aria-required="true"
+                >
+                  <option value="">Seleccionar cheque...</option>
+                  {available.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.name}</option>
+                  ))}
+                </select>
+                {entryErrors.id && <p className="mt-1 text-xs text-red-500">{entryErrors.id}</p>}
               </div>
-
-              <span className="flex-shrink-0 font-bold text-on-surface">
-                {formatCurrency(entryAmount(entry, options))}
-              </span>
-
-              <IconButton
-                size="small"
-                onClick={() => toggleCollapsed(entry.key)}
-                aria-label={collapsed ? 'Expandir cheque' : 'Compactar cheque'}
-                aria-expanded={!collapsed}
-                sx={{ color: 'var(--color-on-surface-muted)' }}
-              >
-                <ExpandMoreIcon
-                  fontSize="small"
-                  sx={{ transition: 'transform 200ms', transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)' }}
-                />
-              </IconButton>
-
-              {entries.length > 1 && (
-                <IconButton size="small" onClick={() => removeEntry(entry.key)} color="error" aria-label="Quitar cheque">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              )}
             </div>
-
-            <Collapse in={!collapsed} timeout={200}>
-              <div className="p-3 sm:p-4 grid grid-cols-1 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className={labelCls} htmlFor={`check-${entry.key}`}>Cheque<RequiredMark /></label>
-                  <select
-                    id={`check-${entry.key}`}
-                    value={entry.id}
-                    onChange={(e) => selectCheck(entry.key, e.target.value)}
-                    className={selectCls(Boolean(entryErrors.id))}
-                    aria-required="true"
-                  >
-                    <option value="">Seleccionar cheque...</option>
-                    {available.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.name}</option>
-                    ))}
-                  </select>
-                  {entryErrors.id && <p className="mt-1 text-xs text-red-500">{entryErrors.id}</p>}
-                </div>
-              </div>
-            </Collapse>
-          </div>
+          </CollapsibleCard>
         );
       })}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1">
-        {entries.length < options.length ? (
-          <button
-            type="button"
-            onClick={addEntry}
-            data-tour="payment-add-check"
-            className="flex items-center gap-1 bg-transparent border-none text-blue-lahuerta text-sm font-medium cursor-pointer hover:underline hover:underline-offset-2 focus:outline-none"
-            style={{ background: 'transparent', boxShadow: 'none' }}
-          >
-            <AddCircleOutlineIcon fontSize="small" /> Agregar cheque
-          </button>
-        ) : <span />}
-
-        <div className="text-right">
-          <span className="text-on-surface-muted text-sm mr-4">TOTAL DEL PAGO</span>
-          <CountUp value={total} className="text-xl font-bold text-on-surface" />
-        </div>
-      </div>
+      <CardListFooter
+        addLabel="Agregar cheque"
+        onAdd={entries.length < options.length ? addEntry : undefined}
+        addDataTour="payment-add-check"
+        totalLabel="TOTAL DEL PAGO"
+        total={total}
+      />
     </div>
   );
 };

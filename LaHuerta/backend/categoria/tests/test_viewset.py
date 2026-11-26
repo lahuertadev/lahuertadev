@@ -5,6 +5,7 @@ from rest_framework.test import APIRequestFactory
 from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
+from categoria.models import Categoria
 from categoria.views import CategoryViewSet
 from categoria.interfaces import ICategoryRepository
 from core.tests.mocks import mock_category
@@ -150,6 +151,18 @@ def test_create_validation_error(factory, viewset):
 
     assert response.status_code == 400
     assert "descripcion" in response.data
+
+
+@pytest.mark.django_db
+def test_create_duplicate_descripcion_in_spanish(factory, viewset):
+    Categoria.objects.create(descripcion="Verduras")
+
+    request = factory.post("/category/", {"descripcion": "Verduras"}, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.create(drf_request)
+
+    assert response.status_code == 400
+    assert response.data["descripcion"] == ["Ya existe una categoría con esa descripción."]
 
 
 # ------------------------- UPDATE --------------------------

@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.parsers import JSONParser
 
 from core.tests.mocks import mock_vat_condition
+from tipo_condicion_iva.models import TipoCondicionIva
 from tipo_condicion_iva.views import ConditionIvaTypeViewSet
 from tipo_condicion_iva.interfaces import IConditionIvaTypeRepository
 
@@ -102,6 +103,19 @@ def test_create_validation_error(factory, viewset):
 
     assert response.status_code == 400
     assert "descripcion" in response.data
+
+
+@pytest.mark.django_db
+def test_create_duplicate_descripcion_in_spanish(factory, viewset):
+    TipoCondicionIva.objects.create(descripcion="Exento")
+
+    request = factory.post("/type_condition_iva/", {"descripcion": "Exento"}, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+
+    response = viewset.create(drf_request)
+
+    assert response.status_code == 400
+    assert response.data["descripcion"] == ["Ya existe una condición de IVA con esa descripción."]
 
 
 #? ------------------------- UPDATE --------------------------

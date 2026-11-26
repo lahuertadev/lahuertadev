@@ -35,13 +35,13 @@ No incluye:
 - No se puede eliminar un cliente con facturas o pagos: se lo marca como inactivo.
 
 ## Pantallas involucradas
-- Listado de clientes (`/client`).
+- Listado de clientes (`/client`): solapas **Activos** e **Inactivos** debajo del título (entra en Activos). Muestra el nombre de fantasía (o la razón social si no tiene), cortado con "…" después de 28 caracteres, completo en el tooltip. Detalle, Editar y Eliminar van en la columna Acción.
 - Alta y edición (`/client/create`, `/client/edit/:id`).
 - Detalle (`/client/detail/:id`): en la sección Dirección muestra la de facturación y, en Entrega, la dirección de entrega o "Igual a la de facturación". En Contacto, todos los contactos.
 - En el listado, la columna Teléfono muestra el del primer contacto.
 
 ## Endpoints involucrados
-- `GET/POST /api/client/`, `GET/PUT/PATCH/DELETE /api/client/:id/`.
+- `GET/POST /api/client/`, `GET/PUT/PATCH/DELETE /api/client/:id/`. El listado acepta `cuit`, `searchQuery`, `address` y `state` (`ACTIVO` / `INACTIVO`).
 - `contactos`: lista de `{id, numero, descripcion, email}` (ver `contactos.md`).
 - Campos de la dirección de entrega: `domicilio_entrega` y `localidad_entrega`. Al guardar, la localidad llega como objeto de georef (con municipio y provincia) y el backend la crea si no existe, igual que la de facturación. En `null` significa que se entrega en la dirección de facturación.
 

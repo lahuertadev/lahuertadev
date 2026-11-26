@@ -1,11 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import IconButton from '@mui/material/IconButton';
-import Collapse from '@mui/material/Collapse';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -16,6 +11,8 @@ import { getTodayDate } from '../../../utils/date';
 import { useToast } from '../../../context/ToastContext';
 import Toast from '../../../components/Toast';
 import CountUp from '../../../components/CountUp';
+import CardListFooter from '../../../components/CardListFooter';
+import CollapsibleCard, { useCollapsedKeys } from '../../../components/CollapsibleCard';
 import BasicDatePicker from '../../../components/DatePicker';
 import AlertDialog from '../../../components/DialogAlert';
 import BuyBlock from '../shared/BuyBlock';
@@ -79,7 +76,7 @@ const CompraBulkForm = () => {
   const [buyDate, setBuyDate] = useState(getTodayDate);
   const [entries, setEntries] = useState(() => [createEntry()]);
   const existingSupplierIds = useExistingBuySuppliers(buyDate);
-  const [collapsedKeys, setCollapsedKeys] = useState([]);
+  const { isCollapsed, toggle, expand: expandEntries } = useCollapsedKeys();
 
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -103,11 +100,7 @@ const CompraBulkForm = () => {
 
   const removeEntry = (key) => setEntries((prev) => prev.filter((entry) => entry.key !== key));
 
-  const toggleCollapsed = (key) =>
-    setCollapsedKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
-
-  // Un bloque con errores se expande solo, para que el error no quede oculto.
-  const expandEntries = (keys) => setCollapsedKeys((prev) => prev.filter((key) => !keys.includes(key)));
+  // Un bloque con errores se expande solo (expandEntries), para que el error no quede oculto.
 
   const getExcludedSupplierIds = (key) =>
     entries
@@ -293,64 +286,23 @@ const CompraBulkForm = () => {
               <span className="font-bold text-on-surface pl-7 sm:pl-0">{formatCurrency(entry.savedBuy.importe)}</span>
             </div>
           ) : (
-            <div
+            <CollapsibleCard
               key={entry.key}
-              className={`rounded-xl border bg-surface-card overflow-hidden ${entry.serverErrors.length > 0 ? 'border-red-500/50' : 'border-border-subtle'}`}
+              position={position + 1}
+              title={entry.block.supplier?.nombre}
+              subtitle={entry.block.supplier && [
+                entry.block.supplier.mercado?.descripcion,
+                entry.block.supplier.puesto && `Puesto ${entry.block.supplier.puesto}`,
+                getMainPhone(entry.block.supplier.contactos),
+              ].filter(Boolean).join(' · ')}
+              placeholder="Elegí un proveedor"
+              amount={<CountUp value={calculateBlockTotals(entry.block).total} />}
+              itemLabel="proveedor"
+              collapsed={isCollapsed(entry.key)}
+              onToggle={() => toggle(entry.key)}
+              onRemove={pendingEntries.length > 1 ? () => removeEntry(entry.key) : undefined}
+              hasError={entry.serverErrors.length > 0}
             >
-              {/* Encabezado de la card: número, proveedor, total y compactar/expandir */}
-              <div
-                className={`flex items-center gap-3 px-3 sm:px-4 py-3 bg-surface-low/60 ${collapsedKeys.includes(entry.key) ? '' : 'border-b border-border-subtle'}`}
-              >
-                <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent">
-                  {position + 1}
-                </span>
-
-                <div className="min-w-0 flex-1">
-                  {entry.block.supplier ? (
-                    <>
-                      <p className="truncate font-semibold text-on-surface">{entry.block.supplier.nombre}</p>
-                      <p className="truncate text-xs text-on-surface-muted">
-                        {[
-                          entry.block.supplier.mercado?.descripcion,
-                          entry.block.supplier.puesto && `Puesto ${entry.block.supplier.puesto}`,
-                          getMainPhone(entry.block.supplier.contactos),
-                        ].filter(Boolean).join(' · ')}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-on-surface-muted">Elegí un proveedor</p>
-                  )}
-                </div>
-
-                <CountUp
-                  value={calculateBlockTotals(entry.block).total}
-                  className="flex-shrink-0 font-bold text-on-surface"
-                />
-
-                <IconButton
-                  size="small"
-                  onClick={() => toggleCollapsed(entry.key)}
-                  aria-label={collapsedKeys.includes(entry.key) ? 'Expandir proveedor' : 'Compactar proveedor'}
-                  aria-expanded={!collapsedKeys.includes(entry.key)}
-                  sx={{ color: 'var(--color-on-surface-muted)' }}
-                >
-                  <ExpandMoreIcon
-                    fontSize="small"
-                    sx={{
-                      transition: 'transform 200ms',
-                      transform: collapsedKeys.includes(entry.key) ? 'rotate(0deg)' : 'rotate(180deg)',
-                    }}
-                  />
-                </IconButton>
-
-                {pendingEntries.length > 1 && (
-                  <IconButton size="small" onClick={() => removeEntry(entry.key)} color="error" aria-label="Quitar proveedor">
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </div>
-
-              <Collapse in={!collapsedKeys.includes(entry.key)} timeout={200}>
               <div className="p-3 sm:p-4">
                 {entry.serverErrors.length > 0 && (
                   <div className="flex items-start gap-2 mb-4 p-3 rounded-lg border border-red-500/40 bg-red-500/10 text-sm text-on-surface">
@@ -373,27 +325,18 @@ const CompraBulkForm = () => {
                   compact
                 />
               </div>
-              </Collapse>
-            </div>
+            </CollapsibleCard>
           )
         )}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-4">
-        <button
-          type="button"
-          onClick={addEntry}
-          className="flex items-center gap-1 bg-transparent border-none text-blue-lahuerta text-sm font-medium cursor-pointer hover:underline hover:underline-offset-2 focus:outline-none"
-          style={{ background: 'transparent', boxShadow: 'none' }}
-        >
-          <AddCircleOutlineIcon fontSize="small" /> Agregar proveedor
-        </button>
-
-        <div className="text-right">
-          <span className="text-on-surface-muted text-sm mr-4">TOTAL DE LA CARGA</span>
-          <CountUp value={loadTotal} className="text-xl font-bold text-on-surface" />
-        </div>
-      </div>
+      <CardListFooter
+        addLabel="Agregar proveedor"
+        onAdd={addEntry}
+        totalLabel="TOTAL DE LA CARGA"
+        total={loadTotal}
+        className="mt-4"
+      />
 
       <AlertDialog
         open={showWarningsDialog}

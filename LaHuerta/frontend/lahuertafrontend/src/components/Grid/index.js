@@ -17,6 +17,8 @@ import RoundedCheckbox from '../RoundedCheckbox';
  *                         { field, headerName, flex?, width?, minWidth?, renderCell? }
  *                         Si una columna no tiene `flex` ni `width`, se le calcula
  *                         minWidth en base al header vs. el contenido más largo.
+ *                         truncateAtMaxChars: true corta el texto en MAX_CONTENT_CHARS caracteres con "…",
+ *                         en web y en mobile, y lo muestra completo en el tooltip (ej. nombres de clientes).
  *   onEdit            — (id) => void
  *   onDelete          — (id) => void
  *   onDetail          — (id) => void  (opcional — omitir para ocultar el botón)
@@ -90,17 +92,20 @@ function calculateColumnWidths(rows, columns, isMobile = false) {
 // contenido completo en un tooltip: al pasar el mouse en desktop, o manteniendo apretado
 // en mobile. En mobile el toque corto sigue abriendo el detalle; el toque largo que abrió
 // el tooltip no lo abre.
-function TruncatedCell({ value, align = 'left' }) {
+// maxChars: además del corte por ancho, corta el texto en esa cantidad de caracteres (igual en web y en mobile).
+function TruncatedCell({ value, align = 'left', maxChars }) {
   const [isTruncated, setIsTruncated] = React.useState(false);
   const isTouchingRef = React.useRef(false);
   const openedByLongPressRef = React.useRef(false);
   const text = value == null ? '' : String(value);
+  const cutByChars = maxChars != null && text.length > maxChars;
+  const shownText = cutByChars ? `${text.slice(0, maxChars).trimEnd()}…` : text;
 
   const checkTruncated = (e) => setIsTruncated(e.currentTarget.scrollWidth > e.currentTarget.clientWidth);
 
   return (
     <Tooltip
-      title={isTruncated ? text : ''}
+      title={isTruncated || cutByChars ? text : ''}
       placement="top"
       arrow
       enterTouchDelay={600}
@@ -129,7 +134,7 @@ function TruncatedCell({ value, align = 'left' }) {
         }}
         style={{ display: 'block', width: '100%', textAlign: align, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', WebkitTouchCallout: 'none' }}
       >
-        {text}
+        {shownText}
       </span>
     </Tooltip>
   );
@@ -137,7 +142,16 @@ function TruncatedCell({ value, align = 'left' }) {
 
 // Las columnas sin renderCell propio usan TruncatedCell.
 const withTruncatedCells = (columns) =>
-  columns.map((column) => (column.renderCell ? column : { ...column, renderCell: (params) => <TruncatedCell value={params.formattedValue ?? params.value} align={column.align} /> }));
+  columns.map((column) => (column.renderCell ? column : {
+    ...column,
+    renderCell: (params) => (
+      <TruncatedCell
+        value={params.formattedValue ?? params.value}
+        align={column.align}
+        maxChars={column.truncateAtMaxChars ? MAX_CONTENT_CHARS : undefined}
+      />
+    ),
+  }));
 
 // Botón redondo de 32px de la columna "Acción" agrupada (mismo diseño que DEV-142).
 const roundActionButtonSx = {

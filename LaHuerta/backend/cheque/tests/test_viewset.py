@@ -40,8 +40,9 @@ class FakeCheckRepo(ICheckRepository):
         self._items[numero] = obj
         return obj
 
-    def get_all(self, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None, tab=None):
+    def get_all(self, number=None, bank=None, state=None, endorsed=None, deposit_date_from=None, deposit_date_to=None, tab=None):
         self.last_tab = tab
+        self.last_number = number
         return list(self._items.values())
 
     def get_by_id(self, id):
@@ -124,6 +125,23 @@ def test_list_without_tab_passes_none(factory, viewset):
     viewset.list(drf_request)
 
     assert viewset.repository.last_tab is None
+
+
+def test_list_passes_number_to_repository(factory, viewset):
+    request = factory.get('/checks/', {'numero': '9001'})
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.list(drf_request)
+
+    assert response.status_code == 200
+    assert viewset.repository.last_number == '9001'
+
+
+def test_list_number_with_letters_returns_400(factory, viewset):
+    request = factory.get('/checks/', {'numero': '90a1'})
+    drf_request = Request(request, parsers=[JSONParser()])
+
+    with pytest.raises(ValidationError):
+        viewset.list(drf_request)
 
 
 def test_list_invalid_tab_returns_400(factory, viewset):
@@ -320,6 +338,20 @@ def test_destroy_cheque_registrado_en_un_pago_a_proveedor_devuelve_400(factory, 
 
     assert response.status_code == 400
     assert 'registro' in response.data['detail']
+    assert viewset.repository.get_by_id(1001) is not None
+
+
+def test_destroy_cheque_de_un_pago_de_cliente_indica_anular_el_pago(factory, viewset):
+    check = viewset.repository._add(1001)
+    check.pago_cliente_id = 7
+    check.pago_compra_id = None
+
+    request = factory.delete('/checks/1001/')
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.destroy(drf_request, pk=1001)
+
+    assert response.status_code == 400
+    assert 'anulá el pago' in response.data['detail']
     assert viewset.repository.get_by_id(1001) is not None
 
 

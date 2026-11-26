@@ -16,9 +16,20 @@ const PAYMENT_TYPE_CONFIG = {
 };
 
 export const columns = [
+  { field: 'number',  headerName: 'N° Pago', flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'date',    headerName: 'Fecha',   flex: 1, align: 'center', headerAlign: 'center', hiddenOnMobile: true },
   { field: 'client',  headerName: 'Cliente', flex: 2, align: 'center', headerAlign: 'center', mobileClickable: true },
-  { field: 'amount',  headerName: 'Importe', flex: 1, align: 'center', headerAlign: 'center' },
+  {
+    field: 'amount',
+    headerName: 'Importe',
+    flex: 1,
+    align: 'center',
+    headerAlign: 'center',
+    // Un pago anulado muestra su importe tachado: queda como registro pero no cuenta (como en Pagos de Compras).
+    renderCell: (params) => (params.row.isCancelled
+      ? <span className="line-through text-on-surface-muted">{params.value}</span>
+      : params.value),
+  },
   {
     field: 'paymentType',
     headerName: 'Tipo de pago',
@@ -30,11 +41,9 @@ export const columns = [
       const cfg = PAYMENT_TYPE_CONFIG[params.value];
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          {/* El aviso del cheque rechazado va adentro de la etiqueta, a la derecha: así todas quedan centradas igual. */}
+          {/* El aviso de cheques rechazados va adentro de la etiqueta, a la derecha: así todas quedan centradas igual. */}
           <Badge color={cfg} label={params.value}>
-            {params.row.chequeRechazado && (
-              <AlertIcon title="El cheque de este pago fue rechazado. La cuenta corriente del cliente ya fue revertida." size={15} />
-            )}
+            {params.row.rejectedChecksNotice && <AlertIcon title={params.row.rejectedChecksNotice} size={15} />}
           </Badge>
         </div>
       );

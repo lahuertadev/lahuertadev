@@ -9,6 +9,8 @@ export const CHECK_STATE_CONFIG = {
   'ACREDITADO': { label: 'Acreditado', ...BADGE_COLORS.green },
   'ENDOSADO':   { label: 'Endosado',   ...BADGE_COLORS.violet },
   'RECHAZADO':  { label: 'Rechazado',  ...BADGE_COLORS.red },
+  // Cheque de un pago de cliente anulado (DEV-155): queda como registro, fuera de la cartera.
+  'ANULADO':    { label: 'Anulado',    ...BADGE_COLORS.red },
 };
 
 export const columns = [

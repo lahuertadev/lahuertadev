@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import axios from 'axios';
 import { billUrl, billTypeUrl } from '../../../constants/urls';
 import { columns } from '../../../constants/grid/Factura';
@@ -87,6 +85,9 @@ const buildTabsData = (facturaOptions, remitoOptions) => [
   },
 ];
 
+// Detalle, Editar y Eliminar en una sola columna "Acción" (como Pagos de Clientes).
+const SHARED = { groupActions: true };
+
 const BillList = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
@@ -106,33 +107,22 @@ const BillList = () => {
 
   const current = tabsData[activeTab];
 
-  return (
-    <div className="w-full max-w-7xl mx-auto space-y-4">
-      <Tabs
-        data-tour="bill-tabs"
-        value={activeTab}
-        onChange={(_, newValue) => setActiveTab(newValue)}
-        sx={{
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          '& .MuiTab-root': {
-            textTransform: 'none',
-            fontWeight: 600,
-            fontSize: '0.875rem',
-          },
-        }}
-      >
-        {tabsData.map((tab, i) => (
-          <Tab key={i} label={tab.label} />
-        ))}
-      </Tabs>
+  // Solapas Facturas / Remitos debajo del título, como Vigentes / Anulados en Pagos de Clientes. Las maneja
+  // esta pantalla: cada una tiene su título, filtros y botón, y separa los comprobantes al mapear los datos.
+  const tabs = {
+    ariaLabel: 'Tipo de comprobante',
+    dataTour: 'bill-tabs',
+    options: tabsData.map((tab, i) => ({ label: tab.label, value: i })),
+    value: activeTab,
+    onChange: setActiveTab,
+  };
 
-      <GenericList
-        key={activeTab}
-        data={current.data}
-        onAdd={() => navigate('/bill/create')}
-      />
-    </div>
+  return (
+    <GenericList
+      key={activeTab}
+      data={{ ...current.data, ...SHARED, tabs }}
+      onAdd={() => navigate('/bill/create')}
+    />
   );
 };
 

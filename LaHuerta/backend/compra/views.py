@@ -33,7 +33,7 @@ class BuyViewSet(viewsets.ViewSet):
     def list(self, request):
         '''
         Lista todas las compras. Acepta filtros por proveedor_id, proveedor (supplier: puesto o nombre),
-        fechas e importe.
+        fechas, importe y payment_status (por_pagar: pendientes y parciales; abonadas).
         '''
         serializer = BuyQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
@@ -46,6 +46,7 @@ class BuyViewSet(viewsets.ViewSet):
                 importe_min=serializer.validated_data.get('importe_min'),
                 importe_max=serializer.validated_data.get('importe_max'),
                 supplier=serializer.validated_data.get('supplier'),
+                payment_status=serializer.validated_data.get('payment_status'),
             )
 
             response_serializer = BuyResponseSerializer(buys, many=True)

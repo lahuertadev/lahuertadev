@@ -5,7 +5,8 @@ import { columns } from '../../../constants/grid/Check';
 import { formatCurrency } from '../../../utils/currency';
 import { formatDate, getTodayDate } from '../../../utils/date';
 import GenericList from '../../../components/List';
-import Toast from '../../../components/Toast';
+import { useToast } from '../../../context/ToastContext';
+import { extractErrorMessage } from '../../../utils/errors';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
@@ -14,6 +15,13 @@ const ACTION_LABELS = {
   deposit: 'Depositar',
   credit:  'Acreditar',
   reject:  'Rechazar',
+};
+
+// Confirmación de cada acción, en el toast global (como Cheques propios).
+export const CHECK_ACTION_SUCCESS = {
+  deposit: 'El cheque se depositó correctamente.',
+  credit:  'El cheque se acreditó correctamente.',
+  reject:  'Se registró el rechazo del cheque.',
 };
 
 const isInWallet = (row) => row.stateRaw === 'EN_CARTERA';
@@ -50,6 +58,7 @@ export const CHECK_TABS = {
 };
 
 const FILTERS_CONFIG = [
+  { label: 'Número', name: 'numero', type: 'text' },
   { label: 'Banco', name: 'banco', type: 'text' },
   {
     label: 'Estado',
@@ -61,6 +70,7 @@ const FILTERS_CONFIG = [
       { name: 'Acreditado',  value: 'ACREDITADO' },
       { name: 'Endosado',    value: 'ENDOSADO'   },
       { name: 'Rechazado',   value: 'RECHAZADO'  },
+      { name: 'Anulado',     value: 'ANULADO'    },
     ],
   },
   {
@@ -78,15 +88,18 @@ const FILTERS_CONFIG = [
 
 const CheckList = () => {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [toast, setToast] = useState({ open: false, message: '' });
+  const { showToast } = useToast();
 
   const handleStateChange = async (action, checkId) => {
     try {
       await axios.post(`${checkUrl}${checkId}/${action}/`);
+      showToast(CHECK_ACTION_SUCCESS[action]);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      const msg = err?.response?.data?.detail || `Error al ${ACTION_LABELS[action].toLowerCase()} el cheque.`;
-      setToast({ open: true, message: msg });
+      showToast(
+        extractErrorMessage(err, `Error al ${ACTION_LABELS[action].toLowerCase()} el cheque.`),
+        { variant: 'error' },
+      );
     }
   };
 
@@ -139,12 +152,7 @@ const CheckList = () => {
     filtersConfig: FILTERS_CONFIG,
   };
 
-  return (
-    <>
-      <Toast open={toast.open} message={toast.message} onClose={() => setToast({ open: false, message: '' })} />
-      <GenericList refreshKey={refreshKey} data={data} />
-    </>
-  );
+  return <GenericList refreshKey={refreshKey} data={data} />;
 };
 
 export default CheckList;

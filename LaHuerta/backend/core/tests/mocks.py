@@ -278,15 +278,28 @@ def mock_bill(**overrides):
 
 
 def mock_client_payment(**overrides):
+    '''
+    Pago de cliente. Con cheques=[<mock>, ...], esos son sus cheques (payment.cheque_set.all()) y
+    cada uno queda con pago_cliente=payment.
+    '''
+    checks = overrides.pop('cheques', [])
     data = {
         'id': _next(),
         'fecha_pago': DEFAULT_DATE,
         'importe': Decimal('1000.00'),
         'observaciones': None,
+        'estado_pago': 'VIGENTE',
+        'fecha_anulacion': None,
+        'motivo_anulacion': None,
         'cliente': _related(overrides, 'cliente', mock_client),
         'tipo_pago': _related(overrides, 'tipo_pago', mock_payment_type),
     }
-    return _build(PagoCliente, data, overrides)
+    payment = _build(PagoCliente, data, overrides)
+    for check in checks:
+        check.pago_cliente = payment
+        check.pago_cliente_id = payment.id
+    payment.cheque_set.all.return_value = checks
+    return payment
 
 
 # --- Compras y pagos a proveedores ---

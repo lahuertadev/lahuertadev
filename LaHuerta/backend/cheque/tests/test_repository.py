@@ -70,6 +70,23 @@ class TestCheckRepository:
 
         assert list(result.values_list('id', flat=True)) == [galicia_check.id]
 
+    def test_get_all_filters_by_number_part(self):
+        first = self._make_cheque(900101)
+        second = self._make_cheque(900102)
+        self._make_cheque(555001)
+
+        result = self.repository.get_all(number='9001')
+
+        assert set(result.values_list('id', flat=True)) == {first.id, second.id}
+
+    def test_get_all_filters_by_full_number(self):
+        target = self._make_cheque(900102)
+        self._make_cheque(900101)
+
+        result = self.repository.get_all(number='900102')
+
+        assert list(result.values_list('id', flat=True)) == [target.id]
+
     # ------------------------- GET BY ID -----------------------
     def test_get_by_id_ok(self):
         cheque = self._make_cheque(1001)
@@ -108,6 +125,19 @@ class TestCheckRepository:
         cheque.save()
 
         assert self.repository.exists_duplicate(3001, self.banco, cliente, exclude_id=cheque.id) is False
+
+    def test_exists_duplicate_ignora_los_cheques_anulados(self):
+        # Un cheque de un pago anulado fue una carga equivocada: se puede volver a cargar.
+        cliente, payment = self._make_cliente_con_pago()
+        make_check(numero=3001, banco=self.banco, estado=make_check_state(descripcion='ANULADO'), pago_cliente=payment)
+
+        assert self.repository.exists_duplicate(3001, self.banco, cliente) is False
+
+    def test_exists_duplicate_cuenta_los_cheques_rechazados(self):
+        cliente, payment = self._make_cliente_con_pago()
+        make_check(numero=3001, banco=self.banco, estado=make_check_state(descripcion='RECHAZADO'), pago_cliente=payment)
+
+        assert self.repository.exists_duplicate(3001, self.banco, cliente) is True
 
     # ------------------------- CREATE --------------------------
     def test_create_ok(self):

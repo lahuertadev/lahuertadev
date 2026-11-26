@@ -13,21 +13,23 @@ import BasicDatePicker from '../../../components/DatePicker';
 import AmountInput from '../../../components/AmountInput';
 import PersonIcon from '@mui/icons-material/PersonOutline';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalanceOutlined';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import FormActions from '../../../components/FormActions';
 import PageHeader from '../../../components/PageHeader';
 import RequiredMark from '../../../components/RequiredMark';
-import Switch from '../../../components/Switch';
 import { TUTORIAL_EVENTS } from '../../../constants/tutorials';
+import { CHECK_PAYMENT_TYPE } from '../../../constants/clientPayment';
 import { emitTutorialEvent } from '../../../utils/tutorial';
+import { extractErrorMessage } from '../../../utils/errors';
 import { useToast } from '../../../context/ToastContext';
+import ClientPaymentChecks, { checksTotal, clientCheckFromApi, newClientCheck } from './ClientPaymentChecks';
 
 // ── Estilos reutilizables ─────────────────────────────────────────────────────
 const inputCls = (hasError) =>
   `w-full bg-surface-low px-3 py-2.5 rounded-lg border text-sm text-on-surface placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${
     hasError
-      ? 'border-red-400 ring-2 ring-red-100'
+      ? 'border-red-400 ring-1 ring-red-400'
       : 'border-border-subtle focus:border-blue-lahuerta/40 focus:ring-blue-lahuerta/10'
   }`;
 
@@ -48,6 +50,17 @@ const SectionCard = ({ icon, title, children, cols = 3 }) => (
 const FieldError = ({ error, touched }) =>
   touched && error ? <p className="mt-1 text-xs text-red-500">{error}</p> : null;
 
+const REQUIRED = 'Requerido';
+
+// En los cheques solo se muestran los errores de lo cargado (importe en cero, cheque repetido): los
+// obligatorios ya los marca el asterisco y Registrar queda deshabilitado hasta completarlos.
+const visibleCheckErrors = (checkErrors = {}) => Object.fromEntries(
+  Object.entries(checkErrors).map(([key, fields]) => [
+    key,
+    Object.fromEntries(Object.entries(fields).filter(([, message]) => message !== REQUIRED)),
+  ]),
+);
+
 const lockedSelectCls = 'w-full bg-field-locked px-3 py-2.5 rounded-lg border border-field-locked-border text-sm text-on-surface-muted cursor-not-allowed';
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -59,19 +72,15 @@ const ClientPaymentForm = () => {
     paymentDate: null,
     paymentType: '',
     observations: '',
-    chequeNumero: '',
-    chequeBanco: '',
-    chequeFechaEmision: null,
-    chequeDiferido: false,
-    chequeFechaDeposito: null,
+    checks: [newClientCheck()],
   });
 
   const { id } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [toast, setToast] = useState({ open: false, message: '' });
-  const [checkEndosado, setCheckEndosado] = useState(false);
-  // Al editar: el cliente y el importe con que se guardó el pago, para calcular cómo queda la cuenta corriente.
+  // Al editar: el cliente y el importe con que se guardó el pago, para calcular cómo queda la cuenta
+  // corriente, y si tenía cheques (entonces el cliente y el tipo de pago no se cambian).
   const [savedPayment, setSavedPayment] = useState(null);
 
   const loadInitialOptions = async () => {
@@ -96,20 +105,15 @@ const ClientPaymentForm = () => {
     try {
       const response = await axios.get(`${clientPaymentUrl}${id}/`);
       const data = response.data;
-      const check = data.cheque;
-      setCheckEndosado(!!check?.endosado);
-      setSavedPayment({ clientId: data.cliente.id, amount: data.importe });
+      const checks = data.cheques || [];
+      setSavedPayment({ clientId: data.cliente.id, amount: data.importe, hasChecks: checks.length > 0 });
       setInitialValues({
         client: data.cliente.id,
         amount: data.importe,
         paymentDate: data.fecha_pago,
         paymentType: data.tipo_pago.id,
         observations: data.observaciones || '',
-        chequeNumero: check?.numero || '',
-        chequeBanco: check?.banco || '',
-        chequeFechaEmision: check?.fecha_emision || null,
-        chequeDiferido: !!check?.fecha_deposito,
-        chequeFechaDeposito: check?.fecha_deposito || null,
+        checks: checks.length ? checks.map(clientCheckFromApi) : [newClientCheck()],
       });
     } catch (error) {
       console.error('Error al cargar el pago:', error);
@@ -126,44 +130,68 @@ const ClientPaymentForm = () => {
 
   const validationSchema = Yup.object({
     client: Yup.string().required('Requerido'),
-    amount: Yup.number().required('Requerido').positive('El importe debe ser mayor a cero'),
     paymentDate: Yup.date().nullable().required('Requerido'),
     paymentType: Yup.string().required('Requerido'),
   });
 
+  const isCheckType = (paymentTypeId) => selectOptions.paymentTypes.find(
+    (opt) => String(opt.value) === String(paymentTypeId)
+  )?.name === CHECK_PAYMENT_TYPE;
+
+  // Errores de cada cheque, por su key: campos obligatorios, importe y el mismo cheque dos veces.
+  const validateChecks = (checks) => {
+    const errors = {};
+    const seen = new Set();
+    checks.forEach((check) => {
+      const checkErrors = {};
+      if (!check.numero) checkErrors.numero = REQUIRED;
+      if (!check.banco) checkErrors.banco = REQUIRED;
+      if (!check.importe) checkErrors.importe = REQUIRED;
+      else if (!(parseFloat(check.importe) > 0)) checkErrors.importe = 'El importe debe ser mayor a cero';
+      if (!check.fechaEmision) checkErrors.fechaEmision = REQUIRED;
+      if (check.diferido && !check.fechaDeposito) checkErrors.fechaDeposito = REQUIRED;
+      const id = `${check.numero}-${check.banco}`;
+      if (check.numero && check.banco && seen.has(id)) checkErrors.numero = 'Este cheque ya está en el pago';
+      seen.add(id);
+      if (Object.keys(checkErrors).length) errors[check.key] = checkErrors;
+    });
+    return errors;
+  };
+
   const validate = (values) => {
     const errors = {};
-    const selected = selectOptions.paymentTypes.find(
-      (opt) => String(opt.value) === String(values.paymentType)
-    );
-    if (selected?.name === 'Cheque') {
-      if (!values.chequeNumero) errors.chequeNumero = 'Requerido';
-      if (!values.chequeBanco) errors.chequeBanco = 'Requerido';
-      if (!values.chequeFechaEmision) errors.chequeFechaEmision = 'Requerido';
-      if (values.chequeDiferido && !values.chequeFechaDeposito) errors.chequeFechaDeposito = 'Requerido';
+    if (isCheckType(values.paymentType)) {
+      const checkErrors = validateChecks(values.checks);
+      if (Object.keys(checkErrors).length) errors.checks = checkErrors;
+    } else if (!(parseFloat(values.amount) > 0)) {
+      errors.amount = values.amount ? 'El importe debe ser mayor a cero' : 'Requerido';
     }
     return errors;
   };
 
   const handleSubmit = async (values) => {
-    const selected = selectOptions.paymentTypes.find(
-      (opt) => String(opt.value) === String(values.paymentType)
-    );
-    const isCheck = selected?.name === 'Cheque';
+    const isCheck = isCheckType(values.paymentType);
 
     const payload = {
       cliente: values.client,
-      importe: values.amount,
       fecha_pago: values.paymentDate,
       tipo_pago: values.paymentType,
       observaciones: values.observations || null,
     };
 
+    // Con cheques, el importe del pago es la suma: lo calcula el backend. Los cheques que ya tenía el
+    // pago van con su id; los nuevos, sin id; los que no van se quitan.
     if (isCheck) {
-      payload.cheque_numero = values.chequeNumero;
-      payload.cheque_banco = values.chequeBanco;
-      payload.cheque_fecha_emision = values.chequeFechaEmision;
-      payload.cheque_fecha_deposito = values.chequeFechaDeposito || null;
+      payload.cheques = values.checks.map((check) => ({
+        ...(check.id ? { id: check.id } : {}),
+        numero: check.numero,
+        banco: check.banco,
+        importe: check.importe,
+        fecha_emision: check.fechaEmision,
+        fecha_deposito: check.diferido ? check.fechaDeposito : null,
+      }));
+    } else {
+      payload.importe = values.amount;
     }
 
     try {
@@ -177,8 +205,7 @@ const ClientPaymentForm = () => {
       navigate('/client-payment');
     } catch (error) {
       console.error('Error enviando el formulario:', error);
-      const msg = error?.response?.data?.detail || 'Error al guardar el pago.';
-      setToast({ open: true, message: msg });
+      setToast({ open: true, message: extractErrorMessage(error, 'Error al guardar el pago.') });
     }
   };
 
@@ -190,22 +217,21 @@ const ClientPaymentForm = () => {
       enableReinitialize
       onSubmit={handleSubmit}
     >
-      {({ values, errors, touched, handleChange, setFieldValue, isSubmitting }) => {
-        // Registrar se habilita cuando están todos los obligatorios (los del cheque, si es con cheque).
+      {({ values, errors, touched, handleChange, setFieldValue, isSubmitting, submitCount }) => {
+        // Registrar se habilita cuando están todos los obligatorios (los de los cheques, si es con cheques).
         const formComplete = validationSchema.isValidSync(values) && Object.keys(validate(values)).length === 0;
-        const selectedPaymentType = selectOptions.paymentTypes.find(
-          (opt) => String(opt.value) === String(values.paymentType)
-        );
-        const isCheckPayment = selectedPaymentType?.name === 'Cheque';
+        const isCheckPayment = isCheckType(values.paymentType);
+        // Un pago con cheques no cambia de cliente ni de tipo de pago: se anula y se carga de nuevo.
+        const lockedClientAndType = Boolean(savedPayment?.hasChecks);
+        const amount = isCheckPayment ? checksTotal(values.checks) : parseFloat(values.amount || 0);
+        const checkErrors = visibleCheckErrors(errors.checks);
         const selectedClient = selectOptions.clients.find((client) => String(client.id) === String(values.client)) || null;
         // Saldo del cliente (lo que debe) y cómo queda al guardar. Al editar, el saldo de hoy ya tiene
         // descontado este pago: si el cliente es el mismo, se suma lo que tenía y se resta lo nuevo.
         const currentBalance = selectedClient ? parseFloat(selectedClient.cuenta_corriente || 0) : null;
         const alreadyDiscounted = savedPayment && String(savedPayment.clientId) === String(values.client)
           ? parseFloat(savedPayment.amount || 0) : 0;
-        const balanceAfter = selectedClient
-          ? currentBalance + alreadyDiscounted - parseFloat(values.amount || 0)
-          : null;
+        const balanceAfter = selectedClient ? currentBalance + alreadyDiscounted - amount : null;
 
         return (
           <Form className="w-full max-w-7xl mx-auto space-y-8 pb-12">
@@ -226,11 +252,12 @@ const ClientPaymentForm = () => {
 
             {/* 1. Datos del pago */}
             <SectionCard icon={<PersonIcon sx={{ fontSize: 20 }} />} title="Datos del Pago" cols={3}>
-              {checkEndosado && (
-                <div className="md:col-span-3 flex items-start gap-3 px-4 py-3 rounded-lg border bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400">
-                  <WarningAmberIcon sx={{ fontSize: 18 }} className="shrink-0 mt-0.5" />
+              {lockedClientAndType && (
+                <div className="md:col-span-3 flex items-start gap-3 px-4 py-3 rounded-lg border bg-blue-lahuerta/5 border-blue-lahuerta/20 text-on-surface">
+                  <InfoOutlinedIcon sx={{ fontSize: 18 }} className="shrink-0 mt-0.5 text-blue-lahuerta" />
                   <p className="text-sm">
-                    Este cheque ya fue endosado a un proveedor. No se puede modificar el cliente, el importe, el tipo de pago ni los datos del cheque (número, banco, fechas).
+                    Es un pago con cheques: para cambiar el cliente o el tipo de pago, anulá el pago y cargalo de nuevo.
+                    Podés corregir los datos de los cheques, cambiar el importe de los que están en cartera, agregar cheques y quitar los que están en cartera.
                   </p>
                 </div>
               )}
@@ -243,7 +270,7 @@ const ClientPaymentForm = () => {
                   value={selectedClient}
                   onChange={(client) => setFieldValue('client', client ? client.id : '')}
                   hasError={touched.client && Boolean(errors.client)}
-                  disabled={checkEndosado}
+                  disabled={lockedClientAndType}
                 />
                 <FieldError error={errors.client} touched={touched.client} />
               </div>
@@ -256,20 +283,8 @@ const ClientPaymentForm = () => {
                 label={id ? 'Saldo al guardar los cambios' : 'Saldo después del pago'}
                 value={selectedClient ? formatCurrency(balanceAfter) : null}
                 highlight={Boolean(selectedClient)}
-                helpText="Cómo queda la cuenta corriente del cliente con este pago. Se actualiza al escribir el importe."
+                helpText="Cómo queda la cuenta corriente del cliente con este pago. Se actualiza al cargar el importe o los cheques."
               />
-              <div className="flex flex-col gap-1" data-tour="payment-amount">
-                <label className={labelCls}>Importe<RequiredMark /></label>
-                <AmountInput
-                  required
-                  name="amount"
-                  value={values.amount}
-                  onChange={(raw) => setFieldValue('amount', raw)}
-                  hasError={touched.amount && Boolean(errors.amount)}
-                  disabled={checkEndosado}
-                />
-                <FieldError error={errors.amount} touched={touched.amount} />
-              </div>
               <div className="flex flex-col gap-1" data-tour="payment-date">
                 <label className={labelCls}>Fecha de pago<RequiredMark /></label>
                 <BasicDatePicker
@@ -286,8 +301,8 @@ const ClientPaymentForm = () => {
                   aria-required="true"
                   value={values.paymentType}
                   onChange={(e) => setFieldValue('paymentType', e.target.value)}
-                  disabled={checkEndosado}
-                  className={checkEndosado ? lockedSelectCls : inputCls(touched.paymentType && errors.paymentType)}
+                  disabled={lockedClientAndType}
+                  className={lockedClientAndType ? lockedSelectCls : inputCls(touched.paymentType && errors.paymentType)}
                 >
                   <option value="">Seleccionar...</option>
                   {selectOptions.paymentTypes.map((opt) => (
@@ -296,7 +311,27 @@ const ClientPaymentForm = () => {
                 </select>
                 <FieldError error={errors.paymentType} touched={touched.paymentType} />
               </div>
-              <div className="flex flex-col gap-1 md:col-span-2">
+              {/* Con cheques, el importe es la suma de los cheques: no se escribe. */}
+              {isCheckPayment ? (
+                <ReadonlyField
+                  label="Importe"
+                  value={formatCurrency(amount)}
+                  helpText="Es la suma de los cheques del pago."
+                />
+              ) : (
+                <div className="flex flex-col gap-1" data-tour="payment-amount">
+                  <label className={labelCls}>Importe<RequiredMark /></label>
+                  <AmountInput
+                    required
+                    name="amount"
+                    value={values.amount}
+                    onChange={(raw) => setFieldValue('amount', raw)}
+                    hasError={(touched.amount || submitCount > 0) && Boolean(errors.amount)}
+                  />
+                  <FieldError error={errors.amount} touched={touched.amount || submitCount > 0} />
+                </div>
+              )}
+              <div className="flex flex-col gap-1 md:col-span-3">
                 <label className={labelCls}>Observaciones</label>
                 <input
                   name="observations"
@@ -309,94 +344,27 @@ const ClientPaymentForm = () => {
               </div>
             </SectionCard>
 
-            {/* 2. Datos del cheque (condicional) */}
+            {/* 2. Cheques (condicional): uno o más; el importe del pago es la suma */}
             {isCheckPayment && (
-              <div
+              <section
+                className="space-y-3"
                 data-tour="payment-check"
-                data-tour-complete={Boolean(
-                  values.chequeNumero && values.chequeBanco && values.chequeFechaEmision
-                  && (!values.chequeDiferido || values.chequeFechaDeposito),
-                )}
+                data-tour-complete={Object.keys(validateChecks(values.checks)).length === 0}
               >
-                <SectionCard icon={<AccountBalanceIcon sx={{ fontSize: 20 }} />} title="Datos del Cheque" cols={3}>
-                  <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Número<RequiredMark /></label>
-                    <input
-                      aria-required="true"
-                      name="chequeNumero"
-                      type="number"
-                      min="1"
-                      value={values.chequeNumero}
-                      onChange={handleChange}
-                      placeholder="Nº de cheque"
-                      disabled={checkEndosado}
-                      className={
-                        (checkEndosado ? lockedSelectCls : inputCls(touched.chequeNumero && errors.chequeNumero)) +
-                        ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
-                      }
-                    />
-                    <FieldError error={errors.chequeNumero} touched={touched.chequeNumero} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Banco<RequiredMark /></label>
-                    <select
-                      aria-required="true"
-                      value={values.chequeBanco}
-                      onChange={(e) => setFieldValue('chequeBanco', e.target.value)}
-                      disabled={checkEndosado}
-                      className={checkEndosado ? lockedSelectCls : inputCls(touched.chequeBanco && errors.chequeBanco)}
-                    >
-                      <option value="">Seleccionar...</option>
-                      {selectOptions.banks.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.name}</option>
-                      ))}
-                    </select>
-                    <FieldError error={errors.chequeBanco} touched={touched.chequeBanco} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className={labelCls}>Fecha de emisión<RequiredMark /></label>
-                    <BasicDatePicker
-                      required
-                      value={values.chequeFechaEmision}
-                      onChange={(date) => setFieldValue('chequeFechaEmision', date)}
-                      hasError={touched.chequeFechaEmision && Boolean(errors.chequeFechaEmision)}
-                      disabled={checkEndosado}
-                    />
-                    <FieldError error={errors.chequeFechaEmision} touched={touched.chequeFechaEmision} />
-                  </div>
-                  {/* Interruptor Sí/No con el mismo formato que "¿Se entrega en otra dirección?" de Clientes.
-                      La fecha de depósito aparece al lado, en la misma fila: la sección no cambia de alto
-                      (en mobile va debajo, como cualquier campo). */}
-                  <div className="flex flex-col gap-1">
-                    <label className={labelCls}>¿Es un cheque diferido?</label>
-                    <div className="flex items-center justify-between h-11 bg-surface-low/50 px-4 rounded-lg">
-                      <span className="text-sm font-medium text-on-surface-muted">{values.chequeDiferido ? 'Sí' : 'No'}</span>
-                      <Switch
-                        checked={values.chequeDiferido}
-                        disabled={checkEndosado}
-                        ariaLabel="Cheque diferido"
-                        onChange={(checked) => {
-                          setFieldValue('chequeDiferido', checked);
-                          if (!checked) setFieldValue('chequeFechaDeposito', null);
-                        }}
-                      />
-                    </div>
-                  </div>
-                  {values.chequeDiferido && (
-                    <div className="flex flex-col gap-1">
-                      <label className={labelCls}>Fecha de depósito<RequiredMark /></label>
-                      <BasicDatePicker
-                        required
-                        value={values.chequeFechaDeposito}
-                        onChange={(date) => setFieldValue('chequeFechaDeposito', date)}
-                        hasError={touched.chequeFechaDeposito && Boolean(errors.chequeFechaDeposito)}
-                        disabled={checkEndosado}
-                      />
-                      <FieldError error={errors.chequeFechaDeposito} touched={touched.chequeFechaDeposito} />
-                    </div>
-                  )}
-                </SectionCard>
-              </div>
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-blue-lahuerta"><AccountBalanceIcon sx={{ fontSize: 20 }} /></span>
+                  <h2 className="text-base font-semibold text-on-surface">Cheques</h2>
+                </div>
+                <p className="px-1 text-xs text-on-surface-muted">
+                  Cargá los cheques con que pagó el cliente; con "Agregar cheque" sumás otro.
+                </p>
+                <ClientPaymentChecks
+                  entries={values.checks}
+                  onChange={(checks) => setFieldValue('checks', checks)}
+                  banks={selectOptions.banks}
+                  errors={checkErrors}
+                />
+              </section>
             )}
 
             <FormActions

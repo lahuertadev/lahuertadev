@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, Paper, Typography, Button, CircularProgress, Tooltip, useMediaQuery } from '@mui/material';
+import { Box, Paper, Typography, CircularProgress, Tooltip, useMediaQuery } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -10,13 +10,15 @@ import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLongOutlined';
 import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
-import BasicSelect from '../../components/Select';
-import BasicDatePicker from '../../components/DatePicker';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import ClientAutocomplete from '../../components/ClientAutocomplete';
+import SpotlightButton from '../../components/SpotlightButton';
+import PeriodNavigator from './PeriodNavigator';
 import { clientUrl, clientReportUrl } from '../../constants/urls';
 import { useNavigate } from 'react-router-dom';
 import { breadcrumbsMap } from '../../constants/breadcrumbs';
 import { formatCurrency } from '../../utils/currency';
-import { formatDate } from '../../utils/date';
+import { formatDate, getTodayDate } from '../../utils/date';
 import '../../styles/print-reports.css';
 import logoLaHuerta from '../../assets/logo-lahuerta.jpg';
 
@@ -27,16 +29,14 @@ const PERIOD_OPTIONS = [
   { name: 'Anual',    value: 'anio' },
 ];
 
-const today = new Date().toISOString().split('T')[0];
-
 const ClientReport = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
   const breadcrumbs = breadcrumbsMap['/report'];
+  const today = getTodayDate();
   const [clients, setClients] = useState([]);
-  const [selectedClient, setSelectedClient] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState({ name: 'Mes', value: 'mes' });
-  const [refDate, setRefDate] = useState(today);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [period, setPeriod] = useState({ period: 'mes', date: today });
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -45,7 +45,7 @@ const ClientReport = () => {
   useEffect(() => {
     axios.get(clientUrl).then(res => {
       const data = res.data.results ?? res.data;
-      setClients(data.map(c => ({ name: c.razon_social, value: c.id })));
+      setClients(data);
     });
   }, []);
 
@@ -54,7 +54,7 @@ const ClientReport = () => {
     const originalTitle = document.title;
     const from = formatDate(report.date_from);
     const to = formatDate(report.date_to);
-    document.title = `Reporte ${selectedClient.name} ${from} al ${to}`;
+    document.title = `Reporte ${selectedClient.razon_social} ${from} al ${to}`;
     return () => { document.title = originalTitle; };
   }, [report, selectedClient]);
 
@@ -100,8 +100,8 @@ const ClientReport = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${clientReportUrl}${selectedClient.value}/`, {
-        params: { period: selectedPeriod.value, date: refDate },
+      const res = await axios.get(`${clientReportUrl}${selectedClient.id}/`, {
+        params: { period: period.period, date: period.date },
       });
       setReport(res.data);
     } catch (err) {
@@ -143,63 +143,37 @@ const ClientReport = () => {
             Análisis detallado de movimientos, facturación y saldos.
           </Typography>
         </div>
-        <Button
-          variant="contained"
-          startIcon={<PrintOutlinedIcon />}
+        <SpotlightButton
+          variant="primary"
           onClick={() => window.print()}
           disabled={!report}
-          sx={{ fontWeight: 600, whiteSpace: 'nowrap', ...(isMobile && { width: '100%', py: 1.5 }) }}
+          className="w-full sm:w-auto px-5 py-2.5 text-sm font-semibold whitespace-nowrap"
         >
-          {isMobile ? 'Guardar PDF' : 'Imprimir Reporte'}
-        </Button>
+          <PrintOutlinedIcon sx={{ fontSize: 18 }} /> {isMobile ? 'Guardar PDF' : 'Imprimir Reporte'}
+        </SpotlightButton>
       </div>
 
       {/* ── Filtros ── */}
-      <Paper className="report-filters no-print" sx={{ p: 2, mb: 3 }}>
+      <div className="report-filters no-print mb-6 rounded-xl border border-border-subtle bg-surface-card p-5 shadow-sm">
         <div className="report-filters-grid">
-          <BasicSelect
-            label="Cliente"
-            name="client"
-            value={selectedClient}
-            options={clients}
-            onChange={e => setSelectedClient(e.target.value)}
-          />
-          <BasicSelect
-            label="Período"
-            name="period"
-            value={selectedPeriod}
-            options={PERIOD_OPTIONS}
-            onChange={e => setSelectedPeriod(e.target.value)}
-          />
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-              <span style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-on-surface-muted)' }}>
-                Fecha de referencia
-              </span>
-              <Tooltip
-                title="Seleccioná cualquier fecha dentro del período que querés consultar. Por ejemplo, si elegís «Mes» y seleccionás el 15 de marzo, el reporte mostrará todo marzo."
-                placement="top"
-                arrow
-              >
-                <InfoOutlinedIcon sx={{ fontSize: 14, color: 'var(--color-on-surface-muted)', cursor: 'default' }} />
-              </Tooltip>
-            </div>
-            <BasicDatePicker
-              name="refDate"
-              value={refDate}
-              onChange={setRefDate}
-            />
+            <span className="report-filter-label">Cliente</span>
+            <ClientAutocomplete clients={clients} value={selectedClient} onChange={setSelectedClient} />
           </div>
-          <Button
-            variant="contained"
+          <div>
+            <span className="report-filter-label">Período</span>
+            <PeriodNavigator period={period.period} date={period.date} today={today} onChange={setPeriod} />
+          </div>
+          <SpotlightButton
+            variant="primary"
             onClick={handleApply}
             disabled={!selectedClient || loading}
-            sx={{ fontWeight: 600, height: 40, alignSelf: 'flex-end' }}
+            className="w-full sm:w-auto h-11 px-5 text-sm font-semibold whitespace-nowrap"
           >
-            Aplicar Filtros
-          </Button>
+            <CalendarMonthOutlinedIcon sx={{ fontSize: 18 }} /> Aplicar
+          </SpotlightButton>
         </div>
-      </Paper>
+      </div>
 
       {/* ── Loading / Error ── */}
       {loading && (
@@ -243,7 +217,7 @@ const ClientReport = () => {
             <div className="report-print-meta">
               <div>
                 <span className="report-print-meta-label">Cliente</span>
-                <span className="report-print-meta-value">{selectedClient?.name}</span>
+                <span className="report-print-meta-value">{selectedClient?.razon_social}</span>
               </div>
               <div>
                 <span className="report-print-meta-label">Período</span>
@@ -460,6 +434,8 @@ const ClientReport = () => {
                 <table className="report-table">
                   <thead>
                     <tr>
+                      {/* El N° de pago solo en la web: la impresión queda como estaba. */}
+                      {!isMobile && <th className="no-print">Nro</th>}
                       <th>Fecha</th>
                       <th>Medio</th>
                       <th className="text-right">Importe</th>
@@ -468,13 +444,14 @@ const ClientReport = () => {
                   <tbody>
                     {report.payments.length === 0 ? (
                       <tr>
-                        <td colSpan={3} className="text-center text-secondary">
+                        <td colSpan={isMobile ? 3 : 4} className="text-center text-secondary">
                           Sin pagos en el período
                         </td>
                       </tr>
                     ) : (
                       report.payments.map(p => (
                         <tr key={p.id}>
+                          {!isMobile && <td className="text-secondary no-print">#{p.id}</td>}
                           <td>{formatDate(p.fecha_pago)}</td>
                           <td>{p.tipo_pago?.descripcion ?? '—'}</td>
                           <td className="text-right font-bold">{formatCurrency(p.importe)}</td>
@@ -550,11 +527,11 @@ const ClientReport = () => {
             </tfoot>
           </table>
 
-          {/* ── Footer visual, fijo al pie de cada hoja ── */}
+          {/* ── Footer visual, fijo al pie de cada hoja (igual que el de la lista de precios) ── */}
           <div className="print-only report-print-footer">
-            <Typography variant="caption" color="text.secondary">
-              © {new Date().getFullYear()} La Huerta Agro Management · Documento de uso interno ·{' '}
-              {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+            <Typography variant="caption" component="span">Ciudadela, 3 de Febrero, Bs. As.</Typography>
+            <Typography variant="caption" component="span">
+              Fecha de impresión: {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
             </Typography>
           </div>
 

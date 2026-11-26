@@ -6,7 +6,6 @@ import axios from 'axios';
 import { loadOptions } from '../../../utils/selectOptions';
 import { extractErrorMessage } from '../../../utils/errors';
 import { clientUrl, ConditionIvaTypeUrl, provincesUrl, priceListUrl } from '../../../constants/urls';
-import Toast from '../../../components/Toast';
 import { useToast } from '../../../context/ToastContext';
 import BasicDatePicker from '../../../components/DatePicker';
 import BusinessIcon from '@mui/icons-material/BusinessOutlined';
@@ -20,7 +19,7 @@ import AmountInput from '../../../components/AmountInput';
 import Tooltip from '@mui/material/Tooltip';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import FormActions from '../../../components/FormActions';
-import BackButton from '../../../components/BackButton';
+import PageHeader from '../../../components/PageHeader';
 import Switch from '../../../components/Switch';
 import RequiredMark from '../../../components/RequiredMark';
 import ContactFields, { EMPTY_CONTACT, contactsSchema, toContactRows, toContactsPayload } from '../../../components/ContactFields';
@@ -261,7 +260,6 @@ const ClientForm = () => {
 
   const { id } = useParams();
   const navigate = useNavigate();
-  const [toast, setToast] = useState({ open: false, message: '' });
   const { showToast } = useToast();
 
   const loadInitialOptions = async () => {
@@ -414,7 +412,7 @@ const ClientForm = () => {
         setFieldError(field, message);
         setFieldTouched(field, true, false);
       });
-      setToast({ open: true, message: extractErrorMessage(error) });
+      showToast(extractErrorMessage(error), { variant: 'error' });
     }
   };
 
@@ -437,23 +435,15 @@ const ClientForm = () => {
         const { values, errors, touched, handleChange, setFieldValue, setFieldTouched, setValues, setTouched, isSubmitting } = formik;
         return (
           <Form className="w-full max-w-7xl mx-auto space-y-8 pb-12">
-            <Toast
-              open={toast.open}
-              message={toast.message}
-              onClose={() => setToast({ open: false, message: '' })}
-            />
 
-            {/* Breadcrumbs + Volver arriba a la derecha, separados del contenido con la misma línea que el pie */}
-            <div className="flex items-center justify-between gap-4 pb-4 border-b border-border-subtle">
-              <nav className="flex items-center flex-wrap gap-2 text-sm font-medium text-on-surface-muted">
-                <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/')}>Inicio</span>
-                <span className="text-xs">›</span>
-                <span className="whitespace-nowrap hover:text-accent cursor-pointer transition-colors" onClick={() => navigate('/client')}>Clientes</span>
-                <span className="text-xs">›</span>
-                <span className="text-on-surface font-semibold">{id ? 'Editar Cliente' : 'Nuevo Cliente'}</span>
-              </nav>
-              <BackButton onClick={() => navigate('/client')} className="shrink-0 px-5 py-2.5 text-sm" />
-            </div>
+            <PageHeader
+              breadcrumbs={[
+                { label: 'Inicio', path: '/' },
+                { label: 'Clientes', path: '/client' },
+                { label: id ? 'Editar Cliente' : 'Nuevo Cliente' },
+              ]}
+              onBack={() => navigate('/client')}
+            />
 
             {/* 1. Datos de la Empresa */}
             <SectionCard icon={<BusinessIcon sx={{ fontSize: 20 }} />} title="Datos de la Empresa">
@@ -676,6 +666,7 @@ const ClientForm = () => {
 
             <FormActions
               onCancel={() => navigate('/client')}
+              onBack={() => navigate('/client')}
               confirmType="submit"
               confirmLabel={isSubmitting ? 'Guardando...' : id ? 'Guardar cambios' : 'Registrar Cliente'}
               confirmDisabled={isSubmitting || !validationSchema.isValidSync(values)}

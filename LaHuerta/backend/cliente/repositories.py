@@ -1,11 +1,12 @@
 from .models import Cliente
 from .interfaces import IClientRepository
 from django.db.models import Q
+from .constants import ClientState
 
 
 class ClientRepository(IClientRepository):
 
-    def get_all_clients(self, cuit=None, searchQuery=None, address=None):
+    def get_all_clients(self, cuit=None, searchQuery=None, address=None, state=None):
         queryset = Cliente.objects.prefetch_related('contactos')
 
         if cuit:
@@ -22,6 +23,9 @@ class ClientRepository(IClientRepository):
                 Q(domicilio__icontains=address) |
                 Q(localidad__descripcion__icontains=address)
             )
+
+        if state:
+            queryset = queryset.filter(estado=state == ClientState.ACTIVE)
 
         return queryset
 

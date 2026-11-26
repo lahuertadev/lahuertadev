@@ -5,7 +5,10 @@ import { marketUrl } from '../../../constants/urls';
 const MarketList = () => (
   <SimpleCatalog
     url={marketUrl}
-    title="Mercado"
+    title="Mercados"
+    itemLabel="mercado"
+    newLabel="Nuevo mercado"
+    subtitle="Los mercados donde están los puestos de los proveedores."
     breadcrumbKey="/market"
     placeholder="Ej: Mercado Central"
     maxLength={50}
