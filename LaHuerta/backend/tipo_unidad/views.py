@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.viewsets import ViewSet
@@ -6,11 +8,14 @@ from .interfaces import IUnitTypeRepository
 from .repositories import UnitTypeRepository
 from .exceptions import (
     UnitTypeHasProductsException,
+    UnitTypeMeasurementLockedException,
     UnitTypeNotFoundException
 )
 from producto.repositories import ProductRepository
 from core.mixins import SystemProtectedMixin
 from core.exceptions import SystemEntityException
+
+logger = logging.getLogger(__name__)
 
 
 class UnitTypeViewSet(SystemProtectedMixin, ViewSet):
@@ -44,6 +49,7 @@ class UnitTypeViewSet(SystemProtectedMixin, ViewSet):
         except UnitTypeNotFoundException as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception:
+            logger.exception('Error al obtener tipo de unidad pk=%s', pk)
             return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def create(self, request):
@@ -74,20 +80,25 @@ class UnitTypeViewSet(SystemProtectedMixin, ViewSet):
 
             self._check_system_protected(unit_type)
 
-            serializer = UnitTypeSerializer(data=request.data)
+            serializer = UnitTypeSerializer(unit_type, data=request.data)
 
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            new_measurement_type = serializer.validated_data.get('tipo_medicion', unit_type.tipo_medicion)
+            if new_measurement_type != unit_type.tipo_medicion and ProductRepository().verify_products_with_unit_type_id(pk):
+                raise UnitTypeMeasurementLockedException('No se puede cambiar el tipo de medición: el tipo de unidad tiene productos asociados.')
 
             unit_type = self.repository.modify_unit_type(unit_type, serializer.validated_data)
             unit_type_serialized = UnitTypeSerializer(unit_type)
             return Response(unit_type_serialized.data, status=status.HTTP_200_OK)
             
-        except SystemEntityException as e:
+        except (SystemEntityException, UnitTypeMeasurementLockedException) as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except UnitTypeNotFoundException as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
+        except Exception:
+            logger.exception('Error al actualizar tipo de unidad pk=%s', pk)
             return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, pk=None):
@@ -117,5 +128,6 @@ class UnitTypeViewSet(SystemProtectedMixin, ViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except UnitTypeNotFoundException as e:
             return Response({'error': str(e)}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
+        except Exception:
+            logger.exception('Error al eliminar tipo de unidad pk=%s', pk)
             return Response({'error': 'Ocurrió un error inesperado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

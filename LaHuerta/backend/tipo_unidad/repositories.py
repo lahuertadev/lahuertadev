@@ -29,6 +29,8 @@ class UnitTypeRepository(IUnitTypeRepository):
         Modifica un tipo de unidad
         '''
         unit_type.descripcion = data.get('descripcion', unit_type.descripcion)
+        unit_type.abreviacion = data.get('abreviacion', unit_type.abreviacion)
+        unit_type.tipo_medicion = data.get('tipo_medicion', unit_type.tipo_medicion)
         unit_type.save()
         return unit_type
 
