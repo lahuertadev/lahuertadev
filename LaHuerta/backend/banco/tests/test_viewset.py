@@ -118,7 +118,7 @@ def test_create_duplicate_descripcion(factory, viewset):
     response = viewset.create(drf_request)
 
     assert response.status_code == 400
-    assert "descripcion" in response.data
+    assert response.data["descripcion"] == ["Ya existe un banco con esa descripción."]
 
 
 # ------------------------- UPDATE --------------------------
@@ -166,7 +166,7 @@ def test_update_duplicate_descripcion(factory, viewset):
     response = viewset.update(drf_request, pk=created.id)
 
     assert response.status_code == 400
-    assert "descripcion" in response.data
+    assert response.data["descripcion"] == ["Ya existe un banco con esa descripción."]
 
 
 # ------------------------- PARTIAL UPDATE ------------------

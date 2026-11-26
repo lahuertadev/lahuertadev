@@ -1,6 +1,6 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from .models import Banco
-from .exceptions import BankDescriptionAlreadyExistsException
 
 
 class BankCreateSerializer(serializers.ModelSerializer):
@@ -10,11 +10,11 @@ class BankCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banco
         fields = ['descripcion']
-
-    def validate_descripcion(self, value):
-        if Banco.objects.filter(descripcion=value).exists():
-            raise BankDescriptionAlreadyExistsException('La descripción ya se encuentra registrada.')
-        return value
+        extra_kwargs = {
+            'descripcion': {
+                'validators': [UniqueValidator(queryset=Banco.objects.all(), message='Ya existe un banco con esa descripción.')],
+            },
+        }
 
 
 class BankUpdateSerializer(serializers.ModelSerializer):
@@ -24,12 +24,11 @@ class BankUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Banco
         fields = ['descripcion']
-
-    def validate_descripcion(self, value):
-        instance = self.instance
-        if Banco.objects.filter(descripcion=value).exclude(id=instance.id).exists():
-            raise BankDescriptionAlreadyExistsException('La descripción ya se encuentra registrada.')
-        return value
+        extra_kwargs = {
+            'descripcion': {
+                'validators': [UniqueValidator(queryset=Banco.objects.all(), message='Ya existe un banco con esa descripción.')],
+            },
+        }
 
 
 class BankSerializer(serializers.ModelSerializer):

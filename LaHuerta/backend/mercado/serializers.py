@@ -1,6 +1,6 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from .models import Mercado
-from .exceptions import MarketDescriptionAlreadyExistsException
 
 
 class MarketCreateSerializer(serializers.ModelSerializer):
@@ -10,11 +10,11 @@ class MarketCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mercado
         fields = ['descripcion']
-
-    def validate_descripcion(self, value):
-        if Mercado.objects.filter(descripcion=value).exists():
-            raise MarketDescriptionAlreadyExistsException('La descripción ya se encuentra registrada.')
-        return value
+        extra_kwargs = {
+            'descripcion': {
+                'validators': [UniqueValidator(queryset=Mercado.objects.all(), message='Ya existe un mercado con esa descripción.')],
+            },
+        }
 
 
 class MarketUpdateSerializer(serializers.ModelSerializer):
@@ -24,12 +24,11 @@ class MarketUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mercado
         fields = ['descripcion']
-
-    def validate_descripcion(self, value):
-        instance = self.instance
-        if Mercado.objects.filter(descripcion=value).exclude(id=instance.id).exists():
-            raise MarketDescriptionAlreadyExistsException('La descripción ya se encuentra registrada.')
-        return value
+        extra_kwargs = {
+            'descripcion': {
+                'validators': [UniqueValidator(queryset=Mercado.objects.all(), message='Ya existe un mercado con esa descripción.')],
+            },
+        }
 
 
 class MarketSerializer(serializers.ModelSerializer):
