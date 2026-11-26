@@ -83,7 +83,7 @@ test('renombra en la misma tarjeta', async () => {
   expect(await screen.findByText('"Avellaneda Sur" se actualizó correctamente.')).toBeInTheDocument();
 });
 
-test('el error del backend al guardar queda en la tarjeta', async () => {
+test('el error del backend al guardar va en un toast y la tarjeta queda abierta', async () => {
   axios.post.mockRejectedValue({ response: { data: { descripcion: ['Ya existe un mercado con esa descripción.'] } } });
   await renderCatalog();
 
@@ -92,6 +92,17 @@ test('el error del backend al guardar queda en la tarjeta', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
 
   expect(await screen.findByText('Ya existe un mercado con esa descripción.')).toBeInTheDocument();
+  expect(screen.getByLabelText('Descripción')).toHaveValue('Central');
+});
+
+test('el error del backend al eliminar va en un toast', async () => {
+  axios.delete.mockRejectedValue({ response: { data: { error: 'El tipo de unidad seleccionado tiene productos asociados' } } });
+  await renderCatalog();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar Avellaneda' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Eliminar mercado' }));
+
+  expect(await screen.findByText('El tipo de unidad seleccionado tiene productos asociados')).toBeInTheDocument();
 });
 
 test('elimina después de confirmar', async () => {
@@ -99,7 +110,7 @@ test('elimina después de confirmar', async () => {
   await renderCatalog();
 
   fireEvent.click(screen.getByRole('button', { name: 'Eliminar Avellaneda' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Eliminar' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Eliminar mercado' }));
 
   await waitFor(() => expect(axios.delete).toHaveBeenCalledWith(`${URL}3/`));
   expect(await screen.findByText('"Avellaneda" se eliminó correctamente.')).toBeInTheDocument();
@@ -143,7 +154,15 @@ const renderUnitTypes = async () => {
   render(
     <ToastProvider>
       <MemoryRouter>
-        <Catalog url={UNIT_TYPE_URL} title="Tipos de unidad" itemLabel="tipo de unidad" newLabel="Nuevo tipo de unidad" fields={UNIT_TYPE_FIELDS} />
+        <Catalog
+          url={UNIT_TYPE_URL}
+          title="Tipos de unidad"
+          itemLabel="tipo de unidad"
+          newLabel="Nuevo tipo de unidad"
+          fields={UNIT_TYPE_FIELDS}
+          deleteEffects={['Deja de aparecer para elegir en el formulario de productos.']}
+          deleteNote="No se puede eliminar si algún producto tiene el tipo de unidad."
+        />
       </MemoryRouter>
     </ToastProvider>,
   );
@@ -201,7 +220,7 @@ test('edita en la tarjeta con los valores cargados y manda todos los campos', as
   await waitFor(() => expect(axios.put).toHaveBeenCalledWith(`${UNIT_TYPE_URL}2/`, { descripcion: 'Cajón', abreviacion: 'caj', tipo_medicion: 'PESO' }));
 });
 
-test('el error del backend al editar queda en la tarjeta', async () => {
+test('el error del backend al editar va en un toast', async () => {
   axios.put.mockRejectedValue({ response: { data: { error: 'No se puede cambiar el tipo de medición: el tipo de unidad tiene productos asociados.' } } });
   await renderUnitTypes();
 
@@ -219,4 +238,16 @@ test('el buscador también busca por abreviatura', async () => {
 
   expect(screen.getAllByRole('article')).toHaveLength(1);
   expect(screen.getByRole('article')).toHaveTextContent('Kilogramo');
+});
+
+test('el diálogo de eliminar dice qué pasa y cuándo no se puede', async () => {
+  await renderUnitTypes();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar Cajón' }));
+
+  const dialog = await screen.findByRole('dialog');
+  expect(dialog).toHaveTextContent('Se elimina Cajón. No se puede deshacer.');
+  expect(dialog).toHaveTextContent('Deja de aparecer para elegir en el formulario de productos.');
+  expect(dialog).toHaveTextContent('No se puede eliminar si algún producto tiene el tipo de unidad.');
+  expect(screen.getByRole('button', { name: 'Eliminar tipo de unidad' })).toBeInTheDocument();
 });
