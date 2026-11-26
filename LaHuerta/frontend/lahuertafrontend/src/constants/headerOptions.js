@@ -16,6 +16,7 @@ import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
+import StraightenOutlinedIcon from '@mui/icons-material/StraightenOutlined';
 
 const iconSx = { fontSize: 20 };
 
@@ -61,6 +62,7 @@ export const headerOptions = [
       { text: 'Bancos', icon: <AccountBalanceOutlinedIcon sx={iconSx} />, path: '/bank' },
       { text: 'Categorías', icon: <LocalOfferOutlinedIcon sx={iconSx} />, path: '/category' },
       { text: 'Condiciones de IVA', icon: <DescriptionOutlinedIcon sx={iconSx} />, path: '/condition-iva-type' },
+      { text: 'Tipos de unidad', icon: <StraightenOutlinedIcon sx={iconSx} />, path: '/unit-type' },
     ],
   },
   {

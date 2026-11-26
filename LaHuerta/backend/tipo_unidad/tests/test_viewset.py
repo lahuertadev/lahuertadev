@@ -29,6 +29,8 @@ class FakeRepo(IUnitTypeRepository):
 
     def modify_unit_type(self, unit_type, data):
         unit_type.descripcion = data.get("descripcion", unit_type.descripcion)
+        unit_type.abreviacion = data.get("abreviacion", unit_type.abreviacion)
+        unit_type.tipo_medicion = data.get("tipo_medicion", unit_type.tipo_medicion)
         return unit_type
 
     def destroy_unit_type(self, unit_type):
@@ -118,7 +120,41 @@ def test_create_duplicate_description_returns_bad_request(factory, viewset):
     response = viewset.create(drf_request)
 
     assert response.status_code == 400
-    assert "descripcion" in response.data
+    assert response.data["descripcion"] == ["Ya existe un tipo de unidad con esa descripción."]
+
+
+@pytest.mark.django_db
+def test_create_duplicate_abbreviation_returns_bad_request(factory, viewset):
+    make_unit_type(descripcion="Kilogramo", abreviacion="kg")
+
+    request = factory.post("/unit_type/", {"descripcion": "Kilo", "abreviacion": "KG", "tipo_medicion": "PESO"}, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.create(drf_request)
+
+    assert response.status_code == 400
+    assert response.data["abreviacion"] == ["Ya existe un tipo de unidad con esa abreviatura."]
+
+
+@pytest.mark.django_db
+def test_update_to_another_abbreviation_returns_duplicate_error(factory):
+    make_unit_type(descripcion="Bolsa", abreviacion="bol")
+    unit_type = make_unit_type(descripcion="Cajón", abreviacion="caj")
+    viewset = UnitTypeViewSet()
+
+    response = _put(factory, viewset, unit_type.id, {"descripcion": "Cajón", "abreviacion": "bol", "tipo_medicion": "CANTIDAD"})
+
+    assert response.status_code == 400
+    assert response.data["abreviacion"] == ["Ya existe un tipo de unidad con esa abreviatura."]
+
+
+@pytest.mark.django_db
+def test_create_without_abbreviation_returns_bad_request(factory, viewset):
+    request = factory.post("/unit_type/", {"descripcion": "Docena", "tipo_medicion": "CANTIDAD"}, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+    response = viewset.create(drf_request)
+
+    assert response.status_code == 400
+    assert "abreviacion" in response.data
 
 
 # ------------------------- UPDATE --------------------------
@@ -141,6 +177,84 @@ def test_update_success(factory, viewset):
 
     assert response.status_code == 200
     assert response.data["descripcion"] == "New"
+    assert response.data["abreviacion"] == "new"
+
+
+def _put(factory, viewset, unit_type_id, data):
+    request = factory.put(f"/unit_type/{unit_type_id}/", data, format="json")
+    drf_request = Request(request, parsers=[JSONParser()])
+    return viewset.update(drf_request, pk=unit_type_id)
+
+
+@pytest.mark.django_db
+def test_update_keeping_the_same_description_is_not_a_duplicate(factory):
+    unit_type = make_unit_type(descripcion="Cajón", abreviacion="caj")
+    viewset = UnitTypeViewSet()
+
+    response = _put(factory, viewset, unit_type.id, {"descripcion": "Cajón", "abreviacion": "cj", "tipo_medicion": "CANTIDAD"})
+
+    assert response.status_code == 200
+    unit_type.refresh_from_db()
+    assert unit_type.abreviacion == "cj"
+
+
+@pytest.mark.django_db
+def test_update_to_another_description_returns_duplicate_error(factory):
+    make_unit_type(descripcion="Bolsa")
+    unit_type = make_unit_type(descripcion="Cajón")
+    viewset = UnitTypeViewSet()
+
+    response = _put(factory, viewset, unit_type.id, {"descripcion": "Bolsa", "abreviacion": "bol", "tipo_medicion": "CANTIDAD"})
+
+    assert response.status_code == 400
+    assert response.data["descripcion"] == ["Ya existe un tipo de unidad con esa descripción."]
+
+
+@pytest.mark.django_db
+def test_update_system_record_is_blocked(factory, viewset):
+    unit_type = mock_unit_type(id=1, descripcion="Kilogramo", tipo_medicion="PESO", is_system=True)
+    viewset.repository._items[1] = unit_type
+
+    response = _put(factory, viewset, 1, {"descripcion": "Kilo", "abreviacion": "kg", "tipo_medicion": "PESO"})
+
+    assert response.status_code == 400
+    assert "sistema" in response.data["error"]
+
+
+@pytest.mark.django_db
+def test_update_measurement_type_blocked_when_it_has_products(factory, viewset):
+    created = viewset.repository.create_unit_type({"descripcion": "Cajón", "tipo_medicion": "CANTIDAD"})
+
+    with patch("tipo_unidad.views.ProductRepository") as PR:
+        PR.return_value.verify_products_with_unit_type_id.return_value = True
+        response = _put(factory, viewset, created.id, {"descripcion": "Cajón", "abreviacion": "caj", "tipo_medicion": "PESO"})
+
+    assert response.status_code == 400
+    assert response.data["error"] == "No se puede cambiar el tipo de medición: el tipo de unidad tiene productos asociados."
+    assert created.tipo_medicion == "CANTIDAD"
+
+
+@pytest.mark.django_db
+def test_update_measurement_type_allowed_without_products(factory, viewset):
+    created = viewset.repository.create_unit_type({"descripcion": "Cajón", "tipo_medicion": "CANTIDAD"})
+
+    with patch("tipo_unidad.views.ProductRepository") as PR:
+        PR.return_value.verify_products_with_unit_type_id.return_value = False
+        response = _put(factory, viewset, created.id, {"descripcion": "Cajón", "abreviacion": "caj", "tipo_medicion": "PESO"})
+
+    assert response.status_code == 200
+    assert response.data["tipo_medicion"] == "PESO"
+
+
+@pytest.mark.django_db
+def test_update_with_products_keeping_measurement_type_does_not_check_products(factory, viewset):
+    created = viewset.repository.create_unit_type({"descripcion": "Cajón", "tipo_medicion": "CANTIDAD"})
+
+    with patch("tipo_unidad.views.ProductRepository") as PR:
+        response = _put(factory, viewset, created.id, {"descripcion": "Cajón grande", "abreviacion": "caj", "tipo_medicion": "CANTIDAD"})
+
+    assert response.status_code == 200
+    PR.return_value.verify_products_with_unit_type_id.assert_not_called()
 
 
 # ------------------------- DELETE --------------------------

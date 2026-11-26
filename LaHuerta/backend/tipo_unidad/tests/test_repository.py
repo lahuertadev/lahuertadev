@@ -61,6 +61,15 @@ class TestUnitTypeRepository:
         item.refresh_from_db()
         assert item.descripcion == "New"
 
+    def test_modify_unit_type_saves_abbreviation_and_measurement_type(self):
+        item = make_unit_type(descripcion="Cajón", abreviacion="u", tipo_medicion="CANTIDAD")
+
+        self.repository.modify_unit_type(item, {"descripcion": "Cajón", "abreviacion": "caj", "tipo_medicion": "PESO"})
+
+        item.refresh_from_db()
+        assert item.abreviacion == "caj"
+        assert item.tipo_medicion == "PESO"
+
     # ------------------------- DELETE --------------------------
     def test_destroy_unit_type_ok(self):
         item = make_unit_type(descripcion="Eliminar")

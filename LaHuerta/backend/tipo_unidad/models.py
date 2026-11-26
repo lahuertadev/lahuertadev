@@ -1,11 +1,9 @@
 from django.db import models
+from .constants import MEASUREMENT_TYPE_CHOICES
 
 class TipoUnidad(models.Model):
 
-    TIPO_MEDICION_CHOICES = [
-        ('CANTIDAD', 'Cantidad'),
-        ('PESO', 'Peso'),
-    ]
+    TIPO_MEDICION_CHOICES = MEASUREMENT_TYPE_CHOICES
 
     descripcion = models.CharField(unique=True, max_length=20)
     abreviacion = models.CharField(max_length=5, default='u')

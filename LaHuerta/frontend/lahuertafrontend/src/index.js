@@ -38,6 +38,7 @@ import SupplierDetail from "./pages/proveedor/detail/SupplierDetail";
 import ProveedorForm from "./pages/proveedor/form/ProveedorForm";
 import MarketList from "./pages/mercado/list";
 import BankList from "./pages/banco";
+import UnitTypeList from "./pages/tipo_unidad/list";
 import CheckList from "./pages/cheque/list";
 import CheckForm from "./pages/cheque/form/CheckForm";
 import CheckDetail from "./pages/cheque/detail/CheckDetail";
@@ -248,6 +249,10 @@ const router = createBrowserRouter([
       {
         path: 'market',
         element: <MarketList />,
+      },
+      {
+        path: 'unit-type',
+        element: <UnitTypeList />,
       },
       {
         path: 'market/create',
